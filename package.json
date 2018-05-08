@@ -1,0 +1,38 @@
+{
+    "name": "cloudify",
+    "version": "0.0.1",
+    "description": "Serverless without the cruft.",
+    "main": "build/index.js",
+    "scripts": {
+        "build": "tsc",
+        "watch": "tsc --watch",
+        "test": "jest"
+    },
+    "author": "",
+    "license": "ISC",
+    "engines": {
+        "node": ">=6.11.0"
+    },
+    "dependencies": {
+        "axios": "*",
+        "googleapis": "*",
+        "human-stringify": "*",
+        "tslib": "*"
+    },
+    "devDependencies": {
+        "@types/express": "*",
+        "@types/jest": "*",
+        "@types/node": "*",
+        "jest": "*",
+        "ts-jest": "*",
+        "typescript": "*"
+    },
+    "jest": {
+        "transform": {
+            "^.+\\.tsx?$": "ts-jest"
+        },
+        "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
+        "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
+        "roots": ["test"]
+    }
+}

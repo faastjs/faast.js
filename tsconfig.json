@@ -1,0 +1,28 @@
+{
+    "compilerOptions": {
+        "outDir": "build",
+        "module": "commonjs",
+        "target": "es5",
+        "lib": ["es2017", "esnext.asynciterable"],
+        "sourceMap": true,
+        "allowJs": true,
+        "checkJs": false,
+        "moduleResolution": "node",
+        "forceConsistentCasingInFileNames": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "noImplicitAny": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "noFallthroughCasesInSwitch": true,
+        "allowUnreachableCode": false,
+        "allowUnusedLabels": false,
+        "noUnusedParameters": true,
+        //"noUnusedLocals": true,
+        "strict": true,
+        "noEmitHelpers": true,
+        "importHelpers": true,
+        "allowSyntheticDefaultImports": true
+    },
+    "include": ["src", "types"],
+    "exclude": ["node_modules", "build"]
+}
