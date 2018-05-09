@@ -2,10 +2,11 @@
     "name": "cloudify",
     "version": "0.0.1",
     "description": "Serverless without the cruft.",
-    "main": "build/index.js",
+    "main": "build/server.js",
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
+        "dist": "zip -r dist.zip package.json build",
         "test": "jest"
     },
     "author": "",
