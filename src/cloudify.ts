@@ -1,227 +1,188 @@
-// On the client
-
-import { google } from "googleapis";
-import { CloudFunctions, initializeGoogleAPIs } from "./google";
-import humanStringify from "human-stringify";
-import { sha256ofFile } from "./hash";
-import * as fs from "fs";
 import Axios from "axios";
+import * as fs from "fs";
+import * as process from "process";
+import humanStringify from "human-stringify";
+import { CloudFunctions, initializeGoogleAPIs } from "./google";
+import { sha256ofFile } from "./hash";
+import { FunctionCall, FunctionReturn } from "./functionserver";
 
-let cloudFunctions: CloudFunctions;
-
-const location = "us-central1";
-const zipFile = "dist.zip";
-const entryPoint = "trampoline";
-const funcName = "cloudify-trampoline";
-
-export interface FunctionCall {
-    name: string;
-    args: any[];
-}
-
-export interface FunctionReturn {
-    type: "returned" | "error";
-    message?: string;
-    value?: any;
-}
-
-export interface CreateFunctionWithZipFileOptions {
-    location: string;
-    funcName: string;
-    zipFile: string;
-    description: string;
-    entryPoint: string;
-    labels?: { [key: string]: string };
+export interface CloudOptions {
+    region?: string;
+    zipFile?: string;
+    description?: string;
+    entryPoint?: string;
     timeout?: number;
     availableMemoryMb?: number;
+    labels?: { [key: string]: string };
+    verbose?: boolean;
 }
 
-export async function createFunctionWithZipFile(
-    cloudFunctions: CloudFunctions,
-    {
-        location,
-        funcName,
-        zipFile,
-        description,
-        entryPoint,
-        labels = {},
-        timeout = 60,
-        availableMemoryMb = 256
-    }: CreateFunctionWithZipFileOptions
-) {
-    console.log(`Create cloud function`);
-    const funcPath = cloudFunctions.functionPath(location, funcName);
-    const locationPath = cloudFunctions.locationPath(location);
-    const sha256 = await sha256ofFile(zipFile);
+let cloudFunctionsApi: CloudFunctions | undefined;
+let trampoline!: string;
+let sha256!: string;
+let verbose: boolean = false;
 
-    console.log(`  funcPath: ${funcPath}`);
-    console.log(`  locationPath: ${locationPath}`);
-    const uploadUrlResponse = await cloudFunctions.generateUploaddUrl(locationPath);
-    console.log(`upload URL: ${uploadUrlResponse.uploadUrl}, zipFile: ${zipFile}`);
-    // upload ZIP file to uploadUrlResponse.uploadUrl
-    const putResult = await Axios.put(
-        uploadUrlResponse.uploadUrl!,
-        fs.createReadStream(zipFile),
-        {
-            headers: {
-                "content-type": "application/zip",
-                "x-goog-content-length-range": "0,104857600"
-            }
-        }
-    );
+function log(msg: string) {
+    verbose && console.log(msg);
+}
 
-    console.log(`Put response: ${putResult.statusText}`);
+function group() {
+    verbose && console.group();
+}
 
-    console.log(`creating function`);
+function groupEnd() {
+    verbose && console.groupEnd();
+}
 
-    // Split the hash into two labels because Google Cloud has a 64-character
-    // limit per label value.
-    const sha256p1 = sha256.slice(0, 32);
-    const sha256p2 = sha256.slice(32);
-
-    const functionRequest = {
-        name: funcPath,
-        description,
-        entryPoint,
-        timeout: `${timeout}s`,
-        availableMemoryMb,
-        sourceUploadUrl: uploadUrlResponse.uploadUrl,
-        httpsTrigger: { url: "" },
-        labels: { ...labels, sha256p1, sha256p2 }
-    };
-
-    const existingFunc = await cloudFunctions.getFunction(funcPath).catch(_ => undefined);
-    if (existingFunc) {
-        const {
-            labels: { sha256p1, sha256p2 }
-        } = existingFunc;
-        const previousHash = sha256p1 + sha256p2;
-        if (previousHash && previousHash === sha256) {
-            console.log(`Function unchanged, hash matches: ${previousHash}`);
-            return;
-        } else {
-            console.log(`Function exists but hashes differ`);
-            console.log(`Deleting function`);
-            console.group();
-            console.log(`funcPath: ${funcPath}`);
-            console.log(humanStringify(functionRequest));
-            console.groupEnd();
-            await cloudFunctions.deleteFunction(funcPath);
-        }
+export async function initCloudify({
+    region = "us-central1",
+    zipFile = "dist.zip",
+    description = "cloudify trampoline function",
+    entryPoint = "trampoline",
+    timeout = 60,
+    availableMemoryMb = 256,
+    labels = {},
+    verbose: verboseFlag = false
+}: CloudOptions = {}) {
+    verbose = verboseFlag;
+    if (cloudFunctionsApi) {
+        return;
     }
-    console.log(`Create function`);
-    console.group();
-    console.log(`locationPath: ${locationPath}`);
-    console.log(humanStringify(functionRequest));
-    console.groupEnd();
-    await cloudFunctions.createFunction(locationPath, functionRequest);
-}
-
-export async function init() {
     const google = await initializeGoogleAPIs();
     const project = await google.auth.getDefaultProjectId();
-    cloudFunctions = new CloudFunctions(google, project);
-    await createFunctionWithZipFile(cloudFunctions, {
-        location,
-        funcName,
-        zipFile,
-        description: funcName,
-        entryPoint
-    }).catch(err => console.error(`Error: ${err.message}`));
+    cloudFunctionsApi = new CloudFunctions(google, project, verbose);
+
+    log(`Create cloud function`);
+    sha256 = await sha256ofFile(zipFile);
+    const trampolineName = "cloudify-trampoline-" + sha256.slice(0, 24);
+    trampoline = cloudFunctionsApi.functionPath(region, trampolineName);
+    const locationPath = cloudFunctionsApi.locationPath(region);
+
+    log(`  trampoline: ${trampoline}`);
+    log(`  location: ${locationPath}`);
+    const uploadUrlResponse = await cloudFunctionsApi.generateUploaddUrl(locationPath);
+    const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, zipFile);
+    log(`Upload zip file response: ${uploadResult.statusText}`);
+
+    await checkExistingTrampolineFunction();
+
+    log(`Creating cloud function`);
+    const sha256a = sha256.slice(0, 32);
+    const sha256b = sha256.slice(32);
+
+    const functionRequest = {
+        name: trampoline,
+        description: description,
+        entryPoint: entryPoint,
+        timeout: `${timeout}s`,
+        availableMemoryMb: availableMemoryMb,
+        sourceUploadUrl: uploadUrlResponse.uploadUrl,
+        httpsTrigger: {},
+        labels: { ...labels, sha256a, sha256b }
+    };
+
+    log(`Create function`);
+    group();
+    log(`location: ${locationPath}`);
+    log(humanStringify(functionRequest));
+    groupEnd();
+    await cloudFunctionsApi
+        .createFunction(locationPath, functionRequest)
+        .catch(err => console.error(`Error: ${err.message}`));
 }
 
-export function cloudify<T, R>(fn: (arg: T) => Promise<R>): typeof fn;
+async function checkExistingTrampolineFunction() {
+    // It should be rare to get a trampoline collision because we include
+    // part of the sha256 hash as part of the name, but we check just in
+    // case.
+    const existingFunc = await cloudFunctionsApi!
+        .getFunction(trampoline)
+        .catch(_ => undefined);
+    if (existingFunc) {
+        const {
+            labels: { sha256a, sha256b }
+        } = existingFunc;
+        const previousHash = sha256a + sha256b;
+        if (previousHash && previousHash === sha256) {
+            log(`Function unchanged, hash matches: ${previousHash}`);
+            return;
+        } else {
+            throw new Error(`Cloudify trampoline function exists but hashes differ!`);
+        }
+    }
+}
 
-export function cloudify<T0, T1, R>(
-    fn: (a0: T0, a1: T1) => Promise<R>
-): (a0: T0, a1: T1) => Promise<R>;
+async function uploadZip(url: string, zipFile: string) {
+    return await Axios.put(url, fs.createReadStream(zipFile), {
+        headers: {
+            "content-type": "application/zip",
+            "x-goog-content-length-range": "0,104857600"
+        }
+    });
+}
 
-export function cloudify<T0, T1, T2, R>(
-    fn: (a0: T0, a1: T1, a2: T2) => Promise<R>
-): typeof fn;
+// prettier-ignore
+export function cloudify<T0, R>(fn: (a0: T0) => Promise<R>): typeof fn;
+// prettier-ignore
+export function cloudify<T0, T1, R>( fn: (a0: T0, a1: T1) => Promise<R> ): typeof fn;
+// prettier-ignore
+export function cloudify<T0, T1, T2, R>( fn: (a0: T0, a1: T1, a2: T2) => Promise<R> ): typeof fn;
+// prettier-ignore
+export function cloudify<T0, T1, T2, T3, R>( fn: (a0: T0, a1: T1, a2: T2, a3: T3) => Promise<R> ): typeof fn;
+// prettier-ignore
+export function cloudify<T0, T1, T2, T3, T4, R>( fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4) => Promise<R> ): typeof fn;
+// prettier-ignore
+export function cloudify<T0, T1, T2, T3, T4, T5, R>( fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) => Promise<R> ): typeof fn;
+// prettier-ignore
+export function cloudify<T0, T1, T2, T3, T4, T5, T6, R>( fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) => Promise<R> ): typeof fn;
+// prettier-ignore
+export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, R>( fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) => Promise<R> ): typeof fn;
+// prettier-ignore
+export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>( fn: ( a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8 ) => Promise<R> ): typeof fn;
+// prettier-ignore
+export function cloudify<T0, R>(fn: (a0: T0) => R): (arg: T0) => Promise<R>;
+// prettier-ignore
+export function cloudify<T0, T1, R>(fn: (a0: T0, a1: T1) => R): (a0: T0, a1: T1) => Promise<R>;
+// prettier-ignore
+export function cloudify<T0, T1, T2, R>(fn: (a0: T0, a1: T1, a2: T2) => R): (a0: T0, a1: T1, a2: T2) => Promise<R>;
+// prettier-ignore
+export function cloudify<T0, T1, T2, T3, R>(fn: (a0: T0, a1: T1, a2: T2, a3: T3) => R): (a0: T0, a1: T1, a2: T2, a3: T3) => Promise<R>;
+// prettier-ignore
+export function cloudify<T0, T1, T2, T3, T4, R>(fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4) => R): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4) => Promise<R>;
+// prettier-ignore
+export function cloudify<T0, T1, T2, T3, T4, T5, R>(fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) => R): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) => Promise<R>;
+// prettier-ignore
+export function cloudify<T0, T1, T2, T3, T4, T5, T6, R>(fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) => R): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) => Promise<R>;
+// prettier-ignore
+export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, R>(fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) => R): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) => Promise<R>;
+// prettier-ignore
+export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>(fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8) => R): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8) => Promise<R>;
 
-export function cloudify<T0, T1, T2, T3, R>(
-    fn: (a0: T0, a1: T1, a2: T2, a3: T3) => Promise<R>
-): typeof fn;
-
-export function cloudify<T0, T1, T2, T3, T4, R>(
-    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4) => Promise<R>
-): typeof fn;
-
-export function cloudify<T0, T1, T2, T3, T4, T5, R>(
-    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) => Promise<R>
-): typeof fn;
-
-export function cloudify<T0, T1, T2, T3, T4, T5, T6, R>(
-    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) => Promise<R>
-): typeof fn;
-
-export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, R>(
-    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) => Promise<R>
-): typeof fn;
-
-export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>(
-    fn: (
-        a0: T0,
-        a1: T1,
-        a2: T2,
-        a3: T3,
-        a4: T4,
-        a5: T5,
-        a6: T6,
-        a7: T7,
-        a8: T8
-    ) => Promise<R>
-): typeof fn;
-
-export function cloudify<T, R>(fn: (arg: T) => R): (arg: T) => Promise<R>;
-
-export function cloudify<T0, T1, R>(
-    fn: (a0: T0, a1: T1) => R
-): (a0: T0, a1: T1) => Promise<R>;
-
-export function cloudify<T0, T1, T2, R>(
-    fn: (a0: T0, a1: T1, a2: T2) => R
-): (a0: T0, a1: T1, a2: T2) => Promise<R>;
-
-export function cloudify<T0, T1, T2, T3, R>(
-    fn: (a0: T0, a1: T1, a2: T2, a3: T3) => R
-): (a0: T0, a1: T1, a2: T2, a3: T3) => Promise<R>;
-
-export function cloudify<T0, T1, T2, T3, T4, R>(
-    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4) => R
-): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4) => Promise<R>;
-
-export function cloudify<T0, T1, T2, T3, T4, T5, R>(
-    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) => R
-): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) => Promise<R>;
-
-export function cloudify<T0, T1, T2, T3, T4, T5, T6, R>(
-    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) => R
-): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) => Promise<R>;
-
-export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, R>(
-    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) => R
-): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) => Promise<R>;
-
-export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>(
-    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8) => R
-): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8) => Promise<R>;
-
+/**
+ *
+ * @param {(...args: any[]) => R} fn Parameters can be any value that can be JSON.stringify'd
+ * @returns {(...args: any[]) => Promise<R>} A return value that can be JSON.stringify'd
+ * @memberof CloudFactory
+ */
 export function cloudify<R>(fn: (...args: any[]) => R): (...args: any[]) => Promise<R> {
-    const funcPath = cloudFunctions.functionPath(location, funcName);
-
     return async (...args: any[]) => {
+        if (!cloudFunctionsApi) {
+            await initCloudify();
+            if (!cloudFunctionsApi) {
+                throw new Error(`Could not initialize cloud functions api`);
+            }
+        }
         let callArgs: FunctionCall = {
             name: fn.name,
             args
         };
         const callArgsStr = JSON.stringify(callArgs);
-        console.log(`[client] Calling cloud function with arg: ${callArgsStr}`);
-        const response = await cloudFunctions.callFunction(funcPath, callArgsStr);
+        log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`);
+        const response = await cloudFunctionsApi.callFunction(trampoline, callArgsStr);
         if (response.error) {
             throw new Error(response.error);
         }
+        log(`  returned: ${response.result}`);
         let returned: FunctionReturn = JSON.parse(response.result!);
         if (returned.type === "error") {
             throw new Error(returned.message);
@@ -230,7 +191,9 @@ export function cloudify<R>(fn: (...args: any[]) => R): (...args: any[]) => Prom
     };
 }
 
-export async function cleanup() {
-    // const funcPath = cloudFunctions.functionPath(location, funcName);
-    // await cloudFunctions.deleteFunction(funcPath);
+export async function cleanupCloudify() {
+    if (!cloudFunctionsApi) {
+        return;
+    }
+    await cloudFunctionsApi.deleteFunction(trampoline);
 }

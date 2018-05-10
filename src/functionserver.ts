@@ -1,6 +1,16 @@
 import { Request, Response } from "express";
 import humanStringify from "human-stringify";
-import { FunctionCall, FunctionReturn } from "./cloudify";
+
+export interface FunctionCall {
+    name: string;
+    args: any[];
+}
+
+export interface FunctionReturn {
+    type: "returned" | "error";
+    message?: string;
+    value?: any;
+}
 
 export type AnyFunction = (...args: any[]) => any;
 
@@ -16,7 +26,7 @@ export function registerFunction(fn: (...args: any[]) => any, name?: string) {
 
 export async function trampoline(request: Request, response: Response) {
     try {
-        const call = request.body;
+        const call = request.body as FunctionCall;
         console.log(`BODY: ${humanStringify(call)}`);
         if (!call) {
             throw new Error("Invalid function call request");

@@ -12,14 +12,6 @@ export async function initializeGoogleAPIs() {
     return google;
 }
 
-export function logFields<O, K extends keyof O>(obj: O, keys: K[]) {
-    console.group();
-    for (const key of keys) {
-        console.log(`${key}: ${humanStringify(obj[key])}`);
-    }
-    console.groupEnd();
-}
-
 export function sleep(ms: number) {
     return new Promise<void>(resolve => setTimeout(resolve, ms));
 }
@@ -57,7 +49,7 @@ export async function poll<T>({
     let retries = 0;
     await delay(retries);
     while (true) {
-        verbose && console.log(`Polling "${operation}"`);
+        verbose && console.log(`Polling ${operation}`);
         console.group();
         try {
             const result = await request();
@@ -101,23 +93,27 @@ export async function unwrap<T>(promise: AxiosPromise<T>) {
 export class CloudFunctions {
     gCloudFunctions: gcf.Cloudfunctions;
 
-    constructor(private google: GoogleApis, private project: string) {
+    constructor(
+        private google: GoogleApis,
+        private project: string,
+        public verbose: boolean = false
+    ) {
         this.gCloudFunctions = google.cloudfunctions("v1");
     }
 
-    async waitForOperation(operation: string | gcf.Schema$Operation) {
-        const name = typeof operation === "string" ? operation : operation.name!;
+    async waitForOperation(operation: gcf.Schema$Operation) {
+        const name = operation.name!;
         return poll({
             request: () => this.getOperation(name),
             checkDone: result => result.done || true,
             describe: result => `operation done: ${result.done || false}`,
-            operation: name,
-            verbose: true
+            operation: `${operation.metadata.type} on ${operation.metadata.target}`,
+            verbose: this.verbose
         });
     }
 
-    async waitForFunctionStatus(func: string | gcf.Schema$CloudFunction) {
-        const name = typeof func === "string" ? func : func.name;
+    async waitForFunctionStatus(func: gcf.Schema$CloudFunction) {
+        const name = func.name;
         if (!name) {
             return;
         }
@@ -126,8 +122,8 @@ export class CloudFunctions {
             checkDone: result =>
                 result.status! === "ACTIVE" || result.status! === "FAILED",
             describe: result => result.status!,
-            operation: name,
-            verbose: true
+            operation: `get func ${func.name}`,
+            verbose: this.verbose
         });
     }
 
@@ -181,8 +177,8 @@ export class CloudFunctions {
             checkDone: _ => false,
             operation: `checking existence of function ${path}`,
             describe: result => `function ${result.name} still exists`,
-            verbose: true
-        }).catch(_ => console.log(`Deleted function ${path}`));
+            verbose: this.verbose
+        }).catch(_ => this.verbose && console.log(`Deleted function ${path}`));
     }
 
     generateDownloadUrl(name: string, versionId?: string) {
@@ -247,7 +243,7 @@ export class CloudFunctions {
                 }, updateTime: ${result.updateTime}, previousUpdateTime: ${
                     previousFunc.updateTime
                 }`,
-            verbose: true,
+            verbose: this.verbose,
             operation: "Waiting for patched function"
         });
     }
