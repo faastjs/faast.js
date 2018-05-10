@@ -1,4 +1,4 @@
-import { cloudify, init } from "./cloudify";
+import { cloudify, init, cleanup } from "./cloudify";
 import { hello } from "./shared";
 
 async function client() {
@@ -6,6 +6,7 @@ async function client() {
     const remoteHello = cloudify(hello);
     const response = await remoteHello("Andy");
     console.log(`response: ${response}`);
+    await cleanup();
 }
 
 client();

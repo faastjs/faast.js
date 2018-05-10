@@ -1383,8 +1383,8 @@ http-signature@~1.2.0:
     sshpk "^1.7.0"
 
 human-stringify@*:
-  version "0.2.2"
-  resolved "https://registry.yarnpkg.com/human-stringify/-/human-stringify-0.2.2.tgz#21bec49c78dafea8c78134c7ca2bb8c4dc0ff8c7"
+  version "0.2.3"
+  resolved "https://registry.yarnpkg.com/human-stringify/-/human-stringify-0.2.3.tgz#395cfe779b52bf8641c1dab07e8688ff81366283"
 
 iconv-lite@0.4.19:
   version "0.4.19"

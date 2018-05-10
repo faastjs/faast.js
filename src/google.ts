@@ -1,5 +1,4 @@
-import Axios, { AxiosPromise } from "axios";
-import * as fs from "fs";
+import { AxiosPromise } from "axios";
 import { GoogleApis, cloudfunctions_v1 as gcf, google } from "googleapis";
 import humanStringify from "human-stringify";
 
@@ -42,8 +41,8 @@ export async function defaultPollDelay(_retries: number) {
     return sleep(5 * 1000);
 }
 
-export function defaultDescribe<T>(result: T) {
-    return humanStringify(result, { maxDepth: 1 });
+export function defaultDescribe<T>(result: T): string {
+    return humanStringify(result, { maxDepth: 2 });
 }
 
 export async function poll<T>({
@@ -59,21 +58,23 @@ export async function poll<T>({
     await delay(retries);
     while (true) {
         verbose && console.log(`Polling "${operation}"`);
-        const result = await request();
-        verbose &&
-            describe &&
-            console.log(`Polling "${operation}" response: ${describe(result)}`);
-        if (checkDone(result)) {
-            verbose && console.log(`Polling "${operation}" complete.`);
-            return result;
+        console.group();
+        try {
+            const result = await request();
+            verbose && describe && console.log(`response: ${describe(result)}`);
+            if (checkDone(result)) {
+                verbose && console.log(`Done.`);
+                return result;
+            }
+            if (retries++ >= maxRetries) {
+                verbose && console.log(`Timed out after ${retries} attempts.`);
+                return;
+            }
+            verbose && console.log(`not done, retrying...`);
+            await delay(retries);
+        } finally {
+            console.groupEnd();
         }
-        if (retries++ >= maxRetries) {
-            verbose &&
-                console.log(`Polling "${operation}" timed out after ${retries} attempts`);
-            return;
-        }
-        verbose && console.log(`Polling "${operation}" not complete, retrying...`);
-        await delay(retries);
     }
 }
 
@@ -106,11 +107,27 @@ export class CloudFunctions {
         this.project = project;
     }
 
-    async waitFor(operation: string | gcf.Schema$Operation) {
+    async waitForOperation(operation: string | gcf.Schema$Operation) {
         const name = typeof operation === "string" ? operation : operation.name!;
         return poll({
             request: () => this.getOperation(name),
             checkDone: result => result.done || true,
+            describe: result => `operation done: ${result.done}`,
+            operation: name,
+            verbose: true
+        });
+    }
+
+    async waitForFunctionStatus(func: string | gcf.Schema$CloudFunction) {
+        const name = typeof func === "string" ? func : func.name;
+        if (!name) {
+            return;
+        }
+        return poll({
+            request: () => this.getFunction(name),
+            checkDone: result =>
+                result.status! === "ACTIVE" || result.status! === "FAILED",
+            describe: result => result.status!,
             operation: name,
             verbose: true
         });
@@ -150,7 +167,8 @@ export class CloudFunctions {
             {}
         );
 
-        return this.waitFor(operation.data);
+        await this.waitForOperation(operation.data);
+        return this.waitForFunctionStatus(func);
     }
 
     async deleteFunction(path: string) {
@@ -158,7 +176,15 @@ export class CloudFunctions {
             name: path
         });
 
-        return this.waitFor(response.data);
+        await this.waitForOperation(response.data);
+        // // This waits until the function doesn't exist anymore.
+        await poll({
+            request: () => this.getFunction(path),
+            checkDone: _ => false,
+            operation: `checking existence of function ${path}`,
+            describe: result => `function ${result.name} still exists`,
+            verbose: true
+        }).catch(_ => console.log(`Deleted function ${path}`));
     }
 
     generateDownloadUrl(name: string, versionId?: string) {
@@ -201,111 +227,30 @@ export class CloudFunctions {
 
     async patchFunction(
         name: string,
-        updateMask: string,
-        func: gcf.Schema$CloudFunction
+        func: gcf.Schema$CloudFunction,
+        updateMask?: string
     ) {
+        console.warn(
+            `Patching cloud functions is not recommended - the update is not atomic.`
+        );
+        const previousFunc = await this.getFunction(name);
         const response = await this.gCloudFunctions.projects.locations.functions.patch({
             name,
             updateMask,
             requestBody: func
         });
-        return this.waitFor(response.data);
+        await this.waitForOperation(response.data);
+        await poll({
+            request: () => this.getFunction(name),
+            checkDone: result => result.versionId !== previousFunc.versionId,
+            describe: result =>
+                `version: ${result.versionId}, previous: ${
+                    previousFunc.versionId
+                }, updateTime: ${result.updateTime}, previousUpdateTime: ${
+                    previousFunc.updateTime
+                }`,
+            verbose: true,
+            operation: "Waiting for patched function"
+        });
     }
-
-    async createFunctionWithZipFile(
-        locationName: string,
-        funcName: string,
-        zipFile: string,
-        description: string,
-        entryPoint: string,
-        timeout?: number,
-        availableMemoryMb?: number
-    ) {
-        console.log(`Create cloud function`);
-        const funcPath = this.functionPath(locationName, funcName);
-        const locationPath = this.locationPath(locationName);
-        console.log(`  funcPath: ${funcPath}`);
-        console.log(`  locationPath: ${locationPath}`);
-        const uploadUrlResponse = await this.generateUploaddUrl(locationPath);
-        console.log(`upload URL: ${uploadUrlResponse.uploadUrl}, zipFile: ${zipFile}`);
-        // upload ZIP file to uploadUrlResponse.uploadUrl
-        const putResult = await Axios.put(
-            uploadUrlResponse.uploadUrl!,
-            fs.createReadStream(zipFile),
-            {
-                headers: {
-                    "content-type": "application/zip",
-                    "x-goog-content-length-range": "0,104857600"
-                }
-            }
-        );
-
-        console.log(`Put response: ${putResult.statusText}`);
-
-        console.log(`creating function`);
-
-        const functionRequest: gcf.Schema$CloudFunction = {
-            name: funcPath,
-            description,
-            entryPoint,
-            timeout: `${timeout || 60}s`,
-            availableMemoryMb,
-            sourceUploadUrl: uploadUrlResponse.uploadUrl,
-            httpsTrigger: { url: "" }
-        };
-        console.log(
-            `Create function: locationPath: ${locationPath}, ${humanStringify(
-                functionRequest
-            )}`
-        );
-        await this.createFunction(locationPath, functionRequest);
-    }
-}
-
-export async function main() {
-    const google = await initializeGoogleAPIs();
-    const project = await google.auth.getDefaultProjectId();
-    const cloudFunctions = new CloudFunctions(google, project);
-
-    const locationName = "us-central1";
-    //const locationName = "us-west1";
-    const funcName = "foo";
-    const zipFile = "dist.zip";
-    const description = `Example cloud function`;
-    const entryPoint = "entry";
-    const timeout = 60;
-    const availableMemoryMb = 512;
-    const funcPath = cloudFunctions.functionPath(locationName, funcName);
-
-    console.log(`Creating cloud function ${funcName}`);
-    await cloudFunctions
-        .createFunctionWithZipFile(
-            locationName,
-            funcName,
-            zipFile,
-            description,
-            entryPoint,
-            timeout,
-            availableMemoryMb
-        )
-        .catch(err => console.error(err.message));
-
-    console.log(`Listing cloud functions:`);
-    const responses = cloudFunctions.listFunctions(cloudFunctions.locationPath("-"));
-    for await (const response of responses) {
-        const functions = response.functions || [];
-        for (const func of functions) {
-            console.log(humanStringify(func, { maxDepth: 1 }));
-        }
-    }
-
-    console.log(`Calling cloud function ${funcName}`);
-    const callResponse = await cloudFunctions.callFunction(funcPath, "Andy");
-
-    console.log(`Response: ${callResponse.result}`);
-
-    console.log(`Deleting cloud function ${funcName}`);
-    await cloudFunctions.deleteFunction(funcPath);
-
-    console.log(`Done.`);
 }

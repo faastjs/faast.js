@@ -1,15 +1,6 @@
 import { Request, Response } from "express";
-
-export interface FunctionCall {
-    name: string;
-    args: any[];
-}
-
-export interface FunctionReturn {
-    type: "returned" | "error";
-    message?: string;
-    value?: any;
-}
+import humanStringify from "human-stringify";
+import { FunctionCall, FunctionReturn } from "./cloudify";
 
 export interface FunctionEntry {
     name: string;
@@ -35,7 +26,6 @@ export function registerFunction<A, R>(fn: (arg: A) => R, name?: string) {
 
 export async function trampoline(request: Request, response: Response) {
     try {
-        console.log(`FunctionServer request: ${request.originalUrl}`);
         const call = validate(request);
         if (!call) {
             throw new Error("Invalid function call request");
@@ -46,7 +36,9 @@ export async function trampoline(request: Request, response: Response) {
             throw new Error(`Function named "${call.name}" not found`);
         }
 
-        const rv = await fn.call(call.args);
+        console.log(`Args: ${humanStringify(call.args)}`);
+
+        const rv = await fn.call(undefined, call.args);
 
         response.send({
             type: "returned",
