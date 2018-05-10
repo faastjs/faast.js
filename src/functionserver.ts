@@ -2,21 +2,11 @@ import { Request, Response } from "express";
 import humanStringify from "human-stringify";
 import { FunctionCall, FunctionReturn } from "./cloudify";
 
-export interface FunctionEntry {
-    name: string;
-    fn: Function;
-}
-
 export type AnyFunction = (...args: any[]) => any;
 
-const funcs: FunctionEntry[] = [];
+const funcs: { [func: string]: AnyFunction } = {};
 
-function validate(request: Request): FunctionCall {
-    // XXX
-    return request.body;
-}
-
-export function registerFunction<A, R>(fn: (arg: A) => R, name?: string) {
+export function registerFunction(fn: (...args: any[]) => any, name?: string) {
     name = name || fn.name;
     if (!name) {
         throw new Error("Could not register function without name");
@@ -26,19 +16,22 @@ export function registerFunction<A, R>(fn: (arg: A) => R, name?: string) {
 
 export async function trampoline(request: Request, response: Response) {
     try {
-        const call = validate(request);
+        const call = request.body;
+        console.log(`BODY: ${humanStringify(call)}`);
         if (!call) {
             throw new Error("Invalid function call request");
         }
 
-        const fn = funcs[call.name];
-        if (!fn) {
+        const func = funcs[call.name];
+        if (!func) {
             throw new Error(`Function named "${call.name}" not found`);
         }
 
-        console.log(`Args: ${humanStringify(call.args)}`);
+        if (!call.args || !call.args.length) {
+            throw new Error("Invalid arguments to function call");
+        }
 
-        const rv = await fn.call(undefined, call.args);
+        const rv = await func.apply(undefined, call.args);
 
         response.send({
             type: "returned",

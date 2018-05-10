@@ -100,11 +100,9 @@ export async function unwrap<T>(promise: AxiosPromise<T>) {
 
 export class CloudFunctions {
     gCloudFunctions: gcf.Cloudfunctions;
-    project: string;
 
-    constructor(google: GoogleApis, project: string) {
+    constructor(private google: GoogleApis, private project: string) {
         this.gCloudFunctions = google.cloudfunctions("v1");
-        this.project = project;
     }
 
     async waitForOperation(operation: string | gcf.Schema$Operation) {
@@ -112,7 +110,7 @@ export class CloudFunctions {
         return poll({
             request: () => this.getOperation(name),
             checkDone: result => result.done || true,
-            describe: result => `operation done: ${result.done}`,
+            describe: result => `operation done: ${result.done || false}`,
             operation: name,
             verbose: true
         });

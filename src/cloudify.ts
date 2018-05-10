@@ -130,13 +130,91 @@ export async function init() {
     }).catch(err => console.error(`Error: ${err.message}`));
 }
 
-export function cloudify<A, R>(fn: (arg: A) => R) {
+export function cloudify<T, R>(fn: (arg: T) => Promise<R>): typeof fn;
+
+export function cloudify<T0, T1, R>(
+    fn: (a0: T0, a1: T1) => Promise<R>
+): (a0: T0, a1: T1) => Promise<R>;
+
+export function cloudify<T0, T1, T2, R>(
+    fn: (a0: T0, a1: T1, a2: T2) => Promise<R>
+): typeof fn;
+
+export function cloudify<T0, T1, T2, T3, R>(
+    fn: (a0: T0, a1: T1, a2: T2, a3: T3) => Promise<R>
+): typeof fn;
+
+export function cloudify<T0, T1, T2, T3, T4, R>(
+    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4) => Promise<R>
+): typeof fn;
+
+export function cloudify<T0, T1, T2, T3, T4, T5, R>(
+    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) => Promise<R>
+): typeof fn;
+
+export function cloudify<T0, T1, T2, T3, T4, T5, T6, R>(
+    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) => Promise<R>
+): typeof fn;
+
+export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, R>(
+    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) => Promise<R>
+): typeof fn;
+
+export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>(
+    fn: (
+        a0: T0,
+        a1: T1,
+        a2: T2,
+        a3: T3,
+        a4: T4,
+        a5: T5,
+        a6: T6,
+        a7: T7,
+        a8: T8
+    ) => Promise<R>
+): typeof fn;
+
+export function cloudify<T, R>(fn: (arg: T) => R): (arg: T) => Promise<R>;
+
+export function cloudify<T0, T1, R>(
+    fn: (a0: T0, a1: T1) => R
+): (a0: T0, a1: T1) => Promise<R>;
+
+export function cloudify<T0, T1, T2, R>(
+    fn: (a0: T0, a1: T1, a2: T2) => R
+): (a0: T0, a1: T1, a2: T2) => Promise<R>;
+
+export function cloudify<T0, T1, T2, T3, R>(
+    fn: (a0: T0, a1: T1, a2: T2, a3: T3) => R
+): (a0: T0, a1: T1, a2: T2, a3: T3) => Promise<R>;
+
+export function cloudify<T0, T1, T2, T3, T4, R>(
+    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4) => R
+): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4) => Promise<R>;
+
+export function cloudify<T0, T1, T2, T3, T4, T5, R>(
+    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) => R
+): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) => Promise<R>;
+
+export function cloudify<T0, T1, T2, T3, T4, T5, T6, R>(
+    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) => R
+): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) => Promise<R>;
+
+export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, R>(
+    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) => R
+): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) => Promise<R>;
+
+export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>(
+    fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8) => R
+): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8) => Promise<R>;
+
+export function cloudify<R>(fn: (...args: any[]) => R): (...args: any[]) => Promise<R> {
     const funcPath = cloudFunctions.functionPath(location, funcName);
 
-    return async (arg: A) => {
+    return async (...args: any[]) => {
         let callArgs: FunctionCall = {
             name: fn.name,
-            args: [arg]
+            args
         };
         const callArgsStr = JSON.stringify(callArgs);
         console.log(`[client] Calling cloud function with arg: ${callArgsStr}`);
