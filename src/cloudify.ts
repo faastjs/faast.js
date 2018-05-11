@@ -5,6 +5,7 @@ import humanStringify from "human-stringify";
 import { CloudFunctions, initializeGoogleAPIs } from "./google";
 import { sha256ofFile } from "./hash";
 import { FunctionCall, FunctionReturn } from "./functionserver";
+import * as webpack from "webpack";
 
 export interface CloudOptions {
     region?: string;
@@ -48,6 +49,10 @@ export async function initCloudify({
     if (cloudFunctionsApi) {
         return;
     }
+
+    // XXX Attempt to use webpack...
+    // const webpackCompiler = webpack({mode: "development", entry: "server.js"});
+
     const google = await initializeGoogleAPIs();
     const project = await google.auth.getDefaultProjectId();
     cloudFunctionsApi = new CloudFunctions(google, project, verbose);

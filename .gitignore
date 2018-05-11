@@ -63,3 +63,4 @@ build/
 out
 out.*
 dist.zip
+dist/
