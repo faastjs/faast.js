@@ -1,11 +1,11 @@
 import Axios from "axios";
 import * as fs from "fs";
-import * as process from "process";
 import humanStringify from "human-stringify";
+import { FunctionCall, FunctionReturn } from "./functionserver";
 import { CloudFunctions, initializeGoogleAPIs } from "./google";
 import { sha256ofFile } from "./hash";
-import { FunctionCall, FunctionReturn } from "./functionserver";
-import * as webpack from "webpack";
+import { packer } from "./packer";
+import { Readable } from "stream";
 
 export interface CloudOptions {
     region?: string;
@@ -20,7 +20,7 @@ export interface CloudOptions {
 
 let cloudFunctionsApi: CloudFunctions | undefined;
 let trampoline!: string;
-let sha256!: string;
+let sha256: string = "abc"; // XXX
 let verbose: boolean = false;
 
 function log(msg: string) {
@@ -37,7 +37,6 @@ function groupEnd() {
 
 export async function initCloudify({
     region = "us-central1",
-    zipFile = "dist.zip",
     description = "cloudify trampoline function",
     entryPoint = "trampoline",
     timeout = 60,
@@ -50,15 +49,16 @@ export async function initCloudify({
         return;
     }
 
-    // XXX Attempt to use webpack...
-    // const webpackCompiler = webpack({mode: "development", entry: "server.js"});
+    const archive = await packer(__filename, { verbose });
 
     const google = await initializeGoogleAPIs();
     const project = await google.auth.getDefaultProjectId();
     cloudFunctionsApi = new CloudFunctions(google, project, verbose);
 
     log(`Create cloud function`);
-    sha256 = await sha256ofFile(zipFile);
+
+    // XXX
+    //sha256 = await sha256ofFile(zipFile);
     const trampolineName = "cloudify-trampoline-" + sha256.slice(0, 24);
     trampoline = cloudFunctionsApi.functionPath(region, trampolineName);
     const locationPath = cloudFunctionsApi.locationPath(region);
@@ -66,7 +66,7 @@ export async function initCloudify({
     log(`  trampoline: ${trampoline}`);
     log(`  location: ${locationPath}`);
     const uploadUrlResponse = await cloudFunctionsApi.generateUploaddUrl(locationPath);
-    const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, zipFile);
+    const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, archive);
     log(`Upload zip file response: ${uploadResult.statusText}`);
 
     await checkExistingTrampolineFunction();
@@ -117,8 +117,8 @@ async function checkExistingTrampolineFunction() {
     }
 }
 
-async function uploadZip(url: string, zipFile: string) {
-    return await Axios.put(url, fs.createReadStream(zipFile), {
+async function uploadZip(url: string, zipStream: Readable) {
+    return await Axios.put(url, zipStream, {
         headers: {
             "content-type": "application/zip",
             "x-goog-content-length-range": "0,104857600"

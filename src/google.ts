@@ -105,24 +105,19 @@ export class CloudFunctions {
         const name = operation.name!;
         return poll({
             request: () => this.getOperation(name),
-            checkDone: result => result.done || true,
-            describe: result => `operation done: ${result.done || false}`,
+            checkDone: result => {
+                if (result.error) {
+                    const err = result.error;
+                    let msg = err.message;
+                    if (err.details) {
+                        msg += "\n" + err.details.join("\n");
+                    }
+                    throw new Error(msg);
+                }
+                return result.done || false;
+            },
+            describe: result => `${result.done || false}`,
             operation: `${operation.metadata.type} on ${operation.metadata.target}`,
-            verbose: this.verbose
-        });
-    }
-
-    async waitForFunctionStatus(func: gcf.Schema$CloudFunction) {
-        const name = func.name;
-        if (!name) {
-            return;
-        }
-        return poll({
-            request: () => this.getFunction(name),
-            checkDone: result =>
-                result.status! === "ACTIVE" || result.status! === "FAILED",
-            describe: result => result.status!,
-            operation: `get func ${func.name}`,
             verbose: this.verbose
         });
     }
@@ -162,7 +157,6 @@ export class CloudFunctions {
         );
 
         await this.waitForOperation(operation.data);
-        return this.waitForFunctionStatus(func);
     }
 
     async deleteFunction(path: string) {
