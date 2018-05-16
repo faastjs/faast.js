@@ -1,11 +1,9 @@
 import Axios from "axios";
 import * as fs from "fs";
 import humanStringify from "human-stringify";
-import { FunctionCall, FunctionReturn } from "./functionserver";
-import { CloudFunctions, initializeGoogleAPIs } from "./google";
-import { sha256ofFile } from "./hash";
-import { packer } from "./packer";
 import { Readable } from "stream";
+import { FunctionCall, FunctionReturn, packer } from "./functionserver";
+import { CloudFunctions, initializeGoogleAPIs } from "./google";
 
 export interface CloudOptions {
     region?: string;
@@ -49,8 +47,7 @@ export async function initCloudify({
         return;
     }
 
-    const archive = await packer(__filename, { verbose });
-
+    const archive = await packer({ verbose });
     const google = await initializeGoogleAPIs();
     const project = await google.auth.getDefaultProjectId();
     cloudFunctionsApi = new CloudFunctions(google, project, verbose);
@@ -202,3 +199,11 @@ export async function cleanupCloudify() {
     }
     await cloudFunctionsApi.deleteFunction(trampoline);
 }
+
+async function testPacker() {
+    const output = fs.createWriteStream("dist.zip");
+    const archive = await packer({ verbose: true });
+    archive.pipe(output);
+}
+
+// testPacker();

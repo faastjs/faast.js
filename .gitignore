@@ -65,3 +65,4 @@ out.*
 dist.zip
 dist/
 main.js
+tmp/

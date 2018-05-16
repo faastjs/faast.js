@@ -116,7 +116,7 @@ export class CloudFunctions {
                 }
                 return result.done || false;
             },
-            describe: result => `${result.done || false}`,
+            describe: result => `done? ${result.done || false}`,
             operation: `${operation.metadata.type} on ${operation.metadata.target}`,
             verbose: this.verbose
         });

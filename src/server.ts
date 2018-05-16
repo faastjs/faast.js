@@ -6,4 +6,3 @@ registerFunction(fact);
 registerFunction(hello);
 registerFunction(concat);
 console.log(`Registered functions`);
-export { trampoline };
