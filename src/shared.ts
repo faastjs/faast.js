@@ -1,5 +1,5 @@
 export function hello(name: string) {
-    return `Hello ${name}! (again15)`;
+    return `Hello ${name}!`;
 }
 
 export function fact(n: number): number {

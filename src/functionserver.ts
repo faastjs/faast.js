@@ -69,13 +69,13 @@ export interface PackerOptions {
 
 const prefix = "/dist";
 
-export async function packer({
-    verbose = false,
-    webpackOptions = {}
-}: PackerOptions = {}) {
+export async function packer(
+    entry: string,
+    { verbose = false, webpackOptions = {} }: PackerOptions = {}
+) {
     verbose && console.log(`Running webpack`);
     const defaultWebpackConfig: webpack.Configuration = {
-        entry: __filename,
+        entry,
         mode: verbose ? "development" : "production",
         output: {
             path: "/",
@@ -137,5 +137,4 @@ export async function packer({
 let fname = __filename; // defeat constant propagation; __filename is different in webpack bundles.
 if (fname === "/index.js") {
     console.log(`Execution context within webpack bundle!`);
-    // process.exit(-1);
 }

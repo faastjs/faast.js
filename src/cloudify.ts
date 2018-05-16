@@ -3,6 +3,7 @@ import * as fs from "fs";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import { FunctionCall, FunctionReturn, packer } from "./functionserver";
+import { serverFile } from "./server";
 import { CloudFunctions, initializeGoogleAPIs } from "./google";
 
 export interface CloudOptions {
@@ -47,7 +48,7 @@ export async function initCloudify({
         return;
     }
 
-    const archive = await packer({ verbose });
+    const archive = await packer(serverFile(), { verbose });
     const google = await initializeGoogleAPIs();
     const project = await google.auth.getDefaultProjectId();
     cloudFunctionsApi = new CloudFunctions(google, project, verbose);
@@ -202,8 +203,11 @@ export async function cleanupCloudify() {
 
 async function testPacker() {
     const output = fs.createWriteStream("dist.zip");
-    const archive = await packer({ verbose: true });
+    const archive = await packer(serverFile(), { verbose: true });
     archive.pipe(output);
 }
 
-// testPacker();
+console.log(`process.argv: ${process.argv}`);
+if (process.argv.length > 2 && process.argv[2] === "--test") {
+    testPacker();
+}

@@ -6,3 +6,9 @@ registerFunction(fact);
 registerFunction(hello);
 registerFunction(concat);
 console.log(`Registered functions`);
+
+export function serverFile() {
+    return __filename;
+}
+
+export { trampoline };
