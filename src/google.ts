@@ -50,7 +50,7 @@ export async function poll<T>({
     await delay(retries);
     while (true) {
         verbose && console.log(`Polling ${operation}`);
-        console.group();
+        //console.group();
         try {
             const result = await request();
             verbose && describe && console.log(`response: ${describe(result)}`);
@@ -65,7 +65,7 @@ export async function poll<T>({
             verbose && console.log(`not done, retrying...`);
             await delay(retries);
         } finally {
-            console.groupEnd();
+            // console.groupEnd();
         }
     }
 }

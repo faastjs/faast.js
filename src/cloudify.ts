@@ -27,11 +27,11 @@ function log(msg: string) {
 }
 
 function group() {
-    verbose && console.group();
+    // verbose && console.group();
 }
 
 function groupEnd() {
-    verbose && console.groupEnd();
+    // verbose && console.groupEnd();
 }
 
 export async function initCloudify({
@@ -57,6 +57,7 @@ export async function initCloudify({
 
     // XXX
     //sha256 = await sha256ofFile(zipFile);
+
     const trampolineName = "cloudify-trampoline-" + sha256.slice(0, 24);
     trampoline = cloudFunctionsApi.functionPath(region, trampolineName);
     const locationPath = cloudFunctionsApi.locationPath(region);
