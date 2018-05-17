@@ -1,4 +1,5 @@
 import { Archiver } from "archiver";
+import { Hash, createHash } from "crypto";
 import { Request, Response } from "express";
 import * as fs from "fs";
 import humanStringify from "human-stringify";
@@ -64,24 +65,29 @@ export async function trampoline(request: Request, response: Response) {
 
 export interface PackerOptions {
     verbose?: boolean;
+
     webpackOptions?: webpack.Configuration;
 }
 
 const prefix = "/dist";
 
+interface PackerResult {
+    archive: Archiver;
+    hash: string;
+}
+
 export async function packer(
     entry: string,
     { verbose = false, webpackOptions = {} }: PackerOptions = {}
-) {
+): Promise<PackerResult> {
     verbose && console.log(`Running webpack`);
     const defaultWebpackConfig: webpack.Configuration = {
         entry,
         mode: verbose ? "development" : "production",
         output: {
             path: "/",
-            libraryTarget: "commonjs2",
             filename: "index.js",
-            pathinfo: true
+            libraryTarget: "commonjs2"
         },
         externals: [nodeExternals()],
         target: "node"
@@ -94,21 +100,23 @@ export async function packer(
     const mfs = new MemoryFileSystem();
     compiler.outputFileSystem = mfs;
 
-    function addToArchive(entry: string, archive: Archiver) {
+    function addToArchive(entry: string, archive: Archiver, hasher: Hash) {
         const stat = mfs.statSync(entry);
         if (stat.isDirectory()) {
             for (const subEntry of mfs.readdirSync(entry)) {
                 const subEntryPath = path.join(entry, subEntry);
-                addToArchive(subEntryPath, archive);
+                addToArchive(subEntryPath, archive, hasher);
             }
         } else if (stat.isFile()) {
             archive.append((mfs as any).createReadStream(entry), {
                 name: entry
             });
+            hasher.update(entry);
+            hasher.update(mfs.readFileSync(entry));
         }
     }
 
-    return new Promise<Archiver>((resolve, reject) => {
+    return new Promise<PackerResult>((resolve, reject) => {
         compiler.run((err, stats) => {
             if (err) {
                 reject(err);
@@ -122,14 +130,16 @@ export async function packer(
                     "/package.json",
                     JSON.stringify(packageJson, undefined, 2)
                 );
-                addToArchive("/", archive);
+                const hasher = createHash("sha256");
+                addToArchive("/", archive, hasher);
+                const hash = hasher.digest("hex");
                 archive.finalize();
                 if (verbose) {
                     console.log(stats.toString());
                     console.log(`Checking memory filesystem`);
                     console.log(`${humanStringify(mfs.data)}`);
                 }
-                resolve(archive);
+                resolve({ archive, hash });
             }
         });
     });

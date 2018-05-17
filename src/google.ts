@@ -165,14 +165,6 @@ export class CloudFunctions {
         });
 
         await this.waitForOperation(response.data);
-        // // This waits until the function doesn't exist anymore.
-        await poll({
-            request: () => this.getFunction(path),
-            checkDone: _ => false,
-            operation: `checking existence of function ${path}`,
-            describe: result => `function ${result.name} still exists`,
-            verbose: this.verbose
-        }).catch(_ => this.verbose && console.log(`Deleted function ${path}`));
     }
 
     generateDownloadUrl(name: string, versionId?: string) {
@@ -228,17 +220,5 @@ export class CloudFunctions {
             requestBody: func
         });
         await this.waitForOperation(response.data);
-        await poll({
-            request: () => this.getFunction(name),
-            checkDone: result => result.versionId !== previousFunc.versionId,
-            describe: result =>
-                `version: ${result.versionId}, previous: ${
-                    previousFunc.versionId
-                }, updateTime: ${result.updateTime}, previousUpdateTime: ${
-                    previousFunc.updateTime
-                }`,
-            verbose: this.verbose,
-            operation: "Waiting for patched function"
-        });
     }
 }

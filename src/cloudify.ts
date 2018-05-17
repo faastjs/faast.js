@@ -3,8 +3,8 @@ import * as fs from "fs";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import { FunctionCall, FunctionReturn, packer } from "./functionserver";
-import { serverFile } from "./server";
 import { CloudFunctions, initializeGoogleAPIs } from "./google";
+import { serverFile } from "./server";
 
 export interface CloudOptions {
     region?: string;
@@ -19,7 +19,7 @@ export interface CloudOptions {
 
 let cloudFunctionsApi: CloudFunctions | undefined;
 let trampoline!: string;
-let sha256: string = "abc"; // XXX
+let sha256!: string;
 let verbose: boolean = false;
 
 function log(msg: string) {
@@ -48,15 +48,12 @@ export async function initCloudify({
         return;
     }
 
-    const archive = await packer(serverFile(), { verbose });
+    const { archive, hash: sha256 } = await packer(serverFile(), { verbose });
     const google = await initializeGoogleAPIs();
     const project = await google.auth.getDefaultProjectId();
     cloudFunctionsApi = new CloudFunctions(google, project, verbose);
 
     log(`Create cloud function`);
-
-    // XXX
-    //sha256 = await sha256ofFile(zipFile);
 
     const trampolineName = "cloudify-trampoline-" + sha256.slice(0, 24);
     trampoline = cloudFunctionsApi.functionPath(region, trampolineName);
@@ -67,6 +64,8 @@ export async function initCloudify({
     const uploadUrlResponse = await cloudFunctionsApi.generateUploaddUrl(locationPath);
     const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, archive);
     log(`Upload zip file response: ${uploadResult.statusText}`);
+
+    verbose && console.log(`hash: ${sha256}`);
 
     await checkExistingTrampolineFunction();
 
@@ -204,8 +203,10 @@ export async function cleanupCloudify() {
 
 async function testPacker() {
     const output = fs.createWriteStream("dist.zip");
-    const archive = await packer(serverFile(), { verbose: true });
+
+    const { archive, hash } = await packer(serverFile(), { verbose: true });
     archive.pipe(output);
+    console.log(`hash: ${hash}`);
 }
 
 console.log(`process.argv: ${process.argv}`);
