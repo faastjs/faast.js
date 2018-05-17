@@ -204,7 +204,9 @@ export async function cleanupCloudify() {
 async function testPacker() {
     const output = fs.createWriteStream("dist.zip");
 
-    const { archive, hash } = await packer(serverFile(), { verbose: true });
+    const { archive, hash } = await packer(serverFile(), {
+        verbose: true
+    });
     archive.pipe(output);
     console.log(`hash: ${hash}`);
 }

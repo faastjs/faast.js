@@ -65,8 +65,8 @@ export async function trampoline(request: Request, response: Response) {
 
 export interface PackerOptions {
     verbose?: boolean;
-
     webpackOptions?: webpack.Configuration;
+    packageBundling?: "usePackageJson" | "bundleNodeModules";
 }
 
 const prefix = "/dist";
@@ -78,7 +78,11 @@ interface PackerResult {
 
 export async function packer(
     entry: string,
-    { verbose = false, webpackOptions = {} }: PackerOptions = {}
+    {
+        verbose = false,
+        webpackOptions = {},
+        packageBundling = "usePackageJson"
+    }: PackerOptions = {}
 ): Promise<PackerResult> {
     verbose && console.log(`Running webpack`);
     const defaultWebpackConfig: webpack.Configuration = {
@@ -89,57 +93,65 @@ export async function packer(
             filename: "index.js",
             libraryTarget: "commonjs2"
         },
-        externals: [nodeExternals()],
+        externals: [packageBundling === "usePackageJson" ? nodeExternals() : ""],
         target: "node"
     };
 
     const config = Object.assign({}, defaultWebpackConfig, webpackOptions);
 
-    const compiler = webpack(config);
-
-    const mfs = new MemoryFileSystem();
-    compiler.outputFileSystem = mfs;
-
-    function addToArchive(entry: string, archive: Archiver, hasher: Hash) {
-        const stat = mfs.statSync(entry);
+    function addToArchive(
+        fs: MemoryFileSystem,
+        entry: string,
+        archive: Archiver,
+        hasher: Hash
+    ) {
+        const stat = fs.statSync(entry);
         if (stat.isDirectory()) {
-            for (const subEntry of mfs.readdirSync(entry)) {
+            for (const subEntry of fs.readdirSync(entry)) {
                 const subEntryPath = path.join(entry, subEntry);
-                addToArchive(subEntryPath, archive, hasher);
+                addToArchive(fs, subEntryPath, archive, hasher);
             }
         } else if (stat.isFile()) {
-            archive.append((mfs as any).createReadStream(entry), {
+            archive.append((fs as any).createReadStream(entry), {
                 name: entry
             });
             hasher.update(entry);
-            hasher.update(mfs.readFileSync(entry));
+            hasher.update(fs.readFileSync(entry));
         }
     }
 
+    function addPackageJson(mfs: MemoryFileSystem) {
+        if (packageBundling === "usePackageJson") {
+            const packageJson = JSON.parse(fs.readFileSync("package.json").toString());
+            packageJson["main"] = "index.js";
+            mfs.writeFileSync("/package.json", JSON.stringify(packageJson, undefined, 2));
+        }
+    }
+
+    function zipAndHash(mfs: MemoryFileSystem): PackerResult {
+        const archive = archiver("zip", { zlib: { level: 9 } });
+        const hasher = createHash("sha256");
+        addToArchive(mfs, "/", archive, hasher);
+        const hash = hasher.digest("hex");
+        archive.finalize();
+        return { archive, hash };
+    }
+
     return new Promise<PackerResult>((resolve, reject) => {
+        const mfs = new MemoryFileSystem();
+        addPackageJson(mfs);
+        const compiler = webpack(config);
+        compiler.outputFileSystem = mfs;
         compiler.run((err, stats) => {
             if (err) {
                 reject(err);
             } else {
-                const archive = archiver("zip", { zlib: { level: 9 } });
-                const packageJson = JSON.parse(
-                    fs.readFileSync("package.json").toString()
-                );
-                packageJson["main"] = "index.js";
-                mfs.writeFileSync(
-                    "/package.json",
-                    JSON.stringify(packageJson, undefined, 2)
-                );
-                const hasher = createHash("sha256");
-                addToArchive("/", archive, hasher);
-                const hash = hasher.digest("hex");
-                archive.finalize();
                 if (verbose) {
                     console.log(stats.toString());
                     console.log(`Checking memory filesystem`);
                     console.log(`${humanStringify(mfs.data)}`);
                 }
-                resolve({ archive, hash });
+                resolve(zipAndHash(mfs));
             }
         });
     });
