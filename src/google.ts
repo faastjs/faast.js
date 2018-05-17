@@ -1,6 +1,11 @@
 import { AxiosPromise } from "axios";
 import { GoogleApis, cloudfunctions_v1 as gcf, google } from "googleapis";
 import humanStringify from "human-stringify";
+import debug from "debug";
+
+const log = debug("cloudify");
+
+export * from "googleapis";
 
 export async function initializeGoogleAPIs() {
     const auth = await google.auth.getClient({
@@ -18,7 +23,6 @@ export function sleep(ms: number) {
 
 export interface PollOptions {
     maxRetries?: number;
-    verbose?: boolean;
     operation?: string;
     delay?: (retries: number) => Promise<void>;
 }
@@ -43,30 +47,24 @@ export async function poll<T>({
     describe = defaultDescribe,
     delay = defaultPollDelay,
     maxRetries = 10,
-    verbose = false,
     operation = ""
 }: PollConfig<T>): Promise<T | undefined> {
     let retries = 0;
     await delay(retries);
     while (true) {
-        verbose && console.log(`Polling ${operation}`);
-        //console.group();
-        try {
-            const result = await request();
-            verbose && describe && console.log(`response: ${describe(result)}`);
-            if (checkDone(result)) {
-                verbose && console.log(`Done.`);
-                return result;
-            }
-            if (retries++ >= maxRetries) {
-                verbose && console.log(`Timed out after ${retries} attempts.`);
-                return;
-            }
-            verbose && console.log(`not done, retrying...`);
-            await delay(retries);
-        } finally {
-            // console.groupEnd();
+        log(`Polling ${operation}`);
+        const result = await request();
+        describe && log(`response: ${describe(result)}`);
+        if (checkDone(result)) {
+            log(`Done.`);
+            return result;
         }
+        if (retries++ >= maxRetries) {
+            log(`Timed out after ${retries} attempts.`);
+            return;
+        }
+        log(`not done, retrying...`);
+        await delay(retries);
     }
 }
 
@@ -93,11 +91,7 @@ export async function unwrap<T>(promise: AxiosPromise<T>) {
 export class CloudFunctions {
     gCloudFunctions: gcf.Cloudfunctions;
 
-    constructor(
-        private google: GoogleApis,
-        private project: string,
-        public verbose: boolean = false
-    ) {
+    constructor(private google: GoogleApis, private project: string) {
         this.gCloudFunctions = google.cloudfunctions("v1");
     }
 
@@ -117,8 +111,7 @@ export class CloudFunctions {
                 return result.done || false;
             },
             describe: result => `done? ${result.done || false}`,
-            operation: `${operation.metadata.type} on ${operation.metadata.target}`,
-            verbose: this.verbose
+            operation: `${operation.metadata.type} on ${operation.metadata.target}`
         });
     }
 
@@ -210,9 +203,6 @@ export class CloudFunctions {
         func: gcf.Schema$CloudFunction,
         updateMask?: string
     ) {
-        console.warn(
-            `Patching cloud functions is not recommended - the update is not atomic.`
-        );
         const previousFunc = await this.getFunction(name);
         const response = await this.gCloudFunctions.projects.locations.functions.patch({
             name,

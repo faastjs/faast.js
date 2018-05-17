@@ -3,8 +3,17 @@ import * as fs from "fs";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import { FunctionCall, FunctionReturn, packer } from "./functionserver";
-import { CloudFunctions, initializeGoogleAPIs } from "./google";
+import { CloudFunctions, initializeGoogleAPIs, cloudfunctions_v1 as gcf } from "./google";
 import { serverFile } from "./server";
+import debug from "debug";
+import { createHash } from "crypto";
+import * as util from "util";
+
+let log = debug("cloudify");
+
+let cloudFunctionsApi: CloudFunctions | undefined;
+let trampoline!: string;
+let sha256!: string;
 
 export interface CloudOptions {
     region?: string;
@@ -14,24 +23,53 @@ export interface CloudOptions {
     timeout?: number;
     availableMemoryMb?: number;
     labels?: { [key: string]: string };
-    verbose?: boolean;
 }
 
-let cloudFunctionsApi: CloudFunctions | undefined;
-let trampoline!: string;
-let sha256!: string;
-let verbose: boolean = false;
-
-function log(msg: string) {
-    verbose && console.log(msg);
+function getSha256(data: string): string {
+    const hasher = createHash("sha256");
+    hasher.update(JSON.stringify(data));
+    return hasher.digest("hex");
 }
 
-function group() {
-    // verbose && console.group();
-}
-
-function groupEnd() {
-    // verbose && console.groupEnd();
+/**
+ * @param labels The labels applied to a resource must meet the following
+ * requirements:
+ *
+ * Each resource can have multiple labels, up to a maximum of 64. Each label
+ * must be a key-value pair. Keys have a minimum length of 1 character and a
+ * maximum length of 63 characters, and cannot be empty. Values can be empty,
+ * and have a maximum length of 63 characters. Keys and values can contain only
+ * lowercase letters, numeric characters, underscores, and dashes. All
+ * characters must use UTF-8 encoding, and international characters are allowed.
+ * The key portion of a label must be unique. However, you can use the same key
+ * with multiple resources. Keys must start with a lowercase letter or
+ * international character. For a given reporting service and project, the
+ * number of distinct key-value pair combinations that will be preserved within
+ * a one-hour window is 1,000. For example, the Compute Engine service reports
+ * metrics on virtual machine (VM) instances. If you deploy a project with 2,000
+ * VMs, each with a distinct label, the service reports metrics are preserved
+ * for only the first 1,000 labels that exist within the one-hour window.
+ */
+function validateLabels(labels: object) {
+    const keys = Object.keys(labels);
+    if (keys.length > 64) {
+        throw new Error("Cannot exceeded 64 labels");
+    }
+    if (keys.find(key => typeof key !== "string" || typeof labels[key] !== "string")) {
+        throw new Error(`Label keys and values must be strings`);
+    }
+    if (keys.find(key => key.length > 63 || labels[key].length > 63)) {
+        throw new Error(`Label keys and values cannot exceed 63 characters`);
+    }
+    if (keys.find(key => key.length === 0)) {
+        throw new Error(`Label keys must have length > 0`);
+    }
+    const pattern = /^[a-z0-9_-]*$/;
+    if (keys.find(key => !key.match(pattern) || !labels[key].match(pattern))) {
+        throw new Error(
+            `Label keys and values can contain only lowercase letters, numeric characters, underscores, and dashes.`
+        );
+    }
 }
 
 export async function initCloudify({
@@ -40,58 +78,64 @@ export async function initCloudify({
     entryPoint = "trampoline",
     timeout = 60,
     availableMemoryMb = 256,
-    labels = {},
-    verbose: verboseFlag = false
+    labels = {}
 }: CloudOptions = {}) {
-    verbose = verboseFlag;
     if (cloudFunctionsApi) {
         return;
     }
 
-    const { archive, hash: sha256 } = await packer(serverFile(), { verbose });
+    const { archive, hash: codeHash } = await packer(serverFile());
+    log(`hash: ${codeHash}`);
+
     const google = await initializeGoogleAPIs();
     const project = await google.auth.getDefaultProjectId();
-    cloudFunctionsApi = new CloudFunctions(google, project, verbose);
+    cloudFunctionsApi = new CloudFunctions(google, project);
 
     log(`Create cloud function`);
 
-    const trampolineName = "cloudify-trampoline-" + sha256.slice(0, 24);
-    trampoline = cloudFunctionsApi.functionPath(region, trampolineName);
+    const codehasha = codeHash.slice(0, 32);
+    const codehashb = codeHash.slice(32);
     const locationPath = cloudFunctionsApi.locationPath(region);
-
-    log(`  trampoline: ${trampoline}`);
-    log(`  location: ${locationPath}`);
     const uploadUrlResponse = await cloudFunctionsApi.generateUploaddUrl(locationPath);
     const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, archive);
     log(`Upload zip file response: ${uploadResult.statusText}`);
 
-    verbose && console.log(`hash: ${sha256}`);
+    let functionRequest: gcf.Schema$CloudFunction = {
+        description,
+        entryPoint,
+        timeout: `${timeout}s`,
+        availableMemoryMb,
+        httpsTrigger: {},
+        sourceUploadUrl: uploadUrlResponse.uploadUrl,
+        labels: {
+            ...labels,
+            codehasha,
+            codehashb,
+            nonce: `${Math.random()}`.replace(".", "")
+        }
+    };
+
+    validateLabels(functionRequest.labels);
+
+    const configHash = getSha256(JSON.stringify(functionRequest));
+
+    trampoline = cloudFunctionsApi.functionPath(
+        region,
+        "cloudify-" + configHash.slice(0, 35)
+    );
+    functionRequest.name = trampoline;
 
     await checkExistingTrampolineFunction();
 
-    log(`Creating cloud function`);
-    const sha256a = sha256.slice(0, 32);
-    const sha256b = sha256.slice(32);
-
-    const functionRequest = {
-        name: trampoline,
-        description: description,
-        entryPoint: entryPoint,
-        timeout: `${timeout}s`,
-        availableMemoryMb: availableMemoryMb,
-        sourceUploadUrl: uploadUrlResponse.uploadUrl,
-        httpsTrigger: {},
-        labels: { ...labels, sha256a, sha256b }
-    };
-
-    log(`Create function`);
-    group();
-    log(`location: ${locationPath}`);
+    log(`Create function at ${locationPath}`);
     log(humanStringify(functionRequest));
-    groupEnd();
-    await cloudFunctionsApi
-        .createFunction(locationPath, functionRequest)
-        .catch(err => console.error(`Error: ${err.message}`));
+    try {
+        await cloudFunctionsApi.createFunction(locationPath, functionRequest);
+    } catch (err) {
+        log(`Error: ${err.stack}`);
+        await cleanupCloudify();
+        throw err;
+    }
 }
 
 async function checkExistingTrampolineFunction() {
@@ -102,16 +146,7 @@ async function checkExistingTrampolineFunction() {
         .getFunction(trampoline)
         .catch(_ => undefined);
     if (existingFunc) {
-        const {
-            labels: { sha256a, sha256b }
-        } = existingFunc;
-        const previousHash = sha256a + sha256b;
-        if (previousHash && previousHash === sha256) {
-            log(`Function unchanged, hash matches: ${previousHash}`);
-            return;
-        } else {
-            throw new Error(`Cloudify trampoline function exists but hashes differ!`);
-        }
+        throw new Error(`Trampoline hash collision`);
     }
 }
 
@@ -122,6 +157,14 @@ async function uploadZip(url: string, zipStream: Readable) {
             "x-goog-content-length-range": "0,104857600"
         }
     });
+}
+
+export async function cleanupCloudify() {
+    if (!cloudFunctionsApi) {
+        return;
+    }
+
+    await cloudFunctionsApi.deleteFunction(trampoline).catch(_ => {});
 }
 
 // prettier-ignore
@@ -169,19 +212,15 @@ export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>(fn: (a0: T0, a1:
  */
 export function cloudify<R>(fn: (...args: any[]) => R): (...args: any[]) => Promise<R> {
     return async (...args: any[]) => {
-        if (!cloudFunctionsApi) {
-            await initCloudify();
-            if (!cloudFunctionsApi) {
-                throw new Error(`Could not initialize cloud functions api`);
-            }
-        }
+        await initCloudify();
         let callArgs: FunctionCall = {
             name: fn.name,
             args
         };
         const callArgsStr = JSON.stringify(callArgs);
-        log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`);
-        const response = await cloudFunctionsApi.callFunction(trampoline, callArgsStr);
+        log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`, "");
+        const response = await cloudFunctionsApi!.callFunction(trampoline, callArgsStr);
+
         if (response.error) {
             throw new Error(response.error);
         }
@@ -194,24 +233,14 @@ export function cloudify<R>(fn: (...args: any[]) => R): (...args: any[]) => Prom
     };
 }
 
-export async function cleanupCloudify() {
-    if (!cloudFunctionsApi) {
-        return;
-    }
-    await cloudFunctionsApi.deleteFunction(trampoline);
-}
-
 async function testPacker() {
     const output = fs.createWriteStream("dist.zip");
 
-    const { archive, hash } = await packer(serverFile(), {
-        verbose: true
-    });
+    const { archive, hash } = await packer(serverFile());
     archive.pipe(output);
-    console.log(`hash: ${hash}`);
+    log(`hash: ${hash}`);
 }
 
-console.log(`process.argv: ${process.argv}`);
 if (process.argv.length > 2 && process.argv[2] === "--test") {
     testPacker();
 }

@@ -1,5 +1,10 @@
 # Cloudify
 
+```
+$ yarn install
+$ yarn build
+```
+
 ## Testing
 
 First install google cloud functions emulator:
@@ -11,7 +16,7 @@ $ npm install -g @google-cloud/functions-emulator
 Then run the test script:
 
 ```
-$ npm run test-deploy
+$ DEBUG=cloudify yarn test-deploy
 ```
 
 Which should result in verbose output ending with:

@@ -1,5 +1,6 @@
 import { Archiver } from "archiver";
 import { Hash, createHash } from "crypto";
+import debug from "debug";
 import { Request, Response } from "express";
 import * as fs from "fs";
 import humanStringify from "human-stringify";
@@ -8,6 +9,8 @@ import * as webpack from "webpack";
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
 import nodeExternals = require("webpack-node-externals");
+
+const log = debug("cloudify");
 
 export interface FunctionCall {
     name: string;
@@ -35,7 +38,6 @@ export function registerFunction(fn: (...args: any[]) => any, name?: string) {
 export async function trampoline(request: Request, response: Response) {
     try {
         const call = request.body as FunctionCall;
-        console.log(`BODY: ${humanStringify(call)}`);
         if (!call) {
             throw new Error("Invalid function call request");
         }
@@ -64,7 +66,6 @@ export async function trampoline(request: Request, response: Response) {
 }
 
 export interface PackerOptions {
-    verbose?: boolean;
     webpackOptions?: webpack.Configuration;
     packageBundling?: "usePackageJson" | "bundleNodeModules";
 }
@@ -78,16 +79,12 @@ interface PackerResult {
 
 export async function packer(
     entry: string,
-    {
-        verbose = false,
-        webpackOptions = {},
-        packageBundling = "usePackageJson"
-    }: PackerOptions = {}
+    { webpackOptions = {}, packageBundling = "usePackageJson" }: PackerOptions = {}
 ): Promise<PackerResult> {
-    verbose && console.log(`Running webpack`);
+    log(`Running webpack`);
     const defaultWebpackConfig: webpack.Configuration = {
         entry,
-        mode: verbose ? "development" : "production",
+        mode: "development",
         output: {
             path: "/",
             filename: "index.js",
@@ -146,11 +143,8 @@ export async function packer(
             if (err) {
                 reject(err);
             } else {
-                if (verbose) {
-                    console.log(stats.toString());
-                    console.log(`Checking memory filesystem`);
-                    console.log(`${humanStringify(mfs.data)}`);
-                }
+                log(stats.toString());
+                log(`Memory filesystem: ${humanStringify(mfs.data)}`);
                 resolve(zipAndHash(mfs));
             }
         });
@@ -159,5 +153,5 @@ export async function packer(
 
 let fname = __filename; // defeat constant propagation; __filename is different in webpack bundles.
 if (fname === "/index.js") {
-    console.log(`Execution context within webpack bundle!`);
+    log(`Execution context within webpack bundle!`);
 }
