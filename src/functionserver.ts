@@ -114,21 +114,22 @@ export async function packer(
                 reject(err);
             } else {
                 const archive = archiver("zip", { zlib: { level: 9 } });
-                addToArchive("/", archive);
                 const packageJson = JSON.parse(
                     fs.readFileSync("package.json").toString()
                 );
                 packageJson["main"] = "index.js";
-                archive.append(JSON.stringify(packageJson, undefined, 2), {
-                    name: "/package.json"
-                });
+                mfs.writeFileSync(
+                    "/package.json",
+                    JSON.stringify(packageJson, undefined, 2)
+                );
+                addToArchive("/", archive);
                 archive.finalize();
-                resolve(archive);
                 if (verbose) {
                     console.log(stats.toString());
                     console.log(`Checking memory filesystem`);
                     console.log(`${humanStringify(mfs.data)}`);
                 }
+                resolve(archive);
             }
         });
     });
