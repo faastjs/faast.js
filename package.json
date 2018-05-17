@@ -5,7 +5,7 @@
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
-        "pretest-deploy": "rm -rf tmp && mkdir tmp",
+        "pretest-deploy": "rm -rf tmp && mkdir tmp && functions start",
         "test-deploy":
             "node build/cloudify.js --test && mv dist.zip tmp && cd tmp && unzip -o dist.zip && functions deploy trampoline --trigger-http",
         "posttest-deploy":
