@@ -1,13 +1,11 @@
 import Axios from "axios";
+import { createHash } from "crypto";
+import debug from "debug";
 import * as fs from "fs";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import { FunctionCall, FunctionReturn, packer } from "./functionserver";
-import { CloudFunctions, initializeGoogleAPIs, cloudfunctions_v1 as gcf } from "./google";
-import { serverFile } from "./server";
-import debug from "debug";
-import { createHash } from "crypto";
-import * as util from "util";
+import { CloudFunctions, cloudfunctions_v1 as gcf, initializeGoogleAPIs } from "./google";
 
 let log = debug("cloudify");
 
@@ -72,19 +70,23 @@ function validateLabels(labels: object) {
     }
 }
 
-export async function initCloudify({
-    region = "us-central1",
-    description = "cloudify trampoline function",
-    entryPoint = "trampoline",
-    timeout = 60,
-    availableMemoryMb = 256,
-    labels = {}
-}: CloudOptions = {}) {
+export async function initCloudify(
+    serverModule: string,
+    {
+        region = "us-central1",
+        description = "cloudify trampoline function",
+        entryPoint = "trampoline",
+        timeout = 60,
+        availableMemoryMb = 256,
+        labels = {}
+    }: CloudOptions = {}
+) {
     if (cloudFunctionsApi) {
         return;
     }
 
-    const { archive, hash: codeHash } = await packer(serverFile());
+    const serverFile = require.resolve(serverModule);
+    const { archive, hash: codeHash } = await packer(serverFile);
     log(`hash: ${codeHash}`);
 
     const google = await initializeGoogleAPIs();
@@ -212,7 +214,6 @@ export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>(fn: (a0: T0, a1:
  */
 export function cloudify<R>(fn: (...args: any[]) => R): (...args: any[]) => Promise<R> {
     return async (...args: any[]) => {
-        await initCloudify();
         let callArgs: FunctionCall = {
             name: fn.name,
             args
@@ -233,14 +234,15 @@ export function cloudify<R>(fn: (...args: any[]) => R): (...args: any[]) => Prom
     };
 }
 
-async function testPacker() {
+async function testPacker(serverModule: string) {
     const output = fs.createWriteStream("dist.zip");
 
-    const { archive, hash } = await packer(serverFile());
+    const serverFile = require.resolve(serverModule);
+    const { archive, hash } = await packer(serverFile);
     archive.pipe(output);
     log(`hash: ${hash}`);
 }
 
 if (process.argv.length > 2 && process.argv[2] === "--test") {
-    testPacker();
+    testPacker("./server");
 }

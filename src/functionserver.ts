@@ -138,6 +138,7 @@ export async function packer(
         const mfs = new MemoryFileSystem();
         addPackageJson(mfs);
         const compiler = webpack(config);
+
         compiler.outputFileSystem = mfs;
         compiler.run((err, stats) => {
             if (err) {

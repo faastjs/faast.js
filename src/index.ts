@@ -1,10 +1,10 @@
-import { initCloudify, cloudify, cleanupCloudify } from "./cloudify";
-import { hello, fact, concat } from "./shared";
+import { cleanupCloudify, cloudify, initCloudify } from "./cloudify";
+import { concat, fact, hello } from "./shared";
 require("source-map-support").install();
 
 async function client() {
     try {
-        await initCloudify();
+        await initCloudify("./server");
         const remoteHello = cloudify(hello);
         console.log(`hello("Andy"): ${await remoteHello("Andy")}`);
         const remoteFact = cloudify(fact);

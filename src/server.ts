@@ -1,7 +1,6 @@
-import { registerFunction, trampoline } from "./functionserver";
-import { fact, hello, concat } from "./shared";
-import { Request, Response } from "express";
 import debug from "debug";
+import { registerFunction } from "./functionserver";
+import { concat, fact, hello } from "./shared";
 
 const log = debug("cloudify");
 
@@ -9,9 +8,3 @@ registerFunction(fact);
 registerFunction(hello);
 registerFunction(concat);
 log(`Registered functions`);
-
-export function serverFile() {
-    return __filename;
-}
-
-export { trampoline };
