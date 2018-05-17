@@ -9,7 +9,7 @@
         "test-deploy":
             "node build/cloudify.js --test && mv dist.zip tmp && cd tmp && unzip -o dist.zip && functions deploy trampoline --trigger-http",
         "posttest-deploy":
-            "functions call trampoline --data='{\"name\": \"hello\", \"args\": [\"world\"]}'",
+            "functions call trampoline --data='{\"name\": \"hello\", \"args\": [\"world\"]}' && functions stop",
         "dist": "zip -r dist.zip package.json build",
         "test": "jest"
     },
