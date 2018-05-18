@@ -11,9 +11,8 @@ let cloudFunctionsApi: CloudFunctions | undefined;
 let trampoline!: string;
 let sha256!: string;
 
-export interface CloudOptions {
+export interface CloudifyOptions {
     region?: string;
-    zipFile?: string;
     description?: string;
     entryPoint?: string;
     timeout?: number;
@@ -77,7 +76,7 @@ export async function initCloudify(
         timeout = 60,
         availableMemoryMb = 256,
         labels = {}
-    }: CloudOptions = {}
+    }: CloudifyOptions = {}
 ) {
     if (cloudFunctionsApi) {
         return;

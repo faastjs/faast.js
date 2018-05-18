@@ -7,7 +7,14 @@ export default function webpackCloudifyLoader(this: any, _source: string) {
     const options = getOptions(this);
     const fspath = path.join(__dirname, "functionserver.js");
     return `
-        exports.trampoline = require("${fspath}").trampoline;
-        require("${options.entry}");
+        const functionServer = require("${fspath}");
+        exports.trampoline = functionServer.trampoline;
+        const entryExports = require("${options.entry}");
+        for(const name of Object.keys(entryExports)) {
+            console.log(name);
+            if(typeof entryExports[name] === "function") {
+                functionServer.registerFunction(entryExports[name]);
+            }
+        }
     `;
 }
