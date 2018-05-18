@@ -9,3 +9,7 @@ export function fact(n: number): number {
 export function concat(a: string, b: string) {
     return a + b;
 }
+
+export function error(a: string) {
+    throw new Error("Ooops");
+}
