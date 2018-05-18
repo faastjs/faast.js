@@ -22,5 +22,3 @@ async function client() {
 }
 
 client();
-
-export { trampoline } from "./functionserver";
