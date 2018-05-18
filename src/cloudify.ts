@@ -231,6 +231,48 @@ export function cloudify<R>(fn: (...args: any[]) => R): (...args: any[]) => Prom
     };
 }
 
+type AnyFunction = (...args: any[]) => any;
+
+type Unpacked<T> = T extends Promise<infer U> ? U : T;
+
+type PromisifiedFunction<T extends AnyFunction> =
+    // prettier-ignore
+    T extends () => infer U ? () => Promise<Unpacked<U>> :
+    // prettier-ignore
+    T extends (a1: infer A1) => infer U ? (a1: A1) => Promise<Unpacked<U>> :
+    // prettier-ignore
+    T extends (a1: infer A1, a2: infer A2) => infer U ? (a1: A1, a2: A2) => Promise<Unpacked<U>> :
+    // prettier-ignore
+    T extends (a1: infer A1, a2: infer A2, a3: infer A3) => infer U ? (a1: A1, a2: A2, a3: A3) => Promise<Unpacked<U>> :
+    // prettier-ignore
+    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4) => Promise<Unpacked<U>> :
+    // prettier-ignore
+    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5) => Promise<Unpacked<U>> :
+    // prettier-ignore
+    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6) => Promise<Unpacked<U>> :
+    // prettier-ignore
+    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7) => Promise<Unpacked<U>> :
+    // prettier-ignore
+    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7, a8: infer A8) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7, a8: A8) => Promise<Unpacked<U>> :
+    // prettier-ignore
+    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7, a8: infer A8, a9: infer A9) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7, a8: A8, a9: A9) => Promise<Unpacked<U>> :
+    // prettier-ignore
+    T extends (...args: any[]) => infer U ? (...args: any[]) => Promise<Unpacked<U>> : T;
+
+type Promisified<T> = {
+    [K in keyof T]: T[K] extends AnyFunction ? PromisifiedFunction<T[K]> : never
+};
+
+export function cloudifyAll<T>(funcs: T): Promisified<T> {
+    const rv: any = {};
+    for (const name of Object.keys(funcs)) {
+        if (typeof funcs[name] === "function") {
+            rv[name] = cloudify(funcs[name]);
+        }
+    }
+    return rv;
+}
+
 async function testPacker(serverModule: string) {
     const output = fs.createWriteStream("dist.zip");
 

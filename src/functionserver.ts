@@ -21,7 +21,7 @@ export interface FunctionReturn {
     value?: any;
 }
 
-export type AnyFunction = (...args: any[]) => any;
+type AnyFunction = (...args: any[]) => any;
 
 const funcs: { [func: string]: AnyFunction } = {};
 
