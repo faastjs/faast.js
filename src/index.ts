@@ -1,5 +1,5 @@
 import { cleanupCloudify, cloudify, initCloudify } from "./cloudify";
-import { concat, fact, hello } from "./shared";
+import { hello, fact, concat } from "./server";
 require("source-map-support").install();
 
 async function client() {

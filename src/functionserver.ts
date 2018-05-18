@@ -1,16 +1,14 @@
 import { Archiver } from "archiver";
 import { Hash, createHash } from "crypto";
-import debug from "debug";
 import { Request, Response } from "express";
 import * as fs from "fs";
 import humanStringify from "human-stringify";
 import * as path from "path";
 import * as webpack from "webpack";
+import { log } from "./log";
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
 import nodeExternals = require("webpack-node-externals");
-
-const log = debug("cloudify");
 
 export interface FunctionCall {
     name: string;
@@ -83,7 +81,7 @@ export async function packer(
 ): Promise<PackerResult> {
     log(`Running webpack`);
     const defaultWebpackConfig: webpack.Configuration = {
-        entry,
+        entry: `cloudify-loader?entry=${entry}!`,
         mode: "development",
         output: {
             path: "/",
@@ -91,7 +89,8 @@ export async function packer(
             libraryTarget: "commonjs2"
         },
         externals: [packageBundling === "usePackageJson" ? nodeExternals() : ""],
-        target: "node"
+        target: "node",
+        resolveLoader: { modules: [__dirname] }
     };
 
     const config = Object.assign({}, defaultWebpackConfig, webpackOptions);

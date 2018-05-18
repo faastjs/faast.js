@@ -1,13 +1,11 @@
 import Axios from "axios";
 import { createHash } from "crypto";
-import debug from "debug";
 import * as fs from "fs";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import { FunctionCall, FunctionReturn, packer } from "./functionserver";
 import { CloudFunctions, cloudfunctions_v1 as gcf, initializeGoogleAPIs } from "./google";
-
-let log = debug("cloudify");
+import { log } from "./log";
 
 let cloudFunctionsApi: CloudFunctions | undefined;
 let trampoline!: string;
