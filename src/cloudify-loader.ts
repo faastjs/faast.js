@@ -11,8 +11,8 @@ export default function webpackCloudifyLoader(this: any, _source: string) {
         exports.trampoline = functionServer.trampoline;
         const entryExports = require("${options.entry}");
         for(const name of Object.keys(entryExports)) {
-            console.log(name);
             if(typeof entryExports[name] === "function") {
+                console.log(\`Registering function "\${name}"\`);
                 functionServer.registerFunction(entryExports[name]);
             }
         }

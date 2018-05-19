@@ -2,22 +2,30 @@ import { cleanupCloudify, cloudifyAll, initCloudify } from "./cloudify";
 import * as server from "./server";
 require("source-map-support").install();
 
-const { hello, concat, fact, error } = cloudifyAll(server);
+const { hello, concat, fact, error, noargs } = cloudifyAll(server);
+
+const log = console.log;
 
 async function client() {
     try {
         await initCloudify("./server");
 
-        console.log(`hello("Andy"): ${await hello("Andy")}`);
-        console.log(`fact(5): ${await fact(5)}`);
-        console.log(`concat("abc", "def"): ${await concat("abc", "def")}`);
+        log(`hello("Andy"): ${await hello("Andy")}`);
+        log(`fact(5): ${await fact(5)}`);
+        log(`concat("abc", "def"): ${await concat("abc", "def")}`);
 
-        console.log(`error: ${await error("hey")}`);
+        try {
+            log(`error("hey"): ${await error("hey")}`);
+        } catch (err) {
+            log(err.message);
+        }
 
-        await cleanupCloudify();
+        log(`noargs(): ${await noargs()}`);
     } catch (err) {
-        console.log(err.stack);
+        log(err.stack);
     }
+
+    await cleanupCloudify().catch(err => log(err.stack));
 }
 
 client();

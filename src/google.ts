@@ -99,12 +99,7 @@ export class CloudFunctions {
             request: () => this.getOperation(name),
             checkDone: result => {
                 if (result.error) {
-                    const err = result.error;
-                    let msg = err.message;
-                    if (err.details) {
-                        msg += "\n" + err.details.join("\n");
-                    }
-                    throw new Error(msg);
+                    throw result.error;
                 }
                 return result.done || false;
             },

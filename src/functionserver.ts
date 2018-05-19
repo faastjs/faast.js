@@ -17,7 +17,6 @@ export interface FunctionCall {
 
 export interface FunctionReturn {
     type: "returned" | "error";
-    message?: string;
     value?: any;
 }
 
@@ -35,30 +34,35 @@ export function registerFunction(fn: (...args: any[]) => any, name?: string) {
 
 export async function trampoline(request: Request, response: Response) {
     try {
-        const call = request.body as FunctionCall;
-        if (!call) {
+        const { name, args } = request.body as FunctionCall;
+        if (!name) {
             throw new Error("Invalid function call request");
         }
 
-        const func = funcs[call.name];
+        const func = funcs[name];
         if (!func) {
-            throw new Error(`Function named "${call.name}" not found`);
+            throw new Error(`Function named "${name}" not found`);
         }
 
-        if (!call.args || !call.args.length) {
+        if (!args) {
             throw new Error("Invalid arguments to function call");
         }
 
-        const rv = await func.apply(undefined, call.args);
+        console.log(`func: ${name}, args: ${humanStringify(args)}`);
+
+        const rv = await func.apply(undefined, args);
 
         response.send({
             type: "returned",
             value: rv
         } as FunctionReturn);
     } catch (err) {
+        const errObj = {};
+        Object.getOwnPropertyNames(err).forEach(name => (errObj[name] = err[name]));
+        console.log(`errObj: ${humanStringify(errObj)}`);
         response.send({
             type: "error",
-            message: err.stack
+            value: errObj
         } as FunctionReturn);
     }
 }

@@ -131,7 +131,7 @@ export async function initCloudify(
     try {
         await cloudFunctionsApi.createFunction(locationPath, functionRequest);
     } catch (err) {
-        log(`Error: ${err.stack}`);
+        log(err.stack);
         await cleanupCloudify();
         throw err;
     }
@@ -225,7 +225,7 @@ export function cloudify<R>(fn: (...args: any[]) => R): (...args: any[]) => Prom
         log(`  returned: ${response.result}`);
         let returned: FunctionReturn = JSON.parse(response.result!);
         if (returned.type === "error") {
-            throw new Error(returned.message);
+            throw returned.value;
         }
         return returned.value as R;
     };
