@@ -1,14 +1,13 @@
-import { cleanupCloudify, cloudifyAll, initCloudify } from "./cloudify";
+import { CloudifyGoogle } from "./cloudify";
 import * as server from "./server";
 require("source-map-support").install();
-
-const { hello, concat, fact, error, noargs } = cloudifyAll(server);
 
 const log = console.log;
 
 async function client() {
+    const cloudifyGoogle = await CloudifyGoogle.create("./server");
     try {
-        await initCloudify("./server");
+        const { hello, concat, fact, error, noargs } = cloudifyGoogle.cloudifyAll(server);
 
         log(`hello("Andy"): ${await hello("Andy")}`);
         log(`fact(5): ${await fact(5)}`);
@@ -24,8 +23,7 @@ async function client() {
     } catch (err) {
         log(err.stack);
     }
-
-    await cleanupCloudify().catch(err => log(err.stack));
+    await cloudifyGoogle.cleanup();
 }
 
-client();
+client().catch(err => console.log(err));

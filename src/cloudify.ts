@@ -7,17 +7,168 @@ import { FunctionCall, FunctionReturn, packer } from "./functionserver";
 import { CloudFunctions, cloudfunctions_v1 as gcf, initializeGoogleAPIs } from "./google";
 import { log } from "./log";
 
-let cloudFunctionsApi: CloudFunctions | undefined;
-let trampoline!: string;
-let sha256!: string;
+type AnyFunction = (...args: any[]) => any;
 
-export interface CloudifyOptions {
+type Unpacked<T> = T extends Promise<infer U> ? U : T;
+
+type PromisifiedFunction<T extends AnyFunction> =
+    // prettier-ignore
+    T extends () => infer U ? () => Promise<Unpacked<U>> :
+    T extends (a1: infer A1) => infer U ? (a1: A1) => Promise<Unpacked<U>> :
+    T extends (a1: infer A1, a2: infer A2) => infer U ? (a1: A1, a2: A2) => Promise<Unpacked<U>> :
+    T extends (a1: infer A1, a2: infer A2, a3: infer A3) => infer U ? (a1: A1, a2: A2, a3: A3) => Promise<Unpacked<U>> :
+    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4) => Promise<Unpacked<U>> :
+    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5) => Promise<Unpacked<U>> :
+    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6) => Promise<Unpacked<U>> :
+    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7) => Promise<Unpacked<U>> :
+    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7, a8: infer A8) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7, a8: A8) => Promise<Unpacked<U>> :
+    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7, a8: infer A8, a9: infer A9) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7, a8: A8, a9: A9) => Promise<Unpacked<U>> :
+    T extends (...args: any[]) => infer U ? (...args: any[]) => Promise<Unpacked<U>> : T;
+
+type Promisified<T> = {
+    [K in keyof T]: T[K] extends AnyFunction ? PromisifiedFunction<T[K]> : never
+};
+
+interface CloudFunctionFactory {
+    cloudify<F extends AnyFunction>(fn: F): PromisifiedFunction<F>;
+    cloudifyAll<M>(importedModule: M): Promisified<M>;
+    cleanup(): Promise<void>;
+}
+
+export interface CloudifyGoogleOptions {
     region?: string;
     description?: string;
     entryPoint?: string;
     timeout?: number;
     availableMemoryMb?: number;
     labels?: { [key: string]: string };
+}
+
+export class CloudifyGoogle implements CloudFunctionFactory {
+    protected constructor(
+        readonly googleCloudFunctionsApi: CloudFunctions,
+        readonly trampoline: string
+    ) {}
+
+    static async create(
+        serverModule: string,
+        {
+            region = "us-central1",
+            description = "cloudify trampoline function",
+            entryPoint = "trampoline",
+            timeout = 60,
+            availableMemoryMb = 256,
+            labels = {}
+        }: CloudifyGoogleOptions = {}
+    ) {
+        const serverFile = require.resolve(serverModule);
+        const { archive, hash: codeHash } = await packer(serverFile);
+        log(`hash: ${codeHash}`);
+
+        const google = await initializeGoogleAPIs();
+        const project = await google.auth.getDefaultProjectId();
+        const googleCloudFunctionsApi = new CloudFunctions(google, project);
+
+        log(`Create cloud function`);
+
+        const locationPath = googleCloudFunctionsApi.locationPath(region);
+        const uploadUrlResponse = await googleCloudFunctionsApi.generateUploaddUrl(
+            locationPath
+        );
+        const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, archive);
+        log(`Upload zip file response: ${uploadResult.statusText}`);
+
+        let functionRequest: gcf.Schema$CloudFunction = {
+            description,
+            entryPoint,
+            timeout: `${timeout}s`,
+            availableMemoryMb,
+            httpsTrigger: {},
+            sourceUploadUrl: uploadUrlResponse.uploadUrl,
+            labels: {
+                ...labels,
+                codehasha: codeHash.slice(0, 32),
+                codehashb: codeHash.slice(32),
+                nonce: `${Math.random()}`.replace(".", "")
+            }
+        };
+
+        validateLabels(functionRequest.labels);
+
+        const configHash = getSha256(JSON.stringify(functionRequest));
+
+        const trampoline = googleCloudFunctionsApi.functionPath(
+            region,
+            "cloudify-" + configHash.slice(0, 35)
+        );
+        functionRequest.name = trampoline;
+
+        // It should be rare to get a trampoline collision because we include
+        // part of the sha256 hash as part of the name, but we check just in
+        // case.
+        const existingFunc = await googleCloudFunctionsApi
+            .getFunction(trampoline)
+            .catch(_ => undefined);
+        if (existingFunc) {
+            throw new Error(`Trampoline name hash collision`);
+        }
+
+        log(`Create function at ${locationPath}`);
+        log(humanStringify(functionRequest));
+        try {
+            await googleCloudFunctionsApi.createFunction(locationPath, functionRequest);
+        } catch (err) {
+            await googleCloudFunctionsApi.deleteFunction(trampoline).catch(_ => {});
+            throw err;
+        }
+        return new CloudifyGoogle(googleCloudFunctionsApi, trampoline);
+    }
+
+    /**
+     *
+     * @param {(...args: any[]) => R} fn Parameters can be any value that can be JSON.stringify'd
+     * @returns {(...args: any[]) => Promise<R>} A return value that can be JSON.stringify'd
+     * @memberof CloudFactory
+     */
+    cloudify<F extends AnyFunction>(fn: F): PromisifiedFunction<F> {
+        const promisifedFunc = async (...args: any[]) => {
+            let callArgs: FunctionCall = {
+                name: fn.name,
+                args
+            };
+            const callArgsStr = JSON.stringify(callArgs);
+            log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`, "");
+            const response = await this.googleCloudFunctionsApi!.callFunction(
+                this.trampoline,
+                callArgsStr
+            );
+
+            if (response.error) {
+                throw new Error(response.error);
+            }
+            log(`  returned: ${response.result}`);
+            let returned: FunctionReturn = JSON.parse(response.result!);
+            if (returned.type === "error") {
+                throw returned.value;
+            }
+            return returned.value;
+        };
+        return promisifedFunc as any;
+    }
+
+    cloudifyAll<T>(funcs: T): Promisified<T> {
+        const rv: any = {};
+        for (const name of Object.keys(funcs)) {
+            if (typeof funcs[name] === "function") {
+                rv[name] = this.cloudify(funcs[name]);
+            }
+        }
+        return rv;
+    }
+
+    async cleanup() {
+        await this.googleCloudFunctionsApi.deleteFunction(this.trampoline).catch(_ => {});
+    }
 }
 
 function getSha256(data: string): string {
@@ -67,88 +218,6 @@ function validateLabels(labels: object) {
     }
 }
 
-export async function initCloudify(
-    serverModule: string,
-    {
-        region = "us-central1",
-        description = "cloudify trampoline function",
-        entryPoint = "trampoline",
-        timeout = 60,
-        availableMemoryMb = 256,
-        labels = {}
-    }: CloudifyOptions = {}
-) {
-    if (cloudFunctionsApi) {
-        return;
-    }
-
-    const serverFile = require.resolve(serverModule);
-    const { archive, hash: codeHash } = await packer(serverFile);
-    log(`hash: ${codeHash}`);
-
-    const google = await initializeGoogleAPIs();
-    const project = await google.auth.getDefaultProjectId();
-    cloudFunctionsApi = new CloudFunctions(google, project);
-
-    log(`Create cloud function`);
-
-    const codehasha = codeHash.slice(0, 32);
-    const codehashb = codeHash.slice(32);
-    const locationPath = cloudFunctionsApi.locationPath(region);
-    const uploadUrlResponse = await cloudFunctionsApi.generateUploaddUrl(locationPath);
-    const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, archive);
-    log(`Upload zip file response: ${uploadResult.statusText}`);
-
-    let functionRequest: gcf.Schema$CloudFunction = {
-        description,
-        entryPoint,
-        timeout: `${timeout}s`,
-        availableMemoryMb,
-        httpsTrigger: {},
-        sourceUploadUrl: uploadUrlResponse.uploadUrl,
-        labels: {
-            ...labels,
-            codehasha,
-            codehashb,
-            nonce: `${Math.random()}`.replace(".", "")
-        }
-    };
-
-    validateLabels(functionRequest.labels);
-
-    const configHash = getSha256(JSON.stringify(functionRequest));
-
-    trampoline = cloudFunctionsApi.functionPath(
-        region,
-        "cloudify-" + configHash.slice(0, 35)
-    );
-    functionRequest.name = trampoline;
-
-    await checkExistingTrampolineFunction();
-
-    log(`Create function at ${locationPath}`);
-    log(humanStringify(functionRequest));
-    try {
-        await cloudFunctionsApi.createFunction(locationPath, functionRequest);
-    } catch (err) {
-        log(err.stack);
-        await cleanupCloudify();
-        throw err;
-    }
-}
-
-async function checkExistingTrampolineFunction() {
-    // It should be rare to get a trampoline collision because we include
-    // part of the sha256 hash as part of the name, but we check just in
-    // case.
-    const existingFunc = await cloudFunctionsApi!
-        .getFunction(trampoline)
-        .catch(_ => undefined);
-    if (existingFunc) {
-        throw new Error(`Trampoline hash collision`);
-    }
-}
-
 async function uploadZip(url: string, zipStream: Readable) {
     return await Axios.put(url, zipStream, {
         headers: {
@@ -156,121 +225,6 @@ async function uploadZip(url: string, zipStream: Readable) {
             "x-goog-content-length-range": "0,104857600"
         }
     });
-}
-
-export async function cleanupCloudify() {
-    if (!cloudFunctionsApi) {
-        return;
-    }
-
-    await cloudFunctionsApi.deleteFunction(trampoline).catch(_ => {});
-}
-
-// prettier-ignore
-export function cloudify<T0, R>(fn: (a0: T0) => Promise<R>): typeof fn;
-// prettier-ignore
-export function cloudify<T0, T1, R>( fn: (a0: T0, a1: T1) => Promise<R> ): typeof fn;
-// prettier-ignore
-export function cloudify<T0, T1, T2, R>( fn: (a0: T0, a1: T1, a2: T2) => Promise<R> ): typeof fn;
-// prettier-ignore
-export function cloudify<T0, T1, T2, T3, R>( fn: (a0: T0, a1: T1, a2: T2, a3: T3) => Promise<R> ): typeof fn;
-// prettier-ignore
-export function cloudify<T0, T1, T2, T3, T4, R>( fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4) => Promise<R> ): typeof fn;
-// prettier-ignore
-export function cloudify<T0, T1, T2, T3, T4, T5, R>( fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) => Promise<R> ): typeof fn;
-// prettier-ignore
-export function cloudify<T0, T1, T2, T3, T4, T5, T6, R>( fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) => Promise<R> ): typeof fn;
-// prettier-ignore
-export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, R>( fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) => Promise<R> ): typeof fn;
-// prettier-ignore
-export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>( fn: ( a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8 ) => Promise<R> ): typeof fn;
-// prettier-ignore
-export function cloudify<T0, R>(fn: (a0: T0) => R): (arg: T0) => Promise<R>;
-// prettier-ignore
-export function cloudify<T0, T1, R>(fn: (a0: T0, a1: T1) => R): (a0: T0, a1: T1) => Promise<R>;
-// prettier-ignore
-export function cloudify<T0, T1, T2, R>(fn: (a0: T0, a1: T1, a2: T2) => R): (a0: T0, a1: T1, a2: T2) => Promise<R>;
-// prettier-ignore
-export function cloudify<T0, T1, T2, T3, R>(fn: (a0: T0, a1: T1, a2: T2, a3: T3) => R): (a0: T0, a1: T1, a2: T2, a3: T3) => Promise<R>;
-// prettier-ignore
-export function cloudify<T0, T1, T2, T3, T4, R>(fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4) => R): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4) => Promise<R>;
-// prettier-ignore
-export function cloudify<T0, T1, T2, T3, T4, T5, R>(fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) => R): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5) => Promise<R>;
-// prettier-ignore
-export function cloudify<T0, T1, T2, T3, T4, T5, T6, R>(fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) => R): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6) => Promise<R>;
-// prettier-ignore
-export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, R>(fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) => R): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7) => Promise<R>;
-// prettier-ignore
-export function cloudify<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>(fn: (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8) => R): (a0: T0, a1: T1, a2: T2, a3: T3, a4: T4, a5: T5, a6: T6, a7: T7, a8: T8) => Promise<R>;
-
-/**
- *
- * @param {(...args: any[]) => R} fn Parameters can be any value that can be JSON.stringify'd
- * @returns {(...args: any[]) => Promise<R>} A return value that can be JSON.stringify'd
- * @memberof CloudFactory
- */
-export function cloudify<R>(fn: (...args: any[]) => R): (...args: any[]) => Promise<R> {
-    return async (...args: any[]) => {
-        let callArgs: FunctionCall = {
-            name: fn.name,
-            args
-        };
-        const callArgsStr = JSON.stringify(callArgs);
-        log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`, "");
-        const response = await cloudFunctionsApi!.callFunction(trampoline, callArgsStr);
-
-        if (response.error) {
-            throw new Error(response.error);
-        }
-        log(`  returned: ${response.result}`);
-        let returned: FunctionReturn = JSON.parse(response.result!);
-        if (returned.type === "error") {
-            throw returned.value;
-        }
-        return returned.value as R;
-    };
-}
-
-type AnyFunction = (...args: any[]) => any;
-
-type Unpacked<T> = T extends Promise<infer U> ? U : T;
-
-type PromisifiedFunction<T extends AnyFunction> =
-    // prettier-ignore
-    T extends () => infer U ? () => Promise<Unpacked<U>> :
-    // prettier-ignore
-    T extends (a1: infer A1) => infer U ? (a1: A1) => Promise<Unpacked<U>> :
-    // prettier-ignore
-    T extends (a1: infer A1, a2: infer A2) => infer U ? (a1: A1, a2: A2) => Promise<Unpacked<U>> :
-    // prettier-ignore
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3) => infer U ? (a1: A1, a2: A2, a3: A3) => Promise<Unpacked<U>> :
-    // prettier-ignore
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4) => Promise<Unpacked<U>> :
-    // prettier-ignore
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5) => Promise<Unpacked<U>> :
-    // prettier-ignore
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6) => Promise<Unpacked<U>> :
-    // prettier-ignore
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7) => Promise<Unpacked<U>> :
-    // prettier-ignore
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7, a8: infer A8) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7, a8: A8) => Promise<Unpacked<U>> :
-    // prettier-ignore
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7, a8: infer A8, a9: infer A9) => infer U ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7, a8: A8, a9: A9) => Promise<Unpacked<U>> :
-    // prettier-ignore
-    T extends (...args: any[]) => infer U ? (...args: any[]) => Promise<Unpacked<U>> : T;
-
-type Promisified<T> = {
-    [K in keyof T]: T[K] extends AnyFunction ? PromisifiedFunction<T[K]> : never
-};
-
-export function cloudifyAll<T>(funcs: T): Promisified<T> {
-    const rv: any = {};
-    for (const name of Object.keys(funcs)) {
-        if (typeof funcs[name] === "function") {
-            rv[name] = cloudify(funcs[name]);
-        }
-    }
-    return rv;
 }
 
 async function testPacker(serverModule: string) {
