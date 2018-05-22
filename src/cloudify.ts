@@ -4,7 +4,11 @@ import { createHash } from "crypto";
 import * as fs from "fs";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
-import { CloudFunctions, cloudfunctions_v1 as gcf, initializeGoogleAPIs } from "./google";
+import {
+    CloudFunctions,
+    cloudfunctions_v1 as gcf,
+    initializeGoogleAPIs
+} from "./google/cloud-functions-api";
 import { log } from "./log";
 import { packer } from "./packer";
 
@@ -227,11 +231,18 @@ async function uploadZip(url: string, zipStream: Readable) {
 }
 
 async function testPacker(serverModule: string) {
-    const output = fs.createWriteStream("dist.zip");
+    const outputGoogle = fs.createWriteStream("dist-google.zip");
+    const { archive: archiveGoogle } = await packer(
+        serverModule,
+        "./google/trampoline.js"
+    );
+    archiveGoogle.pipe(outputGoogle);
 
-    const { archive, hash } = await packer(serverModule, "./google/trampoline.js");
-    archive.pipe(output);
-    log(`hash: ${hash}`);
+    const outputAWS = fs.createWriteStream("dist-aws.zip");
+    const { archive: archiveAWS } = await packer(serverModule, "./aws/trampoline.js", {
+        packageBundling: "bundleNodeModules"
+    });
+    archiveAWS.pipe(outputAWS);
 }
 
 if (process.argv.length > 2 && process.argv[2] === "--test") {

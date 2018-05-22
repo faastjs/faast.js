@@ -1,7 +1,7 @@
 import { AxiosPromise } from "axios";
 import { GoogleApis, cloudfunctions_v1 as gcf, google } from "googleapis";
 import humanStringify from "human-stringify";
-import { log } from "./log";
+import { log } from "../log";
 
 export * from "googleapis";
 

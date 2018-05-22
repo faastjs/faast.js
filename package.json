@@ -5,12 +5,11 @@
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
-        "pretest-deploy": "rm -rf tmp && mkdir tmp && functions start",
-        "test-deploy":
-            "node build/cloudify.js --test && mv dist.zip tmp && cd tmp && unzip -o dist.zip && functions deploy trampoline --trigger-http",
-        "posttest-deploy":
+        "test-bundle": "node build/cloudify.js --test",
+        "test-deploy-google":
+            "npm run test-bundle && rm -rf tmp && mkdir tmp && mv dist-google.zip tmp && functions start && cd tmp && unzip -o dist-google.zip && functions deploy trampoline --trigger-http",
+        "posttest-deploy-google":
             "functions call trampoline --data='{\"name\": \"hello\", \"args\": [\"world\"]}' && functions stop",
-        "dist": "zip -r dist.zip package.json build",
         "test": "jest"
     },
     "author": "",
