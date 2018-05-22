@@ -11,7 +11,9 @@ export function concat(a: string, b: string) {
 }
 
 export function error(a: string) {
-    throw new Error(`This error was thrown remotely. Argument: ${a}`);
+    throw new Error(
+        `This error was thrown remotely and successfully caught locally. Argument: ${a}`
+    );
 }
 
 export function noargs() {
@@ -28,9 +30,5 @@ export async function async() {
 }
 
 export function promise(): Promise<string> {
-    let rv = "";
-    for (const name of Object.keys(process.env)) {
-        rv += `${name} = ${process.env[name]}\n`;
-    }
-    return delay(200).then(() => rv);
+    return delay(200).then(() => process.env["PATH"] || "no PATH variable");
 }

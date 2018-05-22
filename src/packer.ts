@@ -29,7 +29,9 @@ export async function packer(
     log(`Running webpack`);
     const entry = require.resolve(entryModule);
     const trampoline = require.resolve(trampolineModule);
-    const defaultWebpackConfig: webpack.Configuration = {
+    let { externals = [], ...rest } = webpackOptions;
+    externals = Array.isArray(externals) ? externals : [externals];
+    const config: webpack.Configuration = {
         entry: `cloudify-loader?entry=${entry}&trampoline=${trampoline}!`,
         mode: "development",
         output: {
@@ -37,12 +39,14 @@ export async function packer(
             filename: "index.js",
             libraryTarget: "commonjs2"
         },
-        externals: [packageBundling === "usePackageJson" ? nodeExternals() : ""],
+        externals: [
+            packageBundling === "usePackageJson" ? nodeExternals() : {},
+            ...externals
+        ],
         target: "node",
-        resolveLoader: { modules: [__dirname] }
+        resolveLoader: { modules: [__dirname] },
+        ...rest
     };
-
-    const config = Object.assign({}, defaultWebpackConfig, webpackOptions);
 
     function addToArchive(
         fs: MemoryFileSystem,

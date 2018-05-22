@@ -1,41 +1,23 @@
-import { CloudifyGoogle, CloudifyAWS } from "./cloudify";
-import * as server from "./server";
+import * as fs from "fs";
+import { packAWSLambdaFunction, packGoogleCloudFunction } from "./cloudify";
+import { runClients } from "./client";
+
 require("source-map-support").install();
 
 const log = console.log;
 
-async function client() {
-    const cloudFunctionServer = await CloudifyGoogle.create("./server");
-    //const cloudFunctionServer = await CloudifyAWS.create("./server");
-    try {
-        const {
-            hello,
-            concat,
-            fact,
-            error,
-            noargs,
-            async,
-            promise
-        } = cloudFunctionServer.cloudifyAll(server);
+async function testPacker(serverModule: string) {
+    const outputGoogle = fs.createWriteStream("dist-google.zip");
+    const { archive: archiveGoogle } = await packGoogleCloudFunction(serverModule);
+    archiveGoogle.pipe(outputGoogle);
 
-        log(`hello("Andy"): ${await hello("Andy")}`);
-        log(`fact(5): ${await fact(5)}`);
-        log(`concat("abc", "def"): ${await concat("abc", "def")}`);
-
-        try {
-            log(`error("hey"): ${await error("hey")}`);
-        } catch (err) {
-            log(err.message);
-        }
-
-        log(`noargs(): ${await noargs()}`);
-
-        log(`async(): ${await async()}`);
-        log(`promise(): ${await promise()}`);
-    } catch (err) {
-        log(err.stack);
-    }
-    await cloudFunctionServer.cleanup();
+    const outputAWS = fs.createWriteStream("dist-aws.zip");
+    const { archive: archiveAWS } = await packAWSLambdaFunction(serverModule);
+    archiveAWS.pipe(outputAWS);
 }
 
-client().catch(err => console.log(err));
+if (process.argv.length > 2 && process.argv[2] === "--test") {
+    testPacker("./server");
+} else {
+    runClients().catch(err => console.log(err));
+}
