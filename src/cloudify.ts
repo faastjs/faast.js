@@ -94,8 +94,8 @@ export class CloudifyGoogle implements CloudFunctionFactory {
             httpsTrigger: {},
             sourceUploadUrl: uploadUrlResponse.uploadUrl,
             labels: {
-                codehasha: codeHash.slice(0, 32),
-                codehashb: codeHash.slice(32),
+                confighasha: configHash.slice(0, 32),
+                confighashb: configHash.slice(32),
                 ...labels
             },
             ...rest
@@ -299,14 +299,23 @@ export class CloudifyAWS implements CloudFunctionFactory {
                 packageBundling: "bundleNodeModules"
             }
         );
-        log(`hash: ${codeHash}`);
+        log(`codeHash: ${codeHash}`);
         const { Tags } = options;
 
         const configHash = getConfigHash(codeHash, options);
 
+        const FunctionName = `cloudify-${configHash.slice(0, 55)}`;
+        const previous = await lambda
+            .getFunction({ FunctionName })
+            .promise()
+            .catch(_ => undefined);
+        if (previous) {
+            throw new Error("Function name hash collission");
+        }
+
         const ZipFile = await zipStreamToBuffer(archive);
         const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
-            FunctionName: `cloudify-${configHash.slice(0, 50)}`,
+            FunctionName,
             Role: roleResponse.Role.Arn,
             Runtime: "nodejs6.10",
             Handler: "index.trampoline",
@@ -317,12 +326,11 @@ export class CloudifyAWS implements CloudFunctionFactory {
             Timeout: 60,
             MemorySize: 128,
             Tags: {
-                codeHash,
+                configHash,
                 ...Tags
             },
             ...rest
         };
-        validateAWSTags(createFunctionRequest.Tags);
         log(`createFunctionRequest: ${humanStringify(createFunctionRequest)}`);
         const func = await lambda.createFunction(createFunctionRequest).promise();
         log(`Created function ${func.FunctionName}`);
@@ -376,53 +384,5 @@ export class CloudifyAWS implements CloudFunctionFactory {
             .deleteFunction({ FunctionName: this.FunctionName })
             .promise()
             .catch(err => log(`Cleanup failed: ${err}`));
-    }
-}
-
-/**
- * The following restrictions apply to tags:
- *
- * Maximum number of tags per resource—50
- *
- * Maximum key length—128 Unicode characters in UTF-8
- *
- * Maximum value length—256 Unicode characters in UTF-8
- *
- * Tag keys and values are case sensitive.
- *
- * Do not use the aws: prefix in your tag names or values because it is reserved
- * for AWS use. You can't edit or delete tag names or values with this prefix.
- * Tags with this prefix do not count against your tags per resource limit.
- *
- * If your tagging schema will be used across multiple services and resources,
- * remember that other services may have restrictions on allowed characters.
- * Generally allowed characters are: letters, spaces, and numbers representable
- * in UTF-8, plus the following special characters: + - = . _ : / @.
- */
-function validateAWSTags(tags?: object) {
-    if (!tags) {
-        return;
-    }
-    const keys = Object.keys(tags);
-    if (keys.length > 50) {
-        throw new Error("Cannot exceed 50 tags");
-    }
-    if (keys.find(key => typeof key !== "string" || typeof tags[key] !== "string")) {
-        throw new Error("Tags and values must be strings");
-    }
-    if (keys.find(key => key.length > 128)) {
-        throw new Error("Tag keys cannot exceed 128 characters");
-    }
-    if (keys.find(key => tags[key].length > 256)) {
-        throw new Error("Tag values cannot exceed 256 characters");
-    }
-    if (keys.find(key => key.startsWith("aws:"))) {
-        throw new Error("Tag keys beginning with 'aws:' are reserved");
-    }
-    const pattern = /^[a-zA-Z0-9+=._:/-]*$/;
-    if (keys.find(key => !key.match(pattern) || !tags[key].match(pattern))) {
-        throw new Error(
-            "Tag keys and values should only contain letters, spaces, numbers, and the following characters: + - = . _ : / @"
-        );
     }
 }
