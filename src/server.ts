@@ -17,3 +17,20 @@ export function error(a: string) {
 export function noargs() {
     return "successfully called function with no args.";
 }
+
+function delay(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export async function async() {
+    await delay(200);
+    return "returned successfully from async function";
+}
+
+export function promise(): Promise<string> {
+    let rv = "";
+    for (const name of Object.keys(process.env)) {
+        rv += `${name} = ${process.env[name]}\n`;
+    }
+    return delay(200).then(() => rv);
+}

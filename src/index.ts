@@ -5,12 +5,18 @@ require("source-map-support").install();
 const log = console.log;
 
 async function client() {
-    // const cloudFunctionServer = await CloudifyGoogle.create("./server");
-    const cloudFunctionServer = await CloudifyAWS.create("./server");
+    const cloudFunctionServer = await CloudifyGoogle.create("./server");
+    //const cloudFunctionServer = await CloudifyAWS.create("./server");
     try {
-        const { hello, concat, fact, error, noargs } = cloudFunctionServer.cloudifyAll(
-            server
-        );
+        const {
+            hello,
+            concat,
+            fact,
+            error,
+            noargs,
+            async,
+            promise
+        } = cloudFunctionServer.cloudifyAll(server);
 
         log(`hello("Andy"): ${await hello("Andy")}`);
         log(`fact(5): ${await fact(5)}`);
@@ -23,6 +29,9 @@ async function client() {
         }
 
         log(`noargs(): ${await noargs()}`);
+
+        log(`async(): ${await async()}`);
+        log(`promise(): ${await promise()}`);
     } catch (err) {
         log(err.stack);
     }
