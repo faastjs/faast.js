@@ -243,6 +243,15 @@ export interface CloudifyAWSOptions
     region?: string;
 }
 
+function zipStreamToBuffer(zipStream: Readable): Promise<Buffer> {
+    const buffers: Buffer[] = [];
+    return new Promise((resolve, reject) => {
+        zipStream.on("data", data => buffers.push(data as Buffer));
+        zipStream.on("end", () => resolve(Buffer.concat(buffers)));
+        zipStream.on("error", reject);
+    });
+}
+
 export class CloudifyAWS implements CloudFunctionFactory {
     protected constructor(protected lambda: aws.Lambda, protected FunctionName: string) {}
 
@@ -252,13 +261,36 @@ export class CloudifyAWS implements CloudFunctionFactory {
         const iam = new aws.IAM();
         const lambda = new aws.Lambda({ apiVersion: "2015-03-31" });
 
-        const roleParams: aws.IAM.CreateRoleRequest = {
-            AssumeRolePolicyDocument: "STRING_VALUE" /* required */,
-            RoleName: "cloudify-trampoline-role" /* required */,
-            Description: "role for lambda functions created by cloudify",
-            MaxSessionDuration: 1000
+        const policy = {
+            Version: "2012-10-17",
+            Statement: [
+                {
+                    Action: "sts:AssumeRole",
+                    Principal: { AWS: "*" },
+                    Effect: "Allow",
+                    Sid: ""
+                }
+            ]
         };
-        const roleResponse = await iam.createRole(roleParams).promise();
+
+        const RoleName = "cloudify-trampoline-role";
+        let roleResponse;
+
+        roleResponse = await iam
+            .getRole({ RoleName })
+            .promise()
+            .catch(_ => {});
+
+        if (!roleResponse) {
+            const roleParams: aws.IAM.CreateRoleRequest = {
+                AssumeRolePolicyDocument: JSON.stringify(policy) /* required */,
+                RoleName /* required */,
+                Description: "role for lambda functions created by cloudify",
+                MaxSessionDuration: 3600
+            };
+
+            roleResponse = await iam.createRole(roleParams).promise();
+        }
 
         const { archive, hash: codeHash } = await packer(
             serverModule,
@@ -272,15 +304,16 @@ export class CloudifyAWS implements CloudFunctionFactory {
 
         const configHash = getConfigHash(codeHash, options);
 
+        const ZipFile = await zipStreamToBuffer(archive);
         const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
-            FunctionName: `cloudify-${configHash.slice(0, 55)}`,
+            FunctionName: `cloudify-${configHash.slice(0, 50)}`,
             Role: roleResponse.Role.Arn,
             Runtime: "nodejs6.10",
-            Handler: "trampoline",
+            Handler: "index.trampoline",
             Code: {
-                ZipFile: "archive"
+                ZipFile
             },
-            Description: "cloudfy trampoline function",
+            Description: "cloudify trampoline function",
             Timeout: 60,
             MemorySize: 128,
             Tags: {
@@ -292,6 +325,7 @@ export class CloudifyAWS implements CloudFunctionFactory {
         validateAWSTags(createFunctionRequest.Tags);
         log(`createFunctionRequest: ${humanStringify(createFunctionRequest)}`);
         const func = await lambda.createFunction(createFunctionRequest).promise();
+        log(`Created function ${func.FunctionName}`);
         if (!func.FunctionName) {
             throw new Error(`Created lambda function has no function name`);
         }
@@ -312,8 +346,9 @@ export class CloudifyAWS implements CloudFunctionFactory {
                 LogType: "Tail",
                 Payload: callArgsStr
             };
-            const response = await this.lambda.invoke().promise();
-            log(`  returned: ${response.Payload}`);
+            log(`Invocation request: ${humanStringify(request)}`);
+            const response = await this.lambda.invoke(request).promise();
+            log(`  returned: ${humanStringify(response)}`);
             if (response.FunctionError) {
                 throw new Error(response.Payload as string);
             }
@@ -340,7 +375,7 @@ export class CloudifyAWS implements CloudFunctionFactory {
         await this.lambda
             .deleteFunction({ FunctionName: this.FunctionName })
             .promise()
-            .catch(_ => {});
+            .catch(err => log(`Cleanup failed: ${err}`));
     }
 }
 

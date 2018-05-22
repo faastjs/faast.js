@@ -17,12 +17,49 @@ export function registerFunction(fn: AnyFunction, name?: string) {
 }
 
 export function registerAllFunctions(obj: { [name: string]: AnyFunction }) {
-    obj.forEach((name: string) => registerFunction(obj[name], name));
+    for (const name of Object.keys(obj)) {
+        registerFunction(obj[name], name);
+    }
 }
 
-export async function trampoline(event: any, context: any) {
+export async function trampoline(
+    event: any,
+    _context: any,
+    callback: (err: Error | null, obj: object) => void
+) {
     console.log(`${humanStringify(event)}`);
-    return "hello";
+    try {
+        const { name, args } = event as FunctionCall;
+        if (!name) {
+            throw new Error("Invalid function call request");
+        }
+
+        const func = funcs[name];
+        if (!func) {
+            throw new Error(`Function named "${name}" not found`);
+        }
+
+        if (!args) {
+            throw new Error("Invalid arguments to function call");
+        }
+
+        console.log(`func: ${name}, args: ${humanStringify(args)}`);
+
+        const rv = await func.apply(undefined, args);
+
+        callback(null, {
+            type: "returned",
+            value: rv
+        } as FunctionReturn);
+    } catch (err) {
+        const errObj = {};
+        Object.getOwnPropertyNames(err).forEach(name => (errObj[name] = err[name]));
+        console.log(`errObj: ${humanStringify(errObj)}`);
+        callback(null, {
+            type: "error",
+            value: errObj
+        } as FunctionReturn);
+    }
 }
 
 // export async function trampoline(request: Request, response: Response) {
