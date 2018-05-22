@@ -6,8 +6,10 @@
         "build": "tsc",
         "watch": "tsc --watch",
         "pretest-deploy": "rm -rf tmp && mkdir tmp && functions start",
-        "test-deploy": "node build/cloudify.js --test && mv dist.zip tmp && cd tmp && unzip -o dist.zip && functions deploy trampoline --trigger-http",
-        "posttest-deploy": "functions call trampoline --data='{\"name\": \"hello\", \"args\": [\"world\"]}' && functions stop",
+        "test-deploy":
+            "node build/cloudify.js --test && mv dist.zip tmp && cd tmp && unzip -o dist.zip && functions deploy trampoline --trigger-http",
+        "posttest-deploy":
+            "functions call trampoline --data='{\"name\": \"hello\", \"args\": [\"world\"]}' && functions stop",
         "dist": "zip -r dist.zip package.json build",
         "test": "jest"
     },
@@ -41,23 +43,15 @@
         "@types/webpack-node-externals": "^1.6.3",
         "jest": "^22.4.3",
         "ts-jest": "^22.4.6",
-        "typescript": "^2.8.3"
+        "typescript": "^2.8.3",
+        "webpack-cli": "^2.1.3"
     },
     "jest": {
         "transform": {
             "^.+\\.tsx?$": "ts-jest"
         },
         "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
-        "moduleFileExtensions": [
-            "ts",
-            "tsx",
-            "js",
-            "jsx",
-            "json",
-            "node"
-        ],
-        "roots": [
-            "test"
-        ]
+        "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
+        "roots": ["test"]
     }
 }

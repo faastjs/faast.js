@@ -16,7 +16,9 @@ export function registerFunction(fn: AnyFunction, name?: string) {
 }
 
 export function registerAllFunctions(obj: { [name: string]: AnyFunction }) {
-    obj.forEach((name: string) => registerFunction(obj[name], name));
+    for (const name of Object.keys(obj)) {
+        registerFunction(obj[name], name);
+    }
 }
 
 export async function trampoline(request: Request, response: Response) {

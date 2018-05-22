@@ -44,7 +44,7 @@ export async function poll<T>({
     checkDone,
     describe = defaultDescribe,
     delay = defaultPollDelay,
-    maxRetries = 10,
+    maxRetries = 20,
     operation = ""
 }: PollConfig<T>): Promise<T | undefined> {
     let retries = 0;
@@ -58,8 +58,7 @@ export async function poll<T>({
             return result;
         }
         if (retries++ >= maxRetries) {
-            log(`Timed out after ${retries} attempts.`);
-            return;
+            throw new Error(`Timed out after ${retries} attempts.`);
         }
         log(`not done, retrying...`);
         await delay(retries);

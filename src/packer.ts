@@ -27,8 +27,10 @@ export async function packer(
     { webpackOptions = {}, packageBundling = "usePackageJson" }: PackerOptions = {}
 ): Promise<PackerResult> {
     log(`Running webpack`);
+    const entry = require.resolve(entryModule);
+    const trampoline = require.resolve(trampolineModule);
     const defaultWebpackConfig: webpack.Configuration = {
-        entry: `cloudify-loader?entry=${entryModule}&trampoline=${trampolineModule}!`,
+        entry: `cloudify-loader?entry=${entry}&trampoline=${trampoline}!`,
         mode: "development",
         output: {
             path: "/",

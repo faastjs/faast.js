@@ -61,7 +61,7 @@ export class CloudifyGoogle implements CloudFunctionFactory {
     static async create(serverModule: string, options: CloudifyGoogleOptions = {}) {
         const { archive, hash: codeHash } = await packer(
             serverModule,
-            "google/trampoline"
+            "./google/trampoline"
         );
         log(`hash: ${codeHash}`);
 
@@ -118,7 +118,11 @@ export class CloudifyGoogle implements CloudFunctionFactory {
         try {
             await googleCloudFunctionsApi.createFunction(locationPath, functionRequest);
         } catch (err) {
-            await googleCloudFunctionsApi.deleteFunction(trampoline).catch(_ => {});
+            await googleCloudFunctionsApi
+                .deleteFunction(trampoline)
+                .catch(_ =>
+                    log(`Could not clean up after failed create function. Possible leak.`)
+                );
             throw err;
         }
         return new CloudifyGoogle(googleCloudFunctionsApi, trampoline);
@@ -225,7 +229,7 @@ async function uploadZip(url: string, zipStream: Readable) {
 async function testPacker(serverModule: string) {
     const output = fs.createWriteStream("dist.zip");
 
-    const { archive, hash } = await packer(serverModule, "google/trampoline");
+    const { archive, hash } = await packer(serverModule, "./google/trampoline.js");
     archive.pipe(output);
     log(`hash: ${hash}`);
 }
@@ -256,9 +260,13 @@ export class CloudifyAWS implements CloudFunctionFactory {
         };
         const roleResponse = await iam.createRole(roleParams).promise();
 
-        const { archive, hash: codeHash } = await packer(serverModule, "aws/trampoline", {
-            packageBundling: "bundleNodeModules"
-        });
+        const { archive, hash: codeHash } = await packer(
+            serverModule,
+            "./aws/trampoline",
+            {
+                packageBundling: "bundleNodeModules"
+            }
+        );
         log(`hash: ${codeHash}`);
         const { Tags } = options;
 
