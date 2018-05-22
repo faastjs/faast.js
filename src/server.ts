@@ -29,6 +29,6 @@ export async function async() {
     return "returned successfully from async function";
 }
 
-export function promise(): Promise<string> {
+export function path(): Promise<string> {
     return delay(200).then(() => process.env["PATH"] || "no PATH variable");
 }

@@ -5,15 +5,9 @@ const log = console.log;
 
 export async function client(service: CloudFunctionService) {
     try {
-        const {
-            hello,
-            concat,
-            fact,
-            error,
-            noargs,
-            async,
-            promise
-        } = service.cloudifyAll(server);
+        const { hello, concat, fact, error, noargs, async, path } = service.cloudifyAll(
+            server
+        );
 
         log(`Service: ${service.name}`);
 
@@ -30,7 +24,7 @@ export async function client(service: CloudFunctionService) {
         log(`noargs(): ${await noargs()}`);
 
         log(`async(): ${await async()}`);
-        log(`promise(): ${await promise()}`);
+        log(`path(): ${await path()}`);
     } catch (err) {
         log(err.stack);
     }
