@@ -5,16 +5,10 @@ import { log } from "./log";
 
 export default function webpackCloudifyLoader(this: any, _source: string) {
     const options = getOptions(this);
-    const fspath = path.join(__dirname, "functionserver.js");
     return `
-        const functionServer = require("${fspath}");
-        exports.trampoline = functionServer.trampoline;
+        const trampolineModule = require("${options.trampoline}");
         const entryExports = require("${options.entry}");
-        for(const name of Object.keys(entryExports)) {
-            if(typeof entryExports[name] === "function") {
-                console.log(\`Registering function "\${name}"\`);
-                functionServer.registerFunction(entryExports[name]);
-            }
-        }
+        trampolineModule.registerAllFunctions(entryExports);
+        exports.trampoline = trampolineModule.trampoline;
     `;
 }
