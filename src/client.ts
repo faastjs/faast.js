@@ -1,5 +1,5 @@
 import { CloudifyGoogle, CloudifyAWS, CloudFunctionService } from "./cloudify";
-import * as server from "./server";
+import * as server from "./functions";
 
 const log = console.log;
 
@@ -37,8 +37,8 @@ function logErrors(err: Error) {
 
 export async function runClients() {
     let requests = [
-        CloudifyGoogle.create("./server").then(client),
-        CloudifyAWS.create("./server").then(client)
+        CloudifyGoogle.create("./functions").then(client),
+        CloudifyAWS.create("./functions").then(client)
     ];
     await Promise.all(requests);
 }

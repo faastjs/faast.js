@@ -17,7 +17,7 @@ async function testPacker(serverModule: string) {
 }
 
 if (process.argv.length > 2 && process.argv[2] === "--test") {
-    testPacker("./server");
+    testPacker("./functions");
 } else {
     runClients().catch(err => console.log(err));
 }
