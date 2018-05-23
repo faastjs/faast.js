@@ -1,0 +1,21 @@
+{
+    "name": "cloudify-example",
+    "version": "0.0.1",
+    "description": "Example of using cloudify",
+    "author": "",
+    "license": "ISC",
+    "scripts": {
+        "build": "tsc",
+        "watch": "tsc --watch"
+    },
+    "engines": {
+        "node": "6.11.5"
+    },
+    "dependencies": {
+        "cloudify": "file:..",
+        "tslib": "^1.9.1"
+    },
+    "devDependencies": {
+        "@types/node": "^10.1.0"
+    }
+}

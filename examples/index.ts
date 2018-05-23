@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import { packAWSLambdaFunction, packGoogleCloudFunction } from "./cloudify";
+import { packAWSLambdaFunction, packGoogleCloudFunction } from "cloudify";
 import { runClients } from "./client";
 
 require("source-map-support").install();

@@ -1,4 +1,4 @@
-import { CloudifyGoogle, CloudifyAWS, CloudFunctionService } from "./cloudify";
+import { CloudifyGoogle, CloudifyAWS, CloudFunctionService } from "cloudify";
 import * as server from "./functions";
 
 const log = console.log;
