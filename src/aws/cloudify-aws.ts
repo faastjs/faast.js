@@ -51,8 +51,7 @@ export class CloudifyAWS implements CloudFunctionService {
                 {
                     Action: "sts:AssumeRole",
                     Principal: { AWS: "*" },
-                    Effect: "Allow",
-                    Sid: ""
+                    Effect: "Allow"
                 }
             ]
         };
@@ -140,7 +139,11 @@ export class CloudifyAWS implements CloudFunctionService {
             }
             let returned: FunctionReturn = JSON.parse(response.Payload as string);
             if (returned.type === "error") {
-                throw returned.value;
+                const errValue = returned.value;
+                let err = new Error(errValue.message);
+                err.name = errValue.name;
+                err.stack = errValue.stack;
+                throw err;
             }
             return returned.value;
         };

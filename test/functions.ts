@@ -34,3 +34,5 @@ export function path(): Promise<string> {
 export function rejected(): Promise<string> {
     return Promise.reject("This promise is expected to be rejected.");
 }
+
+console.log(`Successfully loaded functions`);

@@ -7,7 +7,7 @@
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
-        "test-local": "jest build/test/local-google.test.js",
+        "test-local": "jest build/test/*-local.test.js",
         "test": "jest"
     },
     "author": "",

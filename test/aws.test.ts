@@ -6,7 +6,6 @@ let service: CloudFunctionService;
 let remote: Promisified<typeof funcs>;
 
 beforeAll(async () => {
-    // await testPacker(require.resolve("./functions"));
     service = await CloudifyAWS.create(require.resolve("./functions"));
     console.log(`Service created: ${service.name}`);
     remote = service.cloudifyAll(funcs);

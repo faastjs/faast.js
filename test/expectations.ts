@@ -47,7 +47,16 @@ export function checkFunctions(
             expect(typeof (await remote.path())).toBe("string");
         });
 
-        test("rejected: () => rejected promise", async () => {
+        test.only("rejected: () => rejected promise", async () => {
+            console.log(`AAA`);
+            try {
+                await remote
+                    .rejected()
+                    .catch(err => console.log(`Rejected: ${err.message}`));
+            } catch (err) {
+                console.log(`Caught ERR: ${err.message}`);
+            }
+            console.log(`BBB`);
             expect(await remote.rejected()).toThrow();
         });
     });
