@@ -1,12 +1,12 @@
 {
     "compilerOptions": {
         "outDir": "build",
+        "rootDir": ".",
         "module": "commonjs",
         "target": "es6",
         "lib": ["es2017", "esnext.asynciterable"],
         "sourceMap": true,
-        "allowJs": true,
-        "checkJs": false,
+        "declaration": true,
         "moduleResolution": "node",
         "forceConsistentCasingInFileNames": true,
         "noImplicitReturns": true,
@@ -23,6 +23,6 @@
         "importHelpers": true,
         "allowSyntheticDefaultImports": true
     },
-    "include": ["src", "types"],
+    "include": ["src", "types", "test"],
     "exclude": ["node_modules", "build"]
 }

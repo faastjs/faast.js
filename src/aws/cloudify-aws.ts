@@ -11,7 +11,7 @@ import {
     getConfigHash
 } from "../cloudify";
 import { log } from "../log";
-import { packer } from "../packer";
+import { packer, PackerResult } from "../packer";
 
 function zipStreamToBuffer(zipStream: Readable): Promise<Buffer> {
     const buffers: Buffer[] = [];
@@ -28,7 +28,7 @@ export interface CloudifyAWSOptions
 }
 
 export async function packAWSLambdaFunction(serverModule: string) {
-    return packer(serverModule, "./aws/trampoline", {
+    return packer(serverModule, require.resolve("./trampoline"), {
         packageBundling: "bundleNodeModules",
         webpackOptions: { externals: "aws-sdk" }
     });

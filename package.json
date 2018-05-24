@@ -1,7 +1,9 @@
 {
     "name": "cloudify",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Serverless without the cruft.",
+    "main": "build/cloudify.js",
+    "types": "build/cloudify.d.ts",
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
@@ -51,6 +53,12 @@
         },
         "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
         "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
-        "roots": ["test"]
+        "roots": ["build/test"],
+        "globals": {
+            "ts-jest": {
+                "skipBabel": true,
+                "enableTsDiagnostics": true
+            }
+        }
     }
 }

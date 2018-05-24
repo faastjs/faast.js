@@ -11,9 +11,7 @@ export function concat(a: string, b: string) {
 }
 
 export function error(a: string) {
-    throw new Error(
-        `This error was thrown remotely and successfully caught locally. Argument: ${a}`
-    );
+    throw new Error(`Expected this error. Argument: ${a}`);
 }
 
 export function noargs() {

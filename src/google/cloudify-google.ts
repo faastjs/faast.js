@@ -11,7 +11,7 @@ import {
     getConfigHash
 } from "../cloudify";
 import { log } from "../log";
-import { packer } from "../packer";
+import { packer, PackerResult } from "../packer";
 import {
     CloudFunctions,
     cloudfunctions_v1 as gcf,
@@ -141,7 +141,7 @@ export class CloudifyGoogle implements CloudFunctionService {
 }
 
 export async function packGoogleCloudFunction(serverModule: string) {
-    return await packer(serverModule, "./google/trampoline");
+    return packer(serverModule, require.resolve("./trampoline"));
 }
 
 /**

@@ -14,25 +14,21 @@ export interface PackerOptions {
     packageBundling?: "usePackageJson" | "bundleNodeModules";
 }
 
-const prefix = "/dist";
-
-interface PackerResult {
+export interface PackerResult {
     archive: Archiver;
     hash: string;
 }
 
-export async function packer(
-    entryModule: string,
-    trampolineModule: string,
-    { webpackOptions = {}, packageBundling = "usePackageJson" }: PackerOptions = {}
+export function packer(
+    resolvedEntry: string,
+    resolvedTrampoline: string,
+    { webpackOptions = {}, packageBundling = "bundleNodeModules" }: PackerOptions = {}
 ): Promise<PackerResult> {
     log(`Running webpack`);
-    const entry = require.resolve(entryModule);
-    const trampoline = require.resolve(trampolineModule);
     let { externals = [], ...rest } = webpackOptions;
     externals = Array.isArray(externals) ? externals : [externals];
     const config: webpack.Configuration = {
-        entry: `cloudify-loader?entry=${entry}&trampoline=${trampoline}!`,
+        entry: `cloudify-loader?entry=${resolvedEntry}&trampoline=${resolvedTrampoline}!`,
         mode: "development",
         output: {
             path: "/",
@@ -44,7 +40,7 @@ export async function packer(
             ...externals
         ],
         target: "node",
-        resolveLoader: { modules: [__dirname] },
+        resolveLoader: { modules: [__dirname, `${__dirname}/build}`] },
         ...rest
     };
 
@@ -102,9 +98,4 @@ export async function packer(
             }
         });
     });
-}
-
-let fname = __filename; // defeat constant propagation; __filename is different in webpack bundles.
-if (fname === "/index.js") {
-    log(`Execution context within webpack bundle!`);
 }

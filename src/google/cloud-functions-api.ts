@@ -65,7 +65,7 @@ export async function poll<T>({
     }
 }
 
-interface HasNextPageToken {
+export interface HasNextPageToken {
     nextPageToken?: string;
 }
 

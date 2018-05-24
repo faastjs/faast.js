@@ -13,7 +13,7 @@ export {
 
 export type AnyFunction = (...args: any[]) => any;
 
-type Unpacked<T> = T extends Promise<infer U> ? U : T;
+export type Unpacked<T> = T extends Promise<infer U> ? U : T;
 
 export type PromisifiedFunction<T extends AnyFunction> =
     // prettier-ignore
