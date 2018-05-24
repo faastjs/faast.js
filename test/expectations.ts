@@ -11,7 +11,6 @@ export function checkFunctions(
 
         beforeAll(() => {
             remote = service();
-            console.log(`Checking ${service.name}`);
         });
 
         test("hello: string => string", async () => {
@@ -26,12 +25,10 @@ export function checkFunctions(
             expect(await remote.concat("abc", "def")).toBe("abcdef");
         });
 
-        test("error: string => raise error", async () => {
-            try {
-                await remote.error("hey");
-            } catch (err) {
-                expect(err.message).toBe("Expected this error. Argument: hey");
-            }
+        test("error: string => raise exception", async () => {
+            expect(await remote.error("hey").catch(err => err.message)).toBe(
+                "Expected this error. Argument: hey"
+            );
         });
 
         test("noargs: () => string", async () => {
@@ -40,13 +37,13 @@ export function checkFunctions(
             );
         });
 
-        test("async: () => string", async () => {
+        test("async: () => Promise<string>", async () => {
             expect(await remote.async()).toBe(
                 "returned successfully from async function"
             );
         });
 
-        test("path: () => string", async () => {
+        test("path: () => Promise<string>", async () => {
             expect(typeof (await remote.path())).toBe("string");
         });
     });
