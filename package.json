@@ -2,8 +2,8 @@
     "name": "cloudify",
     "version": "0.0.2",
     "description": "Serverless without the cruft.",
-    "main": "build/cloudify.js",
-    "types": "build/cloudify.d.ts",
+    "main": "build/src/cloudify.js",
+    "types": "build/src/cloudify.d.ts",
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
