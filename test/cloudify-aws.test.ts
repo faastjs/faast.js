@@ -22,8 +22,8 @@ beforeAll(async () => {
     service = await CloudifyAWS.create(require.resolve("./functions"));
     console.log(`Service created: ${service.name}`);
     remote = service.cloudifyAll(funcs);
-}, 10 * 1000);
+}, 30 * 1000);
 
 checkFunctions("Cloudify AWS", () => remote);
 
-afterAll(() => service.cleanup(), 10 * 1000);
+afterAll(() => service.cleanup(), 30 * 1000);
