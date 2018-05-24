@@ -46,5 +46,9 @@ export function checkFunctions(
         test("path: () => Promise<string>", async () => {
             expect(typeof (await remote.path())).toBe("string");
         });
+
+        test("rejected: () => rejected promise", async () => {
+            expect(await remote.rejected()).toThrow();
+        });
     });
 }

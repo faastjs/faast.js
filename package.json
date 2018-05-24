@@ -7,11 +7,7 @@
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
-        "test-bundle": "node build/index.js --test",
-        "test-deploy-google":
-            "npm run test-bundle && rm -rf tmp && mkdir tmp && mv dist-google.zip tmp && functions start && cd tmp && unzip -o dist-google.zip && functions deploy trampoline --trigger-http",
-        "posttest-deploy-google":
-            "functions call trampoline --data='{\"name\": \"hello\", \"args\": [\"world\"]}' && functions stop",
+        "test-local": "jest build/test/local-google.test.js",
         "test": "jest"
     },
     "author": "",

@@ -30,3 +30,7 @@ export async function async() {
 export function path(): Promise<string> {
     return delay(200).then(() => process.env["PATH"] || "no PATH variable");
 }
+
+export function rejected(): Promise<string> {
+    return Promise.reject("This promise is expected to be rejected.");
+}
