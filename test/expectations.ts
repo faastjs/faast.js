@@ -47,7 +47,7 @@ export function checkFunctions(
             expect(typeof (await remote.path())).toBe("string");
         });
 
-        test.only("rejected: () => rejected promise", async () => {
+        test("rejected: () => rejected promise", async () => {
             console.log(`AAA`);
             try {
                 await remote

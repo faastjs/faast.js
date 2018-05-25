@@ -12,6 +12,7 @@ import {
 } from "../cloudify";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
+import { defaultPollDelay, sleep } from "../google/cloud-functions-api";
 
 function zipStreamToBuffer(zipStream: Readable): Promise<Buffer> {
     const buffers: Buffer[] = [];
@@ -25,6 +26,7 @@ function zipStreamToBuffer(zipStream: Readable): Promise<Buffer> {
 export interface CloudifyAWSOptions
     extends Partial<aws.Lambda.Types.CreateFunctionRequest> {
     region?: string;
+    PolicyArn?: string;
 }
 
 export async function packAWSLambdaFunction(serverModule: string) {
@@ -40,39 +42,86 @@ export class CloudifyAWS implements CloudFunctionService {
     protected constructor(protected lambda: aws.Lambda, protected FunctionName: string) {}
 
     static async create(serverModule: string, options: CloudifyAWSOptions = {}) {
-        const { region = "us-east-1", ...rest } = options;
+        const {
+            region = "us-east-1",
+            PolicyArn = "arn:aws:iam::aws:policy/AWSLambdaExecute",
+            ...rest
+        } = options;
         aws.config.region = region;
         const iam = new aws.IAM();
         const lambda = new aws.Lambda({ apiVersion: "2015-03-31" });
 
-        const policy = {
-            Version: "2012-10-17",
-            Statement: [
-                {
-                    Action: "sts:AssumeRole",
-                    Principal: { AWS: "*" },
-                    Effect: "Allow"
-                }
-            ]
-        };
-
         const RoleName = "cloudify-trampoline-role";
-        let roleResponse;
+        // XXX Make the role specific to this lambda using the configHash? That
+        // would ensure separation.
 
-        roleResponse = await iam
+        let roleResponse = await iam
             .getRole({ RoleName })
             .promise()
             .catch(_ => {});
 
         if (!roleResponse) {
+            const AssumeRolePolicyDocument = JSON.stringify({
+                Version: "2012-10-17",
+                Statement: [
+                    {
+                        Principal: { Service: "lambda.amazonaws.com" },
+                        Action: "sts:AssumeRole",
+                        Effect: "Allow"
+                    }
+                ]
+            });
+
             const roleParams: aws.IAM.CreateRoleRequest = {
-                AssumeRolePolicyDocument: JSON.stringify(policy) /* required */,
-                RoleName /* required */,
+                AssumeRolePolicyDocument,
+                RoleName,
                 Description: "role for lambda functions created by cloudify",
                 MaxSessionDuration: 3600
             };
 
             roleResponse = await iam.createRole(roleParams).promise();
+
+            await iam
+                .attachRolePolicy({
+                    RoleName: roleResponse.Role.RoleName,
+                    PolicyArn
+                })
+                .promise();
+
+            log(`Packing test function`);
+            // Wait for IAM role to propagate. No clear way to do this without a timeout.
+            const { archive } = await packAWSLambdaFunction(
+                require.resolve("./testfunction")
+            );
+
+            const ZipFile = await zipStreamToBuffer(archive);
+            const FunctionName = "cloudify-testfunction";
+            const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
+                FunctionName,
+                Role: roleResponse.Role.Arn,
+                Runtime: "nodejs6.10",
+                Handler: "index.trampoline",
+                Code: {
+                    ZipFile
+                }
+            };
+
+            for (let i = 0; i < 100; i++) {
+                try {
+                    log(`Creating test function`);
+                    const func = await lambda
+                        .createFunction(createFunctionRequest)
+                        .promise();
+                    break;
+                } catch (err) {
+                    console.log(err.message);
+                }
+                await sleep(1000);
+            }
+            await lambda
+                .deleteFunction({ FunctionName })
+                .promise()
+                .catch(_ => {});
         }
 
         const { archive, hash: codeHash } = await packAWSLambdaFunction(serverModule);
