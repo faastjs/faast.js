@@ -11,8 +11,8 @@ import {
     getConfigHash
 } from "../cloudify";
 import { log } from "../log";
-import { packer, PackerResult } from "../packer";
-import { defaultPollDelay, sleep } from "../google/cloud-functions-api";
+import { PackerResult, packer } from "../packer";
+import { createHash } from "crypto";
 
 function zipStreamToBuffer(zipStream: Readable): Promise<Buffer> {
     const buffers: Buffer[] = [];
@@ -23,17 +23,32 @@ function zipStreamToBuffer(zipStream: Readable): Promise<Buffer> {
     });
 }
 
-export interface CloudifyAWSOptions
-    extends Partial<aws.Lambda.Types.CreateFunctionRequest> {
+export interface CloudifyAWSOptions {
     region?: string;
     PolicyArn?: string;
+    cacheRole?: boolean;
+    awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
 }
 
-export async function packAWSLambdaFunction(serverModule: string) {
-    return packer(serverModule, require.resolve("./trampoline"), {
+export async function packAWSLambdaFunction(
+    functionModule: string
+): Promise<PackerResult> {
+    return packer({
+        trampolineModule: require.resolve("./aws-trampoline"),
+        functionModule,
         packageBundling: "bundleNodeModules",
         webpackOptions: { externals: "aws-sdk" }
     });
+}
+
+function sleep(ms: number) {
+    return new Promise<void>(resolve => setTimeout(resolve, ms));
+}
+
+function shash(str: string) {
+    const hasher = createHash("sha256");
+    hasher.update(str);
+    return hasher.digest("hex");
 }
 
 export class CloudifyAWS implements CloudFunctionService {
@@ -44,12 +59,14 @@ export class CloudifyAWS implements CloudFunctionService {
     static async create(serverModule: string, options: CloudifyAWSOptions = {}) {
         const {
             region = "us-east-1",
-            PolicyArn = "arn:aws:iam::aws:policy/AWSLambdaExecute",
-            ...rest
+            PolicyArn = "arn:aws:iam::aws:policy/AWSLambdaFullAccess",
+            cacheRole = true,
+            awsLambdaOptions = {}
         } = options;
         aws.config.region = region;
         const iam = new aws.IAM();
         const lambda = new aws.Lambda({ apiVersion: "2015-03-31" });
+        const cloudwatch = new aws.CloudWatchLogs({ apiVersion: "2014-03-28" });
 
         const RoleName = "cloudify-trampoline-role";
         // XXX Make the role specific to this lambda using the configHash? That
@@ -79,6 +96,8 @@ export class CloudifyAWS implements CloudFunctionService {
                 MaxSessionDuration: 3600
             };
 
+            log(`Creating role "${RoleName}" for cloudify trampoline function`);
+
             roleResponse = await iam.createRole(roleParams).promise();
 
             await iam
@@ -88,14 +107,22 @@ export class CloudifyAWS implements CloudFunctionService {
                 })
                 .promise();
 
-            log(`Packing test function`);
-            // Wait for IAM role to propagate. No clear way to do this without a timeout.
-            const { archive } = await packAWSLambdaFunction(
-                require.resolve("./testfunction")
-            );
+            log(`Creating test function to ensure new role is ready for use`);
 
+            // XXX Self destructor not working yet. Also it should not delete
+            // the role because it's needed by the subsequent calls.
+            const { archive } = await packer({
+                trampolineModule: require.resolve("./aws-self-destructor"),
+                trampolineFunction: "selfDestructor",
+                packageBundling: "bundleNodeModules",
+                webpackOptions: { externals: "aws-sdk" }
+            });
             const ZipFile = await zipStreamToBuffer(archive);
-            const FunctionName = "cloudify-testfunction";
+
+            const nonce = shash(`${Math.random()}`).slice(0, 16);
+            const FunctionName = `cloudify-testfunction-${nonce}`;
+            const logGroupName = `/aws/lambda/${FunctionName}`;
+
             const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
                 FunctionName,
                 Role: roleResponse.Role.Arn,
@@ -106,27 +133,45 @@ export class CloudifyAWS implements CloudFunctionService {
                 }
             };
 
+            let testfunc: aws.Lambda.FunctionConfiguration | undefined;
+            await sleep(2000);
             for (let i = 0; i < 100; i++) {
                 try {
-                    log(`Creating test function`);
-                    const func = await lambda
+                    log(`Polling for role readiness...`);
+                    testfunc = await lambda
                         .createFunction(createFunctionRequest)
                         .promise();
                     break;
                 } catch (err) {
-                    console.log(err.message);
+                    log(`Role not ready (${err.message})`);
                 }
                 await sleep(1000);
             }
+
+            if (!testfunc) {
+                throw new Error("Could not initialize lambda execution role");
+            }
+
+            log(`Role ready. Invoking function.`);
             await lambda
-                .deleteFunction({ FunctionName })
+                .invoke({ FunctionName })
                 .promise()
-                .catch(_ => {});
+                .catch(err => log(err));
+            log(`Done invoking function`);
+            // log(`Cleaning up cloudwatch logs for role test function`);
+            // await cloudwatch.deleteLogGroup({
+            //     logGroupName: `/aws/lambda/${FunctionName}`
+            // });
+            // log(`Cleaning up role test function`);
+            // await lambda
+            //     .deleteFunction({ FunctionName })
+            //     .promise()
+            //     .catch(_ => {});
         }
 
         const { archive, hash: codeHash } = await packAWSLambdaFunction(serverModule);
         log(`codeHash: ${codeHash}`);
-        const { Tags } = options;
+        const { Tags } = awsLambdaOptions;
 
         const configHash = getConfigHash(codeHash, options);
 
@@ -155,7 +200,7 @@ export class CloudifyAWS implements CloudFunctionService {
                 configHash,
                 ...Tags
             },
-            ...rest
+            ...awsLambdaOptions
         };
         log(`createFunctionRequest: ${humanStringify(createFunctionRequest)}`);
         const func = await lambda.createFunction(createFunctionRequest).promise();

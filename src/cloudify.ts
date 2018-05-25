@@ -4,12 +4,12 @@ export {
     CloudifyGoogle,
     CloudifyGoogleOptions,
     packGoogleCloudFunction
-} from "./google/cloudify-google";
+} from "./google/google-cloudify";
 export {
     CloudifyAWS,
     CloudifyAWSOptions,
     packAWSLambdaFunction
-} from "./aws/cloudify-aws";
+} from "./aws/aws-cloudify";
 
 export type AnyFunction = (...args: any[]) => any;
 

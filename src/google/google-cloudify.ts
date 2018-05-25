@@ -11,12 +11,12 @@ import {
     getConfigHash
 } from "../cloudify";
 import { log } from "../log";
-import { packer, PackerResult } from "../packer";
+import { PackerResult, packer } from "../packer";
 import {
     CloudFunctions,
     cloudfunctions_v1 as gcf,
     initializeGoogleAPIs
-} from "./cloud-functions-api";
+} from "./google-cloud-functions-api";
 
 export interface CloudifyGoogleOptions extends gcf.Schema$CloudFunction {
     region?: string;
@@ -140,8 +140,13 @@ export class CloudifyGoogle implements CloudFunctionService {
     }
 }
 
-export async function packGoogleCloudFunction(serverModule: string) {
-    return packer(serverModule, require.resolve("./trampoline"));
+export async function packGoogleCloudFunction(
+    functionModule: string
+): Promise<PackerResult> {
+    return packer({
+        trampolineModule: require.resolve("./google-trampoline"),
+        functionModule
+    });
 }
 
 /**

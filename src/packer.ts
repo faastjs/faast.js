@@ -8,8 +8,9 @@ import { log } from "./log";
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
 import nodeExternals = require("webpack-node-externals");
+import { CloudifyLoaderOptions } from "./cloudify-loader";
 
-export interface PackerOptions {
+export interface PackerOptions extends CloudifyLoaderOptions {
     webpackOptions?: webpack.Configuration;
     packageBundling?: "usePackageJson" | "bundleNodeModules";
 }
@@ -19,16 +20,31 @@ export interface PackerResult {
     hash: string;
 }
 
-export function packer(
-    resolvedEntry: string,
-    resolvedTrampoline: string,
-    { webpackOptions = {}, packageBundling = "bundleNodeModules" }: PackerOptions = {}
-): Promise<PackerResult> {
+function getUrlEncodedQueryParameters(options: CloudifyLoaderOptions) {
+    return Object.keys(options)
+        .filter(key => options[key])
+        .map(key => `${key}=${encodeURIComponent(options[key])}`)
+        .join(`&`);
+}
+
+export function packer({
+    trampolineModule,
+    trampolineFunction = "trampoline",
+    functionModule = undefined,
+    webpackOptions = {},
+    packageBundling = "bundleNodeModules"
+}: PackerOptions): Promise<PackerResult> {
     log(`Running webpack`);
     let { externals = [], ...rest } = webpackOptions;
     externals = Array.isArray(externals) ? externals : [externals];
+    let loaderOptions = {
+        trampolineModule,
+        trampolineFunction,
+        functionModule
+    };
+    const loader = `cloudify-loader?${getUrlEncodedQueryParameters(loaderOptions)}!`;
     const config: webpack.Configuration = {
-        entry: `cloudify-loader?entry=${resolvedEntry}&trampoline=${resolvedTrampoline}!`,
+        entry: loader,
         mode: "development",
         output: {
             path: "/",
