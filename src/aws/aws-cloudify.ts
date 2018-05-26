@@ -82,10 +82,7 @@ export class CloudifyAWS implements CloudFunctionService {
         // XXX Make the role specific to this lambda using the configHash? That
         // would ensure separation.
 
-        let roleResponse = await iam
-            .getRole({ RoleName })
-            .promise()
-            .catch(_ => {});
+        let roleResponse = await carefully(iam.getRole({ RoleName }));
 
         if (!roleResponse) {
             const AssumeRolePolicyDocument = JSON.stringify({
@@ -141,17 +138,13 @@ export class CloudifyAWS implements CloudFunctionService {
                 }
             };
 
-            let testfunc: aws.Lambda.FunctionConfiguration | undefined;
+            let testfunc: aws.Lambda.FunctionConfiguration | void;
             await sleep(2000);
             for (let i = 0; i < 100; i++) {
-                try {
-                    log(`Polling for role readiness...`);
-                    testfunc = await lambda
-                        .createFunction(createFunctionRequest)
-                        .promise();
+                log(`Polling for role readiness...`);
+                testfunc = await carefully(lambda.createFunction(createFunctionRequest));
+                if (testfunc) {
                     break;
-                } catch (err) {
-                    log(`Role not ready (${err.message})`);
                 }
                 await sleep(1000);
             }
@@ -160,13 +153,11 @@ export class CloudifyAWS implements CloudFunctionService {
                 throw new Error("Could not initialize lambda execution role");
             }
 
-            log(`Role ready. Invoking function.`);
+            log(`Role ready. Invoking self-destruction function.`);
             const args: SelfDestructorOptions = { keepRole: true };
-            await lambda
-                .invoke({ FunctionName, Payload: JSON.stringify(args) })
-                .promise()
-                .catch(err => log(err));
-            log(`Done invoking function`);
+            const Payload = JSON.stringify(args);
+            await carefully(lambda.invoke({ FunctionName, Payload }));
+            log(`Done invoking self-destructing function`);
         }
 
         const { archive, hash: codeHash } = await packAWSLambdaFunction(serverModule);
@@ -176,12 +167,9 @@ export class CloudifyAWS implements CloudFunctionService {
         const configHash = getConfigHash(codeHash, options);
 
         const FunctionName = `cloudify-${configHash.slice(0, 55)}`;
-        const previous = await lambda
-            .getFunction({ FunctionName })
-            .promise()
-            .catch(_ => undefined);
+        const previous = await quietly(lambda.getFunction({ FunctionName }));
         if (previous) {
-            throw new Error("Function name hash collission");
+            throw new Error("Function name hash collision");
         }
 
         const ZipFile = await zipStreamToBuffer(archive);
@@ -259,26 +247,38 @@ export class CloudifyAWS implements CloudFunctionService {
     async cleanup() {
         // prettier-ignore
         const { cloudwatch, FunctionName, RoleName, logGroupName, lambda, iam } = this.options;
+
         log(`Deleting log group: ${logGroupName}`);
-        await cloudwatch.deleteLogGroup({ logGroupName }).promise();
+        await carefully(cloudwatch.deleteLogGroup({ logGroupName }));
+
         log(`Deleting role name: ${RoleName}`);
-        // 1. Why is the Log Group still there after deletion?
-        // 2. How to remove the role completely.
-        if (RoleName) {
-            const { AttachedPolicies = [] } = await iam
-                .listAttachedRolePolicies({ RoleName })
-                .promise();
-            function detach(policy: aws.IAM.AttachedPolicy) {
-                const PolicyArn = policy.PolicyArn!;
-                return iam.detachRolePolicy({ RoleName, PolicyArn }).promise();
-            }
-            await Promise.all(AttachedPolicies.map(detach));
-            await iam.deleteRole({ RoleName }).promise();
-        }
+        await deleteRole(iam, RoleName);
+
         log(`Deleting function: ${FunctionName}`);
-        await lambda
-            .deleteFunction({ FunctionName })
-            .promise()
-            .catch(err => log(`Delete function failed: ${err}`));
+        await carefully(lambda.deleteFunction({ FunctionName }));
     }
+}
+
+interface HasPromise<T> {
+    promise(): Promise<T>;
+}
+
+function carefully<U>(arg: HasPromise<U>) {
+    return arg.promise().catch(log);
+}
+
+function quietly<U>(arg: HasPromise<U>) {
+    return arg.promise().catch(_ => {});
+}
+
+async function deleteRole(iam: aws.IAM, RoleName: string) {
+    const policies = await carefully(iam.listAttachedRolePolicies({ RoleName }));
+    const AttachedPolicies = (policies && policies.AttachedPolicies) || [];
+
+    function detach(policy: aws.IAM.AttachedPolicy) {
+        const PolicyArn = policy.PolicyArn!;
+        return carefully(iam.detachRolePolicy({ RoleName, PolicyArn }));
+    }
+    await Promise.all(AttachedPolicies.map(detach)).catch(log);
+    await carefully(iam.deleteRole({ RoleName }));
 }
