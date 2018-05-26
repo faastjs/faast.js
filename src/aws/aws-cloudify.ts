@@ -85,79 +85,7 @@ export class CloudifyAWS implements CloudFunctionService {
         let roleResponse = await carefully(iam.getRole({ RoleName }));
 
         if (!roleResponse) {
-            const AssumeRolePolicyDocument = JSON.stringify({
-                Version: "2012-10-17",
-                Statement: [
-                    {
-                        Principal: { Service: "lambda.amazonaws.com" },
-                        Action: "sts:AssumeRole",
-                        Effect: "Allow"
-                    }
-                ]
-            });
-
-            const roleParams: aws.IAM.CreateRoleRequest = {
-                AssumeRolePolicyDocument,
-                RoleName,
-                Description: "role for lambda functions created by cloudify",
-                MaxSessionDuration: 3600
-            };
-
-            log(`Creating role "${RoleName}" for cloudify trampoline function`);
-
-            roleResponse = await iam.createRole(roleParams).promise();
-
-            await iam
-                .attachRolePolicy({
-                    RoleName: roleResponse.Role.RoleName,
-                    PolicyArn
-                })
-                .promise();
-
-            log(`Creating test function to ensure new role is ready for use`);
-
-            const { archive } = await packer({
-                trampolineModule: require.resolve("./aws-self-destructor"),
-                trampolineFunction: "selfDestructor",
-                packageBundling: "bundleNodeModules",
-                webpackOptions: { externals: "aws-sdk" }
-            });
-            const ZipFile = await zipStreamToBuffer(archive);
-
-            const nonce = shash(`${Math.random()}`).slice(0, 16);
-            const FunctionName = `cloudify-testfunction-${nonce}`;
-            const logGroupName = `/aws/lambda/${FunctionName}`;
-
-            const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
-                FunctionName,
-                Role: roleResponse.Role.Arn,
-                Runtime: "nodejs6.10",
-                Handler: "index.trampoline",
-                Code: {
-                    ZipFile
-                }
-            };
-
-            let testfunc: aws.Lambda.FunctionConfiguration | void;
-            await sleep(2000);
-            for (let i = 0; i < 100; i++) {
-                log(`Polling for role readiness...`);
-                testfunc = await carefully(lambda.createFunction(createFunctionRequest));
-                if (testfunc) {
-                    break;
-                }
-                await sleep(1000);
-            }
-
-            if (!testfunc) {
-                throw new Error("Could not initialize lambda execution role");
-            }
-
-            log(`Role ready. Invoking self-destruction function.`);
-            const args: SelfDestructorOptions = { keepRole: true };
-            const Payload = JSON.stringify(args);
-            await carefully(lambda.invoke({ FunctionName, Payload }));
-            log(`Done invoking self-destructing function`);
+            roleResponse = await createRole(iam, lambda, RoleName, PolicyArn);
         }
 
         const { archive, hash: codeHash } = await packAWSLambdaFunction(serverModule);
@@ -281,4 +209,86 @@ async function deleteRole(iam: aws.IAM, RoleName: string) {
     }
     await Promise.all(AttachedPolicies.map(detach)).catch(log);
     await carefully(iam.deleteRole({ RoleName }));
+}
+
+async function createRole(
+    iam: aws.IAM,
+    lambda: aws.Lambda,
+    RoleName: string,
+    PolicyArn: string
+) {
+    log(`Creating role "${RoleName}" for cloudify trampoline function`);
+
+    const AssumeRolePolicyDocument = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+            {
+                Principal: { Service: "lambda.amazonaws.com" },
+                Action: "sts:AssumeRole",
+                Effect: "Allow"
+            }
+        ]
+    });
+
+    const roleParams: aws.IAM.CreateRoleRequest = {
+        AssumeRolePolicyDocument,
+        RoleName,
+        Description: "role for lambda functions created by cloudify",
+        MaxSessionDuration: 3600
+    };
+
+    let roleResponse = await iam.createRole(roleParams).promise();
+
+    await iam
+        .attachRolePolicy({
+            RoleName: roleResponse.Role.RoleName,
+            PolicyArn
+        })
+        .promise();
+
+    log(`Creating test function to ensure new role is ready for use`);
+
+    const { archive } = await packer({
+        trampolineModule: require.resolve("./aws-self-destructor"),
+        trampolineFunction: "selfDestructor",
+        packageBundling: "bundleNodeModules",
+        webpackOptions: { externals: "aws-sdk" }
+    });
+    const ZipFile = await zipStreamToBuffer(archive);
+
+    const nonce = shash(`${Math.random()}`).slice(0, 16);
+    const FunctionName = `cloudify-testfunction-${nonce}`;
+    const logGroupName = `/aws/lambda/${FunctionName}`;
+
+    const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
+        FunctionName,
+        Role: roleResponse.Role.Arn,
+        Runtime: "nodejs6.10",
+        Handler: "index.trampoline",
+        Code: {
+            ZipFile
+        }
+    };
+
+    let testfunc: aws.Lambda.FunctionConfiguration | void;
+    await sleep(2000);
+    for (let i = 0; i < 100; i++) {
+        log(`Polling for role readiness...`);
+        testfunc = await carefully(lambda.createFunction(createFunctionRequest));
+        if (testfunc) {
+            break;
+        }
+        await sleep(1000);
+    }
+
+    if (!testfunc) {
+        throw new Error("Could not initialize lambda execution role");
+    }
+
+    log(`Role ready. Invoking self-destruction function.`);
+    const args: SelfDestructorOptions = { keepRole: true };
+    const Payload = JSON.stringify(args);
+    await carefully(lambda.invoke({ FunctionName, Payload }));
+    log(`Done invoking self-destructing function`);
+    return roleResponse;
 }
