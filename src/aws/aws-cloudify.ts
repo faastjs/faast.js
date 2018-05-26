@@ -82,7 +82,7 @@ export class CloudifyAWS implements CloudFunctionService {
         // XXX Make the role specific to this lambda using the configHash? That
         // would ensure separation.
 
-        let roleResponse = await carefully(iam.getRole({ RoleName }));
+        let roleResponse = await quietly(iam.getRole({ RoleName }));
 
         if (!roleResponse) {
             roleResponse = await createRole(iam, lambda, RoleName, PolicyArn);
@@ -124,6 +124,7 @@ export class CloudifyAWS implements CloudFunctionService {
         if (!func.FunctionName) {
             throw new Error(`Created lambda function has no function name`);
         }
+
         const logGroupName = `/aws/lambda/${FunctionName}`;
         // prettier-ignore
         return new CloudifyAWS({ FunctionName, RoleName, logGroupName, lambda, cloudwatch, iam });
@@ -140,7 +141,7 @@ export class CloudifyAWS implements CloudFunctionService {
             const { FunctionName, lambda } = this.options;
             const request: aws.Lambda.Types.InvocationRequest = {
                 FunctionName: FunctionName,
-                LogType: "Tail",
+                LogType: "None",
                 Payload: callArgsStr
             };
             log(`Invocation request: ${humanStringify(request)}`);
@@ -274,7 +275,7 @@ async function createRole(
     await sleep(2000);
     for (let i = 0; i < 100; i++) {
         log(`Polling for role readiness...`);
-        testfunc = await carefully(lambda.createFunction(createFunctionRequest));
+        testfunc = await quietly(lambda.createFunction(createFunctionRequest));
         if (testfunc) {
             break;
         }
