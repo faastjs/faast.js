@@ -1,4 +1,5 @@
 import * as aws from "aws-sdk";
+import { createHash } from "crypto";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import {
@@ -12,7 +13,7 @@ import {
 } from "../cloudify";
 import { log } from "../log";
 import { PackerResult, packer } from "../packer";
-import { createHash } from "crypto";
+import { SelfDestructorOptions } from "./aws-self-destructor";
 
 function zipStreamToBuffer(zipStream: Readable): Promise<Buffer> {
     const buffers: Buffer[] = [];
@@ -54,12 +55,18 @@ function shash(str: string) {
 export class CloudifyAWS implements CloudFunctionService {
     name = "aws";
 
-    protected constructor(protected lambda: aws.Lambda, protected FunctionName: string) {}
+    protected constructor(
+        protected lambda: aws.Lambda,
+        protected FunctionName: string,
+        protected cloudwatch: aws.CloudWatchLogs,
+        protected iam: aws.IAM,
+        protected RoleName: string
+    ) {}
 
     static async create(serverModule: string, options: CloudifyAWSOptions = {}) {
         const {
             region = "us-east-1",
-            PolicyArn = "arn:aws:iam::aws:policy/AWSLambdaFullAccess",
+            PolicyArn = "arn:aws:iam::aws:policy/AdministratorAccess",
             cacheRole = true,
             awsLambdaOptions = {}
         } = options;
@@ -109,8 +116,6 @@ export class CloudifyAWS implements CloudFunctionService {
 
             log(`Creating test function to ensure new role is ready for use`);
 
-            // XXX Self destructor not working yet. Also it should not delete
-            // the role because it's needed by the subsequent calls.
             const { archive } = await packer({
                 trampolineModule: require.resolve("./aws-self-destructor"),
                 trampolineFunction: "selfDestructor",
@@ -153,20 +158,12 @@ export class CloudifyAWS implements CloudFunctionService {
             }
 
             log(`Role ready. Invoking function.`);
+            const args: SelfDestructorOptions = { keepRole: true };
             await lambda
-                .invoke({ FunctionName })
+                .invoke({ FunctionName, Payload: JSON.stringify(args) })
                 .promise()
                 .catch(err => log(err));
             log(`Done invoking function`);
-            // log(`Cleaning up cloudwatch logs for role test function`);
-            // await cloudwatch.deleteLogGroup({
-            //     logGroupName: `/aws/lambda/${FunctionName}`
-            // });
-            // log(`Cleaning up role test function`);
-            // await lambda
-            //     .deleteFunction({ FunctionName })
-            //     .promise()
-            //     .catch(_ => {});
         }
 
         const { archive, hash: codeHash } = await packAWSLambdaFunction(serverModule);
@@ -208,7 +205,7 @@ export class CloudifyAWS implements CloudFunctionService {
         if (!func.FunctionName) {
             throw new Error(`Created lambda function has no function name`);
         }
-        return new CloudifyAWS(lambda, func.FunctionName);
+        return new CloudifyAWS(lambda, func.FunctionName, cloudwatch, iam, RoleName);
     }
 
     cloudify<F extends AnyFunction>(fn: F): PromisifiedFunction<F> {
@@ -255,9 +252,36 @@ export class CloudifyAWS implements CloudFunctionService {
     }
 
     async cleanup() {
+        await this.cloudwatch
+            .deleteLogGroup({
+                logGroupName: `/aws/lambda/${this.FunctionName}`
+            })
+            .promise();
+        const { RoleName } = this;
+        log(`Deleting role name: ${RoleName}`);
+        // 1. Why is the Log Group still there after deletion?
+        // 2. How to remove the role completely.
+        if (RoleName) {
+            const { AttachedPolicies = [] } = await this.iam
+                .listAttachedRolePolicies({ RoleName })
+                .promise();
+
+            await Promise.all(
+                AttachedPolicies.map(policy =>
+                    this.iam
+                        .detachRolePolicy({
+                            RoleName,
+                            PolicyArn: policy.PolicyArn!
+                        })
+                        .promise()
+                )
+            );
+
+            await this.iam.deleteRole({ RoleName }).promise();
+        }
         await this.lambda
             .deleteFunction({ FunctionName: this.FunctionName })
             .promise()
-            .catch(err => log(`Cleanup failed: ${err}`));
+            .catch(err => log(`Delete function failed: ${err}`));
     }
 }
