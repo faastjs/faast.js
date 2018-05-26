@@ -56,11 +56,14 @@ export class CloudifyAWS implements CloudFunctionService {
     name = "aws";
 
     protected constructor(
-        protected lambda: aws.Lambda,
-        protected FunctionName: string,
-        protected cloudwatch: aws.CloudWatchLogs,
-        protected iam: aws.IAM,
-        protected RoleName: string
+        public options: {
+            readonly FunctionName: string;
+            readonly RoleName: string;
+            readonly logGroupName: string;
+            readonly lambda: aws.Lambda;
+            readonly cloudwatch: aws.CloudWatchLogs;
+            readonly iam: aws.IAM;
+        }
     ) {}
 
     static async create(serverModule: string, options: CloudifyAWSOptions = {}) {
@@ -71,7 +74,7 @@ export class CloudifyAWS implements CloudFunctionService {
             awsLambdaOptions = {}
         } = options;
         aws.config.region = region;
-        const iam = new aws.IAM();
+        const iam = new aws.IAM({ apiVersion: "2010-05-08" });
         const lambda = new aws.Lambda({ apiVersion: "2015-03-31" });
         const cloudwatch = new aws.CloudWatchLogs({ apiVersion: "2014-03-28" });
 
@@ -205,7 +208,9 @@ export class CloudifyAWS implements CloudFunctionService {
         if (!func.FunctionName) {
             throw new Error(`Created lambda function has no function name`);
         }
-        return new CloudifyAWS(lambda, func.FunctionName, cloudwatch, iam, RoleName);
+        const logGroupName = `/aws/lambda/${FunctionName}`;
+        // prettier-ignore
+        return new CloudifyAWS({ FunctionName, RoleName, logGroupName, lambda, cloudwatch, iam });
     }
 
     cloudify<F extends AnyFunction>(fn: F): PromisifiedFunction<F> {
@@ -216,14 +221,14 @@ export class CloudifyAWS implements CloudFunctionService {
             };
             const callArgsStr = JSON.stringify(callArgs);
             log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`, "");
-
+            const { FunctionName, lambda } = this.options;
             const request: aws.Lambda.Types.InvocationRequest = {
-                FunctionName: this.FunctionName,
+                FunctionName: FunctionName,
                 LogType: "Tail",
                 Payload: callArgsStr
             };
             log(`Invocation request: ${humanStringify(request)}`);
-            const response = await this.lambda.invoke(request).promise();
+            const response = await lambda.invoke(request).promise();
             log(`  returned: ${humanStringify(response)}`);
             if (response.FunctionError) {
                 throw new Error(response.Payload as string);
@@ -252,35 +257,27 @@ export class CloudifyAWS implements CloudFunctionService {
     }
 
     async cleanup() {
-        await this.cloudwatch
-            .deleteLogGroup({
-                logGroupName: `/aws/lambda/${this.FunctionName}`
-            })
-            .promise();
-        const { RoleName } = this;
+        // prettier-ignore
+        const { cloudwatch, FunctionName, RoleName, logGroupName, lambda, iam } = this.options;
+        log(`Deleting log group: ${logGroupName}`);
+        await cloudwatch.deleteLogGroup({ logGroupName }).promise();
         log(`Deleting role name: ${RoleName}`);
         // 1. Why is the Log Group still there after deletion?
         // 2. How to remove the role completely.
         if (RoleName) {
-            const { AttachedPolicies = [] } = await this.iam
+            const { AttachedPolicies = [] } = await iam
                 .listAttachedRolePolicies({ RoleName })
                 .promise();
-
-            await Promise.all(
-                AttachedPolicies.map(policy =>
-                    this.iam
-                        .detachRolePolicy({
-                            RoleName,
-                            PolicyArn: policy.PolicyArn!
-                        })
-                        .promise()
-                )
-            );
-
-            await this.iam.deleteRole({ RoleName }).promise();
+            function detach(policy: aws.IAM.AttachedPolicy) {
+                const PolicyArn = policy.PolicyArn!;
+                return iam.detachRolePolicy({ RoleName, PolicyArn }).promise();
+            }
+            await Promise.all(AttachedPolicies.map(detach));
+            await iam.deleteRole({ RoleName }).promise();
         }
-        await this.lambda
-            .deleteFunction({ FunctionName: this.FunctionName })
+        log(`Deleting function: ${FunctionName}`);
+        await lambda
+            .deleteFunction({ FunctionName })
             .promise()
             .catch(err => log(`Delete function failed: ${err}`));
     }
