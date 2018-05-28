@@ -24,129 +24,127 @@ export interface CloudifyGoogleOptions extends gcf.Schema$CloudFunction {
     availableMemoryMb?: number;
 }
 
-export class CloudifyGoogle implements CloudFunctionService {
-    name = "google";
-
-    protected constructor(
-        protected googleCloudFunctionsApi: CloudFunctions,
-        protected trampoline: string
-    ) {}
-
-    static async create(serverModule: string, options: CloudifyGoogleOptions = {}) {
-        const { archive, hash: codeHash } = await packGoogleCloudFunction(serverModule);
-        log(`hash: ${codeHash}`);
-
-        const google = await initializeGoogleAPIs();
-        const project = await google.auth.getDefaultProjectId();
-        const googleCloudFunctionsApi = new CloudFunctions(google, project);
-
-        log(`Create cloud function`);
-        const { region = "us-central1", timeoutSec = 60, labels, ...rest } = options;
-        const locationPath = googleCloudFunctionsApi.locationPath(region);
-        const uploadUrlResponse = await googleCloudFunctionsApi.generateUploaddUrl(
-            locationPath
-        );
-        const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, archive);
-        log(`Upload zip file response: ${uploadResult.statusText}`);
-
-        const configHash = getConfigHash(codeHash, options);
-
-        const trampoline = googleCloudFunctionsApi.functionPath(
-            region,
-            "cloudify-" + configHash.slice(0, 35)
-        );
-
-        const functionRequest: gcf.Schema$CloudFunction = {
-            name: trampoline,
-            description: "cloudify trampoline function",
-            entryPoint: "trampoline",
-            timeout: `${timeoutSec}s`,
-            availableMemoryMb: 256,
-            httpsTrigger: {},
-            sourceUploadUrl: uploadUrlResponse.uploadUrl,
-            labels: {
-                confighasha: configHash.slice(0, 32),
-                confighashb: configHash.slice(32),
-                ...labels
-            },
-            ...rest
-        };
-
-        validateGoogleLabels(functionRequest.labels);
-
-        // It should be rare to get a trampoline collision because we include
-        // part of the sha256 hash as part of the name, but we check just in
-        // case.
-        const existingFunc = await googleCloudFunctionsApi
-            .getFunction(trampoline)
-            .catch(_ => undefined);
-        if (existingFunc) {
-            throw new Error(`Trampoline name hash collision`);
-        }
-
-        log(`Create function at ${locationPath}`);
-        log(humanStringify(functionRequest));
-        try {
-            await googleCloudFunctionsApi.createFunction(locationPath, functionRequest);
-        } catch (err) {
-            await googleCloudFunctionsApi
-                .deleteFunction(trampoline)
-                .catch(_ =>
-                    log(`Could not clean up after failed create function. Possible leak.`)
-                );
-            throw err;
-        }
-        return new CloudifyGoogle(googleCloudFunctionsApi, trampoline);
-    }
-
-    cloudify<F extends AnyFunction>(fn: F): PromisifiedFunction<F> {
-        const promisifedFunc = async (...args: any[]) => {
-            let callArgs: FunctionCall = {
-                name: fn.name,
-                args
-            };
-            const callArgsStr = JSON.stringify(callArgs);
-            log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`, "");
-            const response = await this.googleCloudFunctionsApi!.callFunction(
-                this.trampoline,
-                callArgsStr
-            );
-
-            if (response.error) {
-                throw new Error(response.error);
-            }
-            log(`  returned: ${response.result}`);
-            let returned: FunctionReturn = JSON.parse(response.result!);
-            if (returned.type === "error") {
-                throw returned.value;
-            }
-            return returned.value;
-        };
-        return promisifedFunc as any;
-    }
-
-    cloudifyAll<T>(funcs: T): Promisified<T> {
-        const rv: any = {};
-        for (const name of Object.keys(funcs)) {
-            if (typeof funcs[name] === "function") {
-                rv[name] = this.cloudify(funcs[name]);
-            }
-        }
-        return rv;
-    }
-
-    async cleanup() {
-        await this.googleCloudFunctionsApi.deleteFunction(this.trampoline).catch(_ => {});
-    }
+export interface GoogleCloudifyVariables {
+    trampoline: string;
 }
 
-export async function packGoogleCloudFunction(
-    functionModule: string
-): Promise<PackerResult> {
-    return packer({
-        trampolineModule: require.resolve("./google-trampoline"),
-        functionModule
-    });
+export interface GoogleCloudifyServices {
+    googleCloudFunctionsApi: CloudFunctions;
+}
+
+export type GoogleCloudifyState = GoogleCloudifyVariables & GoogleCloudifyServices;
+
+async function initialize(
+    serverModule: string,
+    options: CloudifyGoogleOptions = {}
+): Promise<GoogleCloudifyState> {
+    const { archive, hash: codeHash } = await pack(serverModule);
+    log(`hash: ${codeHash}`);
+
+    const google = await initializeGoogleAPIs();
+    const project = await google.auth.getDefaultProjectId();
+    const googleCloudFunctionsApi = new CloudFunctions(google, project);
+
+    log(`Create cloud function`);
+    const { region = "us-central1", timeoutSec = 60, labels, ...rest } = options;
+    const locationPath = googleCloudFunctionsApi.locationPath(region);
+    const uploadUrlResponse = await googleCloudFunctionsApi.generateUploaddUrl(
+        locationPath
+    );
+    const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, archive);
+    log(`Upload zip file response: ${uploadResult.statusText}`);
+
+    const configHash = getConfigHash(codeHash, options);
+
+    const trampoline = googleCloudFunctionsApi.functionPath(
+        region,
+        "cloudify-" + configHash.slice(0, 35)
+    );
+
+    const functionRequest: gcf.Schema$CloudFunction = {
+        name: trampoline,
+        description: "cloudify trampoline function",
+        entryPoint: "trampoline",
+        timeout: `${timeoutSec}s`,
+        availableMemoryMb: 256,
+        httpsTrigger: {},
+        sourceUploadUrl: uploadUrlResponse.uploadUrl,
+        labels: {
+            confighasha: configHash.slice(0, 32),
+            confighashb: configHash.slice(32),
+            ...labels
+        },
+        ...rest
+    };
+
+    validateGoogleLabels(functionRequest.labels);
+
+    // It should be rare to get a trampoline collision because we include
+    // part of the sha256 hash as part of the name, but we check just in
+    // case.
+    const existingFunc = await googleCloudFunctionsApi
+        .getFunction(trampoline)
+        .catch(_ => undefined);
+    if (existingFunc) {
+        throw new Error(`Trampoline name hash collision`);
+    }
+
+    log(`Create function at ${locationPath}`);
+    log(humanStringify(functionRequest));
+    try {
+        await googleCloudFunctionsApi.createFunction(locationPath, functionRequest);
+    } catch (err) {
+        await googleCloudFunctionsApi
+            .deleteFunction(trampoline)
+            .catch(_ =>
+                log(`Could not clean up after failed create function. Possible leak.`)
+            );
+        throw err;
+    }
+    return { googleCloudFunctionsApi, trampoline };
+}
+
+function cloudify<F extends AnyFunction>(
+    state: GoogleCloudifyState,
+    fn: F
+): PromisifiedFunction<F> {
+    const promisifedFunc = async (...args: any[]) => {
+        let callArgs: FunctionCall = {
+            name: fn.name,
+            args
+        };
+        const callArgsStr = JSON.stringify(callArgs);
+        log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`, "");
+        const response = await state.googleCloudFunctionsApi!.callFunction(
+            state.trampoline,
+            callArgsStr
+        );
+
+        if (response.error) {
+            throw new Error(response.error);
+        }
+        log(`  returned: ${response.result}`);
+        let returned: FunctionReturn = JSON.parse(response.result!);
+        if (returned.type === "error") {
+            throw returned.value;
+        }
+        return returned.value;
+    };
+    return promisifedFunc as any;
+}
+
+function cloudifyAll<T>(state: GoogleCloudifyState, funcs: T): Promisified<T> {
+    const rv: any = {};
+    for (const name of Object.keys(funcs)) {
+        if (typeof funcs[name] === "function") {
+            rv[name] = cloudify(state, funcs[name]);
+        }
+    }
+    return rv;
+}
+
+async function cleanup(state: GoogleCloudifyState) {
+    await state.googleCloudFunctionsApi.deleteFunction(state.trampoline).catch(_ => {});
 }
 
 /**
@@ -196,5 +194,22 @@ async function uploadZip(url: string, zipStream: Readable) {
             "content-type": "application/zip",
             "x-goog-content-length-range": "0,104857600"
         }
+    });
+}
+
+export async function create(serverModule: string, options: CloudifyGoogleOptions = {}) {
+    const state = await initialize(serverModule, options);
+    return <CloudFunctionService>{
+        name: "google",
+        cloudify: f => cloudify(state, f),
+        cloudifyAll: o => cloudifyAll(state, o),
+        cleanup: () => cleanup(state)
+    };
+}
+
+export async function pack(functionModule: string): Promise<PackerResult> {
+    return packer({
+        trampolineModule: require.resolve("./google-trampoline"),
+        functionModule
     });
 }

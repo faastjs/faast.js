@@ -1,8 +1,5 @@
 import humanStringify from "human-stringify";
 import { AnyFunction, FunctionCall, FunctionReturn } from "../cloudify";
-import MemoryFileSystem = require("memory-fs");
-import archiver = require("archiver");
-import nodeExternals = require("webpack-node-externals");
 
 const funcs: { [func: string]: AnyFunction } = {};
 
@@ -22,7 +19,7 @@ export function registerAllFunctions(obj: { [name: string]: AnyFunction }) {
 
 export async function trampoline(
     event: any,
-    _context: any,
+    context: any,
     callback: (err: Error | null, obj: object) => void
 ) {
     console.log(`${humanStringify(event)}`);

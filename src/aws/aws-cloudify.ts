@@ -13,180 +13,27 @@ import {
 } from "../cloudify";
 import { log } from "../log";
 import { PackerResult, packer } from "../packer";
-import { SelfDestructorOptions } from "./aws-self-destructor";
-
-function zipStreamToBuffer(zipStream: Readable): Promise<Buffer> {
-    const buffers: Buffer[] = [];
-    return new Promise((resolve, reject) => {
-        zipStream.on("data", data => buffers.push(data as Buffer));
-        zipStream.on("end", () => resolve(Buffer.concat(buffers)));
-        zipStream.on("error", reject);
-    });
-}
 
 export interface CloudifyAWSOptions {
     region?: string;
     PolicyArn?: string;
-    cacheRole?: boolean;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
 }
 
-export async function packAWSLambdaFunction(
-    functionModule: string
-): Promise<PackerResult> {
-    return packer({
-        trampolineModule: require.resolve("./aws-trampoline"),
-        functionModule,
-        packageBundling: "bundleNodeModules",
-        webpackOptions: { externals: "aws-sdk" }
-    });
+export interface CloudifyAWSVariables {
+    FunctionName: string;
+    RoleName: string;
+    logGroupName: string;
+    region: string;
 }
 
-function sleep(ms: number) {
-    return new Promise<void>(resolve => setTimeout(resolve, ms));
+export interface CloudifyAWSServices {
+    readonly lambda: aws.Lambda;
+    readonly cloudwatch: aws.CloudWatchLogs;
+    readonly iam: aws.IAM;
 }
 
-function shash(str: string) {
-    const hasher = createHash("sha256");
-    hasher.update(str);
-    return hasher.digest("hex");
-}
-
-export class CloudifyAWS implements CloudFunctionService {
-    name = "aws";
-
-    protected constructor(
-        public options: {
-            readonly FunctionName: string;
-            readonly RoleName: string;
-            readonly logGroupName: string;
-            readonly lambda: aws.Lambda;
-            readonly cloudwatch: aws.CloudWatchLogs;
-            readonly iam: aws.IAM;
-        }
-    ) {}
-
-    static async create(serverModule: string, options: CloudifyAWSOptions = {}) {
-        const {
-            region = "us-east-1",
-            PolicyArn = "arn:aws:iam::aws:policy/AdministratorAccess",
-            cacheRole = true,
-            awsLambdaOptions = {}
-        } = options;
-        aws.config.region = region;
-        const iam = new aws.IAM({ apiVersion: "2010-05-08" });
-        const lambda = new aws.Lambda({ apiVersion: "2015-03-31" });
-        const cloudwatch = new aws.CloudWatchLogs({ apiVersion: "2014-03-28" });
-
-        const RoleName = "cloudify-trampoline-role";
-        // XXX Make the role specific to this lambda using the configHash? That
-        // would ensure separation.
-
-        let roleResponse = await quietly(iam.getRole({ RoleName }));
-
-        if (!roleResponse) {
-            roleResponse = await createRole(iam, lambda, RoleName, PolicyArn);
-        }
-
-        const { archive, hash: codeHash } = await packAWSLambdaFunction(serverModule);
-        log(`codeHash: ${codeHash}`);
-        const { Tags } = awsLambdaOptions;
-
-        const configHash = getConfigHash(codeHash, options);
-
-        const FunctionName = `cloudify-${configHash.slice(0, 55)}`;
-        const previous = await quietly(lambda.getFunction({ FunctionName }));
-        if (previous) {
-            throw new Error("Function name hash collision");
-        }
-
-        const ZipFile = await zipStreamToBuffer(archive);
-        const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
-            FunctionName,
-            Role: roleResponse.Role.Arn,
-            Runtime: "nodejs6.10",
-            Handler: "index.trampoline",
-            Code: {
-                ZipFile
-            },
-            Description: "cloudify trampoline function",
-            Timeout: 60,
-            MemorySize: 128,
-            Tags: {
-                configHash,
-                ...Tags
-            },
-            ...awsLambdaOptions
-        };
-        log(`createFunctionRequest: ${humanStringify(createFunctionRequest)}`);
-        const func = await lambda.createFunction(createFunctionRequest).promise();
-        log(`Created function ${func.FunctionName}`);
-        if (!func.FunctionName) {
-            throw new Error(`Created lambda function has no function name`);
-        }
-
-        const logGroupName = `/aws/lambda/${FunctionName}`;
-        // prettier-ignore
-        return new CloudifyAWS({ FunctionName, RoleName, logGroupName, lambda, cloudwatch, iam });
-    }
-
-    cloudify<F extends AnyFunction>(fn: F): PromisifiedFunction<F> {
-        const promisifedFunc = async (...args: any[]) => {
-            let callArgs: FunctionCall = {
-                name: fn.name,
-                args
-            };
-            const callArgsStr = JSON.stringify(callArgs);
-            log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`, "");
-            const { FunctionName, lambda } = this.options;
-            const request: aws.Lambda.Types.InvocationRequest = {
-                FunctionName: FunctionName,
-                LogType: "None",
-                Payload: callArgsStr
-            };
-            log(`Invocation request: ${humanStringify(request)}`);
-            const response = await lambda.invoke(request).promise();
-            log(`  returned: ${humanStringify(response)}`);
-            if (response.FunctionError) {
-                throw new Error(response.Payload as string);
-            }
-            let returned: FunctionReturn = JSON.parse(response.Payload as string);
-            if (returned.type === "error") {
-                const errValue = returned.value;
-                let err = new Error(errValue.message);
-                err.name = errValue.name;
-                err.stack = errValue.stack;
-                throw err;
-            }
-            return returned.value;
-        };
-        return promisifedFunc as any;
-    }
-
-    cloudifyAll<T>(funcs: T): Promisified<T> {
-        const rv: any = {};
-        for (const name of Object.keys(funcs)) {
-            if (typeof funcs[name] === "function") {
-                rv[name] = this.cloudify(funcs[name]);
-            }
-        }
-        return rv;
-    }
-
-    async cleanup() {
-        // prettier-ignore
-        const { cloudwatch, FunctionName, RoleName, logGroupName, lambda, iam } = this.options;
-
-        log(`Deleting log group: ${logGroupName}`);
-        await carefully(cloudwatch.deleteLogGroup({ logGroupName }));
-
-        log(`Deleting role name: ${RoleName}`);
-        await deleteRole(iam, RoleName);
-
-        log(`Deleting function: ${FunctionName}`);
-        await carefully(lambda.deleteFunction({ FunctionName }));
-    }
-}
+export type CloudifyAWSState = CloudifyAWSVariables & CloudifyAWSServices;
 
 interface HasPromise<T> {
     promise(): Promise<T>;
@@ -200,10 +47,204 @@ function quietly<U>(arg: HasPromise<U>) {
     return arg.promise().catch(_ => {});
 }
 
-async function deleteRole(iam: aws.IAM, RoleName: string) {
+function zipStreamToBuffer(zipStream: Readable): Promise<Buffer> {
+    const buffers: Buffer[] = [];
+    return new Promise((resolve, reject) => {
+        zipStream.on("data", data => buffers.push(data as Buffer));
+        zipStream.on("end", () => resolve(Buffer.concat(buffers)));
+        zipStream.on("error", reject);
+    });
+}
+
+function sleep(ms: number) {
+    return new Promise<void>(resolve => setTimeout(resolve, ms));
+}
+
+let defaults = {
+    region: "us-east-1",
+    PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
+    Timeout: 60,
+    MemorySize: 128
+};
+
+function createAWSApis(region: string) {
+    return {
+        iam: new aws.IAM({ apiVersion: "2010-05-08", region }),
+        lambda: new aws.Lambda({ apiVersion: "2015-03-31", region }),
+        cloudwatch: new aws.CloudWatchLogs({ apiVersion: "2014-03-28", region })
+    };
+}
+
+async function initialize(
+    serverModule: string,
+    options: CloudifyAWSOptions = {}
+): Promise<CloudifyAWSState> {
+    const {
+        region = defaults.region,
+        PolicyArn = defaults.PolicyArn,
+        awsLambdaOptions = {}
+    } = options;
+    const { lambda, iam, cloudwatch } = createAWSApis(region);
+
+    const RoleName = "cloudify-trampoline-role";
+    // XXX Make the role specific to this lambda using the configHash? That
+    // would ensure separation.
+
+    async function createRole() {
+        log(`Creating role "${RoleName}" for cloudify trampoline function`);
+        const AssumeRolePolicyDocument = JSON.stringify({
+            Version: "2012-10-17",
+            Statement: [
+                {
+                    Principal: { Service: "lambda.amazonaws.com" },
+                    Action: "sts:AssumeRole",
+                    Effect: "Allow"
+                }
+            ]
+        });
+        const roleParams: aws.IAM.CreateRoleRequest = {
+            AssumeRolePolicyDocument,
+            RoleName,
+            Description: "role for lambda functions created by cloudify",
+            MaxSessionDuration: 3600
+        };
+        let roleResponse = await iam.createRole(roleParams).promise();
+        await iam
+            .attachRolePolicy({ RoleName: roleResponse.Role.RoleName, PolicyArn })
+            .promise();
+        return roleResponse;
+    }
+
+    async function checkRoleReadiness(Role: aws.IAM.Role) {
+        log(`Creating test function to ensure new role is ready for use`);
+        const { archive } = await packer({
+            trampolineModule: require.resolve("./aws-trampoline"),
+            packageBundling: "bundleNodeModules",
+            webpackOptions: { externals: "aws-sdk" }
+        });
+        const nonce = createHash("sha256")
+            .update(`${Math.random()}`)
+            .digest("hex")
+            .slice(0, 16);
+        const FunctionName = `cloudify-testfunction-${nonce}`;
+        const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
+            FunctionName,
+            Role: Role.Arn,
+            Runtime: "nodejs6.10",
+            Handler: "index.trampoline",
+            Code: { ZipFile: await zipStreamToBuffer(archive) }
+        };
+        let testfunc: aws.Lambda.FunctionConfiguration | void;
+        await sleep(2000);
+        for (let i = 0; i < 100; i++) {
+            log(`Polling for role readiness...`);
+            testfunc = await quietly(lambda.createFunction(createFunctionRequest));
+            if (testfunc) {
+                break;
+            }
+            await sleep(1000);
+        }
+        if (!testfunc) {
+            throw new Error("Could not initialize lambda execution role");
+        }
+        log(`Role ready. Cleaning up.`);
+        await quietly(lambda.deleteFunction({ FunctionName }));
+        return roleResponse;
+    }
+
+    async function createFunction(Role: aws.IAM.Role) {
+        const { archive, hash: codeHash } = await pack(serverModule);
+        log(`codeHash: ${codeHash}`);
+        const { Tags } = awsLambdaOptions;
+        const configHash = getConfigHash(codeHash, options);
+        const FunctionName = `cloudify-${configHash.slice(0, 55)}`;
+        const previous = await quietly(lambda.getFunction({ FunctionName }));
+        if (previous) {
+            throw new Error("Function name hash collision");
+        }
+        const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
+            FunctionName,
+            Role: Role.Arn,
+            Runtime: "nodejs6.10",
+            Handler: "index.trampoline",
+            Code: { ZipFile: await zipStreamToBuffer(archive) },
+            Description: "cloudify trampoline function",
+            Timeout: defaults.Timeout,
+            MemorySize: defaults.MemorySize,
+            Tags: { configHash, ...Tags },
+            ...awsLambdaOptions
+        };
+        log(`createFunctionRequest: ${humanStringify(createFunctionRequest)}`);
+        const func = await lambda.createFunction(createFunctionRequest).promise();
+        log(`Created function ${func.FunctionName}`);
+        if (!func.FunctionName) {
+            throw new Error(`Created lambda function has no function name`);
+        }
+        return FunctionName;
+    }
+
+    let roleResponse = await quietly(iam.getRole({ RoleName }));
+    if (!roleResponse) {
+        roleResponse = await createRole();
+        await checkRoleReadiness(roleResponse.Role);
+    }
+    const FunctionName = await createFunction(roleResponse.Role);
+    const logGroupName = `/aws/lambda/${FunctionName}`;
+    // prettier-ignore
+    return { FunctionName, RoleName, logGroupName, region, lambda, cloudwatch, iam};
+}
+
+function cloudify<F extends AnyFunction>(
+    state: CloudifyAWSState,
+    fn: F
+): PromisifiedFunction<F> {
+    const promisifedFunc = async (...args: any[]) => {
+        let callArgs: FunctionCall = {
+            name: fn.name,
+            args
+        };
+        const callArgsStr = JSON.stringify(callArgs);
+        log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`, "");
+        const request: aws.Lambda.Types.InvocationRequest = {
+            FunctionName: state.FunctionName,
+            LogType: "Tail",
+            Payload: callArgsStr
+        };
+        log(`Invocation request: ${humanStringify(request)}`);
+        const response = await state.lambda.invoke(request).promise();
+        log(`  returned: ${humanStringify(response)}`);
+        if (response.FunctionError) {
+            if (response.LogResult) {
+                log(Buffer.from(response.LogResult!, "base64").toString());
+            }
+            throw new Error(response.Payload as string);
+        }
+        let returned: FunctionReturn = JSON.parse(response.Payload as string);
+        if (returned.type === "error") {
+            const errValue = returned.value;
+            let err = new Error(errValue.message);
+            err.name = errValue.name;
+            err.stack = errValue.stack;
+            throw err;
+        }
+        return returned.value;
+    };
+    return promisifedFunc as any;
+}
+
+function cloudifyAll<T>(state: CloudifyAWSState, funcs: T): Promisified<T> {
+    const rv: any = {};
+    for (const name of Object.keys(funcs)) {
+        if (typeof funcs[name] === "function") {
+            rv[name] = cloudify(state, funcs[name]);
+        }
+    }
+    return rv;
+}
+
+async function deleteRole(RoleName: string, iam: aws.IAM) {
     const policies = await carefully(iam.listAttachedRolePolicies({ RoleName }));
     const AttachedPolicies = (policies && policies.AttachedPolicies) || [];
-
     function detach(policy: aws.IAM.AttachedPolicy) {
         const PolicyArn = policy.PolicyArn!;
         return carefully(iam.detachRolePolicy({ RoleName, PolicyArn }));
@@ -212,84 +253,37 @@ async function deleteRole(iam: aws.IAM, RoleName: string) {
     await carefully(iam.deleteRole({ RoleName }));
 }
 
-async function createRole(
-    iam: aws.IAM,
-    lambda: aws.Lambda,
-    RoleName: string,
-    PolicyArn: string
-) {
-    log(`Creating role "${RoleName}" for cloudify trampoline function`);
+async function cleanup(state: CloudifyAWSState) {
+    const { FunctionName, RoleName, logGroupName, cloudwatch, iam, lambda } = state;
 
-    const AssumeRolePolicyDocument = JSON.stringify({
-        Version: "2012-10-17",
-        Statement: [
-            {
-                Principal: { Service: "lambda.amazonaws.com" },
-                Action: "sts:AssumeRole",
-                Effect: "Allow"
-            }
-        ]
-    });
+    log(`Deleting log group: ${logGroupName}`);
+    await carefully(cloudwatch.deleteLogGroup({ logGroupName }));
 
-    const roleParams: aws.IAM.CreateRoleRequest = {
-        AssumeRolePolicyDocument,
-        RoleName,
-        Description: "role for lambda functions created by cloudify",
-        MaxSessionDuration: 3600
+    log(`Deleting role name: ${RoleName}`);
+    await deleteRole(RoleName, iam);
+
+    log(`Deleting function: ${FunctionName}`);
+    await carefully(lambda.deleteFunction({ FunctionName }));
+}
+
+export async function create(
+    serverModule: string,
+    options: CloudifyAWSOptions = {}
+): Promise<CloudFunctionService> {
+    const state = await initialize(serverModule, options);
+    return {
+        name: "aws",
+        cloudify: f => cloudify(state, f),
+        cloudifyAll: o => cloudifyAll(state, o),
+        cleanup: () => cleanup(state)
     };
+}
 
-    let roleResponse = await iam.createRole(roleParams).promise();
-
-    await iam
-        .attachRolePolicy({
-            RoleName: roleResponse.Role.RoleName,
-            PolicyArn
-        })
-        .promise();
-
-    log(`Creating test function to ensure new role is ready for use`);
-
-    const { archive } = await packer({
-        trampolineModule: require.resolve("./aws-self-destructor"),
-        trampolineFunction: "selfDestructor",
+export async function pack(functionModule: string): Promise<PackerResult> {
+    return packer({
+        trampolineModule: require.resolve("./aws-trampoline"),
+        functionModule,
         packageBundling: "bundleNodeModules",
         webpackOptions: { externals: "aws-sdk" }
     });
-    const ZipFile = await zipStreamToBuffer(archive);
-
-    const nonce = shash(`${Math.random()}`).slice(0, 16);
-    const FunctionName = `cloudify-testfunction-${nonce}`;
-    const logGroupName = `/aws/lambda/${FunctionName}`;
-
-    const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
-        FunctionName,
-        Role: roleResponse.Role.Arn,
-        Runtime: "nodejs6.10",
-        Handler: "index.trampoline",
-        Code: {
-            ZipFile
-        }
-    };
-
-    let testfunc: aws.Lambda.FunctionConfiguration | void;
-    await sleep(2000);
-    for (let i = 0; i < 100; i++) {
-        log(`Polling for role readiness...`);
-        testfunc = await quietly(lambda.createFunction(createFunctionRequest));
-        if (testfunc) {
-            break;
-        }
-        await sleep(1000);
-    }
-
-    if (!testfunc) {
-        throw new Error("Could not initialize lambda execution role");
-    }
-
-    log(`Role ready. Invoking self-destruction function.`);
-    const args: SelfDestructorOptions = { keepRole: true };
-    const Payload = JSON.stringify(args);
-    await carefully(lambda.invoke({ FunctionName, Payload }));
-    log(`Done invoking self-destructing function`);
-    return roleResponse;
 }

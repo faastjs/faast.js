@@ -1,15 +1,12 @@
 import { createHash } from "crypto";
 import { create } from "archiver";
-export {
-    CloudifyGoogle,
-    CloudifyGoogleOptions,
-    packGoogleCloudFunction
-} from "./google/google-cloudify";
-export {
-    CloudifyAWS,
-    CloudifyAWSOptions,
-    packAWSLambdaFunction
-} from "./aws/aws-cloudify";
+import * as google from "./google/google-cloudify";
+import * as aws from "./aws/aws-cloudify";
+
+export { aws, google };
+
+export let createAWS = aws.create;
+export let createGoogle = google.create;
 
 export type AnyFunction = (...args: any[]) => any;
 
@@ -48,6 +45,7 @@ export interface FunctionCall {
 export interface FunctionReturn {
     type: "returned" | "error";
     value?: any;
+    logUrl?: string;
 }
 
 export function getConfigHash(codeHash: string, options: object) {

@@ -1,4 +1,4 @@
-import { CloudFunctionService, CloudifyGoogle, Promisified } from "../src/cloudify";
+import { CloudFunctionService, google, Promisified } from "../src/cloudify";
 import { checkFunctions } from "./expectations";
 import * as funcs from "./functions";
 
@@ -6,7 +6,7 @@ let service: CloudFunctionService;
 let remote: Promisified<typeof funcs>;
 
 beforeAll(async () => {
-    service = await CloudifyGoogle.create(require.resolve("./functions"));
+    service = await google.create(require.resolve("./functions"));
     console.log(`Service created: ${service.name}`);
     remote = service.cloudifyAll(funcs);
 }, 120 * 1000);

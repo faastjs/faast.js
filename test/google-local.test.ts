@@ -1,11 +1,11 @@
 import * as fs from "fs";
-import { packGoogleCloudFunction } from "../src/cloudify";
+import * as cloudify from "../src/cloudify";
 import { exec, unzipInDir } from "./util";
 
 test(
     "package google zip file and test with clound function emulator",
     async () => {
-        const { archive: archiveGoogle } = await packGoogleCloudFunction(
+        const { archive: archiveGoogle } = await cloudify.google.pack(
             require.resolve("./functions")
         );
 
