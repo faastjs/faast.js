@@ -1,5 +1,6 @@
 import humanStringify from "human-stringify";
-import { AnyFunction, FunctionCall, FunctionReturn } from "../cloudify";
+import { AnyFunction } from "../cloudify";
+import { FunctionCall, FunctionReturn } from "../shared";
 
 const funcs: { [func: string]: AnyFunction } = {};
 
@@ -19,7 +20,7 @@ export function registerAllFunctions(obj: { [name: string]: AnyFunction }) {
 
 export async function trampoline(
     event: any,
-    context: any,
+    _context: any,
     callback: (err: Error | null, obj: object) => void
 ) {
     console.log(`${humanStringify(event)}`);

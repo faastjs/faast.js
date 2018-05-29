@@ -1,43 +1,38 @@
 import Axios from "axios";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
-import {
-    AnyFunction,
-    CloudFunctionService,
-    FunctionCall,
-    FunctionReturn,
-    Promisified,
-    PromisifiedFunction,
-    getConfigHash
-} from "../cloudify";
+import { AnyFunction, Response, ResponsifiedFunction } from "../cloudify";
 import { log } from "../log";
 import { PackerResult, packer } from "../packer";
+import { FunctionCall, FunctionReturn, getConfigHash } from "../shared";
 import {
     CloudFunctions,
     cloudfunctions_v1 as gcf,
     initializeGoogleAPIs
 } from "./google-cloud-functions-api";
 
-export interface CloudifyGoogleOptions extends gcf.Schema$CloudFunction {
+export interface Options extends gcf.Schema$CloudFunction {
     region?: string;
     timeoutSec?: number;
     availableMemoryMb?: number;
 }
 
-export interface GoogleCloudifyVariables {
-    trampoline: string;
+export interface GoogleVariables {
+    readonly trampoline: string;
 }
 
-export interface GoogleCloudifyServices {
-    googleCloudFunctionsApi: CloudFunctions;
+export interface GoogleServices {
+    readonly googleCloudFunctionsApi: CloudFunctions;
 }
 
-export type GoogleCloudifyState = GoogleCloudifyVariables & GoogleCloudifyServices;
+export const name = "google";
 
-async function initialize(
+export type State = GoogleVariables & GoogleServices;
+
+export async function initialize(
     serverModule: string,
-    options: CloudifyGoogleOptions = {}
-): Promise<GoogleCloudifyState> {
+    options: Options = {}
+): Promise<State> {
     const { archive, hash: codeHash } = await pack(serverModule);
     log(`hash: ${codeHash}`);
 
@@ -104,10 +99,10 @@ async function initialize(
     return { googleCloudFunctionsApi, trampoline };
 }
 
-function cloudify<F extends AnyFunction>(
-    state: GoogleCloudifyState,
+export function cloudifyWithResponse<F extends AnyFunction>(
+    state: State,
     fn: F
-): PromisifiedFunction<F> {
+): ResponsifiedFunction<F> {
     const promisifedFunc = async (...args: any[]) => {
         let callArgs: FunctionCall = {
             name: fn.name,
@@ -115,35 +110,32 @@ function cloudify<F extends AnyFunction>(
         };
         const callArgsStr = JSON.stringify(callArgs);
         log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`, "");
-        const response = await state.googleCloudFunctionsApi!.callFunction(
+        const rawResponse = await state.googleCloudFunctionsApi!.callFunction(
             state.trampoline,
             callArgsStr
         );
+        let error: Error | undefined;
+        if (rawResponse.error) {
+            error = new Error(rawResponse.error);
+        }
+        log(`  returned: ${rawResponse.result}`);
+        let returned: FunctionReturn | undefined =
+            !error && JSON.parse(rawResponse.result!);
+        if (returned && returned.type === "error") {
+            const errValue = returned.value;
+            error = new Error(errValue.message);
+            error.name = errValue.name;
+            error.stack = errValue.stack;
+        }
+        const value = returned && returned.value;
 
-        if (response.error) {
-            throw new Error(response.error);
-        }
-        log(`  returned: ${response.result}`);
-        let returned: FunctionReturn = JSON.parse(response.result!);
-        if (returned.type === "error") {
-            throw returned.value;
-        }
-        return returned.value;
+        const rv: Response<ReturnType<F>> = { error, value, rawResponse };
+        return rv;
     };
     return promisifedFunc as any;
 }
 
-function cloudifyAll<T>(state: GoogleCloudifyState, funcs: T): Promisified<T> {
-    const rv: any = {};
-    for (const name of Object.keys(funcs)) {
-        if (typeof funcs[name] === "function") {
-            rv[name] = cloudify(state, funcs[name]);
-        }
-    }
-    return rv;
-}
-
-async function cleanup(state: GoogleCloudifyState) {
+export async function cleanup(state: State) {
     await state.googleCloudFunctionsApi.deleteFunction(state.trampoline).catch(_ => {});
 }
 
@@ -195,16 +187,6 @@ async function uploadZip(url: string, zipStream: Readable) {
             "x-goog-content-length-range": "0,104857600"
         }
     });
-}
-
-export async function create(serverModule: string, options: CloudifyGoogleOptions = {}) {
-    const state = await initialize(serverModule, options);
-    return <CloudFunctionService>{
-        name: "google",
-        cloudify: f => cloudify(state, f),
-        cloudifyAll: o => cloudifyAll(state, o),
-        cleanup: () => cleanup(state)
-    };
 }
 
 export async function pack(functionModule: string): Promise<PackerResult> {

@@ -3,7 +3,8 @@ import humanStringify from "human-stringify";
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
 import nodeExternals = require("webpack-node-externals");
-import { AnyFunction, FunctionCall, FunctionReturn } from "../cloudify";
+import { AnyFunction } from "../cloudify";
+import { FunctionCall, FunctionReturn } from "../shared";
 
 const funcs: { [func: string]: AnyFunction } = {};
 

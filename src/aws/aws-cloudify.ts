@@ -2,38 +2,33 @@ import * as aws from "aws-sdk";
 import { createHash } from "crypto";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
-import {
-    AnyFunction,
-    CloudFunctionService,
-    FunctionCall,
-    FunctionReturn,
-    Promisified,
-    PromisifiedFunction,
-    getConfigHash
-} from "../cloudify";
+import { AnyFunction, Response, ResponsifiedFunction } from "../cloudify";
 import { log } from "../log";
 import { PackerResult, packer } from "../packer";
+import { FunctionCall, FunctionReturn, getConfigHash } from "../shared";
 
-export interface CloudifyAWSOptions {
+export interface Options {
     region?: string;
     PolicyArn?: string;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
 }
 
-export interface CloudifyAWSVariables {
-    FunctionName: string;
-    RoleName: string;
-    logGroupName: string;
-    region: string;
+export interface AWSVariables {
+    readonly FunctionName: string;
+    readonly RoleName: string;
+    readonly logGroupName: string;
+    readonly region: string;
 }
 
-export interface CloudifyAWSServices {
+export interface AWSServices {
     readonly lambda: aws.Lambda;
     readonly cloudwatch: aws.CloudWatchLogs;
     readonly iam: aws.IAM;
 }
 
-export type CloudifyAWSState = CloudifyAWSVariables & CloudifyAWSServices;
+export const name = "aws";
+
+export type State = AWSVariables & AWSServices;
 
 interface HasPromise<T> {
     promise(): Promise<T>;
@@ -75,10 +70,10 @@ function createAWSApis(region: string) {
     };
 }
 
-async function initialize(
+export async function initialize(
     serverModule: string,
-    options: CloudifyAWSOptions = {}
-): Promise<CloudifyAWSState> {
+    options: Options = {}
+): Promise<State> {
     const {
         region = defaults.region,
         PolicyArn = defaults.PolicyArn,
@@ -194,11 +189,11 @@ async function initialize(
     return { FunctionName, RoleName, logGroupName, region, lambda, cloudwatch, iam};
 }
 
-function cloudify<F extends AnyFunction>(
-    state: CloudifyAWSState,
+export function cloudifyWithResponse<F extends AnyFunction>(
+    state: State,
     fn: F
-): PromisifiedFunction<F> {
-    const promisifedFunc = async (...args: any[]) => {
+): ResponsifiedFunction<F> {
+    const responsifedFunc = async (...args: any[]) => {
         let callArgs: FunctionCall = {
             name: fn.name,
             args
@@ -211,35 +206,30 @@ function cloudify<F extends AnyFunction>(
             Payload: callArgsStr
         };
         log(`Invocation request: ${humanStringify(request)}`);
-        const response = await state.lambda.invoke(request).promise();
-        log(`  returned: ${humanStringify(response)}`);
-        if (response.FunctionError) {
-            if (response.LogResult) {
-                log(Buffer.from(response.LogResult!, "base64").toString());
+        const rawResponse = await state.lambda.invoke(request).promise();
+        log(`  returned: ${humanStringify(rawResponse)}`);
+        let error: Error | undefined;
+        if (rawResponse.FunctionError) {
+            if (rawResponse.LogResult) {
+                log(Buffer.from(rawResponse.LogResult!, "base64").toString());
             }
-            throw new Error(response.Payload as string);
+            error = new Error(rawResponse.Payload as string);
         }
-        let returned: FunctionReturn = JSON.parse(response.Payload as string);
-        if (returned.type === "error") {
+        let returned: FunctionReturn | undefined;
+        returned =
+            !error && rawResponse.Payload && JSON.parse(rawResponse.Payload as string);
+        if (returned && returned.type === "error") {
             const errValue = returned.value;
-            let err = new Error(errValue.message);
-            err.name = errValue.name;
-            err.stack = errValue.stack;
-            throw err;
+            error = new Error(errValue.message);
+            error.name = errValue.name;
+            error.stack = errValue.stack;
         }
-        return returned.value;
-    };
-    return promisifedFunc as any;
-}
+        const value = !error && returned && returned.value;
 
-function cloudifyAll<T>(state: CloudifyAWSState, funcs: T): Promisified<T> {
-    const rv: any = {};
-    for (const name of Object.keys(funcs)) {
-        if (typeof funcs[name] === "function") {
-            rv[name] = cloudify(state, funcs[name]);
-        }
-    }
-    return rv;
+        let rv: Response<ReturnType<F>> = { value, error, rawResponse };
+        return rv;
+    };
+    return responsifedFunc as any;
 }
 
 async function deleteRole(RoleName: string, iam: aws.IAM) {
@@ -253,7 +243,7 @@ async function deleteRole(RoleName: string, iam: aws.IAM) {
     await carefully(iam.deleteRole({ RoleName }));
 }
 
-async function cleanup(state: CloudifyAWSState) {
+export async function cleanup(state: State) {
     const { FunctionName, RoleName, logGroupName, cloudwatch, iam, lambda } = state;
 
     log(`Deleting log group: ${logGroupName}`);
@@ -264,19 +254,6 @@ async function cleanup(state: CloudifyAWSState) {
 
     log(`Deleting function: ${FunctionName}`);
     await carefully(lambda.deleteFunction({ FunctionName }));
-}
-
-export async function create(
-    serverModule: string,
-    options: CloudifyAWSOptions = {}
-): Promise<CloudFunctionService> {
-    const state = await initialize(serverModule, options);
-    return {
-        name: "aws",
-        cloudify: f => cloudify(state, f),
-        cloudifyAll: o => cloudifyAll(state, o),
-        cleanup: () => cleanup(state)
-    };
 }
 
 export async function pack(functionModule: string): Promise<PackerResult> {

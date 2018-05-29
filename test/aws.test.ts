@@ -1,12 +1,12 @@
-import { CloudFunctionService, aws, Promisified } from "../src/cloudify";
+import * as cloudify from "../src/cloudify";
 import { checkFunctions } from "./expectations";
 import * as funcs from "./functions";
 
-let service: CloudFunctionService;
-let remote: Promisified<typeof funcs>;
+let service: cloudify.Service;
+let remote: cloudify.Promisified<typeof funcs>;
 
 beforeAll(async () => {
-    service = await aws.create(require.resolve("./functions"));
+    service = await cloudify.create("aws", require.resolve("./functions"));
     console.log(`Service created: ${service.name}`);
     remote = service.cloudifyAll(funcs);
 }, 30 * 1000);
