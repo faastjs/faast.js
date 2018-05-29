@@ -32,7 +32,7 @@ export function path(): Promise<string> {
 }
 
 export function rejected(): Promise<string> {
-    return Promise.reject("This promise is expected to be rejected.");
+    return Promise.reject("This promise is intentionally rejected.");
 }
 
 console.log(`Successfully loaded functions`);

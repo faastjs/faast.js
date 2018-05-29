@@ -99,7 +99,7 @@ export async function createFromService<O, S>(
     function cloudify<F extends AnyFunction>(state: S, fn: F): PromisifiedFunction<F> {
         const cfn = service.cloudifyWithResponse<F>(state, fn) as any;
         const cloudifiedFunc = async (...args: any[]) => {
-            const response = await cfn(...args);
+            const response: Response<ReturnType<F>> = await cfn(...args);
             if (response.error) {
                 throw response.error;
             }

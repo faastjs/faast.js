@@ -48,16 +48,8 @@ export function checkFunctions(
         });
 
         test("rejected: () => rejected promise", async () => {
-            console.log(`AAA`);
-            try {
-                await remote
-                    .rejected()
-                    .catch(err => console.log(`Rejected: ${err.message}`));
-            } catch (err) {
-                console.log(`Caught ERR: ${err.message}`);
-            }
-            console.log(`BBB`);
-            expect(await remote.rejected()).toThrow();
+            expect.assertions(1);
+            await expect(remote.rejected()).rejects.toThrowError();
         });
     });
 }

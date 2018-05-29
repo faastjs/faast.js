@@ -4,12 +4,13 @@ import { Readable } from "stream";
 import { AnyFunction, Response, ResponsifiedFunction } from "../cloudify";
 import { log } from "../log";
 import { PackerResult, packer } from "../packer";
-import { FunctionCall, FunctionReturn, getConfigHash } from "../shared";
+import { FunctionCall, FunctionReturn } from "../shared";
 import {
     CloudFunctions,
     cloudfunctions_v1 as gcf,
     initializeGoogleAPIs
 } from "./google-cloud-functions-api";
+import * as uuidv4 from "uuid/v4";
 
 export interface Options extends gcf.Schema$CloudFunction {
     region?: string;
@@ -33,15 +34,16 @@ export async function initialize(
     serverModule: string,
     options: Options = {}
 ): Promise<State> {
-    const { archive, hash: codeHash } = await pack(serverModule);
-    log(`hash: ${codeHash}`);
+    const { archive } = await pack(serverModule);
+    const nonce = uuidv4();
+    log(`Nonce: ${nonce}`);
 
     const google = await initializeGoogleAPIs();
     const project = await google.auth.getDefaultProjectId();
     const googleCloudFunctionsApi = new CloudFunctions(google, project);
 
     log(`Create cloud function`);
-    const { region = "us-central1", timeoutSec = 60, labels, ...rest } = options;
+    const { region = "us-central1", timeoutSec = 60, ...rest } = options;
     const locationPath = googleCloudFunctionsApi.locationPath(region);
     const uploadUrlResponse = await googleCloudFunctionsApi.generateUploaddUrl(
         locationPath
@@ -49,12 +51,7 @@ export async function initialize(
     const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, archive);
     log(`Upload zip file response: ${uploadResult.statusText}`);
 
-    const configHash = getConfigHash(codeHash, options);
-
-    const trampoline = googleCloudFunctionsApi.functionPath(
-        region,
-        "cloudify-" + configHash.slice(0, 35)
-    );
+    const trampoline = googleCloudFunctionsApi.functionPath(region, "cloudify-" + nonce);
 
     const functionRequest: gcf.Schema$CloudFunction = {
         name: trampoline,
@@ -64,11 +61,6 @@ export async function initialize(
         availableMemoryMb: 256,
         httpsTrigger: {},
         sourceUploadUrl: uploadUrlResponse.uploadUrl,
-        labels: {
-            confighasha: configHash.slice(0, 32),
-            confighashb: configHash.slice(32),
-            ...labels
-        },
         ...rest
     };
 
@@ -158,7 +150,10 @@ export async function cleanup(state: State) {
  * VMs, each with a distinct label, the service reports metrics are preserved
  * for only the first 1,000 labels that exist within the one-hour window.
  */
-function validateGoogleLabels(labels: object) {
+function validateGoogleLabels(labels: object | undefined) {
+    if (!labels) {
+        return;
+    }
     const keys = Object.keys(labels);
     if (keys.length > 64) {
         throw new Error("Cannot exceeded 64 labels");

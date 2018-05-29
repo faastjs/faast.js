@@ -1,21 +1,23 @@
 import * as aws from "aws-sdk";
-import { createHash } from "crypto";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
+import * as uuidv4 from "uuid/v4";
 import { AnyFunction, Response, ResponsifiedFunction } from "../cloudify";
 import { log } from "../log";
 import { PackerResult, packer } from "../packer";
-import { FunctionCall, FunctionReturn, getConfigHash } from "../shared";
+import { FunctionCall, FunctionReturn } from "../shared";
 
 export interface Options {
     region?: string;
     PolicyArn?: string;
+    RoleName?: string;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
 }
 
 export interface AWSVariables {
     readonly FunctionName: string;
     readonly RoleName: string;
+    readonly cleanupRoleName: boolean;
     readonly logGroupName: string;
     readonly region: string;
 }
@@ -74,14 +76,17 @@ export async function initialize(
     serverModule: string,
     options: Options = {}
 ): Promise<State> {
+    const nonce = uuidv4();
+    log(`Nonce: ${nonce}`);
+
     const {
         region = defaults.region,
         PolicyArn = defaults.PolicyArn,
+        RoleName = `cloudify-role-${nonce}`,
         awsLambdaOptions = {}
     } = options;
     const { lambda, iam, cloudwatch } = createAWSApis(region);
 
-    const RoleName = "cloudify-trampoline-role";
     // XXX Make the role specific to this lambda using the configHash? That
     // would ensure separation.
 
@@ -117,10 +122,6 @@ export async function initialize(
             packageBundling: "bundleNodeModules",
             webpackOptions: { externals: "aws-sdk" }
         });
-        const nonce = createHash("sha256")
-            .update(`${Math.random()}`)
-            .digest("hex")
-            .slice(0, 16);
         const FunctionName = `cloudify-testfunction-${nonce}`;
         const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
             FunctionName,
@@ -148,11 +149,8 @@ export async function initialize(
     }
 
     async function createFunction(Role: aws.IAM.Role) {
-        const { archive, hash: codeHash } = await pack(serverModule);
-        log(`codeHash: ${codeHash}`);
-        const { Tags } = awsLambdaOptions;
-        const configHash = getConfigHash(codeHash, options);
-        const FunctionName = `cloudify-${configHash.slice(0, 55)}`;
+        const { archive } = await pack(serverModule);
+        const FunctionName = `cloudify-${nonce}`;
         const previous = await quietly(lambda.getFunction({ FunctionName }));
         if (previous) {
             throw new Error("Function name hash collision");
@@ -166,7 +164,6 @@ export async function initialize(
             Description: "cloudify trampoline function",
             Timeout: defaults.Timeout,
             MemorySize: defaults.MemorySize,
-            Tags: { configHash, ...Tags },
             ...awsLambdaOptions
         };
         log(`createFunctionRequest: ${humanStringify(createFunctionRequest)}`);
@@ -185,8 +182,9 @@ export async function initialize(
     }
     const FunctionName = await createFunction(roleResponse.Role);
     const logGroupName = `/aws/lambda/${FunctionName}`;
+    const cleanupRoleName = RoleName !== options.RoleName;
     // prettier-ignore
-    return { FunctionName, RoleName, logGroupName, region, lambda, cloudwatch, iam};
+    return { FunctionName, RoleName, cleanupRoleName, logGroupName, region, lambda, cloudwatch, iam};
 }
 
 export function cloudifyWithResponse<F extends AnyFunction>(
@@ -246,14 +244,17 @@ async function deleteRole(RoleName: string, iam: aws.IAM) {
 export async function cleanup(state: State) {
     const { FunctionName, RoleName, logGroupName, cloudwatch, iam, lambda } = state;
 
-    log(`Deleting log group: ${logGroupName}`);
-    await carefully(cloudwatch.deleteLogGroup({ logGroupName }));
-
-    log(`Deleting role name: ${RoleName}`);
-    await deleteRole(RoleName, iam);
-
     log(`Deleting function: ${FunctionName}`);
     await carefully(lambda.deleteFunction({ FunctionName }));
+
+    if (state.cleanupRoleName) {
+        log(`Deleting role name: ${RoleName}`);
+        await deleteRole(RoleName, iam);
+    }
+
+    log(`Deleting log group: ${logGroupName}`);
+    await carefully(cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 }));
+    await carefully(cloudwatch.deleteLogGroup({ logGroupName }));
 }
 
 export async function pack(functionModule: string): Promise<PackerResult> {
