@@ -253,7 +253,12 @@ export async function cleanup(state: State) {
     }
 
     log(`Deleting log group: ${logGroupName}`);
-    await carefully(cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 }));
+    const result = await carefully(
+        cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 }, err =>
+            console.log(`RETENTION ERROR: ${err}`)
+        )
+    );
+    console.log(`${humanStringify(result)}`);
     await carefully(cloudwatch.deleteLogGroup({ logGroupName }));
 }
 
