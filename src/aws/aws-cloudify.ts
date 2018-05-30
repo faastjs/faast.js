@@ -37,7 +37,7 @@ interface HasPromise<T> {
 }
 
 function carefully<U>(arg: HasPromise<U>) {
-    return arg.promise().catch(log);
+    return arg.promise().catch(x => log(x));
 }
 
 function quietly<U>(arg: HasPromise<U>) {
@@ -206,6 +206,7 @@ export function cloudifyWithResponse<F extends AnyFunction>(
         log(`Invocation request: ${humanStringify(request)}`);
         const rawResponse = await state.lambda.invoke(request).promise();
         log(`  returned: ${humanStringify(rawResponse)}`);
+        log(`  requestId: ${rawResponse.$response.requestId}`);
         let error: Error | undefined;
         if (rawResponse.FunctionError) {
             if (rawResponse.LogResult) {
@@ -244,22 +245,25 @@ async function deleteRole(RoleName: string, iam: aws.IAM) {
 export async function cleanup(state: State) {
     const { FunctionName, RoleName, logGroupName, cloudwatch, iam, lambda } = state;
 
-    log(`Deleting function: ${FunctionName}`);
-    await carefully(lambda.deleteFunction({ FunctionName }));
+    try {
+        log(`Deleting function: ${FunctionName}`);
+        await carefully(lambda.deleteFunction({ FunctionName }));
 
-    if (state.cleanupRoleName) {
-        log(`Deleting role name: ${RoleName}`);
-        await deleteRole(RoleName, iam);
+        if (state.cleanupRoleName) {
+            log(`Deleting role name: ${RoleName}`);
+            await deleteRole(RoleName, iam);
+        }
+
+        log(`Deleting log group: ${logGroupName}`);
+        const resp = await carefully(cloudwatch.deleteLogGroup({ logGroupName }));
+        log(`RESPONSE: ${humanStringify(resp)}`);
+        if (resp) {
+            log(`RESPONSE.$response: ${humanStringify(resp.$response)}`);
+            log(`requestId: ${resp.$response.requestId}`);
+        }
+    } catch (err) {
+        log(err);
     }
-
-    log(`Deleting log group: ${logGroupName}`);
-    const result = await carefully(
-        cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 }, err =>
-            console.log(`RETENTION ERROR: ${err}`)
-        )
-    );
-    console.log(`${humanStringify(result)}`);
-    await carefully(cloudwatch.deleteLogGroup({ logGroupName }));
 }
 
 export async function pack(functionModule: string): Promise<PackerResult> {
