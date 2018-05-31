@@ -1,5 +1,5 @@
 import * as cloudify from "../src/cloudify";
-import { checkFunctions } from "./expectations";
+import { checkFunctions } from "./functions-expected";
 import * as funcs from "./functions";
 
 let service: cloudify.Service;
