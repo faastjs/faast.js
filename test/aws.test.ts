@@ -6,7 +6,7 @@ let service: cloudify.Service;
 let remote: cloudify.Promisified<typeof funcs>;
 
 beforeAll(async () => {
-    service = await cloudify.create("aws", require.resolve("./functions"), {
+    service = await cloudify.createService("aws", require.resolve("./functions"), {
         RoleName: "cloudify-cached-role"
     });
     console.log(`Service created: ${service.name}`);

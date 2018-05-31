@@ -71,10 +71,10 @@ export interface ICloudFunctionServiceImpl<Options, State> {
 }
 
 // prettier-ignore
-export async function create(serviceName: "aws", serverModule: string, options?: aws.Options): Promise<Service>;
+export async function createService(serviceName: "aws", serverModule: string, options?: aws.Options): Promise<Service>;
 // prettier-ignore
-export async function create(serviceName: "google", serverModule: string, options?: google.Options): Promise<Service>;
-export async function create(
+export async function createService(serviceName: "google", serverModule: string, options?: google.Options): Promise<Service>;
+export async function createService(
     serviceName: string,
     serverModule: string,
     options?: any

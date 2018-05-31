@@ -1,4 +1,5 @@
 import * as aws from "aws-sdk";
+import { AWSError, Request } from "aws-sdk";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
@@ -17,10 +18,13 @@ export interface Options {
 export interface AWSVariables {
     readonly FunctionName: string;
     readonly RoleName: string;
-    readonly cleanupRoleName: boolean;
+    readonly roleNeedsCleanup: boolean;
     readonly logGroupName: string;
     readonly region: string;
+    readonly noCreateLogGroupPolicy: string;
 }
+
+type MutablePartial<T> = { -readonly [P in keyof T]+?: T[P] }; // Remove readonly and add ?
 
 export interface AWSServices {
     readonly lambda: aws.Lambda;
@@ -32,15 +36,11 @@ export const name = "aws";
 
 export type State = AWSVariables & AWSServices;
 
-interface HasPromise<T> {
-    promise(): Promise<T>;
+function carefully<U>(arg: Request<U, AWSError>) {
+    return arg.promise().catch(err => log(err));
 }
 
-function carefully<U>(arg: HasPromise<U>) {
-    return arg.promise().catch(x => log(x));
-}
-
-function quietly<U>(arg: HasPromise<U>) {
+function quietly<U>(arg: Request<U, AWSError>) {
     return arg.promise().catch(_ => {});
 }
 
@@ -108,11 +108,39 @@ export async function initialize(
             Description: "role for lambda functions created by cloudify",
             MaxSessionDuration: 3600
         };
-        let roleResponse = await iam.createRole(roleParams).promise();
-        await iam
-            .attachRolePolicy({ RoleName: roleResponse.Role.RoleName, PolicyArn })
-            .promise();
+        let roleResponse = await carefully(iam.createRole(roleParams));
+        if (!roleResponse) {
+            return undefined;
+        }
+        await carefully(iam.attachRolePolicy({ RoleName, PolicyArn }));
+        await checkRoleReadiness(roleResponse.Role);
         return roleResponse;
+    }
+
+    async function addNoCreateLogPolicyToRole() {
+        log(`Adding inline policy to not allow log group creation to role "${RoleName}"`);
+        const NoCreateLogGroupPolicy = JSON.stringify({
+            Version: "2012-10-17",
+            Statement: [
+                {
+                    Resource: "*",
+                    Action: "logs:CreateLogGroup",
+                    Effect: "Deny"
+                }
+            ]
+        });
+
+        const PolicyName = `cloudify-deny-create-log-group-policy`;
+
+        await carefully(
+            iam.putRolePolicy({
+                RoleName,
+                PolicyName,
+                PolicyDocument: NoCreateLogGroupPolicy
+            })
+        );
+
+        return PolicyName;
     }
 
     async function checkRoleReadiness(Role: aws.IAM.Role) {
@@ -141,11 +169,12 @@ export async function initialize(
             await sleep(1000);
         }
         if (!testfunc) {
-            throw new Error("Could not initialize lambda execution role");
+            log("Could not initialize lambda execution role");
+            return false;
         }
         log(`Role ready. Cleaning up.`);
-        await quietly(lambda.deleteFunction({ FunctionName }));
-        return roleResponse;
+        await carefully(lambda.deleteFunction({ FunctionName }));
+        return true;
     }
 
     async function createFunction(Role: aws.IAM.Role) {
@@ -153,7 +182,8 @@ export async function initialize(
         const FunctionName = `cloudify-${nonce}`;
         const previous = await quietly(lambda.getFunction({ FunctionName }));
         if (previous) {
-            throw new Error("Function name hash collision");
+            log("Function name hash collision");
+            return undefined;
         }
         const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
             FunctionName,
@@ -167,24 +197,37 @@ export async function initialize(
             ...awsLambdaOptions
         };
         log(`createFunctionRequest: ${humanStringify(createFunctionRequest)}`);
-        const func = await lambda.createFunction(createFunctionRequest).promise();
-        log(`Created function ${func.FunctionName}`);
-        if (!func.FunctionName) {
-            throw new Error(`Created lambda function has no function name`);
+        const func = await carefully(lambda.createFunction(createFunctionRequest));
+        if (func) {
+            log(`Created function ${func.FunctionName}`);
+            return FunctionName;
         }
-        return FunctionName;
+        return undefined;
     }
 
-    let roleResponse = await quietly(iam.getRole({ RoleName }));
+    let roleResponse = (await quietly(iam.getRole({ RoleName }))) || (await createRole());
     if (!roleResponse) {
-        roleResponse = await createRole();
-        await checkRoleReadiness(roleResponse.Role);
+        throw new Error(`Could not create role ${RoleName}`);
     }
     const FunctionName = await createFunction(roleResponse.Role);
+    if (!FunctionName) {
+        throw new Error(`Could not create lambda function ${FunctionName}`);
+    }
     const logGroupName = `/aws/lambda/${FunctionName}`;
-    const cleanupRoleName = RoleName !== options.RoleName;
-    // prettier-ignore
-    return { FunctionName, RoleName, cleanupRoleName, logGroupName, region, lambda, cloudwatch, iam};
+    await carefully(cloudwatch.createLogGroup({ logGroupName }));
+    const roleNeedsCleanup = RoleName !== options.RoleName;
+    const noCreateLogGroupPolicy = await addNoCreateLogPolicyToRole();
+    return {
+        FunctionName,
+        RoleName,
+        roleNeedsCleanup,
+        logGroupName,
+        region,
+        noCreateLogGroupPolicy,
+        lambda,
+        cloudwatch,
+        iam
+    };
 }
 
 export function cloudifyWithResponse<F extends AnyFunction>(
@@ -231,7 +274,11 @@ export function cloudifyWithResponse<F extends AnyFunction>(
     return responsifedFunc as any;
 }
 
-async function deleteRole(RoleName: string, iam: aws.IAM) {
+async function deleteRole(
+    RoleName: string,
+    noCreateLogGroupPolicy: string | undefined,
+    iam: aws.IAM
+) {
     const policies = await carefully(iam.listAttachedRolePolicies({ RoleName }));
     const AttachedPolicies = (policies && policies.AttachedPolicies) || [];
     function detach(policy: aws.IAM.AttachedPolicy) {
@@ -239,30 +286,31 @@ async function deleteRole(RoleName: string, iam: aws.IAM) {
         return carefully(iam.detachRolePolicy({ RoleName, PolicyArn }));
     }
     await Promise.all(AttachedPolicies.map(detach)).catch(log);
+    if (noCreateLogGroupPolicy) {
+        await carefully(
+            iam.deleteRolePolicy({ RoleName, PolicyName: noCreateLogGroupPolicy })
+        );
+    }
     await carefully(iam.deleteRole({ RoleName }));
 }
 
-export async function cleanup(state: State) {
-    const { FunctionName, RoleName, logGroupName, cloudwatch, iam, lambda } = state;
+export async function cleanup(state: Partial<AWSVariables> & AWSServices) {
+    const { FunctionName, RoleName, logGroupName, roleNeedsCleanup } = state;
+    const { cloudwatch, iam, lambda } = state;
 
-    try {
+    if (FunctionName) {
         log(`Deleting function: ${FunctionName}`);
         await carefully(lambda.deleteFunction({ FunctionName }));
+    }
 
-        if (state.cleanupRoleName) {
-            log(`Deleting role name: ${RoleName}`);
-            await deleteRole(RoleName, iam);
-        }
+    if (RoleName && roleNeedsCleanup) {
+        log(`Deleting role name: ${RoleName}`);
+        await deleteRole(RoleName, state.noCreateLogGroupPolicy, iam);
+    }
 
+    if (logGroupName) {
         log(`Deleting log group: ${logGroupName}`);
-        const resp = await carefully(cloudwatch.deleteLogGroup({ logGroupName }));
-        log(`RESPONSE: ${humanStringify(resp)}`);
-        if (resp) {
-            log(`RESPONSE.$response: ${humanStringify(resp.$response)}`);
-            log(`requestId: ${resp.$response.requestId}`);
-        }
-    } catch (err) {
-        log(err);
+        await carefully(cloudwatch.deleteLogGroup({ logGroupName }));
     }
 }
 
