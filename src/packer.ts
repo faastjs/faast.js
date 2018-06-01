@@ -4,11 +4,11 @@ import * as fs from "fs";
 import humanStringify from "human-stringify";
 import * as path from "path";
 import * as webpack from "webpack";
+import { CloudifyLoaderOptions } from "./cloudify-loader";
 import { log } from "./log";
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
 import nodeExternals = require("webpack-node-externals");
-import { CloudifyLoaderOptions } from "./cloudify-loader";
 
 export interface PackerOptions extends CloudifyLoaderOptions {
     webpackOptions?: webpack.Configuration;

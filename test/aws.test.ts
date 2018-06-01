@@ -1,6 +1,6 @@
 import * as cloudify from "../src/cloudify";
-import { checkFunctions } from "./functions-expected";
 import * as funcs from "./functions";
+import { checkFunctions } from "./functions-expected";
 
 let cloud: cloudify.AWS;
 let lambda: cloudify.CloudFunction;
