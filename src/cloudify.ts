@@ -50,25 +50,22 @@ export type Responsified<M> = {
     [K in keyof M]: M[K] extends AnyFunction ? ResponsifiedFunction<M[K]> : never
 };
 
-export interface Cloud {
+export interface CommonOptions {
+    timeout?: number;
+    availableMemoryMb?: number;
+}
+
+export interface Cloud<O, S> {
     name: string;
     cleanupResources(resources: string): Promise<void>;
     pack(fmodule: string): Promise<PackerResult>;
+    createFunction(
+        fmodule: string,
+        options?: O & CommonOptions
+    ): Promise<CloudFunction<S>>;
 }
 
-export interface CloudSpecific<O, S> extends Cloud {
-    createFunction(fmodule: string, options?: O): Promise<CloudFunctionSpecific<S>>;
-}
-
-export interface AWS extends CloudSpecific<aws.Options, aws.State> {
-    createFunction(fmodule: string, options?: aws.Options): Promise<AWSLambda>;
-}
-
-export interface Google extends CloudSpecific<google.Options, google.State> {
-    createFunction(fmodule: string, options?: google.Options): Promise<GCFunction>;
-}
-
-export interface CloudFunction {
+export interface CloudFunction<S> {
     cloudName: string;
     cloudify<F extends AnyFunction>(fn: F): PromisifiedFunction<F>;
     cloudifyAll<M>(importedModule: M): Promisified<M>;
@@ -76,46 +73,68 @@ export interface CloudFunction {
     cloudifyAllWithResponse<M>(importedModule: M): Responsified<M>;
     cleanup(): Promise<void>;
     getResourceList(): string;
-}
-
-export interface CloudFunctionSpecific<S> extends CloudFunction {
     getState(): S;
 }
 
-export interface AWSLambda extends CloudFunctionSpecific<aws.State> {}
-export interface GCFunction extends CloudFunctionSpecific<google.State> {}
+export interface AWS extends Cloud<aws.Options, aws.State> {
+    createFunction(
+        fmodule: string,
+        options?: aws.Options & CommonOptions
+    ): Promise<AWSLambda>;
+}
+export interface AWSLambda extends CloudFunction<aws.State> {}
+
+export interface Google extends Cloud<google.Options, google.State> {
+    createFunction(
+        fmodule: string,
+        options?: google.Options & CommonOptions
+    ): Promise<GCFunction>;
+}
+export interface GCFunction extends CloudFunction<google.State> {}
+
+export interface GoogleEmulator extends Google {
+    createFunction(
+        fmodule: string,
+        options?: google.Options & CommonOptions
+    ): Promise<GCFunctionEmulator>;
+}
+export interface GCFunctionEmulator extends CloudFunction<google.State> {}
+
+let googleEmulator: CloudImpl<google.Options, google.State> = Object.assign({}, google);
 
 const resolve = (module.parent!.require as NodeRequire).resolve;
 
-function createCloud<O, S>(impl: CloudImpl<O, S>): CloudSpecific<O, S> {
-    return {
-        name: impl.name,
-        cleanupResources: (resources: string) => impl.cleanupResources(resources),
-        pack: fmodule => impl.pack(resolve(fmodule)),
-        createFunction: (fmodule: string, options?: any) =>
-            createFunction(impl, resolve(fmodule), options)
-    };
-}
-
 export function create(cloudName: "aws"): AWS;
 export function create(cloudName: "google"): Google;
-export function create(cloudName: "aws" | "google"): Cloud {
+export function create(cloudName: "google-emulator"): GoogleEmulator;
+export function create(cloudName: string): Cloud<any, any> {
+    function createCloud<O, S>(impl: CloudImpl<O, S>): Cloud<O, S> {
+        return {
+            name: impl.name,
+            cleanupResources: (resources: string) => impl.cleanupResources(resources),
+            pack: fmodule => impl.pack(resolve(fmodule)),
+            createFunction: async (fmodule: string, options?: O) =>
+                createFunction(impl, await impl.initialize(resolve(fmodule), options))
+        };
+    }
+
     if (cloudName === "aws") {
         return createCloud(aws);
     } else if (cloudName === "google") {
         return createCloud(google);
+    } else if (cloudName === "google-emulator") {
+        return createCloud(googleEmulator);
     }
     throw new Error(`Unknown cloud name: "${cloudName}"`);
 }
 
-async function createFunction<O, S>(
-    cloud: CloudImpl<O, S>,
-    fmodule: string,
-    options?: O
-): Promise<CloudFunctionSpecific<S>> {
+async function createFunction<S>(
+    cloud: CloudImpl<any, S>,
+    state: S
+): Promise<CloudFunction<S>> {
     function cloudify<F extends AnyFunction>(state: S, fn: F): PromisifiedFunction<F> {
-        const cfn = cloud.cloudifyWithResponse<F>(state, fn) as any;
         const cloudifiedFunc = async (...args: any[]) => {
+            const cfn = cloud.cloudifyWithResponse<F>(state, fn) as any;
             const response: Response<ReturnType<F>> = await cfn(...args);
             if (response.error) {
                 throw response.error;
@@ -145,7 +164,6 @@ async function createFunction<O, S>(
         return rv;
     }
 
-    const state = await cloud.initialize(fmodule, options);
     return {
         cloudName: cloud.name,
         cloudify: f => cloudify(state, f),

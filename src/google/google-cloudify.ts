@@ -91,6 +91,13 @@ export async function initialize(
     return { googleCloudFunctionsApi, trampoline };
 }
 
+export async function iniitalizeEmulator(serverModule: string, options: Options = {}) {
+    const { archive } = await pack(serverModule);
+    const google = await initializeGoogleAPIs();
+    const project = await google.auth.getDefaultProjectId();
+    const googleCloudFunctionsApi = new CloudFunctions(google, project);
+}
+
 export function cloudifyWithResponse<F extends AnyFunction>(
     state: State,
     fn: F

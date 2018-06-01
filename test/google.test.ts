@@ -3,7 +3,7 @@ import { checkFunctions } from "./functions-expected";
 import * as funcs from "./functions";
 
 let cloud: cloudify.Google;
-let cloudFunction: cloudify.CloudFunction;
+let cloudFunction: cloudify.CloudFunction<any>;
 let remote: cloudify.Promisified<typeof funcs>;
 
 beforeAll(async () => {

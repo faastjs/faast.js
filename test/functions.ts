@@ -35,4 +35,6 @@ export function rejected(): Promise<string> {
     return Promise.reject("This promise is intentionally rejected.");
 }
 
+export const constFunc = () => "Called a constant function";
+
 console.log(`Successfully loaded functions`);

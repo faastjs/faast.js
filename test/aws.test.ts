@@ -3,7 +3,7 @@ import * as funcs from "./functions";
 import { checkFunctions } from "./functions-expected";
 
 let cloud: cloudify.AWS;
-let lambda: cloudify.CloudFunction;
+let lambda: cloudify.CloudFunction<any>;
 let remote: cloudify.Promisified<typeof funcs>;
 
 beforeAll(async () => {

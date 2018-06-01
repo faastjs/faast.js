@@ -22,7 +22,11 @@ test(
             "Successfully loaded functions"
         );
         exec("functions start");
-        exec(`cd ${dir} && functions deploy trampoline --trigger-http`);
+        let output = exec(`cd ${dir} && functions deploy trampoline --trigger-http`);
+        let result = output.match(/Resource\s+│\s+(http:\/\/localhost:\S+) /);
+        if (result && result[1]) {
+            let url = result[1];
+        }
         expect(
             exec(
                 `functions call trampoline --data='{"name": "hello", "args": ["world"]}'`
