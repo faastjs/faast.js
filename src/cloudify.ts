@@ -60,8 +60,13 @@ export interface CloudSpecific<O, S> extends Cloud {
     createFunction(fmodule: string, options?: O): Promise<CloudFunctionSpecific<S>>;
 }
 
-export interface AWS extends CloudSpecific<aws.Options, aws.State> {}
-export interface Google extends CloudSpecific<google.Options, google.State> {}
+export interface AWS extends CloudSpecific<aws.Options, aws.State> {
+    createFunction(fmodule: string, options?: aws.Options): Promise<AWSLambda>;
+}
+
+export interface Google extends CloudSpecific<google.Options, google.State> {
+    createFunction(fmodule: string, options?: google.Options): Promise<GCFunction>;
+}
 
 export interface CloudFunction {
     cloudName: string;
@@ -80,19 +85,6 @@ export interface CloudFunctionSpecific<S> extends CloudFunction {
 export interface AWSLambda extends CloudFunctionSpecific<aws.State> {}
 export interface GCFunction extends CloudFunctionSpecific<google.State> {}
 
-export interface CloudImpl<Options, State> {
-    name: string;
-    initialize(serverModule: string, options?: Options): Promise<State>;
-    cloudifyWithResponse<F extends AnyFunction>(
-        state: State,
-        fn: F
-    ): ResponsifiedFunction<F>;
-    cleanup(state: State): Promise<void>;
-    getResourceList(state: State): string;
-    cleanupResources(resources: string): Promise<void>;
-    pack(functionModule: string): Promise<PackerResult>;
-}
-
 const resolve = (module.parent!.require as NodeRequire).resolve;
 
 function createCloud<O, S>(impl: CloudImpl<O, S>): CloudSpecific<O, S> {
@@ -107,7 +99,7 @@ function createCloud<O, S>(impl: CloudImpl<O, S>): CloudSpecific<O, S> {
 
 export function create(cloudName: "aws"): AWS;
 export function create(cloudName: "google"): Google;
-export function create(cloudName: string) {
+export function create(cloudName: "aws" | "google"): Cloud {
     if (cloudName === "aws") {
         return createCloud(aws);
     } else if (cloudName === "google") {
@@ -164,4 +156,17 @@ async function createFunction<O, S>(
         getResourceList: () => cloud.getResourceList(state),
         getState: () => state
     };
+}
+
+export interface CloudImpl<Options, State> {
+    name: string;
+    initialize(serverModule: string, options?: Options): Promise<State>;
+    cloudifyWithResponse<F extends AnyFunction>(
+        state: State,
+        fn: F
+    ): ResponsifiedFunction<F>;
+    cleanup(state: State): Promise<void>;
+    getResourceList(state: State): string;
+    cleanupResources(resources: string): Promise<void>;
+    pack(functionModule: string): Promise<PackerResult>;
 }
