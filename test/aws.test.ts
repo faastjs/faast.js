@@ -2,17 +2,19 @@ import * as cloudify from "../src/cloudify";
 import { checkFunctions } from "./functions-expected";
 import * as funcs from "./functions";
 
-let service: cloudify.Service;
+let cloud: cloudify.AWS;
+let lambda: cloudify.CloudFunction;
 let remote: cloudify.Promisified<typeof funcs>;
 
 beforeAll(async () => {
-    service = await cloudify.createService("aws", require.resolve("./functions"), {
+    cloud = cloudify.create("aws");
+    lambda = await cloud.createFunction("./functions", {
         RoleName: "cloudify-cached-role"
     });
-    console.log(`Service created: ${service.name}`);
-    remote = service.cloudifyAll(funcs);
+    console.log(`Service created: ${lambda.cloudName}`);
+    remote = lambda.cloudifyAll(funcs);
 }, 30 * 1000);
 
 checkFunctions("Cloudify AWS", () => remote);
 
-afterAll(() => service.cleanup(), 30 * 1000);
+afterAll(() => lambda.cleanup(), 30 * 1000);

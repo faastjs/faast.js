@@ -1,5 +1,13 @@
 # Cloudify
 
+Ad-hoc serverless batch processing for nodejs.
+
+```
+
+```
+
+## Building
+
 ```
 $ yarn install
 $ yarn build
@@ -54,7 +62,8 @@ Cloudify will create an IAM role for the lambda function it creates. By default 
 
 ```typescript
 const RoleName = "...cached role name...";
-let service = await cloudify.createService("aws", require.resolve("./functions"), {
+let cloud = cloudify.create("aws");
+let service = await cloud.createFunction("./functions", {
     RoleName
 });
 ```

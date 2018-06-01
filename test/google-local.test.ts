@@ -5,9 +5,9 @@ import { exec, unzipInDir } from "./util";
 test(
     "package google zip file and test with clound function emulator",
     async () => {
-        const { archive: archiveGoogle } = await cloudify.google.pack(
-            require.resolve("./functions")
-        );
+        const { archive: archiveGoogle } = await cloudify
+            .create("google")
+            .pack("./functions");
 
         await new Promise((resolve, reject) => {
             const outputGoogle = fs.createWriteStream("dist-google.zip");

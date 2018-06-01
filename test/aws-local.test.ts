@@ -1,9 +1,9 @@
 import * as fs from "fs";
-import { aws } from "../src/cloudify";
+import { create } from "../src/cloudify";
 import { exec, unzipInDir } from "./util";
 
 test("package aws zip file", async () => {
-    const { archive: archiveAWS } = await aws.pack(require.resolve("./functions"));
+    const { archive: archiveAWS } = await create("aws").pack("./functions");
 
     await new Promise((resolve, reject) => {
         const outputAWS = fs.createWriteStream("dist-aws.zip");

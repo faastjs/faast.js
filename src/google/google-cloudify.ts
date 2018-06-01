@@ -1,6 +1,7 @@
 import Axios from "axios";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
+import * as uuidv4 from "uuid/v4";
 import { AnyFunction, Response, ResponsifiedFunction } from "../cloudify";
 import { log } from "../log";
 import { PackerResult, packer } from "../packer";
@@ -10,7 +11,6 @@ import {
     cloudfunctions_v1 as gcf,
     initializeGoogleAPIs
 } from "./google-cloud-functions-api";
-import * as uuidv4 from "uuid/v4";
 
 export interface Options extends gcf.Schema$CloudFunction {
     region?: string;
@@ -26,7 +26,7 @@ export interface GoogleServices {
     readonly googleCloudFunctionsApi: CloudFunctions;
 }
 
-export const name = "google";
+export const name: string = "google";
 
 export type State = GoogleVariables & GoogleServices;
 
@@ -189,4 +189,16 @@ export async function pack(functionModule: string): Promise<PackerResult> {
         trampolineModule: require.resolve("./google-trampoline"),
         functionModule
     });
+}
+
+export function getResourceList(state: State) {
+    return state.trampoline;
+}
+
+export async function cleanupResources(resources: string) {
+    const trampoline = resources;
+    const google = await initializeGoogleAPIs();
+    const project = await google.auth.getDefaultProjectId();
+    const googleCloudFunctionsApi = new CloudFunctions(google, project);
+    return cleanup({ trampoline, googleCloudFunctionsApi });
 }

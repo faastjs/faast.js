@@ -32,9 +32,12 @@ export interface AWSServices {
     readonly iam: aws.IAM;
 }
 
-export const name = "aws";
+export const name: string = "aws";
 
-export type State = AWSVariables & AWSServices;
+export interface State {
+    vars: AWSVariables;
+    services: AWSServices;
+}
 
 function carefully<U>(arg: Request<U, AWSError>) {
     return arg.promise().catch(err => log(err));
@@ -215,18 +218,23 @@ export async function initialize(
     }
     const logGroupName = `/aws/lambda/${FunctionName}`;
     await carefully(cloudwatch.createLogGroup({ logGroupName }));
+    await carefully(cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 }));
     const roleNeedsCleanup = RoleName !== options.RoleName;
     const noCreateLogGroupPolicy = await addNoCreateLogPolicyToRole();
     return {
-        FunctionName,
-        RoleName,
-        roleNeedsCleanup,
-        logGroupName,
-        region,
-        noCreateLogGroupPolicy,
-        lambda,
-        cloudwatch,
-        iam
+        vars: {
+            FunctionName,
+            RoleName,
+            roleNeedsCleanup,
+            logGroupName,
+            region,
+            noCreateLogGroupPolicy
+        },
+        services: {
+            lambda,
+            cloudwatch,
+            iam
+        }
     };
 }
 
@@ -242,12 +250,12 @@ export function cloudifyWithResponse<F extends AnyFunction>(
         const callArgsStr = JSON.stringify(callArgs);
         log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`, "");
         const request: aws.Lambda.Types.InvocationRequest = {
-            FunctionName: state.FunctionName,
+            FunctionName: state.vars.FunctionName,
             LogType: "Tail",
             Payload: callArgsStr
         };
         log(`Invocation request: ${humanStringify(request)}`);
-        const rawResponse = await state.lambda.invoke(request).promise();
+        const rawResponse = await state.services.lambda.invoke(request).promise();
         log(`  returned: ${humanStringify(rawResponse)}`);
         log(`  requestId: ${rawResponse.$response.requestId}`);
         let error: Error | undefined;
@@ -294,9 +302,9 @@ async function deleteRole(
     await carefully(iam.deleteRole({ RoleName }));
 }
 
-export async function cleanup(state: Partial<AWSVariables> & AWSServices) {
-    const { FunctionName, RoleName, logGroupName, roleNeedsCleanup } = state;
-    const { cloudwatch, iam, lambda } = state;
+export async function cleanup(state: State) {
+    const { FunctionName, RoleName, logGroupName, roleNeedsCleanup } = state.vars;
+    const { cloudwatch, iam, lambda } = state.services;
 
     if (FunctionName) {
         log(`Deleting function: ${FunctionName}`);
@@ -305,7 +313,7 @@ export async function cleanup(state: Partial<AWSVariables> & AWSServices) {
 
     if (RoleName && roleNeedsCleanup) {
         log(`Deleting role name: ${RoleName}`);
-        await deleteRole(RoleName, state.noCreateLogGroupPolicy, iam);
+        await deleteRole(RoleName, state.vars.noCreateLogGroupPolicy, iam);
     }
 
     if (logGroupName) {
@@ -321,4 +329,17 @@ export async function pack(functionModule: string): Promise<PackerResult> {
         packageBundling: "bundleNodeModules",
         webpackOptions: { externals: "aws-sdk" }
     });
+}
+
+export function getResourceList(state: State) {
+    return JSON.stringify(state.vars);
+}
+
+export function cleanupResources(resources: string) {
+    const vars = JSON.parse(resources);
+    if (!vars.region) {
+        throw new Error("Resources missing 'region'");
+    }
+    const services = createAWSApis(vars.region);
+    return cleanup({ vars, services });
 }

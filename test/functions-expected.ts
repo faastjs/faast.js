@@ -1,5 +1,5 @@
 import * as funcs from "./functions";
-import { Service, Promisified } from "../src/cloudify";
+import { CloudFunction, Promisified } from "../src/cloudify";
 import humanStringify from "human-stringify";
 
 export function checkFunctions(
