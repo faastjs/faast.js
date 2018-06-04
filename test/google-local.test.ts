@@ -6,21 +6,15 @@ import { checkFunctions } from "./functions-expected";
 import { log } from "../src/log";
 
 let emulator: cloudify.Google;
-let cloudFunction: cloudify.CloudFunction<any>;
+let cloudFunction: cloudify.GoogleCloudFunction;
 let remote: cloudify.Promisified<typeof funcs>;
 
 beforeAll(async () => {
     emulator = cloudify.create("google-emulator");
     cloudFunction = await emulator.createFunction("./functions");
-    console.log(`Service created: ${cloudFunction.cloudName}`);
     remote = cloudFunction.cloudifyAll(funcs);
 }, 120 * 1000);
 
-test("hello", async () => {
-    const str = await remote.hello("Andy");
-    expect(str).toBe("Hello Andy");
-});
+checkFunctions("Google Emulator", () => remote);
 
-//checkFunctions("Google Emulator", () => remote);
-
-//afterAll(() => cloudFunction.cleanup(), 120 * 1000);
+afterAll(() => cloudFunction.cleanup(), 120 * 1000);

@@ -50,9 +50,5 @@ export function checkFunctions(
             expect.assertions(1);
             await expect(remote.rejected()).rejects.toThrowError();
         });
-
-        test("constFunc: () => string", async () => {
-            expect(typeof (await remote.constFunc())).toBe("string");
-        });
     });
 }

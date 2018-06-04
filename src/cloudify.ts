@@ -90,9 +90,9 @@ export interface Google extends Cloud<google.Options, google.State> {
     createFunction(
         fmodule: string,
         options?: google.Options & CommonOptions
-    ): Promise<GCFunction>;
+    ): Promise<GoogleCloudFunction>;
 }
-export interface GCFunction extends CloudFunction<google.State> {}
+export interface GoogleCloudFunction extends CloudFunction<google.State> {}
 
 export interface GoogleEmulator extends Google {
     createFunction(
@@ -120,11 +120,12 @@ export function create(cloudName: string): Cloud<any, any> {
 
     function createGoogleEmulator() {
         let g = createCloud(google);
-        g.createFunction = async (fmodule: string, options?: google.Options) =>
-            createFunctionApi(
+        g.createFunction = async (fmodule: string, options?: google.Options) => {
+            return await createFunctionApi(
                 google,
                 await google.initializeEmulator(resolve(fmodule), options)
             );
+        };
         return g;
     }
 

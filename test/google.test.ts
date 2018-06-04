@@ -9,7 +9,6 @@ let remote: cloudify.Promisified<typeof funcs>;
 beforeAll(async () => {
     cloud = cloudify.create("google");
     cloudFunction = await cloud.createFunction("./functions");
-    console.log(`Service created: ${cloudFunction.cloudName}`);
     remote = cloudFunction.cloudifyAll(funcs);
 }, 120 * 1000);
 

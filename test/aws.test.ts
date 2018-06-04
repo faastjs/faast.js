@@ -11,7 +11,6 @@ beforeAll(async () => {
     lambda = await cloud.createFunction("./functions", {
         RoleName: "cloudify-cached-role"
     });
-    console.log(`Service created: ${lambda.cloudName}`);
     remote = lambda.cloudifyAll(funcs);
 }, 30 * 1000);
 

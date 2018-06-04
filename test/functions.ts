@@ -1,3 +1,7 @@
+export function test() {
+    return "Successfully called test function.";
+}
+
 export function hello(name: string) {
     return `Hello ${name}!`;
 }
@@ -36,5 +40,3 @@ export function rejected(): Promise<string> {
 }
 
 export const constFunc = () => "Called a constant function";
-
-console.log(`Successfully loaded functions`);
