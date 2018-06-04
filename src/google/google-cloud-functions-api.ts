@@ -1,5 +1,5 @@
 import { AxiosPromise } from "axios";
-import { GoogleApis, cloudfunctions_v1 as gcf, google } from "googleapis";
+import { GoogleApis, cloudfunctions_v1beta2 as gcf, google } from "googleapis";
 import humanStringify from "human-stringify";
 import { log } from "../log";
 
@@ -86,11 +86,7 @@ export async function unwrap<T>(promise: AxiosPromise<T>) {
 }
 
 export class CloudFunctions {
-    gCloudFunctions: gcf.Cloudfunctions;
-
-    constructor(private google: GoogleApis, private project: string) {
-        this.gCloudFunctions = google.cloudfunctions("v1");
-    }
+    constructor(private gCloudFunctions: gcf.Cloudfunctions, private project: string) {}
 
     async waitForOperation(operation: gcf.Schema$Operation) {
         const name = operation.name!;
@@ -141,7 +137,7 @@ export class CloudFunctions {
             {}
         );
 
-        await this.waitForOperation(operation.data);
+        operation && (await this.waitForOperation(operation.data));
     }
 
     async deleteFunction(path: string) {
@@ -149,7 +145,7 @@ export class CloudFunctions {
             name: path
         });
 
-        await this.waitForOperation(response.data);
+        response && (await this.waitForOperation(response.data));
     }
 
     generateDownloadUrl(name: string, versionId?: string) {
@@ -173,34 +169,11 @@ export class CloudFunctions {
         return unwrap(this.gCloudFunctions.projects.locations.functions.get({ name }));
     }
 
-    async *listFunctions(parent: string) {
-        yield* googlePagedIterator(pageToken =>
-            this.gCloudFunctions.projects.locations.functions.list({
-                parent,
-                pageToken
-            })
-        );
-    }
-
     locationPath(location: string) {
         return `projects/${this.project}/locations/${location}`;
     }
 
     functionPath(location: string, funcname: string) {
         return `projects/${this.project}/locations/${location}/functions/${funcname}`;
-    }
-
-    async patchFunction(
-        name: string,
-        func: gcf.Schema$CloudFunction,
-        updateMask?: string
-    ) {
-        const previousFunc = await this.getFunction(name);
-        const response = await this.gCloudFunctions.projects.locations.functions.patch({
-            name,
-            updateMask,
-            requestBody: func
-        });
-        await this.waitForOperation(response.data);
     }
 }

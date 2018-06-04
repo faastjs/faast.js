@@ -1,38 +1,26 @@
 import * as fs from "fs";
 import * as cloudify from "../src/cloudify";
 import { exec, unzipInDir } from "./util";
+import * as funcs from "./functions";
+import { checkFunctions } from "./functions-expected";
+import { log } from "../src/log";
 
-test(
-    "package google zip file and test with clound function emulator",
-    async () => {
-        const { archive: archiveGoogle } = await cloudify
-            .create("google")
-            .pack("./functions");
+let emulator: cloudify.Google;
+let cloudFunction: cloudify.CloudFunction<any>;
+let remote: cloudify.Promisified<typeof funcs>;
 
-        await new Promise((resolve, reject) => {
-            const outputGoogle = fs.createWriteStream("dist-google.zip");
-            outputGoogle.on("finish", resolve);
-            outputGoogle.on("error", reject);
-            archiveGoogle.pipe(outputGoogle);
-        });
+beforeAll(async () => {
+    emulator = cloudify.create("google-emulator");
+    cloudFunction = await emulator.createFunction("./functions");
+    console.log(`Service created: ${cloudFunction.cloudName}`);
+    remote = cloudFunction.cloudifyAll(funcs);
+}, 120 * 1000);
 
-        const dir = "tmp/google";
-        unzipInDir(dir, "dist-google.zip");
-        expect(exec(`cd ${dir} && node index.js`)).toMatch(
-            "Successfully loaded functions"
-        );
-        exec("functions start");
-        let output = exec(`cd ${dir} && functions deploy trampoline --trigger-http`);
-        let result = output.match(/Resource\s+│\s+(http:\/\/localhost:\S+) /);
-        if (result && result[1]) {
-            let url = result[1];
-        }
-        expect(
-            exec(
-                `functions call trampoline --data='{"name": "hello", "args": ["world"]}'`
-            )
-        ).toMatch("Hello world!");
-        exec("functions stop");
-    },
-    60 * 1000
-);
+test("hello", async () => {
+    const str = await remote.hello("Andy");
+    expect(str).toBe("Hello Andy");
+});
+
+//checkFunctions("Google Emulator", () => remote);
+
+//afterAll(() => cloudFunction.cleanup(), 120 * 1000);

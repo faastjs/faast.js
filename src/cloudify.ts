@@ -1,3 +1,5 @@
+require("source-map-support").install();
+
 import * as aws from "./aws/aws-cloudify";
 import * as google from "./google/google-cloudify";
 import { PackerResult } from "./packer";
@@ -100,8 +102,6 @@ export interface GoogleEmulator extends Google {
 }
 export interface GCFunctionEmulator extends CloudFunction<google.State> {}
 
-let googleEmulator: CloudImpl<google.Options, google.State> = Object.assign({}, google);
-
 const resolve = (module.parent!.require as NodeRequire).resolve;
 
 export function create(cloudName: "aws"): AWS;
@@ -111,11 +111,21 @@ export function create(cloudName: string): Cloud<any, any> {
     function createCloud<O, S>(impl: CloudImpl<O, S>): Cloud<O, S> {
         return {
             name: impl.name,
-            cleanupResources: (resources: string) => impl.cleanupResources(resources),
+            cleanupResources: impl.cleanupResources,
             pack: fmodule => impl.pack(resolve(fmodule)),
             createFunction: async (fmodule: string, options?: O) =>
-                createFunction(impl, await impl.initialize(resolve(fmodule), options))
+                createFunctionApi(impl, await impl.initialize(resolve(fmodule), options))
         };
+    }
+
+    function createGoogleEmulator() {
+        let g = createCloud(google);
+        g.createFunction = async (fmodule: string, options?: google.Options) =>
+            createFunctionApi(
+                google,
+                await google.initializeEmulator(resolve(fmodule), options)
+            );
+        return g;
     }
 
     if (cloudName === "aws") {
@@ -123,12 +133,12 @@ export function create(cloudName: string): Cloud<any, any> {
     } else if (cloudName === "google") {
         return createCloud(google);
     } else if (cloudName === "google-emulator") {
-        return createCloud(googleEmulator);
+        return createGoogleEmulator();
     }
     throw new Error(`Unknown cloud name: "${cloudName}"`);
 }
 
-async function createFunction<S>(
+async function createFunctionApi<S>(
     cloud: CloudImpl<any, S>,
     state: S
 ): Promise<CloudFunction<S>> {

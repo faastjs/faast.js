@@ -8,7 +8,7 @@ import { PackerResult, packer } from "../packer";
 import { FunctionCall, FunctionReturn } from "../shared";
 import {
     CloudFunctions,
-    cloudfunctions_v1 as gcf,
+    cloudfunctions_v1beta2 as gcf,
     initializeGoogleAPIs
 } from "./google-cloud-functions-api";
 
@@ -34,15 +34,47 @@ export async function initialize(
     serverModule: string,
     options: Options = {}
 ): Promise<State> {
+    const google = await initializeGoogleAPIs();
+    const project = await google.auth.getDefaultProjectId();
+    const googleCloudFunctionsApi = new CloudFunctions(
+        google.cloudfunctions("v1beta2"),
+        project
+    );
+    return initializeWithApi(serverModule, options, googleCloudFunctionsApi);
+}
+
+import * as sys from "child_process";
+import * as fs from "fs";
+
+export async function initializeEmulator(serverModule: string, options: Options = {}) {
+    exec("functions start");
+    const result = exec(`functions status`).match(
+        /REST Service\s+│\s+(http:\/\/localhost:\S+)/
+    );
+    if (!result || !result[1]) {
+        throw new Error("Could not find cloud functions service REST url");
+    }
+    const url = result[1];
+
+    // Adjust localhost:8008 to match the host and port where your Emulator is running
+    const DISCOVERY_URL = `${url}$discovery/rest?version=v1beta2`;
+    log(`DISCOVERY_URL: ${DISCOVERY_URL}`);
+    const google = await initializeGoogleAPIs();
+    const emulator = await google.discoverAPI(DISCOVERY_URL);
+    const project = await google.auth.getDefaultProjectId();
+    const googleCloudFunctionsApi = new CloudFunctions(emulator as any, project);
+    return initializeWithApi(serverModule, options, googleCloudFunctionsApi);
+}
+
+async function initializeWithApi(
+    serverModule: string,
+    options: Options,
+    googleCloudFunctionsApi: CloudFunctions
+) {
+    log(`Create cloud function`);
     const { archive } = await pack(serverModule);
     const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
-
-    const google = await initializeGoogleAPIs();
-    const project = await google.auth.getDefaultProjectId();
-    const googleCloudFunctionsApi = new CloudFunctions(google, project);
-
-    log(`Create cloud function`);
     const { region = "us-central1", timeoutSec = 60, ...rest } = options;
     const locationPath = googleCloudFunctionsApi.locationPath(region);
     const uploadUrlResponse = await googleCloudFunctionsApi.generateUploaddUrl(
@@ -50,12 +82,9 @@ export async function initialize(
     );
     const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, archive);
     log(`Upload zip file response: ${uploadResult.statusText}`);
-
     const trampoline = googleCloudFunctionsApi.functionPath(region, "cloudify-" + nonce);
-
     const functionRequest: gcf.Schema$CloudFunction = {
         name: trampoline,
-        description: "cloudify trampoline function",
         entryPoint: "trampoline",
         timeout: `${timeoutSec}s`,
         availableMemoryMb: 256,
@@ -63,9 +92,7 @@ export async function initialize(
         sourceUploadUrl: uploadUrlResponse.uploadUrl,
         ...rest
     };
-
     validateGoogleLabels(functionRequest.labels);
-
     // It should be rare to get a trampoline collision because we include
     // part of the sha256 hash as part of the name, but we check just in
     // case.
@@ -75,27 +102,28 @@ export async function initialize(
     if (existingFunc) {
         throw new Error(`Trampoline name hash collision`);
     }
-
     log(`Create function at ${locationPath}`);
     log(humanStringify(functionRequest));
     try {
         await googleCloudFunctionsApi.createFunction(locationPath, functionRequest);
     } catch (err) {
-        await googleCloudFunctionsApi
-            .deleteFunction(trampoline)
-            .catch(_ =>
-                log(`Could not clean up after failed create function. Possible leak.`)
-            );
+        log(`createFunction error: ${err.stack}`);
+        try {
+            await googleCloudFunctionsApi.deleteFunction(trampoline);
+        } catch (err) {
+            log(`Could not clean up after failed create function. Possible leak.`);
+            log(err);
+        }
         throw err;
     }
+    log(`Successfully created function ${trampoline}`);
     return { googleCloudFunctionsApi, trampoline };
 }
 
-export async function iniitalizeEmulator(serverModule: string, options: Options = {}) {
-    const { archive } = await pack(serverModule);
-    const google = await initializeGoogleAPIs();
-    const project = await google.auth.getDefaultProjectId();
-    const googleCloudFunctionsApi = new CloudFunctions(google, project);
+export function exec(cmd: string) {
+    const result = sys.execSync(cmd).toString();
+    console.log(result);
+    return result;
 }
 
 export function cloudifyWithResponse<F extends AnyFunction>(
@@ -206,6 +234,9 @@ export async function cleanupResources(resources: string) {
     const trampoline = resources;
     const google = await initializeGoogleAPIs();
     const project = await google.auth.getDefaultProjectId();
-    const googleCloudFunctionsApi = new CloudFunctions(google, project);
+    const googleCloudFunctionsApi = new CloudFunctions(
+        google.cloudfunctions("v1beta2"),
+        project
+    );
     return cleanup({ trampoline, googleCloudFunctionsApi });
 }
