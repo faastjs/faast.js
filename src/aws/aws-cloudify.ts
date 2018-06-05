@@ -39,11 +39,11 @@ export interface State {
     services: AWSServices;
 }
 
-function carefully<U>(arg: Request<U, AWSError>) {
+export function carefully<U>(arg: Request<U, AWSError>) {
     return arg.promise().catch(err => log(err));
 }
 
-function quietly<U>(arg: Request<U, AWSError>) {
+export function quietly<U>(arg: Request<U, AWSError>) {
     return arg.promise().catch(_ => {});
 }
 
@@ -89,9 +89,6 @@ export async function initialize(
         awsLambdaOptions = {}
     } = options;
     const { lambda, iam, cloudwatch } = createAWSApis(region);
-
-    // XXX Make the role specific to this lambda using the configHash? That
-    // would ensure separation.
 
     async function createRole() {
         log(`Creating role "${RoleName}" for cloudify trampoline function`);
@@ -282,7 +279,7 @@ export function cloudifyWithResponse<F extends AnyFunction>(
     return responsifedFunc as any;
 }
 
-async function deleteRole(
+export async function deleteRole(
     RoleName: string,
     noCreateLogGroupPolicy: string | undefined,
     iam: aws.IAM
@@ -336,7 +333,7 @@ export function getResourceList(state: State) {
 }
 
 export function cleanupResources(resources: string) {
-    const vars = JSON.parse(resources);
+    const vars: AWSVariables = JSON.parse(resources);
     if (!vars.region) {
         throw new Error("Resources missing 'region'");
     }
