@@ -12,13 +12,14 @@ import { FunctionCall, FunctionReturn } from "../shared";
 export interface Options extends gcf.Schema$CloudFunction {
     region?: string;
     timeoutSec?: number;
-    availableMemoryMb?: number;
+    memorySize?: number;
 }
 
 export interface GoogleVariables {
     readonly trampoline: string;
     readonly project: string;
     readonly isEmulator: boolean;
+    readonly url: string;
 }
 
 export interface GoogleServices {
@@ -142,13 +143,12 @@ export async function initialize(fmodule: string, options: Options = {}): Promis
 
 async function getEmulator(): Promise<gcf.Cloudfunctions> {
     exec("functions start");
-    const result = exec(`functions status`).match(
-        /REST Service\s+│\s+(http:\/\/localhost:\S+)/
-    );
-    if (!result || !result[1]) {
+    const output = exec(`functions status`);
+    const rest = output.match(/REST Service\s+│\s+(http:\/\/localhost:\S+)/);
+    if (!rest || !rest[1]) {
         throw new Error("Could not find cloud functions service REST url");
     }
-    const url = result[1];
+    const url = rest[1];
 
     // Adjust localhost:8008 to match the host and port where your Emulator is running
     const DISCOVERY_URL = `${url}$discovery/rest?version=v1beta2`;
@@ -184,20 +184,18 @@ async function initializeWithApi(
     );
     const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, archive);
     log(`Upload zip file response: ${uploadResult.statusText}`);
-    const trampoline = getFunctionPath(project, region, "cloudify-" + nonce);
+    const functionName = "cloudify-" + nonce;
+    const trampoline = getFunctionPath(project, region, functionName);
     const requestBody: gcf.Schema$CloudFunction = {
         name: trampoline,
         entryPoint: "trampoline",
         timeout: `${timeoutSec}s`,
-        availableMemoryMb: 256,
+        memorySize: 256,
         httpsTrigger: {},
         sourceUploadUrl: uploadUrlResponse.uploadUrl,
         ...rest
     };
     validateGoogleLabels(requestBody.labels);
-    // It should be rare to get a trampoline collision because we include
-    // part of the sha256 hash as part of the name, but we check just in
-    // case.
     const existingFunc = await quietly(
         cloudFunctionsApi.projects.locations.functions.get({ name })
     );
@@ -226,9 +224,19 @@ async function initializeWithApi(
         }
         throw err;
     }
-    log(`Successfully created function ${trampoline}`);
+    const func = await carefully(
+        cloudFunctionsApi.projects.locations.functions.get({ name: trampoline })
+    );
+    if (!func.httpsTrigger) {
+        throw new Error("Could not get http trigger url");
+    }
+    const { url } = func.httpsTrigger!;
+    if (!url) {
+        throw new Error("Could not get http trigger url");
+    }
+    log(`Function URL: ${url}`);
     return {
-        vars: { trampoline, project, isEmulator },
+        vars: { trampoline, project, isEmulator, url },
         services: { cloudFunctionsApi }
     };
 }
@@ -243,6 +251,7 @@ export function cloudifyWithResponse<F extends AnyFunction>(
     state: State,
     fn: F
 ): ResponsifiedFunction<F> {
+    const { isEmulator, trampoline, url } = state.vars;
     const promisifedFunc = async (...args: any[]) => {
         let callArgs: FunctionCall = {
             name: fn.name,
@@ -250,20 +259,14 @@ export function cloudifyWithResponse<F extends AnyFunction>(
         };
         const data = JSON.stringify(callArgs);
         log(`Calling cloud function "${fn.name}" with args: ${data}`, "");
-        const { isEmulator, trampoline } = state.vars;
-        const rawResponse = await carefully(
-            state.services.cloudFunctionsApi.projects.locations.functions.call({
-                name: trampoline,
-                requestBody: { data: isEmulator ? (callArgs as any) : data }
-            })
-        );
+
+        const rawResponse = await Axios.put<FunctionReturn>(url, callArgs);
         let error: Error | undefined;
-        if (rawResponse.error) {
-            error = new Error(rawResponse.error);
+        if (rawResponse.status < 200 || rawResponse.status >= 300) {
+            error = new Error(rawResponse.statusText);
         }
-        log(`  returned: ${rawResponse.result}`);
-        let returned: FunctionReturn | undefined =
-            !error && JSON.parse(rawResponse.result!);
+        log(`  returned: ${humanStringify(rawResponse.data)}`);
+        let returned: FunctionReturn = rawResponse.data;
         if (returned && returned.type === "error") {
             const errValue = returned.value;
             error = new Error(errValue.message);

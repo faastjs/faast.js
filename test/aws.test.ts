@@ -8,9 +8,7 @@ let remote: cloudify.Promisified<typeof funcs>;
 
 beforeAll(async () => {
     cloud = cloudify.create("aws");
-    lambda = await cloud.createFunction("./functions", {
-        RoleName: "cloudify-cached-role"
-    });
+    lambda = await cloud.createFunction("./functions");
     remote = lambda.cloudifyAll(funcs);
 }, 30 * 1000);
 

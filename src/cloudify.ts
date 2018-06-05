@@ -52,19 +52,17 @@ export type Responsified<M> = {
     [K in keyof M]: M[K] extends AnyFunction ? ResponsifiedFunction<M[K]> : never
 };
 
-export interface CommonOptions {
+export interface Options<CloudSpecificOptions> {
     timeout?: number;
-    availableMemoryMb?: number;
+    memorySize?: number;
+    cloudSpecific?: CloudSpecificOptions;
 }
 
 export interface Cloud<O, S> {
     name: string;
     cleanupResources(resources: string): Promise<void>;
     pack(fmodule: string): Promise<PackerResult>;
-    createFunction(
-        fmodule: string,
-        options?: O & CommonOptions
-    ): Promise<CloudFunction<S>>;
+    createFunction(fmodule: string, options?: Options<O>): Promise<CloudFunction<S>>;
 }
 
 export abstract class CloudFunction<S> {
@@ -115,8 +113,9 @@ export class AWS implements Cloud<aws.Options, aws.State> {
     }
     async createFunction(
         fmodule: string,
-        options?: aws.Options & CommonOptions
+        { timeout, memorySize, cloudSpecific }: Options<aws.Options> = {}
     ): Promise<AWSLambda> {
+        const options: aws.Options = { timeout, memorySize, ...cloudSpecific };
         return new AWSLambda(await aws.initialize(resolve(fmodule), options));
     }
 }
@@ -146,7 +145,15 @@ export class Google implements Cloud<google.Options, google.State> {
     pack(fmodule: string) {
         return google.pack(resolve(fmodule));
     }
-    async createFunction(fmodule: string, options?: google.Options & CommonOptions) {
+    async createFunction(
+        fmodule: string,
+        { timeout, memorySize, cloudSpecific }: Options<google.Options> = {}
+    ) {
+        const options: google.Options = {
+            timeoutSec: timeout,
+            memorySize,
+            ...cloudSpecific
+        };
         return new GoogleCloudFunction(
             await google.initialize(resolve(fmodule), options)
         );
@@ -173,7 +180,15 @@ export class GoogleCloudFunction extends CloudFunction<google.State> {
 }
 
 export class GoogleEmulator extends Google {
-    async createFunction(fmodule: string, options?: google.Options & CommonOptions) {
+    async createFunction(
+        fmodule: string,
+        { timeout, memorySize, cloudSpecific }: Options<google.Options> = {}
+    ) {
+        const options: google.Options = {
+            timeoutSec: timeout,
+            memorySize,
+            ...cloudSpecific
+        };
         return new GoogleCloudFunction(
             await google.initializeEmulator(resolve(fmodule), options)
         );

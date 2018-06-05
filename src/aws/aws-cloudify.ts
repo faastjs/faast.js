@@ -15,8 +15,8 @@ export interface Options {
     PolicyArn?: string;
     rolePolicy?: RoleHandling;
     RoleName?: string;
-    Timeout?: number;
-    MemorySize?: number;
+    timeout?: number;
+    memorySize?: number;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
 }
 
@@ -70,8 +70,8 @@ let defaults: Required<Options> = {
     PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
     rolePolicy: "createOrReuseCachedRole",
     RoleName: "cloudify-cached-role",
-    Timeout: 60,
-    MemorySize: 128,
+    timeout: 60,
+    memorySize: 128,
     awsLambdaOptions: {}
 };
 
@@ -97,6 +97,10 @@ export async function initialize(
         awsLambdaOptions = {}
     } = options;
     const { lambda, iam, cloudwatch } = createAWSApis(region);
+
+    const limits = await carefully(lambda.getAccountSettings());
+    log(`Limits: ${humanStringify(limits)}`);
+
     let { RoleName = defaults.RoleName } = options;
     if (rolePolicy === "createTemporaryRole") {
         RoleName = `cloudify-role-${nonce}`;
@@ -203,8 +207,8 @@ export async function initialize(
             Handler: "index.trampoline",
             Code: { ZipFile: await zipStreamToBuffer(archive) },
             Description: "cloudify trampoline function",
-            Timeout: defaults.Timeout,
-            MemorySize: defaults.MemorySize,
+            Timeout: defaults.timeout,
+            MemorySize: defaults.memorySize,
             ...awsLambdaOptions
         };
         log(`createFunctionRequest: ${humanStringify(createFunctionRequest)}`);

@@ -1,7 +1,6 @@
 import * as cloudify from "../src/cloudify";
 import * as funcs from "./functions";
 import { checkFunctions } from "./functions-expected";
-import { test30 } from "./util";
 import { CloudFunction } from "../src/cloudify";
 import { isUndefined } from "util";
 import {
@@ -38,26 +37,40 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
     }
 }
 
-test30("removes ephemeral resources", async () => {
-    const cloud = cloudify.create("aws");
-    const func = await cloud.createFunction("./functions");
-    await func.cleanup();
-    await checkResourcesCleanedUp(func);
-});
+test(
+    "removes ephemeral resources",
+    async () => {
+        const cloud = cloudify.create("aws");
+        const func = await cloud.createFunction("./functions");
+        await func.cleanup();
+        await checkResourcesCleanedUp(func);
+    },
+    30 * 1000
+);
 
-test30("removes ephemeral resources from a resource list", async () => {
-    const cloud = cloudify.create("aws");
-    const func = await cloud.createFunction("./functions");
-    const resourceList = func.getResourceList();
-    await cloud.cleanupResources(resourceList);
-    await checkResourcesCleanedUp(func);
-});
+test(
+    "removes ephemeral resources from a resource list",
+    async () => {
+        const cloud = cloudify.create("aws");
+        const func = await cloud.createFunction("./functions");
+        const resourceList = func.getResourceList();
+        await cloud.cleanupResources(resourceList);
+        await checkResourcesCleanedUp(func);
+    },
+    30 * 1000
+);
 
-test30("removes temporary roles", async () => {
-    const cloud = cloudify.create("aws");
-    const func = await cloud.createFunction("./functions", {
-        rolePolicy: "createTemporaryRole"
-    });
-    await func.cleanup();
-    await checkResourcesCleanedUp(func);
-});
+test(
+    "removes temporary roles",
+    async () => {
+        const cloud = cloudify.create("aws");
+        const func = await cloud.createFunction("./functions", {
+            cloudSpecific: {
+                rolePolicy: "createTemporaryRole"
+            }
+        });
+        await func.cleanup();
+        await checkResourcesCleanedUp(func);
+    },
+    30 * 1000
+);
