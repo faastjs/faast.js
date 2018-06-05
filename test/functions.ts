@@ -38,3 +38,14 @@ export function path(): Promise<string> {
 export function rejected(): Promise<string> {
     return Promise.reject("This promise is intentionally rejected.");
 }
+
+export function monteCarloPI(samples: number) {
+    let inside = 0;
+    for (let n = 0; n < samples; n++) {
+        const [x, y] = [Math.random(), Math.random()];
+        if (x ** 2 + y ** 2 <= 1) {
+            inside++;
+        }
+    }
+    return { inside, samples };
+}

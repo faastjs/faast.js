@@ -21,5 +21,9 @@ export function test60(msg: string, f: () => Promise<void>) {
 }
 
 export function test90(msg: string, f: () => Promise<void>) {
-    return test(msg, f, 60 * 1000);
+    return test(msg, f, 90 * 1000);
+}
+
+export function test300(msg: string, f: () => Promise<void>) {
+    return test(msg, f, 300 * 1000);
 }
