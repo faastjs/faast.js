@@ -67,85 +67,16 @@ export interface Cloud<O, S> {
     ): Promise<CloudFunction<S>>;
 }
 
-export interface CloudFunction<S> {
-    cloudName: string;
-    cloudify<F extends AnyFunction>(fn: F): PromisifiedFunction<F>;
-    cloudifyAll<M>(importedModule: M): Promisified<M>;
-    cloudifyWithResponse<F extends AnyFunction>(fn: F): ResponsifiedFunction<F>;
-    cloudifyAllWithResponse<M>(importedModule: M): Responsified<M>;
-    cleanup(): Promise<void>;
-    getResourceList(): string;
-    getState(): S;
-}
+export abstract class CloudFunction<S> {
+    abstract cloudName: string;
+    abstract cloudifyWithResponse<F extends AnyFunction>(fn: F): ResponsifiedFunction<F>;
+    abstract cleanup(): Promise<void>;
+    abstract getResourceList(): string;
+    abstract getState(): S;
 
-export interface AWS extends Cloud<aws.Options, aws.State> {
-    createFunction(
-        fmodule: string,
-        options?: aws.Options & CommonOptions
-    ): Promise<AWSLambda>;
-}
-export interface AWSLambda extends CloudFunction<aws.State> {}
-
-export interface Google extends Cloud<google.Options, google.State> {
-    createFunction(
-        fmodule: string,
-        options?: google.Options & CommonOptions
-    ): Promise<GoogleCloudFunction>;
-}
-export interface GoogleCloudFunction extends CloudFunction<google.State> {}
-
-export interface GoogleEmulator extends Google {
-    createFunction(
-        fmodule: string,
-        options?: google.Options & CommonOptions
-    ): Promise<GCFunctionEmulator>;
-}
-export interface GCFunctionEmulator extends CloudFunction<google.State> {}
-
-const resolve = (module.parent!.require as NodeRequire).resolve;
-
-export function create(cloudName: "aws"): AWS;
-export function create(cloudName: "google"): Google;
-export function create(cloudName: "google-emulator"): GoogleEmulator;
-export function create(cloudName: string): Cloud<any, any> {
-    function createCloud<O, S>(impl: CloudImpl<O, S>): Cloud<O, S> {
-        return {
-            name: impl.name,
-            cleanupResources: impl.cleanupResources,
-            pack: fmodule => impl.pack(resolve(fmodule)),
-            createFunction: async (fmodule: string, options?: O) =>
-                createFunctionApi(impl, await impl.initialize(resolve(fmodule), options))
-        };
-    }
-
-    function createGoogleEmulator() {
-        let g = createCloud(google);
-        g.createFunction = async (fmodule: string, options?: google.Options) => {
-            return await createFunctionApi(
-                google,
-                await google.initializeEmulator(resolve(fmodule), options)
-            );
-        };
-        return g;
-    }
-
-    if (cloudName === "aws") {
-        return createCloud(aws);
-    } else if (cloudName === "google") {
-        return createCloud(google);
-    } else if (cloudName === "google-emulator") {
-        return createGoogleEmulator();
-    }
-    throw new Error(`Unknown cloud name: "${cloudName}"`);
-}
-
-async function createFunctionApi<S>(
-    cloud: CloudImpl<any, S>,
-    state: S
-): Promise<CloudFunction<S>> {
-    function cloudify<F extends AnyFunction>(state: S, fn: F): PromisifiedFunction<F> {
+    cloudify<F extends AnyFunction>(fn: F): PromisifiedFunction<F> {
         const cloudifiedFunc = async (...args: any[]) => {
-            const cfn = cloud.cloudifyWithResponse<F>(state, fn) as any;
+            const cfn = this.cloudifyWithResponse<F>(fn) as any;
             const response: Response<ReturnType<F>> = await cfn(...args);
             if (response.error) {
                 throw response.error;
@@ -155,36 +86,114 @@ async function createFunctionApi<S>(
         return cloudifiedFunc as any;
     }
 
-    function cloudifyAll<M>(state: S, module: M): Promisified<M> {
+    cloudifyAll<M>(module: M): Promisified<M> {
         const rv: any = {};
         for (const name of Object.keys(module)) {
             if (typeof module[name] === "function") {
-                rv[name] = cloudify(state, module[name]);
+                rv[name] = this.cloudify(module[name]);
             }
         }
         return rv;
     }
 
-    function cloudifyAllWithResponse<M>(state: S, module: M): Responsified<M> {
+    cloudifyAllWithResponse<M>(module: M): Responsified<M> {
         const rv: any = {};
         for (const name of Object.keys(module)) {
             if (typeof module[name] === "function") {
-                rv[name] = cloud.cloudifyWithResponse(state, module[name]);
+                rv[name] = this.cloudifyWithResponse(module[name]);
             }
         }
         return rv;
     }
+}
 
-    return {
-        cloudName: cloud.name,
-        cloudify: f => cloudify(state, f),
-        cloudifyAll: o => cloudifyAll(state, o),
-        cloudifyWithResponse: f => cloud.cloudifyWithResponse(state, f),
-        cloudifyAllWithResponse: o => cloudifyAllWithResponse(state, o),
-        cleanup: () => cloud.cleanup(state),
-        getResourceList: () => cloud.getResourceList(state),
-        getState: () => state
-    };
+export class AWS implements Cloud<aws.Options, aws.State> {
+    name = aws.name;
+    cleanupResources = aws.cleanupResources;
+    pack(fmodule: string) {
+        return aws.pack(resolve(fmodule));
+    }
+    async createFunction(
+        fmodule: string,
+        options?: aws.Options & CommonOptions
+    ): Promise<AWSLambda> {
+        return new AWSLambda(await aws.initialize(resolve(fmodule), options));
+    }
+}
+
+export class AWSLambda extends CloudFunction<aws.State> {
+    cloudName = aws.name;
+    constructor(readonly state: aws.State) {
+        super();
+    }
+    cloudifyWithResponse<F extends AnyFunction>(fn: F) {
+        return aws.cloudifyWithResponse(this.state, fn);
+    }
+    cleanup() {
+        return aws.cleanup(this.state);
+    }
+    getResourceList() {
+        return aws.getResourceList(this.state);
+    }
+    getState() {
+        return this.state;
+    }
+}
+
+export class Google implements Cloud<google.Options, google.State> {
+    name = google.name;
+    cleanupResources = google.cleanupResources;
+    pack(fmodule: string) {
+        return google.pack(resolve(fmodule));
+    }
+    async createFunction(fmodule: string, options?: google.Options & CommonOptions) {
+        return new GoogleCloudFunction(
+            await google.initialize(resolve(fmodule), options)
+        );
+    }
+}
+
+export class GoogleCloudFunction extends CloudFunction<google.State> {
+    cloudName = google.name;
+    constructor(readonly state: google.State) {
+        super();
+    }
+    cloudifyWithResponse<F extends AnyFunction>(fn: F) {
+        return google.cloudifyWithResponse(this.state, fn);
+    }
+    cleanup() {
+        return google.cleanup(this.state);
+    }
+    getResourceList() {
+        return google.getResourceList(this.state);
+    }
+    getState() {
+        return this.state;
+    }
+}
+
+export class GoogleEmulator extends Google {
+    async createFunction(fmodule: string, options?: google.Options & CommonOptions) {
+        return new GoogleCloudFunction(
+            await google.initializeEmulator(resolve(fmodule), options)
+        );
+    }
+}
+
+const resolve = (module.parent!.require as NodeRequire).resolve;
+
+export function create(cloudName: "aws"): AWS;
+export function create(cloudName: "google"): Google;
+export function create(cloudName: "google-emulator"): GoogleEmulator;
+export function create(cloudName: string): Cloud<any, any> {
+    if (cloudName === "aws") {
+        return new AWS();
+    } else if (cloudName === "google") {
+        return new Google();
+    } else if (cloudName === "google-emulator") {
+        return new GoogleEmulator();
+    }
+    throw new Error(`Unknown cloud name: "${cloudName}"`);
 }
 
 export interface CloudImpl<Options, State> {
