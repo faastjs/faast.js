@@ -8,17 +8,22 @@ import { log } from "../log";
 import { PackerResult, packer } from "../packer";
 import { FunctionCall, FunctionReturn } from "../shared";
 
+export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
+
 export interface Options {
     region?: string;
     PolicyArn?: string;
+    rolePolicy?: RoleHandling;
     RoleName?: string;
+    Timeout?: number;
+    MemorySize?: number;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
 }
 
 export interface AWSVariables {
     readonly FunctionName: string;
     readonly RoleName: string;
-    readonly roleNeedsCleanup: boolean;
+    readonly rolePolicy: RoleHandling;
     readonly logGroupName: string;
     readonly region: string;
     readonly noCreateLogGroupPolicy: string;
@@ -60,11 +65,14 @@ function sleep(ms: number) {
     return new Promise<void>(resolve => setTimeout(resolve, ms));
 }
 
-let defaults = {
+let defaults: Required<Options> = {
     region: "us-east-1",
     PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
+    rolePolicy: "createOrReuseCachedRole",
+    RoleName: "cloudify-cached-role",
     Timeout: 60,
-    MemorySize: 128
+    MemorySize: 128,
+    awsLambdaOptions: {}
 };
 
 function createAWSApis(region: string) {
@@ -85,11 +93,14 @@ export async function initialize(
     const {
         region = defaults.region,
         PolicyArn = defaults.PolicyArn,
-        RoleName = `cloudify-role-${nonce}`,
+        rolePolicy = defaults.rolePolicy,
         awsLambdaOptions = {}
     } = options;
     const { lambda, iam, cloudwatch } = createAWSApis(region);
-
+    let { RoleName = defaults.RoleName } = options;
+    if (rolePolicy === "createTemporaryRole") {
+        RoleName = `cloudify-role-${nonce}`;
+    }
     async function createRole() {
         log(`Creating role "${RoleName}" for cloudify trampoline function`);
         const AssumeRolePolicyDocument = JSON.stringify({
@@ -222,7 +233,7 @@ export async function initialize(
         vars: {
             FunctionName,
             RoleName,
-            roleNeedsCleanup,
+            rolePolicy,
             logGroupName,
             region,
             noCreateLogGroupPolicy
@@ -300,7 +311,7 @@ export async function deleteRole(
 }
 
 export async function cleanup(state: State) {
-    const { FunctionName, RoleName, logGroupName, roleNeedsCleanup } = state.vars;
+    const { FunctionName, RoleName, logGroupName, rolePolicy } = state.vars;
     const { cloudwatch, iam, lambda } = state.services;
 
     if (FunctionName) {
@@ -308,8 +319,8 @@ export async function cleanup(state: State) {
         await carefully(lambda.deleteFunction({ FunctionName }));
     }
 
-    if (RoleName && roleNeedsCleanup) {
-        log(`Deleting role name: ${RoleName}`);
+    if (RoleName && rolePolicy === "createTemporaryRole") {
+        log(`Deleting temporary role: ${RoleName}`);
         await deleteRole(RoleName, state.vars.noCreateLogGroupPolicy, iam);
     }
 

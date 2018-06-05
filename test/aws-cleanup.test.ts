@@ -9,14 +9,15 @@ import {
     quietly,
     AWSVariables,
     cleanup,
-    deleteRole
+    deleteRole,
+    RoleHandling
 } from "../src/aws/aws-cloudify";
 import * as aws from "aws-sdk";
 
 async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
     const {
         services: { lambda, iam, cloudwatch },
-        vars: { FunctionName, logGroupName, RoleName }
+        vars: { FunctionName, logGroupName, RoleName, rolePolicy }
     } = func.getState();
 
     const functionResult = await quietly(
@@ -30,7 +31,11 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
     expect(logResult && logResult.logGroups).toEqual([]);
 
     const roleResult = await quietly(iam.getRole({ RoleName }));
-    expect(roleResult).toBeUndefined();
+    if (rolePolicy === "createTemporaryRole") {
+        expect(roleResult).toBeUndefined();
+    } else {
+        expect(roleResult && roleResult.Role.RoleName).toBe(RoleName);
+    }
 }
 
 test30("removes ephemeral resources", async () => {
@@ -48,22 +53,11 @@ test30("removes ephemeral resources from a resource list", async () => {
     await checkResourcesCleanedUp(func);
 });
 
-test30("saves cached roles", async () => {
+test30("removes temporary roles", async () => {
     const cloud = cloudify.create("aws");
     const func = await cloud.createFunction("./functions", {
-        RoleName: "cloudify-cached-role-testing"
+        rolePolicy: "createTemporaryRole"
     });
     await func.cleanup();
-    const {
-        services: { iam },
-        vars: { RoleName, noCreateLogGroupPolicy }
-    } = func.getState();
-
-    const roleResult = await quietly(iam.getRole({ RoleName }));
-    expect(roleResult && roleResult.Role.RoleName).toBe(RoleName);
-
-    await deleteRole(RoleName, noCreateLogGroupPolicy, iam);
-
-    const roleResult2 = await quietly(iam.getRole({ RoleName }));
-    expect(roleResult2).toBeUndefined();
+    await checkResourcesCleanedUp(func);
 });
