@@ -1,6 +1,5 @@
 import * as cloudify from "../src/cloudify";
 import * as funcs from "./functions";
-import { checkFunctions } from "./functions-expected";
 
 let cloud: cloudify.Cloud<any, any>;
 let lambda: cloudify.CloudFunction<any>;
@@ -12,7 +11,7 @@ beforeAll(async () => {
         //Timeout: 120
     });
     remote = lambda.cloudifyAll(funcs);
-}, 30 * 1000);
+}, 90 * 1000);
 
 test(
     "Load test ~100 concurrent executions",
@@ -46,7 +45,7 @@ test(
         });
         console.log(`inside: ${inside}, samples: ${samples}`);
         expect(samples).toBe(nParallelFunctions * nSamplesPerFunction);
-        const estimatedPI = inside / samples * 4;
+        const estimatedPI = (inside / samples) * 4;
         expect(Number(estimatedPI.toFixed(2))).toBe(3.14);
     },
     300 * 1000

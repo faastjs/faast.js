@@ -1,17 +1,5 @@
 import * as cloudify from "../src/cloudify";
-import * as funcs from "./functions";
-import { checkFunctions } from "./functions-expected";
-import { CloudFunction } from "../src/cloudify";
-import { isUndefined } from "util";
-import {
-    carefully,
-    quietly,
-    AWSVariables,
-    cleanup,
-    deleteRole,
-    RoleHandling
-} from "../src/aws/aws-cloudify";
-import * as aws from "aws-sdk";
+import { quietly } from "../src/aws/aws-cloudify";
 
 async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
     const {

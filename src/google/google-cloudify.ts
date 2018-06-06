@@ -235,7 +235,7 @@ async function initializeWithApi(
     const func = await carefully(
         cloudFunctionsApi.projects.locations.functions.get({ name: trampoline })
     );
-    if (!func.httpsTrigger) {
+    if (!func || !func.httpsTrigger) {
         throw new Error("Could not get http trigger url");
     }
     const { url } = func.httpsTrigger!;
@@ -267,7 +267,6 @@ export function cloudifyWithResponse<F extends AnyFunction>(
         };
         const data = JSON.stringify(callArgs);
         log(`Calling cloud function "${fn.name}" with args: ${data}`, "");
-
         const rawResponse = await Axios.put<FunctionReturn>(url, callArgs);
         let error: Error | undefined;
         if (rawResponse.status < 200 || rawResponse.status >= 300) {

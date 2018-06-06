@@ -5,10 +5,10 @@
     "main": "build/src/cloudify.js",
     "types": "build/src/cloudify.d.ts",
     "scripts": {
-        "build": "tsc",
+        "build": "yarn clean && tsc",
         "watch": "tsc --watch",
-        "test-local": "jest build/test/*-local.test.js",
-        "test": "jest",
+        "test-local": "yarn build && jest build/test/*-local.test.js",
+        "test": "yarn build && jest",
         "clean": "rm -rf build"
     },
     "author": "",
@@ -41,14 +41,23 @@
         "@types/uuid": "^3.4.3",
         "@types/webpack": "^4.1.5",
         "@types/webpack-node-externals": "^1.6.3",
-        "jest": "^22.4.3",
-        "typescript": "^2.8.3",
+        "jest": "^23.1.0",
+        "typescript": "^2.9.1",
         "webpack-cli": "^2.1.3"
     },
     "jest": {
         "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
-        "moduleFileExtensions": ["js", "jsx", "json", "node"],
-        "roots": ["build/test"],
-        "testPathIgnorePatterns": ["<rootDir>/node_modules"]
+        "moduleFileExtensions": [
+            "js",
+            "jsx",
+            "json",
+            "node"
+        ],
+        "roots": [
+            "build/test"
+        ],
+        "testPathIgnorePatterns": [
+            "<rootDir>/node_modules"
+        ]
     }
 }
