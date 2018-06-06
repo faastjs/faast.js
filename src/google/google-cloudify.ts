@@ -58,8 +58,11 @@ export interface PollConfig<T> extends PollOptions {
     describe?: (result: T) => string;
 }
 
-export async function defaultPollDelay(_retries: number) {
-    return sleep(5 * 1000);
+export async function defaultPollDelay(retries: number) {
+    if (retries > 5) {
+        return sleep(5 * 1000);
+    }
+    return sleep((retries + 1) * 100);
 }
 
 export async function poll<T>({
@@ -175,7 +178,12 @@ async function initializeWithApi(
     const { archive } = await pack(serverModule);
     const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
-    const { region = "us-central1", timeoutSec = 60, ...rest } = options;
+    const {
+        region = "us-central1",
+        timeoutSec = 60,
+        memorySize = 256,
+        ...rest
+    } = options;
     const location = getLocationPath(project, region);
     const uploadUrlResponse = await carefully(
         cloudFunctionsApi.projects.locations.functions.generateUploadUrl({
@@ -190,7 +198,7 @@ async function initializeWithApi(
         name: trampoline,
         entryPoint: "trampoline",
         timeout: `${timeoutSec}s`,
-        memorySize: 256,
+        availableMemoryMb: memorySize,
         httpsTrigger: {},
         sourceUploadUrl: uploadUrlResponse.uploadUrl,
         ...rest
