@@ -23,6 +23,8 @@ export interface Options {
 export interface AWSVariables {
     readonly FunctionName: string;
     readonly RoleName: string;
+    readonly QueueUrl: string;
+    readonly QueueName: string;
     readonly rolePolicy: RoleHandling;
     readonly logGroupName: string;
     readonly region: string;
@@ -35,6 +37,7 @@ export interface AWSServices {
     readonly lambda: aws.Lambda;
     readonly cloudwatch: aws.CloudWatchLogs;
     readonly iam: aws.IAM;
+    readonly sqs: aws.SQS;
 }
 
 export const name: string = "aws";
@@ -75,11 +78,12 @@ let defaults: Required<Options> = {
     awsLambdaOptions: {}
 };
 
-function createAWSApis(region: string) {
+function createAWSApis(region: string): AWSServices {
     return {
         iam: new aws.IAM({ apiVersion: "2010-05-08", region }),
         lambda: new aws.Lambda({ apiVersion: "2015-03-31", region }),
-        cloudwatch: new aws.CloudWatchLogs({ apiVersion: "2014-03-28", region })
+        cloudwatch: new aws.CloudWatchLogs({ apiVersion: "2014-03-28", region }),
+        sqs: new aws.SQS({ apiVersion: "2012-11-05" })
     };
 }
 
@@ -90,18 +94,21 @@ export async function initialize(
     const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
 
-    const {
+    let {
         region = defaults.region,
         PolicyArn = defaults.PolicyArn,
         rolePolicy = defaults.rolePolicy,
-        awsLambdaOptions = {}
+        RoleName = defaults.RoleName,
+        timeout: Timeout = defaults.timeout,
+        memorySize: MemorySize = defaults.memorySize,
+        awsLambdaOptions = {},
+        ...rest
     } = options;
-    const { lambda, iam, cloudwatch } = createAWSApis(region);
+    const { lambda, iam, cloudwatch, sqs } = createAWSApis(region);
 
     const limits = await carefully(lambda.getAccountSettings());
     log(`Limits: ${humanStringify(limits)}`);
 
-    let { RoleName = defaults.RoleName } = options;
     if (rolePolicy === "createTemporaryRole") {
         RoleName = `cloudify-role-${nonce}`;
     }
@@ -207,8 +214,9 @@ export async function initialize(
             Handler: "index.trampoline",
             Code: { ZipFile: await zipStreamToBuffer(archive) },
             Description: "cloudify trampoline function",
-            Timeout: defaults.timeout,
-            MemorySize: defaults.memorySize,
+            Timeout,
+            MemorySize,
+            ...rest,
             ...awsLambdaOptions
         };
         log(`createFunctionRequest: ${humanStringify(createFunctionRequest)}`);
@@ -218,6 +226,16 @@ export async function initialize(
             return FunctionName;
         }
         return undefined;
+    }
+
+    function createQueue(QueueName: string) {
+        return carefully(
+            sqs.createQueue({
+                QueueName,
+                Attributes: { VisibilityTimeout: `${Timeout}` }
+            })
+        );
+        // XXX Need to set the VisibilityTimeout when the message is being processed but not finished yet.
     }
 
     let roleResponse = (await quietly(iam.getRole({ RoleName }))) || (await createRole());
@@ -231,12 +249,19 @@ export async function initialize(
     const logGroupName = `/aws/lambda/${FunctionName}`;
     await carefully(cloudwatch.createLogGroup({ logGroupName }));
     await carefully(cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 }));
-    const roleNeedsCleanup = RoleName !== options.RoleName;
     const noCreateLogGroupPolicy = await addNoCreateLogPolicyToRole();
+    const QueueName = FunctionName;
+    const queueResponse = await createQueue(QueueName);
+    const QueueUrl = queueResponse && queueResponse.QueueUrl;
+    if (!QueueUrl) {
+        throw new Error(`Could not create SQS queue: ${FunctionName}`);
+    }
     return {
         vars: {
             FunctionName,
             RoleName,
+            QueueUrl,
+            QueueName,
             rolePolicy,
             logGroupName,
             region,
@@ -245,7 +270,8 @@ export async function initialize(
         services: {
             lambda,
             cloudwatch,
-            iam
+            iam,
+            sqs
         }
     };
 }
@@ -315,8 +341,13 @@ export async function deleteRole(
 }
 
 export async function cleanup(state: State) {
-    const { FunctionName, RoleName, logGroupName, rolePolicy } = state.vars;
-    const { cloudwatch, iam, lambda } = state.services;
+    const { FunctionName, RoleName, logGroupName, rolePolicy, QueueUrl } = state.vars;
+    const { cloudwatch, iam, lambda, sqs } = state.services;
+
+    if (QueueUrl) {
+        log(`Deleting SQS queue: ${QueueUrl}`);
+        await carefully(sqs.deleteQueue({ QueueUrl }));
+    }
 
     if (FunctionName) {
         log(`Deleting function: ${FunctionName}`);
