@@ -49,10 +49,10 @@ DEBUG=cloudify npx jest build/test/google.test.js
 
 # Principles
 
-*   Ephemeral functions: Cloudify cleans up after itself. It removes functions, roles, logs, and log groups. By default it will leave no trace in your infrastructure once cleanup is completed.
-*   Avoids resource exhaustion: doesn't take up log space, function name space, and other limits. Only currently executing functions take up infrastructure namespace.
-*   Independence: two separate jobs can be run at the same time and they will not interfere with each other.
-*   Works with AWS and Google Cloud Platform.
+- Ephemeral functions: Cloudify cleans up after itself. It removes functions, roles, logs, and log groups. By default it will leave no trace in your infrastructure once cleanup is completed.
+- Avoids resource exhaustion: doesn't take up log space, function name space, and other limits. Only currently executing functions take up infrastructure namespace.
+- Independence: two separate jobs can be run at the same time and they will not interfere with each other.
+- Works with AWS and Google Cloud Platform.
 
 # AWS Notes
 
@@ -64,7 +64,7 @@ Cloudify will create an IAM role for the lambda function it creates. By default 
 const RoleName = "...cached role name...";
 let cloud = cloudify.create("aws");
 let service = await cloud.createFunction("./functions", {
-    RoleName
+ RoleName
 });
 ```
 
@@ -72,21 +72,59 @@ There are a minimum set of policy permissions required, namely the ones in `arn:
 
 ```json
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
-            ],
-            "Resource": "*"
-        }
-    ]
+ "Version": "2012-10-17",
+ "Statement": [
+  {
+   "Effect": "Allow",
+   "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+   "Resource": "*"
+  }
+ ]
 }
 ```
 
 If Cloudify cannot find the role name specified, it will revert back to dynamically creating a role for you.
 
 If you want to have dynamically created role with custom permissions, specify the `PolicyArn` option. Cloudify will attach this policy to the role it dynamically creates.
+
+# Google Cloud Notes
+
+## Node version
+
+Google Cloud Functions only supports node 6.11.5 at the moment (as of 6/2016).
+If your code uses any Node APIs that were introduced after this version, it will
+fail when run on Google Cloud. This can happen, for example, if your TypeScript
+target uses features introduced in later node/V8 versions than 6.11.5. Though
+not strictly required, it can be helpful to synchronize the node version on your
+local machine with the remote cloud, which can be accomplished by adding the
+following to your `package.json`:
+
+```json
+"engines": {
+  "node": "6.11.5"
+}
+```
+
+# Concurrency
+
+Empirically we see a 50 concurrent cloud function execution limit. It's unclear
+where this limit is coming from. Here are some possibilities:
+
+- [ ] At the cloud layer
+  - [ ] Try both AWS and Google
+  - [ ] Issue requests to the same function from multiple machines.
+- [ ] At the MacOS layer.
+  - [ ] Try running the load test from EC2.
+  - [ ] Remove the
+- [ ] At the Node.js layer.
+  - [ ] Try latest node version
+  - [ ] Try changing node libuv thread pool size
+  - [ ] Try changing v8 thread pool size
+  - [ ] Consider NODE_ENV=production?
+- [ ] At the http layer
+  - [ ] Turn on logging for low level http requests and responses
+  - [ ] Use nock to mock/intercept/record and log http requests
+- [ ] At the cloud API layer
+  - [ ] Try both AWS and Google
+- [ ] At the Axios layer (Google only)
+  - [ ] Turn on logging for Axio requests - Axios interceptors

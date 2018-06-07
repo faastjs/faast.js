@@ -1,5 +1,8 @@
 import * as cloudify from "../src/cloudify";
 import * as funcs from "./functions";
+import { checkFunctions } from "./functions-expected";
+import * as nock from "nock";
+import { log } from "../src/log";
 
 let cloud: cloudify.Cloud<any, any>;
 let lambda: cloudify.CloudFunction<any>;
@@ -30,7 +33,8 @@ test(
 test(
     "Monte Carlo estimate of PI using 1B samples and 200 invocations",
     async () => {
-        const nParallelFunctions = 100;
+        nock.recorder.rec({ logging: log });
+        const nParallelFunctions = 10;
         const nSamplesPerFunction = 1000000;
         const promises: Promise<{ inside: number; samples: number }>[] = [];
         for (let i = 0; i < nParallelFunctions; i++) {
@@ -47,6 +51,7 @@ test(
         expect(samples).toBe(nParallelFunctions * nSamplesPerFunction);
         const estimatedPI = (inside / samples) * 4;
         expect(Number(estimatedPI.toFixed(2))).toBe(3.14);
+        nock.restore();
     },
     300 * 1000
 );
