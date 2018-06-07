@@ -1,0 +1,3074 @@
+2018-06-07T01:54:04.131Z cloudify Create cloud function
+2018-06-07T01:54:04.132Z cloudify Running webpack
+2018-06-07T01:54:04.446Z cloudify Hash: 5416e1ea9f3ef9d8d95d
+Version: webpack 4.11.1
+Time: 188ms
+Built at: 06/06/2018 6:54:04 PM
+   Asset      Size  Chunks             Chunk Names
+index.js  29.2 KiB    main  [emitted]  main
+Entrypoint main = index.js
+[./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Fgoogle%2Fgoogle-trampoline.js&trampolineFunction=trampoline&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js!./] ./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Fgoogle%2Fgoogle-trampoline.js&trampolineFunction=trampoline&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js 349 bytes {main} [built]
+[./build/src/google/google-trampoline.js] 1.76 KiB {main} [built]
+[./build/test/functions.js] 1.66 KiB {main} [built]
+[./node_modules/human-stringify/dist/lib/index.js] 6.75 KiB {main} [built]
+[./node_modules/tslib/tslib.es6.js] 8.66 KiB {main} [built]
+2018-06-07T01:54:04.447Z cloudify Memory filesystem: {
+  "index.js": {...large object}
+}
+2018-06-07T01:54:04.452Z cloudify Nonce: ffe052ad-78d2-43a0-890d-d26a8e594c7d
+2018-06-07T01:54:05.238Z cloudify Upload zip file response: OK
+2018-06-07T01:54:05.338Z cloudify Create function at projects/derivative-184723/locations/us-central1
+2018-06-07T01:54:05.338Z cloudify {
+  "name": "projects/derivative-184723/locations/us-central1/functions/cloudify-ffe052ad-78d2-43a0-890d-d26a8e594c7d",
+  "entryPoint": "trampoline",
+  "timeout": "60s",
+  "availableMemoryMb": 256,
+  "httpsTrigger": {},
+  "sourceUploadUrl": "https://storage.googleapis.com/gcf-upload-us-central1-20fd8fe4-c18f-40f1-b6ab-0ca80ba9edac/047e78da-ce49-42b2-ab5c-c3820983fc2b.zip?GoogleAccessId=service-465849481728@gcf-admin-robot.iam.gserviceaccount.com&Expires=1528338244&Signature=Kk7sI71JQGyx6ibVetboX%2FLkqPPA%2FtBYEHlGh9FNra6GQDIk%2BzdppaGeb8iS8aUGH8IBBAy2GTEFCihsvvm5lDmgT70n3HW4L6Jm3wPHVFmqyNa3c3S4I4VYstFgSflRbrHP%2F8uCCbe6IZUApmfoHiBkPyR4wXlVHDG2YBV8ykBSCo4iZdWYYWVrUthSzeJw%2BWkODNlpBeIUMDZMuZdGo5FrNb1OcF%2Ba%2B6l069D8pib9qQVTrBeM0nLqtxzaD9CVWXf7AGMZfCxxfLgWirts%2BBVLCG9wgUkJgYHxhm%2FUFt47phTMfEyG6cqZwfuobR%2F1P08w389IguxZ6fGeln%2FSZg%3D%3D"
+}
+2018-06-07T01:54:05.338Z cloudify create function projects/derivative-184723/locations/us-central1/functions/cloudify-ffe052ad-78d2-43a0-890d-d26a8e594c7d
+2018-06-07T01:54:05.955Z cloudify Polling...
+2018-06-07T01:54:06.366Z cloudify not done, retrying...
+2018-06-07T01:54:06.568Z cloudify Polling...
+2018-06-07T01:54:06.817Z cloudify not done, retrying...
+2018-06-07T01:54:07.122Z cloudify Polling...
+2018-06-07T01:54:07.491Z cloudify not done, retrying...
+2018-06-07T01:54:07.896Z cloudify Polling...
+2018-06-07T01:54:08.251Z cloudify not done, retrying...
+2018-06-07T01:54:08.756Z cloudify Polling...
+2018-06-07T01:54:09.159Z cloudify not done, retrying...
+2018-06-07T01:54:09.760Z cloudify Polling...
+2018-06-07T01:54:10.120Z cloudify not done, retrying...
+2018-06-07T01:54:15.123Z cloudify Polling...
+2018-06-07T01:54:15.581Z cloudify not done, retrying...
+2018-06-07T01:54:20.584Z cloudify Polling...
+2018-06-07T01:54:20.981Z cloudify Done.
+2018-06-07T01:54:21.392Z cloudify Function URL: https://us-central1-derivative-184723.cloudfunctions.net/cloudify-ffe052ad-78d2-43a0-890d-d26a8e594c7d
+2018-06-07T01:54:21.395Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461394]} 
+2018-06-07T01:54:21.399Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461399]} 
+2018-06-07T01:54:21.400Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461400]} 
+2018-06-07T01:54:21.400Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461400]} 
+2018-06-07T01:54:21.400Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461400]} 
+2018-06-07T01:54:21.400Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461400]} 
+2018-06-07T01:54:21.400Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461400]} 
+2018-06-07T01:54:21.400Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461400]} 
+2018-06-07T01:54:21.401Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461401]} 
+2018-06-07T01:54:21.401Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461401]} 
+2018-06-07T01:54:21.401Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461401]} 
+2018-06-07T01:54:21.402Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461402]} 
+2018-06-07T01:54:21.402Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461402]} 
+2018-06-07T01:54:21.402Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461402]} 
+2018-06-07T01:54:21.402Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461402]} 
+2018-06-07T01:54:21.402Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461402]} 
+2018-06-07T01:54:21.402Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461402]} 
+2018-06-07T01:54:21.403Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461403]} 
+2018-06-07T01:54:21.403Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461403]} 
+2018-06-07T01:54:21.403Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461403]} 
+2018-06-07T01:54:21.403Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461403]} 
+2018-06-07T01:54:21.403Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461403]} 
+2018-06-07T01:54:21.403Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461403]} 
+2018-06-07T01:54:21.404Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461403]} 
+2018-06-07T01:54:21.404Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461404]} 
+2018-06-07T01:54:21.404Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461404]} 
+2018-06-07T01:54:21.404Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461404]} 
+2018-06-07T01:54:21.404Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461404]} 
+2018-06-07T01:54:21.404Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461404]} 
+2018-06-07T01:54:21.404Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461404]} 
+2018-06-07T01:54:21.405Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461404]} 
+2018-06-07T01:54:21.405Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461405]} 
+2018-06-07T01:54:21.405Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461405]} 
+2018-06-07T01:54:21.405Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461405]} 
+2018-06-07T01:54:21.405Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461405]} 
+2018-06-07T01:54:21.405Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461405]} 
+2018-06-07T01:54:21.405Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461405]} 
+2018-06-07T01:54:21.405Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461405]} 
+2018-06-07T01:54:21.406Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461406]} 
+2018-06-07T01:54:21.406Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461406]} 
+2018-06-07T01:54:21.406Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461406]} 
+2018-06-07T01:54:21.406Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461406]} 
+2018-06-07T01:54:21.406Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461406]} 
+2018-06-07T01:54:21.406Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461406]} 
+2018-06-07T01:54:21.406Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461406]} 
+2018-06-07T01:54:21.407Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461407]} 
+2018-06-07T01:54:21.407Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461407]} 
+2018-06-07T01:54:21.407Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461407]} 
+2018-06-07T01:54:21.407Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461407]} 
+2018-06-07T01:54:21.407Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461407]} 
+2018-06-07T01:54:21.407Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461407]} 
+2018-06-07T01:54:21.408Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461408]} 
+2018-06-07T01:54:21.409Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461409]} 
+2018-06-07T01:54:21.409Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461409]} 
+2018-06-07T01:54:21.409Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461409]} 
+2018-06-07T01:54:21.410Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461410]} 
+2018-06-07T01:54:21.410Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461410]} 
+2018-06-07T01:54:21.410Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461410]} 
+2018-06-07T01:54:21.410Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461410]} 
+2018-06-07T01:54:21.411Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461411]} 
+2018-06-07T01:54:21.411Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461411]} 
+2018-06-07T01:54:21.411Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461411]} 
+2018-06-07T01:54:21.411Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461411]} 
+2018-06-07T01:54:21.412Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461412]} 
+2018-06-07T01:54:21.412Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461412]} 
+2018-06-07T01:54:21.412Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461412]} 
+2018-06-07T01:54:21.412Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461412]} 
+2018-06-07T01:54:21.412Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461412]} 
+2018-06-07T01:54:21.412Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461412]} 
+2018-06-07T01:54:21.413Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461413]} 
+2018-06-07T01:54:21.413Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461413]} 
+2018-06-07T01:54:21.413Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461413]} 
+2018-06-07T01:54:21.413Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461413]} 
+2018-06-07T01:54:21.413Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461413]} 
+2018-06-07T01:54:21.413Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461413]} 
+2018-06-07T01:54:21.413Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461413]} 
+2018-06-07T01:54:21.414Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461413]} 
+2018-06-07T01:54:21.414Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461414]} 
+2018-06-07T01:54:21.414Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461414]} 
+2018-06-07T01:54:21.414Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461414]} 
+2018-06-07T01:54:21.414Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461414]} 
+2018-06-07T01:54:21.414Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461414]} 
+2018-06-07T01:54:21.414Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461414]} 
+2018-06-07T01:54:21.415Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461415]} 
+2018-06-07T01:54:21.415Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461415]} 
+2018-06-07T01:54:21.415Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461415]} 
+2018-06-07T01:54:21.415Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461415]} 
+2018-06-07T01:54:21.415Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461415]} 
+2018-06-07T01:54:21.415Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461415]} 
+2018-06-07T01:54:21.415Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461415]} 
+2018-06-07T01:54:21.415Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461415]} 
+2018-06-07T01:54:21.416Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461416]} 
+2018-06-07T01:54:21.416Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461416]} 
+2018-06-07T01:54:21.416Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461416]} 
+2018-06-07T01:54:21.416Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461416]} 
+2018-06-07T01:54:21.416Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461416]} 
+2018-06-07T01:54:21.416Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461416]} 
+2018-06-07T01:54:21.416Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461416]} 
+2018-06-07T01:54:21.416Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461416]} 
+2018-06-07T01:54:21.416Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461416]} 
+2018-06-07T01:54:21.416Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461416]} 
+2018-06-07T01:54:21.417Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461417]} 
+2018-06-07T01:54:21.417Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461417]} 
+2018-06-07T01:54:21.417Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461417]} 
+2018-06-07T01:54:21.417Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461417]} 
+2018-06-07T01:54:21.417Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461417]} 
+2018-06-07T01:54:21.420Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461420]} 
+2018-06-07T01:54:21.420Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461420]} 
+2018-06-07T01:54:21.420Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461420]} 
+2018-06-07T01:54:21.420Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461420]} 
+2018-06-07T01:54:21.421Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461421]} 
+2018-06-07T01:54:21.421Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461421]} 
+2018-06-07T01:54:21.421Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461421]} 
+2018-06-07T01:54:21.421Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461421]} 
+2018-06-07T01:54:21.421Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461421]} 
+2018-06-07T01:54:21.421Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461421]} 
+2018-06-07T01:54:21.421Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461421]} 
+2018-06-07T01:54:21.421Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461421]} 
+2018-06-07T01:54:21.421Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461421]} 
+2018-06-07T01:54:21.421Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461421]} 
+2018-06-07T01:54:21.422Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461421]} 
+2018-06-07T01:54:21.422Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461422]} 
+2018-06-07T01:54:21.422Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461422]} 
+2018-06-07T01:54:21.422Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461422]} 
+2018-06-07T01:54:21.422Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461422]} 
+2018-06-07T01:54:21.422Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461422]} 
+2018-06-07T01:54:21.422Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461422]} 
+2018-06-07T01:54:21.422Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461422]} 
+2018-06-07T01:54:21.422Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461422]} 
+2018-06-07T01:54:21.422Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461422]} 
+2018-06-07T01:54:21.423Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461423]} 
+2018-06-07T01:54:21.423Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461423]} 
+2018-06-07T01:54:21.424Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461423]} 
+2018-06-07T01:54:21.424Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461424]} 
+2018-06-07T01:54:21.424Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461424]} 
+2018-06-07T01:54:21.424Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461424]} 
+2018-06-07T01:54:21.424Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461424]} 
+2018-06-07T01:54:21.424Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461424]} 
+2018-06-07T01:54:21.424Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461424]} 
+2018-06-07T01:54:21.424Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461424]} 
+2018-06-07T01:54:21.424Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461424]} 
+2018-06-07T01:54:21.424Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461424]} 
+2018-06-07T01:54:21.424Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461424]} 
+2018-06-07T01:54:21.425Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461425]} 
+2018-06-07T01:54:21.425Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461425]} 
+2018-06-07T01:54:21.425Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461425]} 
+2018-06-07T01:54:21.425Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461425]} 
+2018-06-07T01:54:21.425Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461425]} 
+2018-06-07T01:54:21.425Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461425]} 
+2018-06-07T01:54:21.425Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461425]} 
+2018-06-07T01:54:21.425Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461425]} 
+2018-06-07T01:54:21.425Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461425]} 
+2018-06-07T01:54:21.425Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461425]} 
+2018-06-07T01:54:21.426Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461425]} 
+2018-06-07T01:54:21.426Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461426]} 
+2018-06-07T01:54:21.426Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461426]} 
+2018-06-07T01:54:21.426Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461426]} 
+2018-06-07T01:54:21.426Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461426]} 
+2018-06-07T01:54:21.426Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461426]} 
+2018-06-07T01:54:21.426Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461426]} 
+2018-06-07T01:54:21.426Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461426]} 
+2018-06-07T01:54:21.426Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461426]} 
+2018-06-07T01:54:21.426Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461426]} 
+2018-06-07T01:54:21.426Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461426]} 
+2018-06-07T01:54:21.427Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461427]} 
+2018-06-07T01:54:21.427Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461427]} 
+2018-06-07T01:54:21.427Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461427]} 
+2018-06-07T01:54:21.427Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461427]} 
+2018-06-07T01:54:21.427Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461427]} 
+2018-06-07T01:54:21.427Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461427]} 
+2018-06-07T01:54:21.427Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461427]} 
+2018-06-07T01:54:21.427Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461427]} 
+2018-06-07T01:54:21.427Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461427]} 
+2018-06-07T01:54:21.427Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461427]} 
+2018-06-07T01:54:21.427Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461427]} 
+2018-06-07T01:54:21.428Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461428]} 
+2018-06-07T01:54:21.428Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461428]} 
+2018-06-07T01:54:21.428Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461428]} 
+2018-06-07T01:54:21.428Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461428]} 
+2018-06-07T01:54:21.428Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461428]} 
+2018-06-07T01:54:21.428Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461428]} 
+2018-06-07T01:54:21.428Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461428]} 
+2018-06-07T01:54:21.428Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461428]} 
+2018-06-07T01:54:21.428Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461428]} 
+2018-06-07T01:54:21.428Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461428]} 
+2018-06-07T01:54:21.429Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461429]} 
+2018-06-07T01:54:21.429Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461429]} 
+2018-06-07T01:54:21.429Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461429]} 
+2018-06-07T01:54:21.429Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461429]} 
+2018-06-07T01:54:21.429Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461429]} 
+2018-06-07T01:54:21.429Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461429]} 
+2018-06-07T01:54:21.430Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461429]} 
+2018-06-07T01:54:21.430Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461430]} 
+2018-06-07T01:54:21.430Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461430]} 
+2018-06-07T01:54:21.430Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461430]} 
+2018-06-07T01:54:21.430Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461430]} 
+2018-06-07T01:54:21.430Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461430]} 
+2018-06-07T01:54:21.430Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461430]} 
+2018-06-07T01:54:21.430Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461430]} 
+2018-06-07T01:54:21.431Z cloudify Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528336461430]} 
+2018-06-07T01:54:26.148Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927335,
+    "samples": 5000000,
+    "clientStart": 1528336461425,
+    "start": 1528336463550,
+    "end": 1528336466102,
+    "startLatency": 2125
+  }
+}
+2018-06-07T01:54:26.741Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926837,
+    "samples": 5000000,
+    "clientStart": 1528336461404,
+    "start": 1528336463745,
+    "end": 1528336466679,
+    "startLatency": 2341
+  }
+}
+2018-06-07T01:54:26.919Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926748,
+    "samples": 5000000,
+    "clientStart": 1528336461411,
+    "start": 1528336464301,
+    "end": 1528336466873,
+    "startLatency": 2890
+  }
+}
+2018-06-07T01:54:26.961Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926400,
+    "samples": 5000000,
+    "clientStart": 1528336461404,
+    "start": 1528336463764,
+    "end": 1528336466926,
+    "startLatency": 2360
+  }
+}
+2018-06-07T01:54:27.030Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928396,
+    "samples": 5000000,
+    "clientStart": 1528336461404,
+    "start": 1528336464311,
+    "end": 1528336466987,
+    "startLatency": 2907
+  }
+}
+2018-06-07T01:54:27.356Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926059,
+    "samples": 5000000,
+    "clientStart": 1528336461428,
+    "start": 1528336464481,
+    "end": 1528336467191,
+    "startLatency": 3053
+  }
+}
+2018-06-07T01:54:27.356Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927851,
+    "samples": 5000000,
+    "clientStart": 1528336461425,
+    "start": 1528336464603,
+    "end": 1528336467284,
+    "startLatency": 3178
+  }
+}
+2018-06-07T01:54:27.868Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927529,
+    "samples": 5000000,
+    "clientStart": 1528336461399,
+    "start": 1528336464711,
+    "end": 1528336467768,
+    "startLatency": 3312
+  }
+}
+2018-06-07T01:54:28.427Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925712,
+    "samples": 5000000,
+    "clientStart": 1528336461412,
+    "start": 1528336465773,
+    "end": 1528336468340,
+    "startLatency": 4361
+  }
+}
+2018-06-07T01:54:30.838Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928705,
+    "samples": 5000000,
+    "clientStart": 1528336461426,
+    "start": 1528336468187,
+    "end": 1528336470765,
+    "startLatency": 6761
+  }
+}
+2018-06-07T01:54:31.759Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926411,
+    "samples": 5000000,
+    "clientStart": 1528336461404,
+    "start": 1528336468742,
+    "end": 1528336471678,
+    "startLatency": 7338
+  }
+}
+2018-06-07T01:54:32.066Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927056,
+    "samples": 5000000,
+    "clientStart": 1528336461400,
+    "start": 1528336468736,
+    "end": 1528336471948,
+    "startLatency": 7336
+  }
+}
+2018-06-07T01:54:32.175Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927225,
+    "samples": 5000000,
+    "clientStart": 1528336461401,
+    "start": 1528336470302,
+    "end": 1528336472131,
+    "startLatency": 8901
+  }
+}
+2018-06-07T01:54:32.275Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3924790,
+    "samples": 5000000,
+    "clientStart": 1528336461422,
+    "start": 1528336469606,
+    "end": 1528336472221,
+    "startLatency": 8184
+  }
+}
+2018-06-07T01:54:32.380Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925706,
+    "samples": 5000000,
+    "clientStart": 1528336461407,
+    "start": 1528336469789,
+    "end": 1528336472338,
+    "startLatency": 8382
+  }
+}
+2018-06-07T01:54:32.435Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927195,
+    "samples": 5000000,
+    "clientStart": 1528336461409,
+    "start": 1528336469759,
+    "end": 1528336472399,
+    "startLatency": 8350
+  }
+}
+2018-06-07T01:54:32.864Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927036,
+    "samples": 5000000,
+    "clientStart": 1528336461424,
+    "start": 1528336470246,
+    "end": 1528336472803,
+    "startLatency": 8822
+  }
+}
+2018-06-07T01:54:33.750Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926663,
+    "samples": 5000000,
+    "clientStart": 1528336461410,
+    "start": 1528336471194,
+    "end": 1528336473713,
+    "startLatency": 9784
+  }
+}
+2018-06-07T01:54:34.382Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927978,
+    "samples": 5000000,
+    "clientStart": 1528336461406,
+    "start": 1528336462060,
+    "end": 1528336474265,
+    "startLatency": 654
+  }
+}
+2018-06-07T01:54:35.958Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927706,
+    "samples": 5000000,
+    "clientStart": 1528336461425,
+    "start": 1528336473177,
+    "end": 1528336475847,
+    "startLatency": 11752
+  }
+}
+2018-06-07T01:54:36.265Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928272,
+    "samples": 5000000,
+    "clientStart": 1528336461407,
+    "start": 1528336473679,
+    "end": 1528336476181,
+    "startLatency": 12272
+  }
+}
+2018-06-07T01:54:37.391Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926004,
+    "samples": 5000000,
+    "clientStart": 1528336461406,
+    "start": 1528336474054,
+    "end": 1528336477147,
+    "startLatency": 12648
+  }
+}
+2018-06-07T01:54:37.392Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926278,
+    "samples": 5000000,
+    "clientStart": 1528336461400,
+    "start": 1528336474084,
+    "end": 1528336477311,
+    "startLatency": 12684
+  }
+}
+2018-06-07T01:54:37.568Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927052,
+    "samples": 5000000,
+    "clientStart": 1528336461425,
+    "start": 1528336474775,
+    "end": 1528336477519,
+    "startLatency": 13350
+  }
+}
+2018-06-07T01:54:38.108Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926332,
+    "samples": 5000000,
+    "clientStart": 1528336461413,
+    "start": 1528336475333,
+    "end": 1528336477965,
+    "startLatency": 13920
+  }
+}
+2018-06-07T01:54:38.109Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925679,
+    "samples": 5000000,
+    "clientStart": 1528336461409,
+    "start": 1528336475333,
+    "end": 1528336477997,
+    "startLatency": 13924
+  }
+}
+2018-06-07T01:54:38.109Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926715,
+    "samples": 5000000,
+    "clientStart": 1528336461426,
+    "start": 1528336475293,
+    "end": 1528336477999,
+    "startLatency": 13867
+  }
+}
+2018-06-07T01:54:38.620Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928085,
+    "samples": 5000000,
+    "clientStart": 1528336461405,
+    "start": 1528336475399,
+    "end": 1528336478497,
+    "startLatency": 13994
+  }
+}
+2018-06-07T01:54:40.259Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927059,
+    "samples": 5000000,
+    "clientStart": 1528336461421,
+    "start": 1528336466738,
+    "end": 1528336480046,
+    "startLatency": 5317
+  }
+}
+2018-06-07T01:54:40.260Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925168,
+    "samples": 5000000,
+    "clientStart": 1528336461411,
+    "start": 1528336467715,
+    "end": 1528336480156,
+    "startLatency": 6304
+  }
+}
+2018-06-07T01:54:40.976Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927540,
+    "samples": 5000000,
+    "clientStart": 1528336461407,
+    "start": 1528336467746,
+    "end": 1528336480844,
+    "startLatency": 6339
+  }
+}
+2018-06-07T01:54:40.977Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3929080,
+    "samples": 5000000,
+    "clientStart": 1528336461408,
+    "start": 1528336468360,
+    "end": 1528336480855,
+    "startLatency": 6952
+  }
+}
+2018-06-07T01:54:41.070Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926070,
+    "samples": 5000000,
+    "clientStart": 1528336461426,
+    "start": 1528336467248,
+    "end": 1528336480951,
+    "startLatency": 5822
+  }
+}
+2018-06-07T01:54:41.392Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927574,
+    "samples": 5000000,
+    "clientStart": 1528336461426,
+    "start": 1528336478550,
+    "end": 1528336481336,
+    "startLatency": 17124
+  }
+}
+2018-06-07T01:54:41.473Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926690,
+    "samples": 5000000,
+    "clientStart": 1528336461394,
+    "start": 1528336466938,
+    "end": 1528336481439,
+    "startLatency": 5544
+  }
+}
+2018-06-07T01:54:41.896Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926664,
+    "samples": 5000000,
+    "clientStart": 1528336461400,
+    "start": 1528336466938,
+    "end": 1528336481824,
+    "startLatency": 5538
+  }
+}
+2018-06-07T01:54:42.003Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927372,
+    "samples": 5000000,
+    "clientStart": 1528336461427,
+    "start": 1528336478894,
+    "end": 1528336481967,
+    "startLatency": 17467
+  }
+}
+2018-06-07T01:54:42.716Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927427,
+    "samples": 5000000,
+    "clientStart": 1528336461424,
+    "start": 1528336468722,
+    "end": 1528336482637,
+    "startLatency": 7298
+  }
+}
+2018-06-07T01:54:43.840Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926289,
+    "samples": 5000000,
+    "clientStart": 1528336461400,
+    "start": 1528336468479,
+    "end": 1528336483731,
+    "startLatency": 7079
+  }
+}
+2018-06-07T01:54:44.866Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926865,
+    "samples": 5000000,
+    "clientStart": 1528336461400,
+    "start": 1528336472357,
+    "end": 1528336484755,
+    "startLatency": 10957
+  }
+}
+2018-06-07T01:54:45.479Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928306,
+    "samples": 5000000,
+    "clientStart": 1528336461424,
+    "start": 1528336471728,
+    "end": 1528336485444,
+    "startLatency": 10304
+  }
+}
+2018-06-07T01:54:46.095Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926179,
+    "samples": 5000000,
+    "clientStart": 1528336461411,
+    "start": 1528336473733,
+    "end": 1528336485955,
+    "startLatency": 12322
+  }
+}
+2018-06-07T01:54:46.279Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925783,
+    "samples": 5000000,
+    "clientStart": 1528336461424,
+    "start": 1528336472248,
+    "end": 1528336486241,
+    "startLatency": 10824
+  }
+}
+2018-06-07T01:54:46.280Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927976,
+    "samples": 5000000,
+    "clientStart": 1528336461412,
+    "start": 1528336473731,
+    "end": 1528336486251,
+    "startLatency": 12319
+  }
+}
+2018-06-07T01:54:46.607Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927189,
+    "samples": 5000000,
+    "clientStart": 1528336461426,
+    "start": 1528336472823,
+    "end": 1528336486543,
+    "startLatency": 11397
+  }
+}
+2018-06-07T01:54:46.669Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927697,
+    "samples": 5000000,
+    "clientStart": 1528336461406,
+    "start": 1528336472225,
+    "end": 1528336486638,
+    "startLatency": 10819
+  }
+}
+2018-06-07T01:54:46.684Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925680,
+    "samples": 5000000,
+    "clientStart": 1528336461407,
+    "start": 1528336474446,
+    "end": 1528336486651,
+    "startLatency": 13039
+  }
+}
+2018-06-07T01:54:47.426Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928204,
+    "samples": 5000000,
+    "clientStart": 1528336461403,
+    "start": 1528336472232,
+    "end": 1528336487323,
+    "startLatency": 10829
+  }
+}
+2018-06-07T01:54:47.836Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926789,
+    "samples": 5000000,
+    "clientStart": 1528336461404,
+    "start": 1528336472151,
+    "end": 1528336487724,
+    "startLatency": 10747
+  }
+}
+2018-06-07T01:54:48.860Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927021,
+    "samples": 5000000,
+    "clientStart": 1528336461413,
+    "start": 1528336476765,
+    "end": 1528336488755,
+    "startLatency": 15352
+  }
+}
+2018-06-07T01:54:50.499Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926425,
+    "samples": 5000000,
+    "clientStart": 1528336461427,
+    "start": 1528336476734,
+    "end": 1528336490438,
+    "startLatency": 15307
+  }
+}
+2018-06-07T01:54:51.113Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927539,
+    "samples": 5000000,
+    "clientStart": 1528336461415,
+    "start": 1528336478767,
+    "end": 1528336491059,
+    "startLatency": 17352
+  }
+}
+2018-06-07T01:54:51.186Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928176,
+    "samples": 5000000,
+    "clientStart": 1528336461414,
+    "start": 1528336478767,
+    "end": 1528336491155,
+    "startLatency": 17353
+  }
+}
+2018-06-07T01:54:51.728Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926935,
+    "samples": 5000000,
+    "clientStart": 1528336461426,
+    "start": 1528336477553,
+    "end": 1528336491650,
+    "startLatency": 16127
+  }
+}
+2018-06-07T01:54:52.173Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927833,
+    "samples": 5000000,
+    "clientStart": 1528336461425,
+    "start": 1528336478739,
+    "end": 1528336492144,
+    "startLatency": 17314
+  }
+}
+2018-06-07T01:54:52.174Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927395,
+    "samples": 5000000,
+    "clientStart": 1528336461426,
+    "start": 1528336477174,
+    "end": 1528336492131,
+    "startLatency": 15748
+  }
+}
+2018-06-07T01:54:53.162Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928119,
+    "samples": 5000000,
+    "clientStart": 1528336461413,
+    "start": 1528336480766,
+    "end": 1528336493047,
+    "startLatency": 19353
+  }
+}
+2018-06-07T01:54:53.261Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927329,
+    "samples": 5000000,
+    "clientStart": 1528336461428,
+    "start": 1528336479500,
+    "end": 1528336493141,
+    "startLatency": 18072
+  }
+}
+2018-06-07T01:54:53.261Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926286,
+    "samples": 5000000,
+    "clientStart": 1528336461429,
+    "start": 1528336478495,
+    "end": 1528336493223,
+    "startLatency": 17066
+  }
+}
+2018-06-07T01:54:53.860Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928111,
+    "samples": 5000000,
+    "clientStart": 1528336461427,
+    "start": 1528336481530,
+    "end": 1528336493828,
+    "startLatency": 20103
+  }
+}
+2018-06-07T01:54:53.862Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928458,
+    "samples": 5000000,
+    "clientStart": 1528336461422,
+    "start": 1528336480737,
+    "end": 1528336493755,
+    "startLatency": 19315
+  }
+}
+2018-06-07T01:54:54.493Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925928,
+    "samples": 5000000,
+    "clientStart": 1528336461413,
+    "start": 1528336481772,
+    "end": 1528336494361,
+    "startLatency": 20359
+  }
+}
+2018-06-07T01:54:54.573Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927523,
+    "samples": 5000000,
+    "clientStart": 1528336461414,
+    "start": 1528336481772,
+    "end": 1528336494466,
+    "startLatency": 20358
+  }
+}
+2018-06-07T01:54:54.767Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926874,
+    "samples": 5000000,
+    "clientStart": 1528336461427,
+    "start": 1528336492860,
+    "end": 1528336494736,
+    "startLatency": 31433
+  }
+}
+2018-06-07T01:54:54.872Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926859,
+    "samples": 5000000,
+    "clientStart": 1528336461427,
+    "start": 1528336481361,
+    "end": 1528336494843,
+    "startLatency": 19934
+  }
+}
+2018-06-07T01:54:54.969Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927413,
+    "samples": 5000000,
+    "clientStart": 1528336461426,
+    "start": 1528336481440,
+    "end": 1528336494938,
+    "startLatency": 20014
+  }
+}
+2018-06-07T01:54:55.256Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927908,
+    "samples": 5000000,
+    "clientStart": 1528336461429,
+    "start": 1528336493431,
+    "end": 1528336495218,
+    "startLatency": 32002
+  }
+}
+2018-06-07T01:54:55.722Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927480,
+    "samples": 5000000,
+    "clientStart": 1528336461428,
+    "start": 1528336493409,
+    "end": 1528336495634,
+    "startLatency": 31981
+  }
+}
+2018-06-07T01:54:55.722Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926740,
+    "samples": 5000000,
+    "clientStart": 1528336461427,
+    "start": 1528336493110,
+    "end": 1528336495628,
+    "startLatency": 31683
+  }
+}
+2018-06-07T01:54:55.868Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927811,
+    "samples": 5000000,
+    "clientStart": 1528336461427,
+    "start": 1528336482735,
+    "end": 1528336495840,
+    "startLatency": 21308
+  }
+}
+2018-06-07T01:54:56.004Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926735,
+    "samples": 5000000,
+    "clientStart": 1528336461430,
+    "start": 1528336493664,
+    "end": 1528336495967,
+    "startLatency": 32234
+  }
+}
+2018-06-07T01:54:56.007Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927388,
+    "samples": 5000000,
+    "clientStart": 1528336461412,
+    "start": 1528336493677,
+    "end": 1528336495969,
+    "startLatency": 32265
+  }
+}
+2018-06-07T01:54:56.051Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927435,
+    "samples": 5000000,
+    "clientStart": 1528336461429,
+    "start": 1528336481990,
+    "end": 1528336495943,
+    "startLatency": 20561
+  }
+}
+2018-06-07T01:54:56.118Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3929160,
+    "samples": 5000000,
+    "clientStart": 1528336461421,
+    "start": 1528336493623,
+    "end": 1528336496077,
+    "startLatency": 32202
+  }
+}
+2018-06-07T01:54:56.230Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928216,
+    "samples": 5000000,
+    "clientStart": 1528336461416,
+    "start": 1528336493628,
+    "end": 1528336496191,
+    "startLatency": 32212
+  }
+}
+2018-06-07T01:54:56.243Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927851,
+    "samples": 5000000,
+    "clientStart": 1528336461430,
+    "start": 1528336493599,
+    "end": 1528336496193,
+    "startLatency": 32169
+  }
+}
+2018-06-07T01:54:56.247Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926823,
+    "samples": 5000000,
+    "clientStart": 1528336461430,
+    "start": 1528336493752,
+    "end": 1528336496209,
+    "startLatency": 32322
+  }
+}
+2018-06-07T01:54:56.265Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927107,
+    "samples": 5000000,
+    "clientStart": 1528336461430,
+    "start": 1528336493646,
+    "end": 1528336496216,
+    "startLatency": 32216
+  }
+}
+2018-06-07T01:54:56.265Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926400,
+    "samples": 5000000,
+    "clientStart": 1528336461430,
+    "start": 1528336493629,
+    "end": 1528336496219,
+    "startLatency": 32199
+  }
+}
+2018-06-07T01:54:56.376Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925974,
+    "samples": 5000000,
+    "clientStart": 1528336461428,
+    "start": 1528336493757,
+    "end": 1528336496338,
+    "startLatency": 32329
+  }
+}
+2018-06-07T01:54:56.395Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927350,
+    "samples": 5000000,
+    "clientStart": 1528336461420,
+    "start": 1528336494535,
+    "end": 1528336496358,
+    "startLatency": 33115
+  }
+}
+2018-06-07T01:54:56.527Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927383,
+    "samples": 5000000,
+    "clientStart": 1528336461403,
+    "start": 1528336493816,
+    "end": 1528336496483,
+    "startLatency": 32413
+  }
+}
+2018-06-07T01:54:56.533Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927004,
+    "samples": 5000000,
+    "clientStart": 1528336461402,
+    "start": 1528336493740,
+    "end": 1528336496501,
+    "startLatency": 32338
+  }
+}
+2018-06-07T01:54:56.589Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927706,
+    "samples": 5000000,
+    "clientStart": 1528336461428,
+    "start": 1528336494088,
+    "end": 1528336496544,
+    "startLatency": 32660
+  }
+}
+2018-06-07T01:54:56.608Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926883,
+    "samples": 5000000,
+    "clientStart": 1528336461429,
+    "start": 1528336493776,
+    "end": 1528336496563,
+    "startLatency": 32347
+  }
+}
+2018-06-07T01:54:56.630Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927830,
+    "samples": 5000000,
+    "clientStart": 1528336461410,
+    "start": 1528336493969,
+    "end": 1528336496593,
+    "startLatency": 32559
+  }
+}
+2018-06-07T01:54:56.701Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3929077,
+    "samples": 5000000,
+    "clientStart": 1528336461428,
+    "start": 1528336493871,
+    "end": 1528336496656,
+    "startLatency": 32443
+  }
+}
+2018-06-07T01:54:56.709Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926533,
+    "samples": 5000000,
+    "clientStart": 1528336461429,
+    "start": 1528336493893,
+    "end": 1528336496674,
+    "startLatency": 32464
+  }
+}
+2018-06-07T01:54:56.767Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925477,
+    "samples": 5000000,
+    "clientStart": 1528336461425,
+    "start": 1528336494471,
+    "end": 1528336496725,
+    "startLatency": 33046
+  }
+}
+2018-06-07T01:54:56.854Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928213,
+    "samples": 5000000,
+    "clientStart": 1528336461429,
+    "start": 1528336494162,
+    "end": 1528336496818,
+    "startLatency": 32733
+  }
+}
+2018-06-07T01:54:56.929Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927357,
+    "samples": 5000000,
+    "clientStart": 1528336461405,
+    "start": 1528336494200,
+    "end": 1528336496881,
+    "startLatency": 32795
+  }
+}
+2018-06-07T01:54:56.929Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927989,
+    "samples": 5000000,
+    "clientStart": 1528336461402,
+    "start": 1528336493690,
+    "end": 1528336496884,
+    "startLatency": 32288
+  }
+}
+2018-06-07T01:54:56.967Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927288,
+    "samples": 5000000,
+    "clientStart": 1528336461428,
+    "start": 1528336481988,
+    "end": 1528336496934,
+    "startLatency": 20560
+  }
+}
+2018-06-07T01:54:57.070Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926770,
+    "samples": 5000000,
+    "clientStart": 1528336461425,
+    "start": 1528336494502,
+    "end": 1528336497035,
+    "startLatency": 33077
+  }
+}
+2018-06-07T01:54:57.120Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927545,
+    "samples": 5000000,
+    "clientStart": 1528336461430,
+    "start": 1528336494553,
+    "end": 1528336497083,
+    "startLatency": 33123
+  }
+}
+2018-06-07T01:54:57.179Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926529,
+    "samples": 5000000,
+    "clientStart": 1528336461403,
+    "start": 1528336494612,
+    "end": 1528336497136,
+    "startLatency": 33209
+  }
+}
+2018-06-07T01:54:57.290Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926871,
+    "samples": 5000000,
+    "clientStart": 1528336461403,
+    "start": 1528336495014,
+    "end": 1528336497249,
+    "startLatency": 33611
+  }
+}
+2018-06-07T01:54:57.420Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925967,
+    "samples": 5000000,
+    "clientStart": 1528336461416,
+    "start": 1528336495093,
+    "end": 1528336497383,
+    "startLatency": 33677
+  }
+}
+2018-06-07T01:54:57.632Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926270,
+    "samples": 5000000,
+    "clientStart": 1528336461425,
+    "start": 1528336494943,
+    "end": 1528336497600,
+    "startLatency": 33518
+  }
+}
+2018-06-07T01:54:57.682Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927037,
+    "samples": 5000000,
+    "clientStart": 1528336461412,
+    "start": 1528336494866,
+    "end": 1528336497650,
+    "startLatency": 33454
+  }
+}
+2018-06-07T01:54:57.690Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926128,
+    "samples": 5000000,
+    "clientStart": 1528336461414,
+    "start": 1528336484847,
+    "end": 1528336497660,
+    "startLatency": 23433
+  }
+}
+2018-06-07T01:54:57.738Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927201,
+    "samples": 5000000,
+    "clientStart": 1528336461402,
+    "start": 1528336494808,
+    "end": 1528336497702,
+    "startLatency": 33406
+  }
+}
+2018-06-07T01:54:57.762Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926233,
+    "samples": 5000000,
+    "clientStart": 1528336461430,
+    "start": 1528336495192,
+    "end": 1528336497730,
+    "startLatency": 33762
+  }
+}
+2018-06-07T01:54:57.795Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928023,
+    "samples": 5000000,
+    "clientStart": 1528336461406,
+    "start": 1528336494972,
+    "end": 1528336497753,
+    "startLatency": 33566
+  }
+}
+2018-06-07T01:54:57.842Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927589,
+    "samples": 5000000,
+    "clientStart": 1528336461406,
+    "start": 1528336495131,
+    "end": 1528336497810,
+    "startLatency": 33725
+  }
+}
+2018-06-07T01:54:57.842Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925907,
+    "samples": 5000000,
+    "clientStart": 1528336461421,
+    "start": 1528336495215,
+    "end": 1528336497809,
+    "startLatency": 33794
+  }
+}
+2018-06-07T01:54:57.843Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926873,
+    "samples": 5000000,
+    "clientStart": 1528336461402,
+    "start": 1528336495149,
+    "end": 1528336497806,
+    "startLatency": 33747
+  }
+}
+2018-06-07T01:54:57.856Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926935,
+    "samples": 5000000,
+    "clientStart": 1528336461402,
+    "start": 1528336495073,
+    "end": 1528336497811,
+    "startLatency": 33671
+  }
+}
+2018-06-07T01:54:58.179Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925605,
+    "samples": 5000000,
+    "clientStart": 1528336461412,
+    "start": 1528336495340,
+    "end": 1528336498056,
+    "startLatency": 33928
+  }
+}
+2018-06-07T01:54:58.367Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926769,
+    "samples": 5000000,
+    "clientStart": 1528336461426,
+    "start": 1528336485536,
+    "end": 1528336498335,
+    "startLatency": 24110
+  }
+}
+2018-06-07T01:54:58.895Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925952,
+    "samples": 5000000,
+    "clientStart": 1528336461422,
+    "start": 1528336495462,
+    "end": 1528336498792,
+    "startLatency": 34040
+  }
+}
+2018-06-07T01:54:59.201Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926593,
+    "samples": 5000000,
+    "clientStart": 1528336461409,
+    "start": 1528336486662,
+    "end": 1528336499163,
+    "startLatency": 25253
+  }
+}
+2018-06-07T01:54:59.260Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927737,
+    "samples": 5000000,
+    "clientStart": 1528336461427,
+    "start": 1528336484137,
+    "end": 1528336499232,
+    "startLatency": 22710
+  }
+}
+2018-06-07T01:54:59.290Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925800,
+    "samples": 5000000,
+    "clientStart": 1528336461414,
+    "start": 1528336486663,
+    "end": 1528336499253,
+    "startLatency": 25249
+  }
+}
+2018-06-07T01:54:59.380Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927195,
+    "samples": 5000000,
+    "clientStart": 1528336461426,
+    "start": 1528336486251,
+    "end": 1528336499343,
+    "startLatency": 24825
+  }
+}
+2018-06-07T01:54:59.483Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927138,
+    "samples": 5000000,
+    "clientStart": 1528336461415,
+    "start": 1528336486665,
+    "end": 1528336499447,
+    "startLatency": 25250
+  }
+}
+2018-06-07T01:55:00.966Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927680,
+    "samples": 5000000,
+    "clientStart": 1528336461428,
+    "start": 1528336487744,
+    "end": 1528336500935,
+    "startLatency": 26316
+  }
+}
+2018-06-07T01:55:01.039Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925989,
+    "samples": 5000000,
+    "clientStart": 1528336461424,
+    "start": 1528336498492,
+    "end": 1528336500990,
+    "startLatency": 37068
+  }
+}
+2018-06-07T01:55:01.300Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925373,
+    "samples": 5000000,
+    "clientStart": 1528336461400,
+    "start": 1528336488846,
+    "end": 1528336501259,
+    "startLatency": 27446
+  }
+}
+2018-06-07T01:55:01.954Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926110,
+    "samples": 5000000,
+    "clientStart": 1528336461430,
+    "start": 1528336487341,
+    "end": 1528336501845,
+    "startLatency": 25911
+  }
+}
+2018-06-07T01:55:01.956Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928079,
+    "samples": 5000000,
+    "clientStart": 1528336461427,
+    "start": 1528336488514,
+    "end": 1528336501928,
+    "startLatency": 27087
+  }
+}
+2018-06-07T01:55:02.274Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926066,
+    "samples": 5000000,
+    "clientStart": 1528336461427,
+    "start": 1528336487339,
+    "end": 1528336502233,
+    "startLatency": 25912
+  }
+}
+2018-06-07T01:55:03.402Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927531,
+    "samples": 5000000,
+    "clientStart": 1528336461428,
+    "start": 1528336490447,
+    "end": 1528336503348,
+    "startLatency": 29019
+  }
+}
+2018-06-07T01:55:04.186Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925860,
+    "samples": 5000000,
+    "clientStart": 1528336461417,
+    "start": 1528336501658,
+    "end": 1528336504154,
+    "startLatency": 40241
+  }
+}
+2018-06-07T01:55:04.301Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927128,
+    "samples": 5000000,
+    "clientStart": 1528336461423,
+    "start": 1528336501663,
+    "end": 1528336504265,
+    "startLatency": 40240
+  }
+}
+2018-06-07T01:55:04.391Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926493,
+    "samples": 5000000,
+    "clientStart": 1528336461415,
+    "start": 1528336491846,
+    "end": 1528336504358,
+    "startLatency": 30431
+  }
+}
+2018-06-07T01:55:04.483Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925630,
+    "samples": 5000000,
+    "clientStart": 1528336461414,
+    "start": 1528336491795,
+    "end": 1528336504447,
+    "startLatency": 30381
+  }
+}
+2018-06-07T01:55:04.835Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926278,
+    "samples": 5000000,
+    "clientStart": 1528336461427,
+    "start": 1528336492155,
+    "end": 1528336504753,
+    "startLatency": 30728
+  }
+}
+2018-06-07T01:55:05.191Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926812,
+    "samples": 5000000,
+    "clientStart": 1528336461425,
+    "start": 1528336495230,
+    "end": 1528336505079,
+    "startLatency": 33805
+  }
+}
+2018-06-07T01:55:05.271Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927177,
+    "samples": 5000000,
+    "clientStart": 1528336461429,
+    "start": 1528336492156,
+    "end": 1528336505243,
+    "startLatency": 30727
+  }
+}
+2018-06-07T01:55:05.301Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927593,
+    "samples": 5000000,
+    "clientStart": 1528336461403,
+    "start": 1528336502803,
+    "end": 1528336505263,
+    "startLatency": 41400
+  }
+}
+2018-06-07T01:55:05.313Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928518,
+    "samples": 5000000,
+    "clientStart": 1528336461412,
+    "start": 1528336495261,
+    "end": 1528336505276,
+    "startLatency": 33849
+  }
+}
+2018-06-07T01:55:05.412Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926853,
+    "samples": 5000000,
+    "clientStart": 1528336461422,
+    "start": 1528336502785,
+    "end": 1528336505360,
+    "startLatency": 41363
+  }
+}
+2018-06-07T01:55:05.859Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927013,
+    "samples": 5000000,
+    "clientStart": 1528336461413,
+    "start": 1528336493056,
+    "end": 1528336505760,
+    "startLatency": 31643
+  }
+}
+2018-06-07T01:55:05.873Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927808,
+    "samples": 5000000,
+    "clientStart": 1528336461406,
+    "start": 1528336503175,
+    "end": 1528336505785,
+    "startLatency": 41769
+  }
+}
+2018-06-07T01:55:06.576Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927401,
+    "samples": 5000000,
+    "clientStart": 1528336461428,
+    "start": 1528336496376,
+    "end": 1528336506459,
+    "startLatency": 34948
+  }
+}
+2018-06-07T01:55:06.790Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927094,
+    "samples": 5000000,
+    "clientStart": 1528336461415,
+    "start": 1528336494444,
+    "end": 1528336506762,
+    "startLatency": 33029
+  }
+}
+2018-06-07T01:55:07.050Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928794,
+    "samples": 5000000,
+    "clientStart": 1528336461422,
+    "start": 1528336505071,
+    "end": 1528336507012,
+    "startLatency": 43649
+  }
+}
+2018-06-07T01:55:07.263Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926427,
+    "samples": 5000000,
+    "clientStart": 1528336461405,
+    "start": 1528336504727,
+    "end": 1528336507227,
+    "startLatency": 43322
+  }
+}
+2018-06-07T01:55:07.497Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925821,
+    "samples": 5000000,
+    "clientStart": 1528336461405,
+    "start": 1528336494752,
+    "end": 1528336507441,
+    "startLatency": 33347
+  }
+}
+2018-06-07T01:55:08.419Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926611,
+    "samples": 5000000,
+    "clientStart": 1528336461410,
+    "start": 1528336496245,
+    "end": 1528336508318,
+    "startLatency": 34835
+  }
+}
+2018-06-07T01:55:08.585Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927720,
+    "samples": 5000000,
+    "clientStart": 1528336461417,
+    "start": 1528336495792,
+    "end": 1528336508546,
+    "startLatency": 34375
+  }
+}
+2018-06-07T01:55:08.675Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926207,
+    "samples": 5000000,
+    "clientStart": 1528336461416,
+    "start": 1528336495754,
+    "end": 1528336508647,
+    "startLatency": 34338
+  }
+}
+2018-06-07T01:55:08.675Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926597,
+    "samples": 5000000,
+    "clientStart": 1528336461421,
+    "start": 1528336495752,
+    "end": 1528336508637,
+    "startLatency": 34331
+  }
+}
+2018-06-07T01:55:08.740Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925206,
+    "samples": 5000000,
+    "clientStart": 1528336461424,
+    "start": 1528336496245,
+    "end": 1528336508710,
+    "startLatency": 34821
+  }
+}
+2018-06-07T01:55:08.844Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927207,
+    "samples": 5000000,
+    "clientStart": 1528336461424,
+    "start": 1528336496606,
+    "end": 1528336508815,
+    "startLatency": 35182
+  }
+}
+2018-06-07T01:55:09.135Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925885,
+    "samples": 5000000,
+    "clientStart": 1528336461421,
+    "start": 1528336496694,
+    "end": 1528336508967,
+    "startLatency": 35273
+  }
+}
+2018-06-07T01:55:09.167Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926550,
+    "samples": 5000000,
+    "clientStart": 1528336461420,
+    "start": 1528336506603,
+    "end": 1528336509128,
+    "startLatency": 45183
+  }
+}
+2018-06-07T01:55:09.197Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927179,
+    "samples": 5000000,
+    "clientStart": 1528336461416,
+    "start": 1528336506596,
+    "end": 1528336509159,
+    "startLatency": 45180
+  }
+}
+2018-06-07T01:55:09.209Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927571,
+    "samples": 5000000,
+    "clientStart": 1528336461405,
+    "start": 1528336506657,
+    "end": 1528336509163,
+    "startLatency": 45252
+  }
+}
+2018-06-07T01:55:09.267Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927781,
+    "samples": 5000000,
+    "clientStart": 1528336461416,
+    "start": 1528336506660,
+    "end": 1528336509223,
+    "startLatency": 45244
+  }
+}
+2018-06-07T01:55:09.413Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927750,
+    "samples": 5000000,
+    "clientStart": 1528336461424,
+    "start": 1528336496838,
+    "end": 1528336509384,
+    "startLatency": 35414
+  }
+}
+2018-06-07T01:55:09.558Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926560,
+    "samples": 5000000,
+    "clientStart": 1528336461421,
+    "start": 1528336496973,
+    "end": 1528336509520,
+    "startLatency": 35552
+  }
+}
+2018-06-07T01:55:09.579Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926238,
+    "samples": 5000000,
+    "clientStart": 1528336461423,
+    "start": 1528336496755,
+    "end": 1528336509546,
+    "startLatency": 35332
+  }
+}
+2018-06-07T01:55:09.743Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926878,
+    "samples": 5000000,
+    "clientStart": 1528336461411,
+    "start": 1528336497017,
+    "end": 1528336509712,
+    "startLatency": 35606
+  }
+}
+2018-06-07T01:55:09.910Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926925,
+    "samples": 5000000,
+    "clientStart": 1528336461413,
+    "start": 1528336498816,
+    "end": 1528336509880,
+    "startLatency": 37403
+  }
+}
+2018-06-07T01:55:09.972Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928110,
+    "samples": 5000000,
+    "clientStart": 1528336461410,
+    "start": 1528336497131,
+    "end": 1528336509941,
+    "startLatency": 35721
+  }
+}
+2018-06-07T01:55:09.974Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925410,
+    "samples": 5000000,
+    "clientStart": 1528336461416,
+    "start": 1528336497719,
+    "end": 1528336509946,
+    "startLatency": 36303
+  }
+}
+2018-06-07T01:55:10.136Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925695,
+    "samples": 5000000,
+    "clientStart": 1528336461413,
+    "start": 1528336498818,
+    "end": 1528336510105,
+    "startLatency": 37405
+  }
+}
+2018-06-07T01:55:10.185Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927005,
+    "samples": 5000000,
+    "clientStart": 1528336461416,
+    "start": 1528336497667,
+    "end": 1528336510150,
+    "startLatency": 36251
+  }
+}
+2018-06-07T01:55:10.364Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926872,
+    "samples": 5000000,
+    "clientStart": 1528336461407,
+    "start": 1528336498881,
+    "end": 1528336510277,
+    "startLatency": 37474
+  }
+}
+2018-06-07T01:55:10.405Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925763,
+    "samples": 5000000,
+    "clientStart": 1528336461421,
+    "start": 1528336497875,
+    "end": 1528336510375,
+    "startLatency": 36454
+  }
+}
+2018-06-07T01:55:10.527Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927683,
+    "samples": 5000000,
+    "clientStart": 1528336461415,
+    "start": 1528336498815,
+    "end": 1528336510487,
+    "startLatency": 37400
+  }
+}
+2018-06-07T01:55:10.580Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927348,
+    "samples": 5000000,
+    "clientStart": 1528336461420,
+    "start": 1528336497826,
+    "end": 1528336510531,
+    "startLatency": 36406
+  }
+}
+2018-06-07T01:55:10.627Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925887,
+    "samples": 5000000,
+    "clientStart": 1528336461415,
+    "start": 1528336498812,
+    "end": 1528336510594,
+    "startLatency": 37397
+  }
+}
+2018-06-07T01:55:10.663Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926763,
+    "samples": 5000000,
+    "clientStart": 1528336461403,
+    "start": 1528336508307,
+    "end": 1528336510612,
+    "startLatency": 46904
+  }
+}
+2018-06-07T01:55:10.709Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926677,
+    "samples": 5000000,
+    "clientStart": 1528336461407,
+    "start": 1528336508320,
+    "end": 1528336510664,
+    "startLatency": 46913
+  }
+}
+2018-06-07T01:55:10.980Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926906,
+    "samples": 5000000,
+    "clientStart": 1528336461417,
+    "start": 1528336498812,
+    "end": 1528336510895,
+    "startLatency": 37395
+  }
+}
+2018-06-07T01:55:11.047Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925166,
+    "samples": 5000000,
+    "clientStart": 1528336461416,
+    "start": 1528336498812,
+    "end": 1528336511015,
+    "startLatency": 37396
+  }
+}
+2018-06-07T01:55:11.116Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927578,
+    "samples": 5000000,
+    "clientStart": 1528336461421,
+    "start": 1528336498890,
+    "end": 1528336511088,
+    "startLatency": 37469
+  }
+}
+2018-06-07T01:55:11.239Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927665,
+    "samples": 5000000,
+    "clientStart": 1528336461416,
+    "start": 1528336498818,
+    "end": 1528336511206,
+    "startLatency": 37402
+  }
+}
+2018-06-07T01:55:11.361Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926471,
+    "samples": 5000000,
+    "clientStart": 1528336461424,
+    "start": 1528336498813,
+    "end": 1528336511324,
+    "startLatency": 37389
+  }
+}
+2018-06-07T01:55:11.400Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927991,
+    "samples": 5000000,
+    "clientStart": 1528336461421,
+    "start": 1528336498814,
+    "end": 1528336511370,
+    "startLatency": 37393
+  }
+}
+2018-06-07T01:55:11.470Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925595,
+    "samples": 5000000,
+    "clientStart": 1528336461414,
+    "start": 1528336498810,
+    "end": 1528336511439,
+    "startLatency": 37396
+  }
+}
+2018-06-07T01:55:11.472Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926532,
+    "samples": 5000000,
+    "clientStart": 1528336461416,
+    "start": 1528336498813,
+    "end": 1528336511442,
+    "startLatency": 37397
+  }
+}
+2018-06-07T01:55:11.490Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928146,
+    "samples": 5000000,
+    "clientStart": 1528336461421,
+    "start": 1528336498813,
+    "end": 1528336511452,
+    "startLatency": 37392
+  }
+}
+2018-06-07T01:55:11.552Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925999,
+    "samples": 5000000,
+    "clientStart": 1528336461417,
+    "start": 1528336498812,
+    "end": 1528336511516,
+    "startLatency": 37395
+  }
+}
+2018-06-07T01:55:11.571Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927077,
+    "samples": 5000000,
+    "clientStart": 1528336461415,
+    "start": 1528336498849,
+    "end": 1528336511539,
+    "startLatency": 37434
+  }
+}
+2018-06-07T01:55:11.631Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926636,
+    "samples": 5000000,
+    "clientStart": 1528336461421,
+    "start": 1528336498820,
+    "end": 1528336511597,
+    "startLatency": 37399
+  }
+}
+2018-06-07T01:55:11.635Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926942,
+    "samples": 5000000,
+    "clientStart": 1528336461422,
+    "start": 1528336498893,
+    "end": 1528336511607,
+    "startLatency": 37471
+  }
+}
+2018-06-07T01:55:11.650Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927434,
+    "samples": 5000000,
+    "clientStart": 1528336461422,
+    "start": 1528336498812,
+    "end": 1528336511611,
+    "startLatency": 37390
+  }
+}
+2018-06-07T01:55:11.752Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926486,
+    "samples": 5000000,
+    "clientStart": 1528336461420,
+    "start": 1528336498810,
+    "end": 1528336511721,
+    "startLatency": 37390
+  }
+}
+2018-06-07T01:55:11.752Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3924876,
+    "samples": 5000000,
+    "clientStart": 1528336461415,
+    "start": 1528336498813,
+    "end": 1528336511714,
+    "startLatency": 37398
+  }
+}
+2018-06-07T01:55:11.877Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927492,
+    "samples": 5000000,
+    "clientStart": 1528336461422,
+    "start": 1528336498812,
+    "end": 1528336511816,
+    "startLatency": 37390
+  }
+}
+2018-06-07T01:55:12.415Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927770,
+    "samples": 5000000,
+    "clientStart": 1528336461424,
+    "start": 1528336498813,
+    "end": 1528336512348,
+    "startLatency": 37389
+  }
+}
+2018-06-07T01:55:13.642Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928155,
+    "samples": 5000000,
+    "clientStart": 1528336461413,
+    "start": 1528336498802,
+    "end": 1528336513525,
+    "startLatency": 37389
+  }
+}
+2018-06-07T01:55:13.764Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927408,
+    "samples": 5000000,
+    "clientStart": 1528336461405,
+    "start": 1528336499458,
+    "end": 1528336513731,
+    "startLatency": 38053
+  }
+}
+2018-06-07T01:55:14.243Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926486,
+    "samples": 5000000,
+    "clientStart": 1528336461404,
+    "start": 1528336501713,
+    "end": 1528336514213,
+    "startLatency": 40309
+  }
+}
+2018-06-07T01:55:18.352Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927535,
+    "samples": 5000000,
+    "clientStart": 1528336461401,
+    "start": 1528336509058,
+    "end": 1528336518268,
+    "startLatency": 47657
+  }
+}
+2018-06-07T01:55:18.498Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927953,
+    "samples": 5000000,
+    "clientStart": 1528336461406,
+    "start": 1528336509196,
+    "end": 1528336518465,
+    "startLatency": 47790
+  }
+}
+2018-06-07T01:55:20.356Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925747,
+    "samples": 5000000,
+    "clientStart": 1528336461422,
+    "start": 1528336508409,
+    "end": 1528336520325,
+    "startLatency": 46987
+  }
+}
+2018-06-07T01:55:20.986Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927024,
+    "samples": 5000000,
+    "clientStart": 1528336461417,
+    "start": 1528336508991,
+    "end": 1528336520926,
+    "startLatency": 47574
+  }
+}
+2018-06-07T01:55:21.063Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3925598,
+    "samples": 5000000,
+    "clientStart": 1528336461423,
+    "start": 1528336509066,
+    "end": 1528336521032,
+    "startLatency": 47643
+  }
+}
+2018-06-07T01:55:21.141Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926293,
+    "samples": 5000000,
+    "clientStart": 1528336461425,
+    "start": 1528336508833,
+    "end": 1528336521102,
+    "startLatency": 47408
+  }
+}
+2018-06-07T01:55:21.731Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928067,
+    "samples": 5000000,
+    "clientStart": 1528336461403,
+    "start": 1528336509518,
+    "end": 1528336521584,
+    "startLatency": 48115
+  }
+}
+2018-06-07T01:55:21.732Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3924817,
+    "samples": 5000000,
+    "clientStart": 1528336461401,
+    "start": 1528336509063,
+    "end": 1528336521611,
+    "startLatency": 47662
+  }
+}
+2018-06-07T01:55:22.140Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3928261,
+    "samples": 5000000,
+    "clientStart": 1528336461425,
+    "start": 1528336509196,
+    "end": 1528336522003,
+    "startLatency": 47771
+  }
+}
+2018-06-07T01:55:22.448Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926828,
+    "samples": 5000000,
+    "clientStart": 1528336461404,
+    "start": 1528336509519,
+    "end": 1528336522349,
+    "startLatency": 48115
+  }
+}
+2018-06-07T01:55:22.857Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3926767,
+    "samples": 5000000,
+    "clientStart": 1528336461402,
+    "start": 1528336510544,
+    "end": 1528336522731,
+    "startLatency": 49142
+  }
+}
+2018-06-07T01:55:31.284Z cloudify   returned: {
+  "type": "returned",
+  "value": {
+    "inside": 3927479,
+    "samples": 5000000,
+    "clientStart": 1528336461405,
+    "start": 1528336520126,
+    "end": 1528336531255,
+    "startLatency": 58721
+  }
+}
+2018-06-07T01:55:31.285Z cloudify Start latencies:
+2018-06-07T01:55:31.285Z cloudify start[1]: 654
+2018-06-07T01:55:31.285Z cloudify start[2]: 2125
+2018-06-07T01:55:31.285Z cloudify start[3]: 2341
+2018-06-07T01:55:31.285Z cloudify start[4]: 2360
+2018-06-07T01:55:31.285Z cloudify start[5]: 2890
+2018-06-07T01:55:31.285Z cloudify start[6]: 2907
+2018-06-07T01:55:31.285Z cloudify start[7]: 3053
+2018-06-07T01:55:31.285Z cloudify start[8]: 3178
+2018-06-07T01:55:31.285Z cloudify start[9]: 3312
+2018-06-07T01:55:31.285Z cloudify start[10]: 4361
+2018-06-07T01:55:31.285Z cloudify start[11]: 5317
+2018-06-07T01:55:31.285Z cloudify start[12]: 5538
+2018-06-07T01:55:31.285Z cloudify start[13]: 5544
+2018-06-07T01:55:31.285Z cloudify start[14]: 5822
+2018-06-07T01:55:31.285Z cloudify start[15]: 6304
+2018-06-07T01:55:31.285Z cloudify start[16]: 6339
+2018-06-07T01:55:31.285Z cloudify start[17]: 6761
+2018-06-07T01:55:31.285Z cloudify start[18]: 6952
+2018-06-07T01:55:31.285Z cloudify start[19]: 7079
+2018-06-07T01:55:31.285Z cloudify start[20]: 7298
+2018-06-07T01:55:31.285Z cloudify start[21]: 7336
+2018-06-07T01:55:31.286Z cloudify start[22]: 7338
+2018-06-07T01:55:31.286Z cloudify start[23]: 8184
+2018-06-07T01:55:31.286Z cloudify start[24]: 8350
+2018-06-07T01:55:31.286Z cloudify start[25]: 8382
+2018-06-07T01:55:31.286Z cloudify start[26]: 8822
+2018-06-07T01:55:31.286Z cloudify start[27]: 8901
+2018-06-07T01:55:31.286Z cloudify start[28]: 9784
+2018-06-07T01:55:31.286Z cloudify start[29]: 10304
+2018-06-07T01:55:31.286Z cloudify start[30]: 10747
+2018-06-07T01:55:31.286Z cloudify start[31]: 10819
+2018-06-07T01:55:31.286Z cloudify start[32]: 10824
+2018-06-07T01:55:31.286Z cloudify start[33]: 10829
+2018-06-07T01:55:31.286Z cloudify start[34]: 10957
+2018-06-07T01:55:31.286Z cloudify start[35]: 11397
+2018-06-07T01:55:31.286Z cloudify start[36]: 11752
+2018-06-07T01:55:31.286Z cloudify start[37]: 12272
+2018-06-07T01:55:31.286Z cloudify start[38]: 12319
+2018-06-07T01:55:31.286Z cloudify start[39]: 12322
+2018-06-07T01:55:31.286Z cloudify start[40]: 12648
+2018-06-07T01:55:31.286Z cloudify start[41]: 12684
+2018-06-07T01:55:31.286Z cloudify start[42]: 13039
+2018-06-07T01:55:31.286Z cloudify start[43]: 13350
+2018-06-07T01:55:31.286Z cloudify start[44]: 13867
+2018-06-07T01:55:31.286Z cloudify start[45]: 13920
+2018-06-07T01:55:31.286Z cloudify start[46]: 13924
+2018-06-07T01:55:31.286Z cloudify start[47]: 13994
+2018-06-07T01:55:31.286Z cloudify start[48]: 15307
+2018-06-07T01:55:31.286Z cloudify start[49]: 15352
+2018-06-07T01:55:31.286Z cloudify start[50]: 15748
+2018-06-07T01:55:31.286Z cloudify start[51]: 16127
+2018-06-07T01:55:31.286Z cloudify start[52]: 17066
+2018-06-07T01:55:31.286Z cloudify start[53]: 17124
+2018-06-07T01:55:31.286Z cloudify start[54]: 17314
+2018-06-07T01:55:31.286Z cloudify start[55]: 17352
+2018-06-07T01:55:31.286Z cloudify start[56]: 17353
+2018-06-07T01:55:31.286Z cloudify start[57]: 17467
+2018-06-07T01:55:31.286Z cloudify start[58]: 18072
+2018-06-07T01:55:31.286Z cloudify start[59]: 19315
+2018-06-07T01:55:31.286Z cloudify start[60]: 19353
+2018-06-07T01:55:31.286Z cloudify start[61]: 19934
+2018-06-07T01:55:31.286Z cloudify start[62]: 20014
+2018-06-07T01:55:31.287Z cloudify start[63]: 20103
+2018-06-07T01:55:31.287Z cloudify start[64]: 20358
+2018-06-07T01:55:31.287Z cloudify start[65]: 20359
+2018-06-07T01:55:31.287Z cloudify start[66]: 20560
+2018-06-07T01:55:31.287Z cloudify start[67]: 20561
+2018-06-07T01:55:31.287Z cloudify start[68]: 21308
+2018-06-07T01:55:31.287Z cloudify start[69]: 22710
+2018-06-07T01:55:31.287Z cloudify start[70]: 23433
+2018-06-07T01:55:31.287Z cloudify start[71]: 24110
+2018-06-07T01:55:31.287Z cloudify start[72]: 24825
+2018-06-07T01:55:31.287Z cloudify start[73]: 25249
+2018-06-07T01:55:31.287Z cloudify start[74]: 25250
+2018-06-07T01:55:31.287Z cloudify start[75]: 25253
+2018-06-07T01:55:31.287Z cloudify start[76]: 25911
+2018-06-07T01:55:31.287Z cloudify start[77]: 25912
+2018-06-07T01:55:31.287Z cloudify start[78]: 26316
+2018-06-07T01:55:31.287Z cloudify start[79]: 27087
+2018-06-07T01:55:31.287Z cloudify start[80]: 27446
+2018-06-07T01:55:31.287Z cloudify start[81]: 29019
+2018-06-07T01:55:31.287Z cloudify start[82]: 30381
+2018-06-07T01:55:31.287Z cloudify start[83]: 30431
+2018-06-07T01:55:31.287Z cloudify start[84]: 30727
+2018-06-07T01:55:31.287Z cloudify start[85]: 30728
+2018-06-07T01:55:31.287Z cloudify start[86]: 31433
+2018-06-07T01:55:31.287Z cloudify start[87]: 31643
+2018-06-07T01:55:31.287Z cloudify start[88]: 31683
+2018-06-07T01:55:31.287Z cloudify start[89]: 31981
+2018-06-07T01:55:31.287Z cloudify start[90]: 32002
+2018-06-07T01:55:31.287Z cloudify start[91]: 32169
+2018-06-07T01:55:31.287Z cloudify start[92]: 32199
+2018-06-07T01:55:31.287Z cloudify start[93]: 32202
+2018-06-07T01:55:31.287Z cloudify start[94]: 32212
+2018-06-07T01:55:31.287Z cloudify start[95]: 32216
+2018-06-07T01:55:31.287Z cloudify start[96]: 32234
+2018-06-07T01:55:31.287Z cloudify start[97]: 32265
+2018-06-07T01:55:31.287Z cloudify start[98]: 32288
+2018-06-07T01:55:31.287Z cloudify start[99]: 32322
+2018-06-07T01:55:31.287Z cloudify start[100]: 32329
+2018-06-07T01:55:31.287Z cloudify start[101]: 32338
+2018-06-07T01:55:31.287Z cloudify start[102]: 32347
+2018-06-07T01:55:31.287Z cloudify start[103]: 32413
+2018-06-07T01:55:31.288Z cloudify start[104]: 32443
+2018-06-07T01:55:31.288Z cloudify start[105]: 32464
+2018-06-07T01:55:31.288Z cloudify start[106]: 32559
+2018-06-07T01:55:31.288Z cloudify start[107]: 32660
+2018-06-07T01:55:31.288Z cloudify start[108]: 32733
+2018-06-07T01:55:31.288Z cloudify start[109]: 32795
+2018-06-07T01:55:31.288Z cloudify start[110]: 33029
+2018-06-07T01:55:31.288Z cloudify start[111]: 33046
+2018-06-07T01:55:31.288Z cloudify start[112]: 33077
+2018-06-07T01:55:31.288Z cloudify start[113]: 33115
+2018-06-07T01:55:31.288Z cloudify start[114]: 33123
+2018-06-07T01:55:31.288Z cloudify start[115]: 33209
+2018-06-07T01:55:31.288Z cloudify start[116]: 33347
+2018-06-07T01:55:31.288Z cloudify start[117]: 33406
+2018-06-07T01:55:31.288Z cloudify start[118]: 33454
+2018-06-07T01:55:31.288Z cloudify start[119]: 33518
+2018-06-07T01:55:31.288Z cloudify start[120]: 33566
+2018-06-07T01:55:31.288Z cloudify start[121]: 33611
+2018-06-07T01:55:31.288Z cloudify start[122]: 33671
+2018-06-07T01:55:31.288Z cloudify start[123]: 33677
+2018-06-07T01:55:31.288Z cloudify start[124]: 33725
+2018-06-07T01:55:31.288Z cloudify start[125]: 33747
+2018-06-07T01:55:31.288Z cloudify start[126]: 33762
+2018-06-07T01:55:31.288Z cloudify start[127]: 33794
+2018-06-07T01:55:31.288Z cloudify start[128]: 33805
+2018-06-07T01:55:31.288Z cloudify start[129]: 33849
+2018-06-07T01:55:31.288Z cloudify start[130]: 33928
+2018-06-07T01:55:31.288Z cloudify start[131]: 34040
+2018-06-07T01:55:31.288Z cloudify start[132]: 34331
+2018-06-07T01:55:31.288Z cloudify start[133]: 34338
+2018-06-07T01:55:31.288Z cloudify start[134]: 34375
+2018-06-07T01:55:31.288Z cloudify start[135]: 34821
+2018-06-07T01:55:31.288Z cloudify start[136]: 34835
+2018-06-07T01:55:31.289Z cloudify start[137]: 34948
+2018-06-07T01:55:31.289Z cloudify start[138]: 35182
+2018-06-07T01:55:31.289Z cloudify start[139]: 35273
+2018-06-07T01:55:31.289Z cloudify start[140]: 35332
+2018-06-07T01:55:31.289Z cloudify start[141]: 35414
+2018-06-07T01:55:31.289Z cloudify start[142]: 35552
+2018-06-07T01:55:31.289Z cloudify start[143]: 35606
+2018-06-07T01:55:31.289Z cloudify start[144]: 35721
+2018-06-07T01:55:31.289Z cloudify start[145]: 36251
+2018-06-07T01:55:31.289Z cloudify start[146]: 36303
+2018-06-07T01:55:31.289Z cloudify start[147]: 36406
+2018-06-07T01:55:31.289Z cloudify start[148]: 36454
+2018-06-07T01:55:31.289Z cloudify start[149]: 37068
+2018-06-07T01:55:31.289Z cloudify start[150]: 37389
+2018-06-07T01:55:31.289Z cloudify start[151]: 37389
+2018-06-07T01:55:31.289Z cloudify start[152]: 37389
+2018-06-07T01:55:31.289Z cloudify start[153]: 37390
+2018-06-07T01:55:31.289Z cloudify start[154]: 37390
+2018-06-07T01:55:31.289Z cloudify start[155]: 37390
+2018-06-07T01:55:31.289Z cloudify start[156]: 37392
+2018-06-07T01:55:31.289Z cloudify start[157]: 37393
+2018-06-07T01:55:31.289Z cloudify start[158]: 37395
+2018-06-07T01:55:31.289Z cloudify start[159]: 37395
+2018-06-07T01:55:31.289Z cloudify start[160]: 37396
+2018-06-07T01:55:31.289Z cloudify start[161]: 37396
+2018-06-07T01:55:31.289Z cloudify start[162]: 37397
+2018-06-07T01:55:31.289Z cloudify start[163]: 37397
+2018-06-07T01:55:31.289Z cloudify start[164]: 37398
+2018-06-07T01:55:31.289Z cloudify start[165]: 37399
+2018-06-07T01:55:31.289Z cloudify start[166]: 37400
+2018-06-07T01:55:31.289Z cloudify start[167]: 37402
+2018-06-07T01:55:31.289Z cloudify start[168]: 37403
+2018-06-07T01:55:31.289Z cloudify start[169]: 37405
+2018-06-07T01:55:31.289Z cloudify start[170]: 37434
+2018-06-07T01:55:31.289Z cloudify start[171]: 37469
+2018-06-07T01:55:31.289Z cloudify start[172]: 37471
+2018-06-07T01:55:31.289Z cloudify start[173]: 37474
+2018-06-07T01:55:31.289Z cloudify start[174]: 38053
+2018-06-07T01:55:31.289Z cloudify start[175]: 40240
+2018-06-07T01:55:31.289Z cloudify start[176]: 40241
+2018-06-07T01:55:31.289Z cloudify start[177]: 40309
+2018-06-07T01:55:31.289Z cloudify start[178]: 41363
+2018-06-07T01:55:31.290Z cloudify start[179]: 41400
+2018-06-07T01:55:31.290Z cloudify start[180]: 41769
+2018-06-07T01:55:31.290Z cloudify start[181]: 43322
+2018-06-07T01:55:31.290Z cloudify start[182]: 43649
+2018-06-07T01:55:31.290Z cloudify start[183]: 45180
+2018-06-07T01:55:31.290Z cloudify start[184]: 45183
+2018-06-07T01:55:31.290Z cloudify start[185]: 45244
+2018-06-07T01:55:31.290Z cloudify start[186]: 45252
+2018-06-07T01:55:31.290Z cloudify start[187]: 46904
+2018-06-07T01:55:31.290Z cloudify start[188]: 46913
+2018-06-07T01:55:31.290Z cloudify start[189]: 46987
+2018-06-07T01:55:31.290Z cloudify start[190]: 47408
+2018-06-07T01:55:31.290Z cloudify start[191]: 47574
+2018-06-07T01:55:31.290Z cloudify start[192]: 47643
+2018-06-07T01:55:31.290Z cloudify start[193]: 47657
+2018-06-07T01:55:31.290Z cloudify start[194]: 47662
+2018-06-07T01:55:31.290Z cloudify start[195]: 47771
+2018-06-07T01:55:31.290Z cloudify start[196]: 47790
+2018-06-07T01:55:31.290Z cloudify start[197]: 48115
+2018-06-07T01:55:31.290Z cloudify start[198]: 48115
+2018-06-07T01:55:31.290Z cloudify start[199]: 49142
+2018-06-07T01:55:31.290Z cloudify start[200]: 58721
+2018-06-07T01:55:31.290Z cloudify Execution latencies: 
+2018-06-07T01:55:31.290Z cloudify execution[1]: 1787
+2018-06-07T01:55:31.290Z cloudify execution[2]: 1823
+2018-06-07T01:55:31.290Z cloudify execution[3]: 1829
+2018-06-07T01:55:31.290Z cloudify execution[4]: 1876
+2018-06-07T01:55:31.290Z cloudify execution[5]: 1941
+2018-06-07T01:55:31.290Z cloudify execution[6]: 2225
+2018-06-07T01:55:31.290Z cloudify execution[7]: 2235
+2018-06-07T01:55:31.290Z cloudify execution[8]: 2254
+2018-06-07T01:55:31.290Z cloudify execution[9]: 2290
+2018-06-07T01:55:31.290Z cloudify execution[10]: 2292
+2018-06-07T01:55:31.290Z cloudify execution[11]: 2303
+2018-06-07T01:55:31.290Z cloudify execution[12]: 2305
+2018-06-07T01:55:31.290Z cloudify execution[13]: 2344
+2018-06-07T01:55:31.290Z cloudify execution[14]: 2454
+2018-06-07T01:55:31.290Z cloudify execution[15]: 2456
+2018-06-07T01:55:31.290Z cloudify execution[16]: 2457
+2018-06-07T01:55:31.290Z cloudify execution[17]: 2460
+2018-06-07T01:55:31.290Z cloudify execution[18]: 2496
+2018-06-07T01:55:31.291Z cloudify execution[19]: 2498
+2018-06-07T01:55:31.291Z cloudify execution[20]: 2500
+2018-06-07T01:55:31.291Z cloudify execution[21]: 2502
+2018-06-07T01:55:31.291Z cloudify execution[22]: 2506
+2018-06-07T01:55:31.291Z cloudify execution[23]: 2518
+2018-06-07T01:55:31.291Z cloudify execution[24]: 2519
+2018-06-07T01:55:31.291Z cloudify execution[25]: 2524
+2018-06-07T01:55:31.291Z cloudify execution[26]: 2525
+2018-06-07T01:55:31.291Z cloudify execution[27]: 2530
+2018-06-07T01:55:31.291Z cloudify execution[28]: 2533
+2018-06-07T01:55:31.291Z cloudify execution[29]: 2538
+2018-06-07T01:55:31.291Z cloudify execution[30]: 2549
+2018-06-07T01:55:31.291Z cloudify execution[31]: 2552
+2018-06-07T01:55:31.291Z cloudify execution[32]: 2557
+2018-06-07T01:55:31.291Z cloudify execution[33]: 2563
+2018-06-07T01:55:31.291Z cloudify execution[34]: 2563
+2018-06-07T01:55:31.291Z cloudify execution[35]: 2563
+2018-06-07T01:55:31.291Z cloudify execution[36]: 2567
+2018-06-07T01:55:31.292Z cloudify execution[37]: 2570
+2018-06-07T01:55:31.292Z cloudify execution[38]: 2572
+2018-06-07T01:55:31.292Z cloudify execution[39]: 2575
+2018-06-07T01:55:31.292Z cloudify execution[40]: 2578
+2018-06-07T01:55:31.292Z cloudify execution[41]: 2581
+2018-06-07T01:55:31.292Z cloudify execution[42]: 2590
+2018-06-07T01:55:31.292Z cloudify execution[43]: 2594
+2018-06-07T01:55:31.292Z cloudify execution[44]: 2594
+2018-06-07T01:55:31.292Z cloudify execution[45]: 2602
+2018-06-07T01:55:31.292Z cloudify execution[46]: 2610
+2018-06-07T01:55:31.292Z cloudify execution[47]: 2615
+2018-06-07T01:55:31.292Z cloudify execution[48]: 2624
+2018-06-07T01:55:31.292Z cloudify execution[49]: 2632
+2018-06-07T01:55:31.292Z cloudify execution[50]: 2640
+2018-06-07T01:55:31.292Z cloudify execution[51]: 2656
+2018-06-07T01:55:31.292Z cloudify execution[52]: 2657
+2018-06-07T01:55:31.292Z cloudify execution[53]: 2657
+2018-06-07T01:55:31.292Z cloudify execution[54]: 2664
+2018-06-07T01:55:31.292Z cloudify execution[55]: 2667
+2018-06-07T01:55:31.292Z cloudify execution[56]: 2670
+2018-06-07T01:55:31.292Z cloudify execution[57]: 2676
+2018-06-07T01:55:31.292Z cloudify execution[58]: 2679
+2018-06-07T01:55:31.292Z cloudify execution[59]: 2681
+2018-06-07T01:55:31.292Z cloudify execution[60]: 2681
+2018-06-07T01:55:31.292Z cloudify execution[61]: 2706
+2018-06-07T01:55:31.292Z cloudify execution[62]: 2710
+2018-06-07T01:55:31.292Z cloudify execution[63]: 2716
+2018-06-07T01:55:31.292Z cloudify execution[64]: 2738
+2018-06-07T01:55:31.292Z cloudify execution[65]: 2744
+2018-06-07T01:55:31.293Z cloudify execution[66]: 2761
+2018-06-07T01:55:31.293Z cloudify execution[67]: 2781
+2018-06-07T01:55:31.293Z cloudify execution[68]: 2781
+2018-06-07T01:55:31.293Z cloudify execution[69]: 2784
+2018-06-07T01:55:31.293Z cloudify execution[70]: 2785
+2018-06-07T01:55:31.293Z cloudify execution[71]: 2786
+2018-06-07T01:55:31.293Z cloudify execution[72]: 2787
+2018-06-07T01:55:31.293Z cloudify execution[73]: 2894
+2018-06-07T01:55:31.293Z cloudify execution[74]: 2934
+2018-06-07T01:55:31.293Z cloudify execution[75]: 2936
+2018-06-07T01:55:31.293Z cloudify execution[76]: 3057
+2018-06-07T01:55:31.293Z cloudify execution[77]: 3073
+2018-06-07T01:55:31.293Z cloudify execution[78]: 3093
+2018-06-07T01:55:31.293Z cloudify execution[79]: 3098
+2018-06-07T01:55:31.293Z cloudify execution[80]: 3162
+2018-06-07T01:55:31.293Z cloudify execution[81]: 3194
+2018-06-07T01:55:31.293Z cloudify execution[82]: 3212
+2018-06-07T01:55:31.293Z cloudify execution[83]: 3227
+2018-06-07T01:55:31.293Z cloudify execution[84]: 3330
+2018-06-07T01:55:31.293Z cloudify execution[85]: 9210
+2018-06-07T01:55:31.293Z cloudify execution[86]: 9269
+2018-06-07T01:55:31.293Z cloudify execution[87]: 9849
+2018-06-07T01:55:31.293Z cloudify execution[88]: 10015
+2018-06-07T01:55:31.293Z cloudify execution[89]: 10083
+2018-06-07T01:55:31.293Z cloudify execution[90]: 11064
+2018-06-07T01:55:31.293Z cloudify execution[91]: 11129
+2018-06-07T01:55:31.293Z cloudify execution[92]: 11287
+2018-06-07T01:55:31.294Z cloudify execution[93]: 11396
+2018-06-07T01:55:31.294Z cloudify execution[94]: 11672
+2018-06-07T01:55:31.294Z cloudify execution[95]: 11782
+2018-06-07T01:55:31.294Z cloudify execution[96]: 11916
+2018-06-07T01:55:31.294Z cloudify execution[97]: 11935
+2018-06-07T01:55:31.294Z cloudify execution[98]: 11966
+2018-06-07T01:55:31.294Z cloudify execution[99]: 11990
+2018-06-07T01:55:31.294Z cloudify execution[100]: 12066
+2018-06-07T01:55:31.294Z cloudify execution[101]: 12073
+2018-06-07T01:55:31.294Z cloudify execution[102]: 12083
+2018-06-07T01:55:31.294Z cloudify execution[103]: 12187
+2018-06-07T01:55:31.294Z cloudify execution[104]: 12198
+2018-06-07T01:55:31.294Z cloudify execution[105]: 12203
+2018-06-07T01:55:31.294Z cloudify execution[106]: 12205
+2018-06-07T01:55:31.294Z cloudify execution[107]: 12205
+2018-06-07T01:55:31.295Z cloudify execution[108]: 12209
+2018-06-07T01:55:31.295Z cloudify execution[109]: 12222
+2018-06-07T01:55:31.295Z cloudify execution[110]: 12227
+2018-06-07T01:55:31.295Z cloudify execution[111]: 12269
+2018-06-07T01:55:31.295Z cloudify execution[112]: 12273
+2018-06-07T01:55:31.295Z cloudify execution[113]: 12281
+2018-06-07T01:55:31.295Z cloudify execution[114]: 12292
+2018-06-07T01:55:31.295Z cloudify execution[115]: 12298
+2018-06-07T01:55:31.295Z cloudify execution[116]: 12318
+2018-06-07T01:55:31.295Z cloudify execution[117]: 12388
+2018-06-07T01:55:31.295Z cloudify execution[118]: 12388
+2018-06-07T01:55:31.295Z cloudify execution[119]: 12398
+2018-06-07T01:55:31.295Z cloudify execution[120]: 12413
+2018-06-07T01:55:31.295Z cloudify execution[121]: 12441
+2018-06-07T01:55:31.295Z cloudify execution[122]: 12465
+2018-06-07T01:55:31.295Z cloudify execution[123]: 12483
+2018-06-07T01:55:31.295Z cloudify execution[124]: 12495
+2018-06-07T01:55:31.295Z cloudify execution[125]: 12500
+2018-06-07T01:55:31.295Z cloudify execution[126]: 12500
+2018-06-07T01:55:31.295Z cloudify execution[127]: 12501
+2018-06-07T01:55:31.295Z cloudify execution[128]: 12511
+2018-06-07T01:55:31.295Z cloudify execution[129]: 12512
+2018-06-07T01:55:31.295Z cloudify execution[130]: 12520
+2018-06-07T01:55:31.295Z cloudify execution[131]: 12546
+2018-06-07T01:55:31.295Z cloudify execution[132]: 12547
+2018-06-07T01:55:31.295Z cloudify execution[133]: 12548
+2018-06-07T01:55:31.295Z cloudify execution[134]: 12556
+2018-06-07T01:55:31.295Z cloudify execution[135]: 12589
+2018-06-07T01:55:31.295Z cloudify execution[136]: 12590
+2018-06-07T01:55:31.295Z cloudify execution[137]: 12598
+2018-06-07T01:55:31.295Z cloudify execution[138]: 12629
+2018-06-07T01:55:31.295Z cloudify execution[139]: 12629
+2018-06-07T01:55:31.295Z cloudify execution[140]: 12639
+2018-06-07T01:55:31.295Z cloudify execution[141]: 12652
+2018-06-07T01:55:31.295Z cloudify execution[142]: 12689
+2018-06-07T01:55:31.295Z cloudify execution[143]: 12690
+2018-06-07T01:55:31.295Z cloudify execution[144]: 12694
+2018-06-07T01:55:31.295Z cloudify execution[145]: 12695
+2018-06-07T01:55:31.295Z cloudify execution[146]: 12704
+2018-06-07T01:55:31.295Z cloudify execution[147]: 12704
+2018-06-07T01:55:31.295Z cloudify execution[148]: 12705
+2018-06-07T01:55:31.295Z cloudify execution[149]: 12714
+2018-06-07T01:55:31.296Z cloudify execution[150]: 12754
+2018-06-07T01:55:31.296Z cloudify execution[151]: 12777
+2018-06-07T01:55:31.296Z cloudify execution[152]: 12782
+2018-06-07T01:55:31.296Z cloudify execution[153]: 12791
+2018-06-07T01:55:31.296Z cloudify execution[154]: 12799
+2018-06-07T01:55:31.296Z cloudify execution[155]: 12799
+2018-06-07T01:55:31.296Z cloudify execution[156]: 12807
+2018-06-07T01:55:31.296Z cloudify execution[157]: 12810
+2018-06-07T01:55:31.296Z cloudify execution[158]: 12813
+2018-06-07T01:55:31.296Z cloudify execution[159]: 12830
+2018-06-07T01:55:31.296Z cloudify execution[160]: 12885
+2018-06-07T01:55:31.296Z cloudify execution[161]: 12893
+2018-06-07T01:55:31.296Z cloudify execution[162]: 12901
+2018-06-07T01:55:31.296Z cloudify execution[163]: 12901
+2018-06-07T01:55:31.296Z cloudify execution[164]: 12911
+2018-06-07T01:55:31.296Z cloudify execution[165]: 13004
+2018-06-07T01:55:31.296Z cloudify execution[166]: 13018
+2018-06-07T01:55:31.296Z cloudify execution[167]: 13087
+2018-06-07T01:55:31.296Z cloudify execution[168]: 13092
+2018-06-07T01:55:31.296Z cloudify execution[169]: 13098
+2018-06-07T01:55:31.296Z cloudify execution[170]: 13105
+2018-06-07T01:55:31.296Z cloudify execution[171]: 13191
+2018-06-07T01:55:31.296Z cloudify execution[172]: 13308
+2018-06-07T01:55:31.296Z cloudify execution[173]: 13405
+2018-06-07T01:55:31.296Z cloudify execution[174]: 13414
+2018-06-07T01:55:31.296Z cloudify execution[175]: 13482
+2018-06-07T01:55:31.296Z cloudify execution[176]: 13498
+2018-06-07T01:55:31.296Z cloudify execution[177]: 13535
+2018-06-07T01:55:31.296Z cloudify execution[178]: 13641
+2018-06-07T01:55:31.296Z cloudify execution[179]: 13703
+2018-06-07T01:55:31.296Z cloudify execution[180]: 13704
+2018-06-07T01:55:31.296Z cloudify execution[181]: 13716
+2018-06-07T01:55:31.296Z cloudify execution[182]: 13720
+2018-06-07T01:55:31.296Z cloudify execution[183]: 13915
+2018-06-07T01:55:31.296Z cloudify execution[184]: 13953
+2018-06-07T01:55:31.296Z cloudify execution[185]: 13993
+2018-06-07T01:55:31.296Z cloudify execution[186]: 14097
+2018-06-07T01:55:31.296Z cloudify execution[187]: 14273
+2018-06-07T01:55:31.296Z cloudify execution[188]: 14413
+2018-06-07T01:55:31.296Z cloudify execution[189]: 14501
+2018-06-07T01:55:31.296Z cloudify execution[190]: 14504
+2018-06-07T01:55:31.296Z cloudify execution[191]: 14723
+2018-06-07T01:55:31.296Z cloudify execution[192]: 14728
+2018-06-07T01:55:31.297Z cloudify execution[193]: 14886
+2018-06-07T01:55:31.297Z cloudify execution[194]: 14894
+2018-06-07T01:55:31.297Z cloudify execution[195]: 14946
+2018-06-07T01:55:31.297Z cloudify execution[196]: 14957
+2018-06-07T01:55:31.297Z cloudify execution[197]: 15091
+2018-06-07T01:55:31.297Z cloudify execution[198]: 15095
+2018-06-07T01:55:31.297Z cloudify execution[199]: 15252
+2018-06-07T01:55:31.297Z cloudify execution[200]: 15573
+2018-06-07T01:55:31.297Z cloudify Return latencies:
+2018-06-07T01:55:31.297Z cloudify return[1]: 28
+2018-06-07T01:55:31.297Z cloudify return[2]: 28
+2018-06-07T01:55:31.297Z cloudify return[3]: 28
+2018-06-07T01:55:31.297Z cloudify return[4]: 28
+2018-06-07T01:55:31.297Z cloudify return[5]: 28
+2018-06-07T01:55:31.297Z cloudify return[6]: 28
+2018-06-07T01:55:31.297Z cloudify return[7]: 28
+2018-06-07T01:55:31.297Z cloudify return[8]: 28
+2018-06-07T01:55:31.297Z cloudify return[9]: 29
+2018-06-07T01:55:31.297Z cloudify return[10]: 29
+2018-06-07T01:55:31.297Z cloudify return[11]: 29
+2018-06-07T01:55:31.297Z cloudify return[12]: 29
+2018-06-07T01:55:31.297Z cloudify return[13]: 29
+2018-06-07T01:55:31.297Z cloudify return[14]: 29
+2018-06-07T01:55:31.297Z cloudify return[15]: 29
+2018-06-07T01:55:31.297Z cloudify return[16]: 30
+2018-06-07T01:55:31.297Z cloudify return[17]: 30
+2018-06-07T01:55:31.297Z cloudify return[18]: 30
+2018-06-07T01:55:31.297Z cloudify return[19]: 30
+2018-06-07T01:55:31.297Z cloudify return[20]: 30
+2018-06-07T01:55:31.297Z cloudify return[21]: 30
+2018-06-07T01:55:31.297Z cloudify return[22]: 31
+2018-06-07T01:55:31.297Z cloudify return[23]: 31
+2018-06-07T01:55:31.297Z cloudify return[24]: 31
+2018-06-07T01:55:31.297Z cloudify return[25]: 31
+2018-06-07T01:55:31.297Z cloudify return[26]: 31
+2018-06-07T01:55:31.297Z cloudify return[27]: 31
+2018-06-07T01:55:31.297Z cloudify return[28]: 31
+2018-06-07T01:55:31.297Z cloudify return[29]: 31
+2018-06-07T01:55:31.297Z cloudify return[30]: 31
+2018-06-07T01:55:31.297Z cloudify return[31]: 31
+2018-06-07T01:55:31.297Z cloudify return[32]: 31
+2018-06-07T01:55:31.297Z cloudify return[33]: 31
+2018-06-07T01:55:31.297Z cloudify return[34]: 31
+2018-06-07T01:55:31.298Z cloudify return[35]: 32
+2018-06-07T01:55:31.298Z cloudify return[36]: 32
+2018-06-07T01:55:31.298Z cloudify return[37]: 32
+2018-06-07T01:55:31.298Z cloudify return[38]: 32
+2018-06-07T01:55:31.298Z cloudify return[39]: 32
+2018-06-07T01:55:31.298Z cloudify return[40]: 32
+2018-06-07T01:55:31.298Z cloudify return[41]: 32
+2018-06-07T01:55:31.298Z cloudify return[42]: 32
+2018-06-07T01:55:31.298Z cloudify return[43]: 32
+2018-06-07T01:55:31.298Z cloudify return[44]: 32
+2018-06-07T01:55:31.298Z cloudify return[45]: 33
+2018-06-07T01:55:31.298Z cloudify return[46]: 33
+2018-06-07T01:55:31.298Z cloudify return[47]: 33
+2018-06-07T01:55:31.298Z cloudify return[48]: 33
+2018-06-07T01:55:31.298Z cloudify return[49]: 33
+2018-06-07T01:55:31.298Z cloudify return[50]: 33
+2018-06-07T01:55:31.298Z cloudify return[51]: 33
+2018-06-07T01:55:31.298Z cloudify return[52]: 34
+2018-06-07T01:55:31.298Z cloudify return[53]: 34
+2018-06-07T01:55:31.298Z cloudify return[54]: 34
+2018-06-07T01:55:31.298Z cloudify return[55]: 34
+2018-06-07T01:55:31.298Z cloudify return[56]: 35
+2018-06-07T01:55:31.298Z cloudify return[57]: 35
+2018-06-07T01:55:31.298Z cloudify return[58]: 35
+2018-06-07T01:55:31.298Z cloudify return[59]: 35
+2018-06-07T01:55:31.298Z cloudify return[60]: 36
+2018-06-07T01:55:31.298Z cloudify return[61]: 36
+2018-06-07T01:55:31.298Z cloudify return[62]: 36
+2018-06-07T01:55:31.298Z cloudify return[63]: 36
+2018-06-07T01:55:31.298Z cloudify return[64]: 36
+2018-06-07T01:55:31.298Z cloudify return[65]: 36
+2018-06-07T01:55:31.298Z cloudify return[66]: 36
+2018-06-07T01:55:31.298Z cloudify return[67]: 36
+2018-06-07T01:55:31.298Z cloudify return[68]: 36
+2018-06-07T01:55:31.298Z cloudify return[69]: 36
+2018-06-07T01:55:31.298Z cloudify return[70]: 37
+2018-06-07T01:55:31.298Z cloudify return[71]: 37
+2018-06-07T01:55:31.298Z cloudify return[72]: 37
+2018-06-07T01:55:31.298Z cloudify return[73]: 37
+2018-06-07T01:55:31.298Z cloudify return[74]: 37
+2018-06-07T01:55:31.298Z cloudify return[75]: 37
+2018-06-07T01:55:31.298Z cloudify return[76]: 37
+2018-06-07T01:55:31.298Z cloudify return[77]: 37
+2018-06-07T01:55:31.298Z cloudify return[78]: 37
+2018-06-07T01:55:31.299Z cloudify return[79]: 37
+2018-06-07T01:55:31.299Z cloudify return[80]: 37
+2018-06-07T01:55:31.299Z cloudify return[81]: 38
+2018-06-07T01:55:31.299Z cloudify return[82]: 38
+2018-06-07T01:55:31.299Z cloudify return[83]: 38
+2018-06-07T01:55:31.299Z cloudify return[84]: 38
+2018-06-07T01:55:31.299Z cloudify return[85]: 38
+2018-06-07T01:55:31.299Z cloudify return[86]: 38
+2018-06-07T01:55:31.299Z cloudify return[87]: 38
+2018-06-07T01:55:31.299Z cloudify return[88]: 38
+2018-06-07T01:55:31.299Z cloudify return[89]: 38
+2018-06-07T01:55:31.299Z cloudify return[90]: 38
+2018-06-07T01:55:31.299Z cloudify return[91]: 38
+2018-06-07T01:55:31.299Z cloudify return[92]: 38
+2018-06-07T01:55:31.299Z cloudify return[93]: 38
+2018-06-07T01:55:31.299Z cloudify return[94]: 39
+2018-06-07T01:55:31.299Z cloudify return[95]: 39
+2018-06-07T01:55:31.299Z cloudify return[96]: 39
+2018-06-07T01:55:31.299Z cloudify return[97]: 39
+2018-06-07T01:55:31.299Z cloudify return[98]: 39
+2018-06-07T01:55:31.299Z cloudify return[99]: 39
+2018-06-07T01:55:31.299Z cloudify return[100]: 40
+2018-06-07T01:55:31.299Z cloudify return[101]: 41
+2018-06-07T01:55:31.299Z cloudify return[102]: 41
+2018-06-07T01:55:31.299Z cloudify return[103]: 41
+2018-06-07T01:55:31.299Z cloudify return[104]: 41
+2018-06-07T01:55:31.299Z cloudify return[105]: 42
+2018-06-07T01:55:31.299Z cloudify return[106]: 42
+2018-06-07T01:55:31.299Z cloudify return[107]: 42
+2018-06-07T01:55:31.299Z cloudify return[108]: 43
+2018-06-07T01:55:31.299Z cloudify return[109]: 43
+2018-06-07T01:55:31.299Z cloudify return[110]: 43
+2018-06-07T01:55:31.299Z cloudify return[111]: 44
+2018-06-07T01:55:31.299Z cloudify return[112]: 44
+2018-06-07T01:55:31.299Z cloudify return[113]: 44
+2018-06-07T01:55:31.299Z cloudify return[114]: 45
+2018-06-07T01:55:31.300Z cloudify return[115]: 45
+2018-06-07T01:55:31.300Z cloudify return[116]: 45
+2018-06-07T01:55:31.300Z cloudify return[117]: 45
+2018-06-07T01:55:31.300Z cloudify return[118]: 45
+2018-06-07T01:55:31.300Z cloudify return[119]: 45
+2018-06-07T01:55:31.300Z cloudify return[120]: 46
+2018-06-07T01:55:31.300Z cloudify return[121]: 46
+2018-06-07T01:55:31.300Z cloudify return[122]: 46
+2018-06-07T01:55:31.300Z cloudify return[123]: 46
+2018-06-07T01:55:31.300Z cloudify return[124]: 48
+2018-06-07T01:55:31.300Z cloudify return[125]: 49
+2018-06-07T01:55:31.300Z cloudify return[126]: 49
+2018-06-07T01:55:31.300Z cloudify return[127]: 49
+2018-06-07T01:55:31.300Z cloudify return[128]: 49
+2018-06-07T01:55:31.300Z cloudify return[129]: 51
+2018-06-07T01:55:31.300Z cloudify return[130]: 51
+2018-06-07T01:55:31.300Z cloudify return[131]: 52
+2018-06-07T01:55:31.300Z cloudify return[132]: 54
+2018-06-07T01:55:31.300Z cloudify return[133]: 54
+2018-06-07T01:55:31.300Z cloudify return[134]: 54
+2018-06-07T01:55:31.300Z cloudify return[135]: 56
+2018-06-07T01:55:31.300Z cloudify return[136]: 56
+2018-06-07T01:55:31.300Z cloudify return[137]: 60
+2018-06-07T01:55:31.300Z cloudify return[138]: 61
+2018-06-07T01:55:31.300Z cloudify return[139]: 61
+2018-06-07T01:55:31.300Z cloudify return[140]: 61
+2018-06-07T01:55:31.300Z cloudify return[141]: 63
+2018-06-07T01:55:31.300Z cloudify return[142]: 64
+2018-06-07T01:55:31.300Z cloudify return[143]: 67
+2018-06-07T01:55:31.300Z cloudify return[144]: 73
+2018-06-07T01:55:31.300Z cloudify return[145]: 73
+2018-06-07T01:55:31.300Z cloudify return[146]: 73
+2018-06-07T01:55:31.300Z cloudify return[147]: 78
+2018-06-07T01:55:31.300Z cloudify return[148]: 81
+2018-06-07T01:55:31.300Z cloudify return[149]: 81
+2018-06-07T01:55:31.300Z cloudify return[150]: 82
+2018-06-07T01:55:31.301Z cloudify return[151]: 82
+2018-06-07T01:55:31.301Z cloudify return[152]: 84
+2018-06-07T01:55:31.301Z cloudify return[153]: 85
+2018-06-07T01:55:31.301Z cloudify return[154]: 85
+2018-06-07T01:55:31.301Z cloudify return[155]: 87
+2018-06-07T01:55:31.301Z cloudify return[156]: 87
+2018-06-07T01:55:31.301Z cloudify return[157]: 88
+2018-06-07T01:55:31.301Z cloudify return[158]: 88
+2018-06-07T01:55:31.301Z cloudify return[159]: 94
+2018-06-07T01:55:31.301Z cloudify return[160]: 99
+2018-06-07T01:55:31.301Z cloudify return[161]: 99
+2018-06-07T01:55:31.301Z cloudify return[162]: 100
+2018-06-07T01:55:31.301Z cloudify return[163]: 101
+2018-06-07T01:55:31.301Z cloudify return[164]: 103
+2018-06-07T01:55:31.301Z cloudify return[165]: 103
+2018-06-07T01:55:31.301Z cloudify return[166]: 104
+2018-06-07T01:55:31.301Z cloudify return[167]: 105
+2018-06-07T01:55:31.301Z cloudify return[168]: 107
+2018-06-07T01:55:31.301Z cloudify return[169]: 107
+2018-06-07T01:55:31.301Z cloudify return[170]: 108
+2018-06-07T01:55:31.301Z cloudify return[171]: 109
+2018-06-07T01:55:31.301Z cloudify return[172]: 109
+2018-06-07T01:55:31.301Z cloudify return[173]: 110
+2018-06-07T01:55:31.301Z cloudify return[174]: 111
+2018-06-07T01:55:31.301Z cloudify return[175]: 111
+2018-06-07T01:55:31.301Z cloudify return[176]: 112
+2018-06-07T01:55:31.301Z cloudify return[177]: 112
+2018-06-07T01:55:31.301Z cloudify return[178]: 112
+2018-06-07T01:55:31.301Z cloudify return[179]: 115
+2018-06-07T01:55:31.301Z cloudify return[180]: 117
+2018-06-07T01:55:31.301Z cloudify return[181]: 117
+2018-06-07T01:55:31.301Z cloudify return[182]: 117
+2018-06-07T01:55:31.301Z cloudify return[183]: 118
+2018-06-07T01:55:31.301Z cloudify return[184]: 119
+2018-06-07T01:55:31.301Z cloudify return[185]: 120
+2018-06-07T01:55:31.301Z cloudify return[186]: 121
+2018-06-07T01:55:31.301Z cloudify return[187]: 122
+2018-06-07T01:55:31.301Z cloudify return[188]: 123
+2018-06-07T01:55:31.301Z cloudify return[189]: 123
+2018-06-07T01:55:31.301Z cloudify return[190]: 126
+2018-06-07T01:55:31.302Z cloudify return[191]: 132
+2018-06-07T01:55:31.302Z cloudify return[192]: 132
+2018-06-07T01:55:31.302Z cloudify return[193]: 137
+2018-06-07T01:55:31.302Z cloudify return[194]: 140
+2018-06-07T01:55:31.302Z cloudify return[195]: 143
+2018-06-07T01:55:31.302Z cloudify return[196]: 147
+2018-06-07T01:55:31.302Z cloudify return[197]: 165
+2018-06-07T01:55:31.302Z cloudify return[198]: 168
+2018-06-07T01:55:31.302Z cloudify return[199]: 213
+2018-06-07T01:55:31.302Z cloudify return[200]: 245
+2018-06-07T01:55:31.311Z cloudify delete function projects/derivative-184723/locations/us-central1/functions/cloudify-ffe052ad-78d2-43a0-890d-d26a8e594c7d
+  console.log build/test/aws-load.test.js:65
+    inside: 785394151, samples: 1000000000
+
+2018-06-07T01:55:31.867Z cloudify Polling...
+2018-06-07T01:55:32.239Z cloudify not done, retrying...
+2018-06-07T01:55:32.441Z cloudify Polling...
+2018-06-07T01:55:32.599Z cloudify not done, retrying...
+2018-06-07T01:55:32.900Z cloudify Polling...
+2018-06-07T01:55:33.304Z cloudify not done, retrying...
+2018-06-07T01:55:33.705Z cloudify Polling...
+2018-06-07T01:55:34.122Z cloudify not done, retrying...
+2018-06-07T01:55:34.628Z cloudify Polling...
+2018-06-07T01:55:34.988Z cloudify not done, retrying...
+2018-06-07T01:55:35.593Z cloudify Polling...
+2018-06-07T01:55:35.760Z cloudify Done.
+PASS build/test/aws-load.test.js (93.766s)
+  ✓ Monte Carlo estimate of PI using 1B samples and 200 invocations (69918ms)
+  ○ skipped 1 test
+
+Test Suites: 1 passed, 1 total
+Tests:       1 skipped, 1 passed, 2 total
+Snapshots:   0 total
+Time:        94.324s
+Ran all test suites matching /build\/test\/aws-load.test.js/i.

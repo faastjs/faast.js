@@ -39,13 +39,31 @@ export function rejected(): Promise<string> {
     return Promise.reject("This promise is intentionally rejected.");
 }
 
-export function monteCarloPI(samples: number) {
+export interface MonteCarloReturn {
+    inside: number;
+    samples: number;
+    clientStart: number;
+    start: number;
+    end: number;
+    startLatency: number;
+}
+
+export function monteCarloPI(samples: number, clientStart: number): MonteCarloReturn {
     let inside = 0;
+    const start = Date.now();
     for (let n = 0; n < samples; n++) {
         const [x, y] = [Math.random(), Math.random()];
         if (x ** 2 + y ** 2 <= 1) {
             inside++;
         }
     }
-    return { inside, samples };
+    const end = Date.now();
+    return {
+        inside,
+        samples,
+        clientStart,
+        start,
+        end,
+        startLatency: start - clientStart
+    };
 }

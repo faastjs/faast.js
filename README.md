@@ -117,6 +117,7 @@ where this limit is coming from. Here are some possibilities:
   - [ ] Try running the load test from EC2.
   - [ ] Remove the
 - [ ] At the Node.js layer.
+  - [*] Run two different loads from one client.
   - [ ] Try latest node version
   - [ ] Try changing node libuv thread pool size
   - [ ] Try changing v8 thread pool size
