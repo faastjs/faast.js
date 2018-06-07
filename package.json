@@ -6,7 +6,7 @@
     "types": "build/src/cloudify.d.ts",
     "scripts": {
         "build": "yarn clean && tsc",
-        "watch": "tsc --watch",
+        "watch": "yarn clean && tsc --watch",
         "test-local": "yarn build && jest build/test/*-local.test.js",
         "test": "yarn build && jest",
         "clean": "rm -rf build"
