@@ -1,6 +1,9 @@
 import humanStringify from "human-stringify";
 import { AnyFunction } from "../cloudify";
 import { FunctionCall, FunctionReturn } from "../shared";
+import * as aws from "aws-sdk";
+
+let sqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
 const funcs: { [func: string]: AnyFunction } = {};
 
@@ -21,11 +24,11 @@ export function registerAllFunctions(obj: { [name: string]: AnyFunction }) {
 export async function trampoline(
     event: any,
     _context: any,
-    callback: (err: Error | null, obj: object) => void
+    callback: (err: Error | null, obj: FunctionReturn) => void
 ) {
     console.log(`${humanStringify(event)}`);
+    const { name, args, CallId } = event as FunctionCall;
     try {
-        const { name, args } = event as FunctionCall;
         if (!name) {
             throw new Error("Invalid function call request");
         }
@@ -45,17 +48,32 @@ export async function trampoline(
 
         callback(null, {
             type: "returned",
-            value: rv
-        } as FunctionReturn);
+            value: rv,
+            CallId
+        });
     } catch (err) {
         const errObj = {};
         Object.getOwnPropertyNames(err).forEach(name => (errObj[name] = err[name]));
         console.log(`errObj: ${humanStringify(errObj)}`);
         callback(null, {
             type: "error",
-            value: errObj
-        } as FunctionReturn);
+            value: errObj,
+            CallId
+        });
     }
+}
+
+export async function queueTrampoline(
+    event: any,
+    context: any,
+    callback: (err: Error | null, obj: object) => void
+) {
+    // XXX
+    try {
+        trampoline(event, context, (err, obj) => {
+            sqs.sendMessage({ QueueUrl: ResponseQueueUrl, MessageBody: obj });
+        });
+    } catch (err) {}
 }
 
 console.log(`Successfully loaded cloudify trampoline function.`);

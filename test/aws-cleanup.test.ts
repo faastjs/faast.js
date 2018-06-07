@@ -4,7 +4,7 @@ import { quietly } from "../src/aws/aws-cloudify";
 async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
     const {
         services: { lambda, iam, cloudwatch },
-        vars: { FunctionName, logGroupName, RoleName, rolePolicy }
+        resources: { FunctionName, logGroupName, RoleName, rolePolicy }
     } = func.getState();
 
     const functionResult = await quietly(

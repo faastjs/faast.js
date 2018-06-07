@@ -261,9 +261,11 @@ export function cloudifyWithResponse<F extends AnyFunction>(
 ): ResponsifiedFunction<F> {
     const { isEmulator, trampoline, url } = state.vars;
     const promisifedFunc = async (...args: any[]) => {
+        const CallId = uuidv4();
         let callArgs: FunctionCall = {
             name: fn.name,
-            args
+            args,
+            CallId
         };
         const data = JSON.stringify(callArgs);
         log(`Calling cloud function "${fn.name}" with args: ${data}`, "");
