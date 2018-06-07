@@ -17,14 +17,14 @@ export interface Options {
     RoleName?: string;
     timeout?: number;
     memorySize?: number;
+    useQueue?: boolean;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
 }
 
 export interface AWSVariables {
     readonly FunctionName: string;
     readonly RoleName: string;
-    readonly QueueUrl: string;
-    readonly QueueName: string;
+    readonly QueueUrl?: string;
     readonly rolePolicy: RoleHandling;
     readonly logGroupName: string;
     readonly region: string;
@@ -75,6 +75,7 @@ let defaults: Required<Options> = {
     RoleName: "cloudify-cached-role",
     timeout: 60,
     memorySize: 128,
+    useQueue: true,
     awsLambdaOptions: {}
 };
 
@@ -101,6 +102,7 @@ export async function initialize(
         RoleName = defaults.RoleName,
         timeout: Timeout = defaults.timeout,
         memorySize: MemorySize = defaults.memorySize,
+        useQueue = defaults.useQueue,
         awsLambdaOptions = {},
         ...rest
     } = options;
@@ -251,17 +253,19 @@ export async function initialize(
     await carefully(cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 }));
     const noCreateLogGroupPolicy = await addNoCreateLogPolicyToRole();
     const QueueName = FunctionName;
-    const queueResponse = await createQueue(QueueName);
-    const QueueUrl = queueResponse && queueResponse.QueueUrl;
-    if (!QueueUrl) {
-        throw new Error(`Could not create SQS queue: ${FunctionName}`);
+    let QueueUrl;
+    if (useQueue) {
+        const queueResponse = await createQueue(QueueName);
+        QueueUrl = queueResponse && queueResponse.QueueUrl;
+        if (!QueueUrl) {
+            throw new Error(`Could not create SQS queue: ${FunctionName}`);
+        }
     }
     return {
         vars: {
             FunctionName,
             RoleName,
             QueueUrl,
-            QueueName,
             rolePolicy,
             logGroupName,
             region,
@@ -287,13 +291,26 @@ export function cloudifyWithResponse<F extends AnyFunction>(
         };
         const callArgsStr = JSON.stringify(callArgs);
         log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`, "");
+        const { FunctionName, QueueUrl } = state.vars;
         const request: aws.Lambda.Types.InvocationRequest = {
-            FunctionName: state.vars.FunctionName,
+            FunctionName: FunctionName,
             LogType: "Tail",
             Payload: callArgsStr
         };
         log(`Invocation request: ${humanStringify(request)}`);
-        const rawResponse = await state.services.lambda.invoke(request).promise();
+        const { sqs, lambda } = state.services;
+        let rawResponse;
+        if (QueueUrl) {
+            const sendResponse = await carefully(
+                sqs.sendMessage({ QueueUrl, MessageBody: JSON.stringify(request) })
+            );
+            if (sendResponse) {
+                // Enqueue and wait for messageId to complete?
+                sendResponse.MessageId;
+            }
+        } else {
+            rawResponse = await lambda.invoke(request).promise();
+        }
         log(`  returned: ${humanStringify(rawResponse)}`);
         log(`  requestId: ${rawResponse.$response.requestId}`);
         let error: Error | undefined;
