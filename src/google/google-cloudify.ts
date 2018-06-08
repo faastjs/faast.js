@@ -9,10 +9,11 @@ import { log } from "../log";
 import { PackerResult, packer } from "../packer";
 import { FunctionCall, FunctionReturn } from "../shared";
 
-export interface Options extends gcf.Schema$CloudFunction {
+export interface Options {
     region?: string;
     timeoutSec?: number;
     memorySize?: number;
+    googleCloudFunctionOptions?: gcf.Schema$CloudFunction;
 }
 
 export interface GoogleVariables {
@@ -167,6 +168,13 @@ export async function initializeEmulator(fmodule: string, options: Options = {})
     return initializeWithApi(fmodule, options, emulator, project, true);
 }
 
+export const defaults: Required<Options> = {
+    region: "us-central1",
+    timeoutSec: 60,
+    memorySize: 256,
+    googleCloudFunctionOptions: {}
+};
+
 async function initializeWithApi(
     serverModule: string,
     options: Options,
@@ -179,9 +187,10 @@ async function initializeWithApi(
     const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
     const {
-        region = "us-central1",
-        timeoutSec = 60,
-        memorySize = 256,
+        region = defaults.region,
+        timeoutSec = defaults.timeoutSec,
+        memorySize = defaults.memorySize,
+        googleCloudFunctionOptions,
         ...rest
     } = options;
     const location = getLocationPath(project, region);
@@ -201,6 +210,7 @@ async function initializeWithApi(
         availableMemoryMb: memorySize,
         httpsTrigger: {},
         sourceUploadUrl: uploadUrlResponse.uploadUrl,
+        ...googleCloudFunctionOptions,
         ...rest
     };
     validateGoogleLabels(requestBody.labels);

@@ -105,6 +105,21 @@ following to your `package.json`:
 }
 ```
 
+# Cleaning up stray resources
+
+Use the `cloudify-cleanup` utility to clean up stray resources that may be left by cloudify in some rare instances (e.g. crashes where cleanup is not invoked):
+
+```
+$ node build/src/cloudify-cleanup.js aws
+```
+
+By default the utility runs in dry-run mode, only printing the actions it will
+perform. To actually execute the cleanup, specify the `-x` option:
+
+```
+$ node build/src/cloudify-cleanup.js aws -x
+```
+
 # Concurrency
 
 Empirically we see a 50 concurrent cloud function execution limit. It's unclear

@@ -29,7 +29,6 @@ function getUrlEncodedQueryParameters(options: CloudifyLoaderOptions) {
 
 export function packer({
     trampolineModule,
-    trampolineFunction = "trampoline",
     functionModule = undefined,
     webpackOptions = {},
     packageBundling = "bundleNodeModules"
@@ -39,7 +38,6 @@ export function packer({
     externals = Array.isArray(externals) ? externals : [externals];
     let loaderOptions = {
         trampolineModule,
-        trampolineFunction,
         functionModule
     };
     const loader = `cloudify-loader?${getUrlEncodedQueryParameters(loaderOptions)}!`;

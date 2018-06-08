@@ -14,4 +14,5 @@ beforeAll(async () => {
 
 checkFunctions("Cloudify AWS", () => remote);
 
-afterAll(() => lambda.cleanup(), 30 * 1000);
+// afterAll(() => lambda.cleanup(), 30 * 1000);
+afterAll(() => lambda.cancelAll(), 30 * 1000);

@@ -1,13 +1,13 @@
 import * as aws from "aws-sdk";
-import { AWSError, Request, SNS } from "aws-sdk";
+import { AWSError, Request } from "aws-sdk";
+import debug from "debug";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
 import { AnyFunction, Response, ResponsifiedFunction } from "../cloudify";
 import { log } from "../log";
-import { PackerResult, packer } from "../packer";
+import { packer, PackerResult } from "../packer";
 import { FunctionCall, FunctionReturn } from "../shared";
-import { PromiseResult } from "aws-sdk/lib/request";
 
 export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
 
@@ -30,7 +30,6 @@ export interface AWSResources {
     rolePolicy: RoleHandling;
     logGroupName: string;
     region: string;
-    noCreateLogGroupPolicy: string;
     SNSLambdaSubscriptionArn?: string;
 }
 
@@ -48,8 +47,8 @@ export interface State {
     resources: AWSResources;
     services: AWSServices;
     useQueue?: boolean;
-    promiseQueue?: { [MessageId: string]: Deferred<QueuedResponse<any>> };
-    stopResultCollector?: boolean;
+    callResultPromises: { [MessageId: string]: Deferred<QueuedResponse<any>> };
+    resultCollectorPromise?: Promise<void>;
 }
 
 export function carefully<U>(arg: Request<U, AWSError>) {
@@ -73,7 +72,7 @@ function sleep(ms: number) {
     return new Promise<void>(resolve => setTimeout(resolve, ms));
 }
 
-let defaults: Required<Options> = {
+export let defaults: Required<Options> = {
     region: "us-east-1",
     PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
     rolePolicy: "createOrReuseCachedRole",
@@ -84,7 +83,7 @@ let defaults: Required<Options> = {
     awsLambdaOptions: {}
 };
 
-function createAWSApis(region: string): AWSServices {
+export function createAWSApis(region: string): AWSServices {
     return {
         iam: new aws.IAM({ apiVersion: "2010-05-08", region }),
         lambda: new aws.Lambda({ apiVersion: "2015-03-31", region }),
@@ -201,8 +200,8 @@ async function createNotifier(Name: string, services: AWSServices) {
 
 async function createLogGroup(logGroupName: string, services: AWSServices) {
     const { cloudwatch } = services;
-    await cloudwatch.createLogGroup({ logGroupName });
-    await cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 });
+    const response = await cloudwatch.createLogGroup({ logGroupName }).promise();
+    await cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 }).promise();
 }
 
 export async function initialize(fModule: string, options: Options = {}): Promise<State> {
@@ -235,7 +234,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
 
     async function createFunction() {
         let roleResponse =
-            (await iam.getRole({ RoleName }).promise()) ||
+            (await quietly(iam.getRole({ RoleName }))) ||
             (await createRole(RoleName, PolicyArn, services));
         await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
         const { archive } = await pack(fModule);
@@ -263,13 +262,13 @@ export async function initialize(fModule: string, options: Options = {}): Promis
 
     let state: State = {
         useQueue,
+        callResultPromises: {},
         resources: {
             FunctionName,
             RoleName,
             rolePolicy,
             logGroupName,
-            region,
-            noCreateLogGroupPolicy
+            region
         },
         services: { lambda, cloudwatch, iam, sqs, sns }
     };
@@ -294,9 +293,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
                 .promise();
             log(`Created SNS subscription: ${snsRepsonse.SubscriptionArn}`);
             state.resources.SNSLambdaSubscriptionArn = snsRepsonse.SubscriptionArn!;
-            state.stopResultCollector = false;
-            state.promiseQueue = {};
-            resultCollector(state);
+            startResultCollectorIfNeeded(state);
         }
         return state;
     } catch (err) {
@@ -317,11 +314,22 @@ interface Deferred<T> {
     promise: Promise<T>;
 }
 
+function isEmpty(obj: object) {
+    for (const k in obj) {
+        if (obj.hasOwnProperty(k)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 async function resultCollector(state: State) {
     const { sqs } = state.services;
     const { ResponseQueueUrl } = state.resources;
-    while (state.stopResultCollector !== true) {
-        log(`Result collector polling...`);
+    const log = debug("cloudify:collector");
+
+    while (!isEmpty(state.callResultPromises)) {
+        log(`polling...`);
         const rawResponse = await sqs
             .receiveMessage({
                 QueueUrl: ResponseQueueUrl!,
@@ -329,15 +337,18 @@ async function resultCollector(state: State) {
                 MaxNumberOfMessages: 10
             })
             .promise();
+        log(`rawResponse: %O`, rawResponse);
         const { Messages = [] } = rawResponse;
         let deletePromises = [];
-        log(`  Received ${Messages.length} messages.`);
+        log(`received ${Messages.length} messages.`);
         for (const { Body, ReceiptHandle } of Messages) {
             if (Body) {
                 const returned: FunctionReturn = JSON.parse(Body);
-                const promise = state.promiseQueue![returned.CallId];
+                const { CallId } = returned;
+                const promise = state.callResultPromises[CallId];
+                delete state.callResultPromises[CallId];
                 if (!promise) {
-                    log(`Promise not found for CallID: ${returned.CallId}`);
+                    log(`promise not found for CallID: ${returned.CallId}`);
                 } else {
                     promise.resolve({ returned, rawResponse });
                 }
@@ -351,6 +362,16 @@ async function resultCollector(state: State) {
             deletePromises.push(deletePromise);
         }
         await Promise.all(deletePromises);
+    }
+    delete state.resultCollectorPromise;
+    setTimeout(() => {
+        startResultCollectorIfNeeded(state);
+    }, 0);
+}
+
+function startResultCollectorIfNeeded(state: State) {
+    if (!isEmpty(state.callResultPromises) && !state.resultCollectorPromise) {
+        state.resultCollectorPromise = resultCollector(state);
     }
 }
 
@@ -366,7 +387,9 @@ function enqueueCallRequest(state: State, CallId: string): Deferred<any> {
         reject: rejector,
         promise
     };
-    state.promiseQueue![CallId] = deferred;
+    log(`Enqueuing call request CallId: ${CallId}, deferred: ${deferred}`);
+    state.callResultPromises[CallId] = deferred;
+    startResultCollectorIfNeeded(state);
     return deferred;
 }
 
@@ -430,27 +453,30 @@ export function cloudifyWithResponse<F extends AnyFunction>(
     return responsifedFunc as any;
 }
 
-export async function deleteRole(
-    RoleName: string,
-    noCreateLogGroupPolicy: string | undefined,
-    iam: aws.IAM
-) {
+export async function deleteRole(RoleName: string, iam: aws.IAM) {
     const policies = await carefully(iam.listAttachedRolePolicies({ RoleName }));
     const AttachedPolicies = (policies && policies.AttachedPolicies) || [];
-    function detach(policy: aws.IAM.AttachedPolicy) {
-        const PolicyArn = policy.PolicyArn!;
-        return carefully(iam.detachRolePolicy({ RoleName, PolicyArn }));
-    }
-    await Promise.all(AttachedPolicies.map(detach)).catch(log);
-    if (noCreateLogGroupPolicy) {
-        await carefully(
-            iam.deleteRolePolicy({ RoleName, PolicyName: noCreateLogGroupPolicy })
-        );
-    }
+    await Promise.all(
+        AttachedPolicies.map(p => p.PolicyArn!).map(PolicyArn =>
+            carefully(iam.detachRolePolicy({ RoleName, PolicyArn }))
+        )
+    ).catch(log);
+    const rolePolicyListResponse = await carefully(iam.listRolePolicies({ RoleName }));
+    const RolePolicies =
+        (rolePolicyListResponse && rolePolicyListResponse.PolicyNames) || [];
+    Promise.all(
+        RolePolicies.map(PolicyName =>
+            carefully(iam.deleteRolePolicy({ RoleName, PolicyName }))
+        )
+    ).catch(log);
     await carefully(iam.deleteRole({ RoleName }));
 }
 
-export async function cleanup(state: State) {
+type PartialState = Exclude<State, "resources"> & {
+    resources: Partial<AWSResources>;
+};
+
+export async function cleanup(state: PartialState) {
     const {
         FunctionName,
         RoleName,
@@ -461,39 +487,35 @@ export async function cleanup(state: State) {
         SNSLambdaSubscriptionArn
     } = state.resources;
     const { cloudwatch, iam, lambda, sqs, sns } = state.services;
+    log(`Cleaning up cloudify state`);
     if (SNSLambdaSubscriptionArn) {
-        log(`Deleting SNS subscription to lambda`);
+        log(`Deleting Request queue subscription to lambda`);
         await quietly(sns.unsubscribe({ SubscriptionArn: SNSLambdaSubscriptionArn }));
     }
-    if (RequestTopicArn) {
-        log(`Deleting SNS topic: ${RequestTopicArn}`);
-        await quietly(sns.deleteTopic({ TopicArn: RequestTopicArn }));
-    }
-    if (ResponseQueueUrl) {
-        log(`Deleting SQS queue: ${ResponseQueueUrl}`);
-        await quietly(sqs.deleteQueue({ QueueUrl: ResponseQueueUrl }));
-    }
+    const cancelPromise = cancelWithoutCleanup(state);
     if (FunctionName) {
         log(`Deleting function: ${FunctionName}`);
         await quietly(lambda.deleteFunction({ FunctionName }));
-    }
-    if (RoleName && rolePolicy === "createTemporaryRole") {
-        log(`Deleting temporary role: ${RoleName}`);
-        await deleteRole(RoleName, state.resources.noCreateLogGroupPolicy, iam);
     }
     if (logGroupName) {
         log(`Deleting log group: ${logGroupName}`);
         await quietly(cloudwatch.deleteLogGroup({ logGroupName }));
     }
-    if (state.promiseQueue) {
-        for (let key in Object.keys(state.promiseQueue)) {
-            state.promiseQueue[key].reject(
-                new Error("Call to cloud function cancelled in cleanup")
-            );
-        }
-        state.promiseQueue = {};
+    if (RoleName && rolePolicy === "createTemporaryRole") {
+        log(`Deleting temporary role: ${RoleName}`);
+        await deleteRole(RoleName, iam);
     }
-    state.stopResultCollector = true;
+    await cancelPromise;
+    let requestPromise, responsePromise;
+    if (RequestTopicArn) {
+        log(`Deleting Request queue topic: ${RequestTopicArn}`);
+        requestPromise = quietly(sns.deleteTopic({ TopicArn: RequestTopicArn }));
+    }
+    if (ResponseQueueUrl) {
+        log(`Deleting Response queue: ${ResponseQueueUrl}`);
+        responsePromise = quietly(sqs.deleteQueue({ QueueUrl: ResponseQueueUrl }));
+    }
+    await Promise.all([requestPromise, responsePromise]);
 }
 
 export async function pack(functionModule: string): Promise<PackerResult> {
@@ -515,5 +537,22 @@ export function cleanupResources(resourceString: string) {
         throw new Error("Resources missing 'region'");
     }
     const services = createAWSApis(resources.region);
-    return cleanup({ resources, services });
+    return cleanup({ resources, services, callResultPromises: {} });
+}
+
+export async function cancelWithoutCleanup(state: State) {
+    log(`Clearing result promises`);
+    const callResultPromises = state.callResultPromises;
+    state.callResultPromises = {};
+    log(`%O`, callResultPromises);
+    for (const key of Object.keys(callResultPromises)) {
+        log(`Rejecting call result: ${key}`);
+        callResultPromises[key].reject(
+            new Error("Call to cloud function cancelled in cleanup")
+        );
+    }
+    if (state.resultCollectorPromise) {
+        log(`Waiting for result collector to stop (this can take up to 20s)`);
+        await state.resultCollectorPromise;
+    }
 }

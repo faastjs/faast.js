@@ -5,7 +5,6 @@ import { log } from "./log";
 
 export interface CloudifyLoaderOptions {
     trampolineModule: string;
-    trampolineFunction?: string;
     functionModule?: string;
 }
 
@@ -13,8 +12,7 @@ export default function webpackCloudifyLoader(this: any, _source: string) {
     const options = getOptions(this) as CloudifyLoaderOptions;
     let rv = `
         const trampolineModule = require("${options.trampolineModule}");
-        exports.trampoline = trampolineModule.${options.trampolineFunction ||
-            "trampoline"};
+        exports = trampolineModule;
     `;
     if (options.functionModule !== undefined) {
         rv += `

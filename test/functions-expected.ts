@@ -12,7 +12,7 @@ export function checkFunctions(
             remote = service();
         });
 
-        test("hello: string => string", async () => {
+        test.only("hello: string => string", async () => {
             expect(await remote.hello("Andy")).toBe("Hello Andy!");
         });
 

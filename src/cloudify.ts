@@ -71,6 +71,7 @@ export abstract class CloudFunction<S> {
     abstract cleanup(): Promise<void>;
     abstract getResourceList(): string;
     abstract getState(): S;
+    abstract cancelAll(): Promise<void>;
 
     cloudify<F extends AnyFunction>(fn: F): PromisifiedFunction<F> {
         const cloudifiedFunc = async (...args: any[]) => {
@@ -131,6 +132,9 @@ export class AWSLambda extends CloudFunction<aws.State> {
     cleanup() {
         return aws.cleanup(this.state);
     }
+    cancelAll() {
+        return aws.cancelWithoutCleanup(this.state);
+    }
     getResourceList() {
         return aws.getResourceList(this.state);
     }
@@ -170,6 +174,9 @@ export class GoogleCloudFunction extends CloudFunction<google.State> {
     }
     cleanup() {
         return google.cleanup(this.state);
+    }
+    cancelAll(): Promise<void> {
+        throw new Error("Not implemented");
     }
     getResourceList() {
         return google.getResourceList(this.state);
@@ -219,6 +226,7 @@ export interface CloudImpl<Options, State> {
         fn: F
     ): ResponsifiedFunction<F>;
     cleanup(state: State): Promise<void>;
+    cancelWithoutCleanup(state: State): Promise<void>;
     getResourceList(state: State): string;
     cleanupResources(resources: string): Promise<void>;
     pack(functionModule: string): Promise<PackerResult>;
