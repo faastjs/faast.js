@@ -25,13 +25,13 @@ export interface Options {
 export interface AWSResources {
     FunctionName: string;
     RoleName: string;
-    useQueue: boolean;
     RequestTopicArn?: string;
     ResponseQueueUrl?: string;
     rolePolicy: RoleHandling;
     logGroupName: string;
     region: string;
     noCreateLogGroupPolicy: string;
+    SNSLambdaSubscriptionArn?: string;
 }
 
 export interface AWSServices {
@@ -47,6 +47,7 @@ export const name: string = "aws";
 export interface State {
     resources: AWSResources;
     services: AWSServices;
+    useQueue?: boolean;
     promiseQueue?: { [MessageId: string]: Deferred<QueuedResponse<any>> };
     stopResultCollector?: boolean;
 }
@@ -88,8 +89,8 @@ function createAWSApis(region: string): AWSServices {
         iam: new aws.IAM({ apiVersion: "2010-05-08", region }),
         lambda: new aws.Lambda({ apiVersion: "2015-03-31", region }),
         cloudwatch: new aws.CloudWatchLogs({ apiVersion: "2014-03-28", region }),
-        sqs: new aws.SQS({ apiVersion: "2012-11-05" }),
-        sns: new aws.SNS({ apiVersion: "2010-03-31" })
+        sqs: new aws.SQS({ apiVersion: "2012-11-05", region }),
+        sns: new aws.SNS({ apiVersion: "2010-03-31", region })
     };
 }
 
@@ -261,14 +262,14 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     }
 
     let state: State = {
+        useQueue,
         resources: {
             FunctionName,
             RoleName,
             rolePolicy,
             logGroupName,
             region,
-            noCreateLogGroupPolicy,
-            useQueue
+            noCreateLogGroupPolicy
         },
         services: { lambda, cloudwatch, iam, sqs, sns }
     };
@@ -292,12 +293,14 @@ export async function initialize(fModule: string, options: Options = {}): Promis
                 })
                 .promise();
             log(`Created SNS subscription: ${snsRepsonse.SubscriptionArn}`);
+            state.resources.SNSLambdaSubscriptionArn = snsRepsonse.SubscriptionArn!;
             state.stopResultCollector = false;
             state.promiseQueue = {};
             resultCollector(state);
         }
         return state;
     } catch (err) {
+        log(`ERROR: ${err}`);
         await cleanup(state);
         throw err;
     }
@@ -373,12 +376,7 @@ export function cloudifyWithResponse<F extends AnyFunction>(
 ): ResponsifiedFunction<F> {
     const responsifedFunc = async (...args: any[]) => {
         const CallId = uuidv4();
-        const {
-            FunctionName,
-            RequestTopicArn,
-            useQueue,
-            ResponseQueueUrl
-        } = state.resources;
+        const { FunctionName, RequestTopicArn, ResponseQueueUrl } = state.resources;
         let callArgs: FunctionCall = {
             name: fn.name,
             args,
@@ -397,7 +395,7 @@ export function cloudifyWithResponse<F extends AnyFunction>(
         let returned: FunctionReturn | undefined;
         let error: Error | undefined;
         let rawResponse: any;
-        if (useQueue) {
+        if (state.useQueue) {
             const queueResponse = await enqueueCallRequest(state, CallId).promise;
             await sns
                 .publish({ TopicArn: RequestTopicArn, Message: JSON.stringify(request) })
@@ -459,20 +457,25 @@ export async function cleanup(state: State) {
         logGroupName,
         rolePolicy,
         RequestTopicArn,
-        ResponseQueueUrl
+        ResponseQueueUrl,
+        SNSLambdaSubscriptionArn
     } = state.resources;
     const { cloudwatch, iam, lambda, sqs, sns } = state.services;
+    if (SNSLambdaSubscriptionArn) {
+        log(`Deleting SNS subscription to lambda`);
+        await quietly(sns.unsubscribe({ SubscriptionArn: SNSLambdaSubscriptionArn }));
+    }
     if (RequestTopicArn) {
         log(`Deleting SNS topic: ${RequestTopicArn}`);
-        await carefully(sns.deleteTopic({ TopicArn: RequestTopicArn }));
+        await quietly(sns.deleteTopic({ TopicArn: RequestTopicArn }));
     }
     if (ResponseQueueUrl) {
         log(`Deleting SQS queue: ${ResponseQueueUrl}`);
-        await carefully(sqs.deleteQueue({ QueueUrl: ResponseQueueUrl }));
+        await quietly(sqs.deleteQueue({ QueueUrl: ResponseQueueUrl }));
     }
     if (FunctionName) {
         log(`Deleting function: ${FunctionName}`);
-        await carefully(lambda.deleteFunction({ FunctionName }));
+        await quietly(lambda.deleteFunction({ FunctionName }));
     }
     if (RoleName && rolePolicy === "createTemporaryRole") {
         log(`Deleting temporary role: ${RoleName}`);
@@ -480,7 +483,7 @@ export async function cleanup(state: State) {
     }
     if (logGroupName) {
         log(`Deleting log group: ${logGroupName}`);
-        await carefully(cloudwatch.deleteLogGroup({ logGroupName }));
+        await quietly(cloudwatch.deleteLogGroup({ logGroupName }));
     }
     if (state.promiseQueue) {
         for (let key in Object.keys(state.promiseQueue)) {
