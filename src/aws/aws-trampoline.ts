@@ -66,14 +66,30 @@ export async function trampoline(
 export async function queueTrampoline(
     event: any,
     context: any,
-    callback: (err: Error | null, obj: object) => void
+    _callback: (err: Error | null, obj: object) => void
 ) {
-    // XXX
-    try {
-        trampoline(event, context, (err, obj) => {
-            sqs.sendMessage({ QueueUrl: ResponseQueueUrl, MessageBody: obj });
+    const { name, args, CallId, ResponseQueueUrl } = event as FunctionCall;
+    function sendError(err: any) {
+        sqs.sendMessage({
+            QueueUrl: ResponseQueueUrl!,
+            MessageBody: JSON.stringify({
+                type: "error",
+                value: err,
+                CallId
+            })
         });
-    } catch (err) {}
+    }
+    trampoline(event, context, (err, obj) => {
+        let result = obj;
+        if (err) {
+            sendError(err);
+            return;
+        }
+        sqs.sendMessage({
+            QueueUrl: ResponseQueueUrl!,
+            MessageBody: JSON.stringify(result)
+        });
+    }).catch(err => sendError(err));
 }
 
 console.log(`Successfully loaded cloudify trampoline function.`);

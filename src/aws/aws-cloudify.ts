@@ -246,7 +246,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             FunctionName,
             Role: roleResponse.Role.Arn,
             Runtime: "nodejs6.10",
-            Handler: "index.trampoline",
+            Handler: useQueue ? "index.queueTrampoline" : "index.trampoline",
             Code: { ZipFile: await zipStreamToBuffer(archive) },
             Description: "cloudify trampoline function",
             Timeout,
@@ -373,14 +373,20 @@ export function cloudifyWithResponse<F extends AnyFunction>(
 ): ResponsifiedFunction<F> {
     const responsifedFunc = async (...args: any[]) => {
         const CallId = uuidv4();
+        const {
+            FunctionName,
+            RequestTopicArn,
+            useQueue,
+            ResponseQueueUrl
+        } = state.resources;
         let callArgs: FunctionCall = {
             name: fn.name,
             args,
-            CallId
+            CallId,
+            ResponseQueueUrl
         };
         const callArgsStr = JSON.stringify(callArgs);
         log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`, "");
-        const { FunctionName, RequestTopicArn, useQueue } = state.resources;
         const request: aws.Lambda.Types.InvocationRequest = {
             FunctionName: FunctionName,
             LogType: "Tail",
@@ -392,10 +398,10 @@ export function cloudifyWithResponse<F extends AnyFunction>(
         let error: Error | undefined;
         let rawResponse: any;
         if (useQueue) {
+            const queueResponse = await enqueueCallRequest(state, CallId).promise;
             await sns
                 .publish({ TopicArn: RequestTopicArn, Message: JSON.stringify(request) })
                 .promise();
-            const queueResponse = await enqueueCallRequest(state, CallId).promise;
             ({ returned, rawResponse } = queueResponse);
         } else {
             rawResponse = await lambda.invoke(request).promise();
