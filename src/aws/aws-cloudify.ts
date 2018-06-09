@@ -204,6 +204,23 @@ async function createLogGroup(logGroupName: string, services: AWSServices) {
     await cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 }).promise();
 }
 
+function addSnsInvokePermissionsToFunction(
+    FunctionName: string,
+    RequestTopicArn: string,
+    services: AWSServices
+) {
+    const { lambda } = services;
+    return lambda
+        .addPermission({
+            FunctionName,
+            Action: "lambda:invokeFunction",
+            Principal: "sns.amazonaws.com",
+            StatementId: `${FunctionName}-Invoke`,
+            SourceArn: RequestTopicArn
+        })
+        .promise();
+}
+
 export async function initialize(fModule: string, options: Options = {}): Promise<State> {
     const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
@@ -246,7 +263,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             FunctionName,
             Role: roleResponse.Role.Arn,
             Runtime: "nodejs6.10",
-            Handler: useQueue ? "index.queueTrampoline" : "index.trampoline",
+            Handler: useQueue ? "index.snsTrampoline" : "index.trampoline",
             Code: { ZipFile: await zipStreamToBuffer(archive) },
             Description: "cloudify trampoline function",
             Timeout,
@@ -284,6 +301,12 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         state.resources = { ...state.resources, RequestTopicArn, ResponseQueueUrl };
 
         if (useQueue) {
+            await addSnsInvokePermissionsToFunction(
+                FunctionName,
+                RequestTopicArn,
+                services
+            );
+            log(`Added SNS invoke permission to function`);
             const snsRepsonse = await sns
                 .subscribe({
                     TopicArn: RequestTopicArn,
@@ -333,11 +356,10 @@ async function resultCollector(state: State) {
         const rawResponse = await sqs
             .receiveMessage({
                 QueueUrl: ResponseQueueUrl!,
-                WaitTimeSeconds: 20,
+                WaitTimeSeconds: 5,
                 MaxNumberOfMessages: 10
             })
             .promise();
-        log(`rawResponse: %O`, rawResponse);
         const { Messages = [] } = rawResponse;
         let deletePromises = [];
         log(`received ${Messages.length} messages.`);
@@ -464,7 +486,7 @@ export async function deleteRole(RoleName: string, iam: aws.IAM) {
     const rolePolicyListResponse = await carefully(iam.listRolePolicies({ RoleName }));
     const RolePolicies =
         (rolePolicyListResponse && rolePolicyListResponse.PolicyNames) || [];
-    Promise.all(
+    await Promise.all(
         RolePolicies.map(PolicyName =>
             carefully(iam.deleteRolePolicy({ RoleName, PolicyName }))
         )

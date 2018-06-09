@@ -2,6 +2,7 @@ import humanStringify from "human-stringify";
 import { AnyFunction } from "../cloudify";
 import { FunctionCall, FunctionReturn } from "../shared";
 import * as aws from "aws-sdk";
+import { SNSEvent } from "aws-lambda";
 
 let sqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
@@ -30,7 +31,7 @@ export async function trampoline(
     const { name, args, CallId } = event as FunctionCall;
     try {
         if (!name) {
-            throw new Error("Invalid function call request");
+            throw new Error("Invalid function call request: no name");
         }
 
         const func = funcs[name];
@@ -63,33 +64,47 @@ export async function trampoline(
     }
 }
 
-export async function queueTrampoline(
-    event: any,
+function sendError(err: any, ResponseQueueUrl: string, CallId: string) {
+    console.error(err);
+    sqs.sendMessage({
+        QueueUrl: ResponseQueueUrl,
+        MessageBody: JSON.stringify({
+            type: "error",
+            value: err,
+            CallId
+        })
+    }).send();
+    // XXX in case of error while sending...? Need DLQ...
+}
+
+export async function snsTrampoline(
+    event: SNSEvent,
     context: any,
     _callback: (err: Error | null, obj: object) => void
 ) {
-    const { name, args, CallId, ResponseQueueUrl } = event as FunctionCall;
-    function sendError(err: any) {
-        sqs.sendMessage({
-            QueueUrl: ResponseQueueUrl!,
-            MessageBody: JSON.stringify({
-                type: "error",
-                value: err,
-                CallId
-            })
-        });
+    console.log(`SNS event: ${event.Records.length} records`);
+    for (const record of event.Records) {
+        const { name, args, CallId, ResponseQueueUrl } = JSON.parse(
+            record.Sns.Message
+        ) as FunctionCall;
+
+        trampoline(event, context, (err, obj) => {
+            let result = obj;
+            if (err) {
+                sendError(err, ResponseQueueUrl!, CallId);
+                return;
+            }
+            console.log(`Result: ${JSON.stringify(result)}`);
+            sqs.sendMessage({
+                QueueUrl: ResponseQueueUrl!,
+                MessageBody: JSON.stringify(result)
+            }).send(err => {
+                if (err) {
+                    sendError(err, ResponseQueueUrl!, CallId);
+                }
+            });
+        }).catch(err => sendError(err, ResponseQueueUrl!, CallId));
     }
-    trampoline(event, context, (err, obj) => {
-        let result = obj;
-        if (err) {
-            sendError(err);
-            return;
-        }
-        sqs.sendMessage({
-            QueueUrl: ResponseQueueUrl!,
-            MessageBody: JSON.stringify(result)
-        });
-    }).catch(err => sendError(err));
 }
 
 console.log(`Successfully loaded cloudify trampoline function.`);

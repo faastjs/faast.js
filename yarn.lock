@@ -43,6 +43,10 @@
   dependencies:
     "@types/glob" "*"
 
+"@types/aws-lambda@^8.10.6":
+  version "8.10.6"
+  resolved "https://registry.yarnpkg.com/@types/aws-lambda/-/aws-lambda-8.10.6.tgz#5c01fac0c7736e7e43ca7b6652781862e702a199"
+
 "@types/body-parser@*":
   version "1.17.0"
   resolved "https://registry.yarnpkg.com/@types/body-parser/-/body-parser-1.17.0.tgz#9f5c9d9bd04bb54be32d5eb9fc0d8c974e6cf58c"
