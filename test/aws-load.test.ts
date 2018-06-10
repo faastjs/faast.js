@@ -4,14 +4,17 @@ import * as nock from "nock";
 import { log } from "../src/log";
 import { MonteCarloReturn } from "./functions";
 
-let cloud: cloudify.Cloud<any, any>;
-let lambda: cloudify.CloudFunction<any>;
+// let cloud: cloudify.Cloud<any, any>;
+// let lambda: cloudify.CloudFunction<any>;
+let cloud: cloudify.AWS;
+let lambda: cloudify.AWSLambda;
 let remote: cloudify.Promisified<typeof funcs>;
 
 beforeAll(async () => {
     cloud = cloudify.create("aws");
     lambda = await cloud.createFunction("./functions", {
         //Timeout: 120
+        //cloudSpecific: { useQueue: false }
     });
     remote = lambda.cloudifyAll(funcs);
 }, 90 * 1000);
@@ -19,7 +22,7 @@ beforeAll(async () => {
 test(
     "Load test ~100 concurrent executions",
     async () => {
-        const N = 100;
+        const N = 500;
         const promises: Promise<string>[] = [];
         for (let i = 0; i < N; i++) {
             promises.push(remote.hello(`function ${i}`));
@@ -38,8 +41,8 @@ function printLatencies(str: string, latencies: number[]) {
     });
 }
 
-test.only(
-    "Monte Carlo estimate of PI using 1B samples and 200 invocations",
+test(
+    "Monte Carlo estimate of PI using 1B samples and 500 invocations",
     async () => {
         //nock.recorder.rec({ logging: log });
         const nParallelFunctions = 500;

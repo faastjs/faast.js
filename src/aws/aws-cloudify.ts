@@ -344,9 +344,14 @@ async function resultCollector(state: State) {
     const { sqs } = state.services;
     const { ResponseQueueUrl } = state.resources;
     const log = debug("cloudify:collector");
+    const { callResultPromises } = state;
 
-    while (state.callResultPromises.size > 0) {
-        log(`Polling response queue: ${ResponseQueueUrl}`);
+    while (callResultPromises.size > 0) {
+        log(
+            `Polling response queue (size ${
+                callResultPromises.size
+            }): ${ResponseQueueUrl}`
+        );
         const rawResponse = await sqs
             .receiveMessage({
                 QueueUrl: ResponseQueueUrl!,
@@ -369,7 +374,7 @@ async function resultCollector(state: State) {
             );
         }
 
-        processResponseMessages(Messages, state.callResultPromises, log);
+        processResponseMessages(Messages, callResultPromises, log);
     }
     delete state.resultCollectorPromise;
     setTimeout(() => {
