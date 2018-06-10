@@ -78,16 +78,14 @@ function sendError(err: any, ResponseQueueUrl: string, CallId: string) {
 }
 
 export async function snsTrampoline(
-    event: SNSEvent,
+    snsEvent: SNSEvent,
     context: any,
     _callback: (err: Error | null, obj: object) => void
 ) {
-    console.log(`SNS event: ${event.Records.length} records`);
-    for (const record of event.Records) {
-        const { name, args, CallId, ResponseQueueUrl } = JSON.parse(
-            record.Sns.Message
-        ) as FunctionCall;
-
+    console.log(`SNS event: ${snsEvent.Records.length} records`);
+    for (const record of snsEvent.Records) {
+        const event = JSON.parse(record.Sns.Message) as FunctionCall;
+        const { CallId, ResponseQueueUrl } = event;
         trampoline(event, context, (err, obj) => {
             let result = obj;
             if (err) {

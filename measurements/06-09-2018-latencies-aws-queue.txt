@@ -1,0 +1,2509 @@
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$ node build/src/cloudify-cleanup.js aws -x --force
+Cleaning up AWS resources
+Cleaning up SNS subscriptions
+  Removing: arn:aws:sns:us-east-1:343675226624:cloudify-d5be16e1-987e-4e8d-b5d8-db098586b255-Requests:4b34cc8e-79fc-48d3-83dc-fc4ea4a3b2a2
+  Removing: arn:aws:sns:us-east-1:343675226624:cloudify-58755aff-aa54-4823-9048-3e0e99f0b2c7-Requests:fa3202c9-0d4d-4dcf-8c1a-015c9406cfc5
+Cleaning up SNS topics
+  Removing: arn:aws:sns:us-east-1:343675226624:cloudify-58755aff-aa54-4823-9048-3e0e99f0b2c7-Requests
+  Removing: arn:aws:sns:us-east-1:343675226624:cloudify-d5be16e1-987e-4e8d-b5d8-db098586b255-Requests
+Cleaning up SQS queues
+  Removing: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-58755aff-aa54-4823-9048-3e0e99f0b2c7-Responses
+  Removing: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-d5be16e1-987e-4e8d-b5d8-db098586b255-Responses
+Cleaning up lambda functions
+  Removing: cloudify-d5be16e1-987e-4e8d-b5d8-db098586b255
+  Removing: cloudify-58755aff-aa54-4823-9048-3e0e99f0b2c7Cleaning up cloudwatch log groups  Removing: /aws/lambda/cloudify-58755aff-aa54-4823-9048-3e0e99f0b2c7
+  Removing: /aws/lambda/cloudify-d5be16e1-987e-4e8d-b5d8-db098586b255
+Cleaning up IAM roles
+  Removing: cloudify-cached-role
+AC-MacBook:cloudify achou$ npx jest build/test/aws.test.js
+  cloudify:info Nonce: c179f756-b2cb-4e83-a6df-74e7ed956375 +0ms
+  cloudify:info Limits: {
+  cloudify:info   "AccountLimit": {
+  cloudify:info     "TotalCodeSize": 80530636800,
+  cloudify:info     "CodeSizeUnzipped": 262144000,
+  cloudify:info     "CodeSizeZipped": 52428800,
+  cloudify:info     "ConcurrentExecutions": 1000,
+  cloudify:info     "UnreservedConcurrentExecutions": 1000
+  cloudify:info   },
+  cloudify:info   "AccountUsage": {
+  cloudify:info     "TotalCodeSize": 22087,
+  cloudify:info     "FunctionCount": 2
+  cloudify:info   }
+  cloudify:info } +509ms
+  cloudify:info Creating role "cloudify-cached-role" for cloudify trampoline function +1s
+  cloudify:info Creating test function to ensure new role is ready for use +1s
+  cloudify:info Running webpack +2ms
+  cloudify:info Hash: 868e137b2bec6112309a
+  cloudify:info Version: webpack 4.11.1
+  cloudify:info Time: 334ms
+  cloudify:info Built at: 06/09/2018 4:34:12 PM
+  cloudify:info    Asset      Size  Chunks             Chunk Names
+  cloudify:info index.js  28.3 KiB    main  [emitted]  main
+  cloudify:info Entrypoint main = index.js
+  cloudify:info [./build/src/aws/aws-trampoline.js] 3.37 KiB {main} [built]
+  cloudify:info [./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js!./] ./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js 152 bytes {main} [built]
+  cloudify:info [./node_modules/human-stringify/dist/lib/index.js] 6.75 KiB {main} [built]  cloudify:info [./node_modules/tslib/tslib.es6.js] 8.66 KiB {main} [built]  cloudify:info [aws-sdk] external "aws-sdk" 42 bytes {main} [built] +681ms
+  cloudify:info Memory filesystem: {
+  cloudify:info   "index.js": {...large object}
+  cloudify:info } +1ms
+  cloudify:info Polling for role readiness... +2s
+  cloudify:info Polling for role readiness... +2s
+  cloudify:info Polling for role readiness... +2s
+  cloudify:info Polling for role readiness... +2s
+  cloudify:info Role ready. Cleaning up. +643ms
+  cloudify:info Adding inline policy to not allow log group creation to role "cloudify-cached-role" +433ms
+  cloudify:info Running webpack +493ms
+  cloudify:info Hash: 1ad9ceab7e6fe1c474f3
+  cloudify:info Version: webpack 4.11.1
+  cloudify:info Time: 165ms
+  cloudify:info Built at: 06/09/2018 4:34:21 PM
+  cloudify:info    Asset    Size  Chunks             Chunk Names
+  cloudify:info index.js  31 KiB    main  [emitted]  main
+  cloudify:info Entrypoint main = index.js
+  cloudify:info [./build/src/aws/aws-trampoline.js] 3.37 KiB {main} [built]
+  cloudify:info [./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js!./] ./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js 328 bytes {main} [built]
+  cloudify:info [./build/test/functions.js] 1.66 KiB {main} [built]
+  cloudify:info [./node_modules/human-stringify/dist/lib/index.js] 6.75 KiB {main} [built]
+  cloudify:info [./node_modules/tslib/tslib.es6.js] 8.66 KiB {main} [built]
+  cloudify:info [aws-sdk] external "aws-sdk" 42 bytes {main} [built] +182ms
+  cloudify:info Memory filesystem: {
+  cloudify:info   "index.js": {...large object}
+  cloudify:info } +1ms
+  cloudify:info createFunctionRequest: {
+  cloudify:info   "FunctionName": "cloudify-c179f756-b2cb-4e83-a6df-74e7ed956375",
+  cloudify:info   "Role": "arn:aws:iam::343675226624:role/cloudify-cached-role",
+  cloudify:info   "Runtime": "nodejs6.10",
+  cloudify:info   "Handler": "index.snsTrampoline",
+  cloudify:info   "Code": {
+  cloudify:info     "ZipFile": {...large object}
+  cloudify:info   },
+  cloudify:info   "Description": "cloudify trampoline function",
+  cloudify:info   "Timeout": 60,
+  cloudify:info   "MemorySize": 128
+  cloudify:info } +427ms
+  cloudify:info Created function cloudify-c179f756-b2cb-4e83-a6df-74e7ed956375, FunctionArn: arn:aws:lambda:us-east-1:343675226624:function:cloudify-c179f75
+6-b2cb-4e83-a6df-74e7ed956375 +545ms
+  cloudify:info Added SNS invoke permission to function +365ms
+  cloudify:info Created SNS subscription: arn:aws:sns:us-east-1:343675226624:cloudify-c179f756-b2cb-4e83-a6df-74e7ed956375-Requests:127f2e18-5d6c-42d0-9648-
+a2ebb7d7cf79 +766ms
+  cloudify:info Calling cloud function "hello" with args: {"name":"hello","args":["Andy"],"CallId":"da8af145-303f-43df-8c43-01c6fa90fbf2","ResponseQueueUrl"
+:"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-c179f756-b2cb-4e83-a6df-74e7ed956375-Responses"}  +6ms
+  cloudify:info Invocation request: {
+  cloudify:info   "FunctionName": "cloudify-c179f756-b2cb-4e83-a6df-74e7ed956375",
+  cloudify:info   "LogType": "Tail",
+  cloudify:info   "Payload": "{"name":"hello","args":["Andy"],"CallId":"da8af145-303f-43df-8c43-01c6fa90fbf2","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-c179f756-b2cb-4e83-a6df-74e7ed956375-Responses"}"
+  cloudify:info } +1ms
+  cloudify:info Enqueuing call request CallId: da8af145-303f-43df-8c43-01c6fa90fbf2, deferred: [object Object] +0ms
+  cloudify:collector polling... +0ms
+  cloudify:collector received 0 messages. +5s
+  cloudify:collector polling... +0ms
+  cloudify:collector received 0 messages. +5s
+  cloudify:collector polling... +0ms
+  cloudify:collector received 0 messages. +5s
+  cloudify:collector polling... +0ms
+  cloudify:info Clearing result promises +20s
+  cloudify:info { 'da8af145-303f-43df-8c43-01c6fa90fbf2':
+  cloudify:info    { resolve: [Function: s],
+  cloudify:info      reject: [Function: t],
+  cloudify:info      promise: Promise { <pending> } } } +1ms
+  cloudify:info Rejecting call result: da8af145-303f-43df-8c43-01c6fa90fbf2 +16ms
+  cloudify:info Waiting for result collector to stop (this can take up to 20s) +0ms
+  cloudify:collector received 0 messages. +6s
+ FAIL  build/test/aws.test.js
+  ● Test suite failed to run
+
+    Error: Call to cloud function cancelled in cleanup
+
+      550 | }
+      551 |
+    > 552 | export function getResourceList(state: State) {
+          |                                             ^
+      553 |     return JSON.stringify(state.resources);
+      554 | }
+      555 |
+
+      at Object.<anonymous> (src/aws/aws-cloudify.ts:552:45)
+      at node_modules/tslib/tslib.js:107:75
+      at Object.__awaiter (node_modules/tslib/tslib.js:103:16)
+      at Object.cancelWithoutCleanup (src/aws/aws-cloudify.ts:546:9)
+      at AWSLambda.cancelAll (src/cloudify.ts:137:6)
+      at Object.<anonymous>.afterAll (build/test/aws.test.js:20:23)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        41.955s
+Ran all test suites matching /build\/test\/aws.test.js/i.
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$ yarn build
+yarn run v1.7.0
+$ yarn clean && tsc
+$ rm -rf build
+✨  Done in 17.89s.
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$ node build/src/cloudify-cleanup.js aws -x --force
+Cleaning up AWS resources
+Cleaning up SNS subscriptions
+  Removing: arn:aws:sns:us-east-1:343675226624:cloudify-c179f756-b2cb-4e83-a6df-74e7ed956375-Requests:127f2e18-5d6c-42d0-9648-a2ebb7d7cf79
+Cleaning up SNS topics
+  Removing: arn:aws:sns:us-east-1:343675226624:cloudify-c179f756-b2cb-4e83-a6df-74e7ed956375-Requests
+Cleaning up SQS queues
+  Removing: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-c179f756-b2cb-4e83-a6df-74e7ed956375-Responses
+Cleaning up lambda functions
+  Removing: cloudify-c179f756-b2cb-4e83-a6df-74e7ed956375
+Cleaning up cloudwatch log groups
+  Removing: /aws/lambda/cloudify-c179f756-b2cb-4e83-a6df-74e7ed956375
+Cleaning up IAM roles
+  Removing: cloudify-cached-role
+AC-MacBook:cloudify achou$ yarn build
+yarn run v1.7.0
+$ yarn clean && tsc
+$ rm -rf build
+✨  Done in 17.63s.
+AC-MacBook:cloudify achou$ npx jest build/test/aws.test.js
+  cloudify:info Nonce: 9a713955-9864-426d-89ab-f7a483e74e06 +0ms
+  cloudify:info Limits: {
+  cloudify:info   "AccountLimit": {
+  cloudify:info     "TotalCodeSize": 80530636800,
+  cloudify:info     "CodeSizeUnzipped": 262144000,
+  cloudify:info     "CodeSizeZipped": 52428800,
+  cloudify:info     "ConcurrentExecutions": 1000,
+  cloudify:info     "UnreservedConcurrentExecutions": 1000
+  cloudify:info   },
+  cloudify:info   "AccountUsage": {
+  cloudify:info     "TotalCodeSize": 14406,
+  cloudify:info     "FunctionCount": 1
+  cloudify:info   }
+  cloudify:info } +567ms
+  cloudify:info Creating role "cloudify-cached-role" for cloudify trampoline function +1s
+  cloudify:info Creating test function to ensure new role is ready for use +1s
+  cloudify:info Running webpack +2ms
+  cloudify:info Hash: 2aca42e029b9ff5cd531
+  cloudify:info Version: webpack 4.11.1
+  cloudify:info Time: 301ms
+  cloudify:info Built at: 06/09/2018 4:39:52 PM
+  cloudify:info    Asset      Size  Chunks             Chunk Names
+  cloudify:info index.js  28.3 KiB    main  [emitted]  main
+  cloudify:info Entrypoint main = index.js
+  cloudify:info [./build/src/aws/aws-trampoline.js] 3.4 KiB {main} [built]
+  cloudify:info [./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js!./] ./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js 152 bytes {main} [built]
+  cloudify:info [./node_modules/human-stringify/dist/lib/index.js] 6.75 KiB {main} [built]
+  cloudify:info [./node_modules/tslib/tslib.es6.js] 8.66 KiB {main} [built]
+  cloudify:info [aws-sdk] external "aws-sdk" 42 bytes {main} [built] +563ms
+  cloudify:info Memory filesystem: {
+  cloudify:info   "index.js": {...large object}
+  cloudify:info } +0ms
+  cloudify:info Polling for role readiness... +2s
+  cloudify:info Polling for role readiness... +2s
+  cloudify:info Polling for role readiness... +2s
+  cloudify:info Polling for role readiness... +2s
+  cloudify:info Role ready. Cleaning up. +648ms
+  cloudify:info Adding inline policy to not allow log group creation to role "cloudify-cached-role" +548ms
+  cloudify:info Running webpack +485ms
+  cloudify:info Hash: e4dceb1bb4d72d250b73
+  cloudify:info Version: webpack 4.11.1
+  cloudify:info Time: 148ms
+  cloudify:info Built at: 06/09/2018 4:40:00 PM
+  cloudify:info    Asset    Size  Chunks             Chunk Names
+  cloudify:info index.js  31 KiB    main  [emitted]  main
+  cloudify:info Entrypoint main = index.js
+  cloudify:info [./build/src/aws/aws-trampoline.js] 3.4 KiB {main} [built]
+  cloudify:info [./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js!./] ./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js 328 bytes {main} [built]
+  cloudify:info [./build/test/functions.js] 1.66 KiB {main} [built]
+  cloudify:info [./node_modules/human-stringify/dist/lib/index.js] 6.75 KiB {main} [built]
+  cloudify:info [./node_modules/tslib/tslib.es6.js] 8.66 KiB {main} [built]
+  cloudify:info [aws-sdk] external "aws-sdk" 42 bytes {main} [built] +164ms
+  cloudify:info Memory filesystem: {
+  cloudify:info   "index.js": {...large object}
+  cloudify:info } +1ms
+  cloudify:info createFunctionRequest: {
+  cloudify:info   "FunctionName": "cloudify-9a713955-9864-426d-89ab-f7a483e74e06",
+  cloudify:info   "Role": "arn:aws:iam::343675226624:role/cloudify-cached-role",
+  cloudify:info   "Runtime": "nodejs6.10",
+  cloudify:info   "Handler": "index.snsTrampoline",
+  cloudify:info   "Code": {
+  cloudify:info     "ZipFile": {...large object}
+  cloudify:info   },
+  cloudify:info   "Description": "cloudify trampoline function",
+  cloudify:info   "Timeout": 60,
+  cloudify:info   "MemorySize": 128
+  cloudify:info } +427ms
+  cloudify:info Created function cloudify-9a713955-9864-426d-89ab-f7a483e74e06, FunctionArn: arn:aws:lambda:us-east-1:343675226624:function:cloudify-9a71395
+5-9864-426d-89ab-f7a483e74e06 +611ms
+  cloudify:info Added SNS invoke permission to function +468ms
+  cloudify:info Created SNS subscription: arn:aws:sns:us-east-1:343675226624:cloudify-9a713955-9864-426d-89ab-f7a483e74e06-Requests:62506ff0-103a-40d0-bf50-
+a266b9789bf7 +2s
+  cloudify:info Calling cloud function "hello" with args: {"name":"hello","args":["Andy"],"CallId":"6275c3c2-3719-4c49-bee6-8f4db65770ba","ResponseQueueUrl"
+:"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9a713955-9864-426d-89ab-f7a483e74e06-Responses"}  +5ms
+  cloudify:info Invocation request: {
+  cloudify:info   "FunctionName": "cloudify-9a713955-9864-426d-89ab-f7a483e74e06",
+  cloudify:info   "LogType": "Tail",
+  cloudify:info   "Payload": "{"name":"hello","args":["Andy"],"CallId":"6275c3c2-3719-4c49-bee6-8f4db65770ba","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9a713955-9864-426d-89ab-f7a483e74e06-Responses"}"
+  cloudify:info } +1ms
+  cloudify:info Enqueuing call request CallId: 6275c3c2-3719-4c49-bee6-8f4db65770ba, deferred: [object Object] +0ms
+  cloudify:collector polling... +0ms
+  cloudify:collector received 0 messages. +6s
+  cloudify:collector polling... +0ms
+  cloudify:collector received 0 messages. +5s
+  cloudify:collector polling... +1ms
+  cloudify:collector received 0 messages. +5s
+  cloudify:collector polling... +1ms
+  cloudify:info Clearing result promises +20s
+  cloudify:info { '6275c3c2-3719-4c49-bee6-8f4db65770ba':
+  cloudify:info    { resolve: [Function: s],
+  cloudify:info      reject: [Function: t],
+  cloudify:info      promise: Promise { <pending> } } } +0ms
+  cloudify:info Rejecting call result: 6275c3c2-3719-4c49-bee6-8f4db65770ba +26ms
+  cloudify:info Waiting for result collector to stop (this can take up to 20s) +2ms
+  cloudify:collector received 0 messages. +5s
+ FAIL  build/test/aws.test.js
+  ● Test suite failed to run
+
+    Error: Call to cloud function cancelled in cleanup
+
+      550 | }
+      551 |
+    > 552 | export function getResourceList(state: State) {
+          |                                             ^
+      553 |     return JSON.stringify(state.resources);
+      554 | }
+      555 |
+
+      at Object.<anonymous> (src/aws/aws-cloudify.ts:552:45)
+      at node_modules/tslib/tslib.js:107:75
+      at Object.__awaiter (node_modules/tslib/tslib.js:103:16)
+      at Object.cancelWithoutCleanup (src/aws/aws-cloudify.ts:546:9)
+      at AWSLambda.cancelAll (src/cloudify.ts:137:6)
+      at Object.<anonymous>.afterAll (build/test/aws.test.js:20:23)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        43.863s
+Ran all test suites matching /build\/test\/aws.test.js/i.
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$ npx jest build/test/aws.test.js
+  cloudify:info Nonce: 94fe394e-ba9b-4e19-b194-d946e923640f +0ms
+  cloudify:info Limits: {
+  cloudify:info   "AccountLimit": {
+  cloudify:info     "TotalCodeSize": 80530636800,
+  cloudify:info     "CodeSizeUnzipped": 262144000,
+  cloudify:info     "CodeSizeZipped": 52428800,
+  cloudify:info     "ConcurrentExecutions": 1000,
+  cloudify:info     "UnreservedConcurrentExecutions": 1000
+  cloudify:info   },
+  cloudify:info   "AccountUsage": {
+  cloudify:info     "TotalCodeSize": 22102,
+  cloudify:info     "FunctionCount": 2
+  cloudify:info   }
+  cloudify:info } +641ms
+  cloudify:info Adding inline policy to not allow log group creation to role "cloudify-cached-role" +2s
+  cloudify:info Running webpack +460ms
+  cloudify:info Hash: e4dceb1bb4d72d250b73
+  cloudify:info Version: webpack 4.11.1
+  cloudify:info Time: 302ms
+  cloudify:info Built at: 06/09/2018 4:46:47 PM
+  cloudify:info    Asset    Size  Chunks             Chunk Names
+  cloudify:info index.js  31 KiB    main  [emitted]  main
+  cloudify:info Entrypoint main = index.js
+  cloudify:info [./build/src/aws/aws-trampoline.js] 3.4 KiB {main} [built]
+  cloudify:info [./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js!./] ./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js 328 bytes {main} [built]
+  cloudify:info [./build/test/functions.js] 1.66 KiB {main} [built]
+  cloudify:info [./node_modules/human-stringify/dist/lib/index.js] 6.75 KiB {main} [built]
+  cloudify:info [./node_modules/tslib/tslib.es6.js] 8.66 KiB {main} [built]
+  cloudify:info [aws-sdk] external "aws-sdk" 42 bytes {main} [built] +547ms
+  cloudify:info Memory filesystem: {
+  cloudify:info   "index.js": {...large object}
+  cloudify:info } +1ms
+  cloudify:info createFunctionRequest: {
+  cloudify:info   "FunctionName": "cloudify-94fe394e-ba9b-4e19-b194-d946e923640f",
+  cloudify:info   "Role": "arn:aws:iam::343675226624:role/cloudify-cached-role",
+  cloudify:info   "Runtime": "nodejs6.10",
+  cloudify:info   "Handler": "index.snsTrampoline",
+  cloudify:info   "Code": {
+  cloudify:info     "ZipFile": {...large object}
+  cloudify:info   },
+  cloudify:info   "Description": "cloudify trampoline function",
+  cloudify:info   "Timeout": 60,
+  cloudify:info   "MemorySize": 128
+  cloudify:info } +455ms
+  cloudify:info Created function cloudify-94fe394e-ba9b-4e19-b194-d946e923640f, FunctionArn: arn:aws:lambda:us-east-1:343675226624:function:cloudify-94fe394
+e-ba9b-4e19-b194-d946e923640f +590ms
+  cloudify:info Added SNS invoke permission to function. Statement ID: {"Sid":"cloudify-94fe394e-ba9b-4e19-b194-d946e923640f-Invoke","Effect":"Allow","Princ
+ipal":{"Service":"sns.amazonaws.com"},"Action":"lambda:invokeFunction","Resource":"arn:aws:lambda:us-east-1:343675226624:function:cloudify-94fe394e-ba9b-4e1
+9-b194-d946e923640f","Condition":{"ArnLike":{"AWS:SourceArn":"arn:aws:sns:us-east-1:343675226624:cloudify-94fe394e-ba9b-4e19-b194-d946e923640f-Requests"}}}+442ms
+  cloudify:info Created SNS subscription: arn:aws:sns:us-east-1:343675226624:cloudify-94fe394e-ba9b-4e19-b194-d946e923640f-Requests:1736e0ef-2638-49c0-8ebf-
+8f51b3948586 +975ms
+  cloudify:info Calling cloud function "hello" with args: {"name":"hello","args":["Andy"],"CallId":"1a624639-5925-4876-8b4a-778149e9440d","ResponseQueueUrl"
+:"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-94fe394e-ba9b-4e19-b194-d946e923640f-Responses"}  +18ms
+  cloudify:info Invocation request: {
+  cloudify:info   "FunctionName": "cloudify-94fe394e-ba9b-4e19-b194-d946e923640f",
+  cloudify:info   "LogType": "Tail",
+  cloudify:info   "Payload": "{"name":"hello","args":["Andy"],"CallId":"1a624639-5925-4876-8b4a-778149e9440d","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-94fe394e-ba9b-4e19-b194-d946e923640f-Responses"}"
+  cloudify:info } +0ms
+  cloudify:info Enqueuing call request CallId: 1a624639-5925-4876-8b4a-778149e9440d, deferred: [object Object] +1ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-94fe394e-ba9b-4e19-b194-d946e923640f-Responses +0ms
+  cloudify:collector received 0 messages. +6s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-94fe394e-ba9b-4e19-b194-d946e923640f-Responses +0ms
+  cloudify:collector received 0 messages. +6s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-94fe394e-ba9b-4e19-b194-d946e923640f-Responses +0ms
+  cloudify:collector received 0 messages. +5s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-94fe394e-ba9b-4e19-b194-d946e923640f-Responses +1ms
+  cloudify:info Clearing result promises +20s
+  cloudify:info { '1a624639-5925-4876-8b4a-778149e9440d':
+  cloudify:info    { resolve: [Function: s],
+  cloudify:info      reject: [Function: t],
+  cloudify:info      promise: Promise { <pending> } } } +0ms
+  cloudify:info Rejecting call result: 1a624639-5925-4876-8b4a-778149e9440d +19ms
+  cloudify:info Waiting for result collector to stop (this can take up to 20s) +1ms
+  cloudify:collector received 0 messages. +5s
+ FAIL  build/test/aws.test.js
+  ● Test suite failed to run
+
+    Error: Call to cloud function cancelled in cleanup
+
+      554 | }
+      555 |
+    > 556 | export function getResourceList(state: State) {
+          |                                             ^
+      557 |     return JSON.stringify(state.resources);
+      558 | }
+      559 |
+
+      at Object.<anonymous> (src/aws/aws-cloudify.ts:556:45)
+      at node_modules/tslib/tslib.js:107:75
+      at Object.__awaiter (node_modules/tslib/tslib.js:103:16)
+      at Object.cancelWithoutCleanup (src/aws/aws-cloudify.ts:550:9)
+      at AWSLambda.cancelAll (src/cloudify.ts:137:6)
+      at Object.<anonymous>.afterAll (build/test/aws.test.js:20:23)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        36.168s
+Ran all test suites matching /build\/test\/aws.test.js/i.
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$ npx jest build/test/aws.test.js
+
+  cloudify:info Nonce: f8304186-f846-43a0-90e8-cce02669b422 +0ms
+  cloudify:info Limits: {
+  cloudify:info   "AccountLimit": {
+  cloudify:info     "TotalCodeSize": 80530636800,
+  cloudify:info     "CodeSizeUnzipped": 262144000,
+  cloudify:info     "CodeSizeZipped": 52428800,
+  cloudify:info     "ConcurrentExecutions": 1000,
+  cloudify:info     "UnreservedConcurrentExecutions": 1000
+  cloudify:info   },
+  cloudify:info   "AccountUsage": {
+  cloudify:info     "TotalCodeSize": 29798,
+  cloudify:info     "FunctionCount": 3
+  cloudify:info   }
+  cloudify:info } +589ms
+  cloudify:info Adding inline policy to not allow log group creation to role "cloudify-cached-role" +2s
+  cloudify:info Running webpack +481ms
+  cloudify:info Hash: e4dceb1bb4d72d250b73
+  cloudify:info Version: webpack 4.11.1
+  cloudify:info Time: 361ms
+  cloudify:info Built at: 06/09/2018 5:03:18 PM
+  cloudify:info    Asset    Size  Chunks             Chunk Names
+  cloudify:info index.js  31 KiB    main  [emitted]  main
+  cloudify:info Entrypoint main = index.js
+  cloudify:info [./build/src/aws/aws-trampoline.js] 3.4 KiB {main} [built]
+  cloudify:info [./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js!./] ./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js 328 bytes {main} [built]
+  cloudify:info [./build/test/functions.js] 1.66 KiB {main} [built]
+  cloudify:info [./node_modules/human-stringify/dist/lib/index.js] 6.75 KiB {main} [built]
+  cloudify:info [./node_modules/tslib/tslib.es6.js] 8.66 KiB {main} [built]
+  cloudify:info [aws-sdk] external "aws-sdk" 42 bytes {main} [built] +594ms
+  cloudify:info Memory filesystem: {
+  cloudify:info   "index.js": {...large object}
+  cloudify:info } +2ms
+  cloudify:info createFunctionRequest: {
+  cloudify:info   "FunctionName": "cloudify-f8304186-f846-43a0-90e8-cce02669b422",
+  cloudify:info   "Role": "arn:aws:iam::343675226624:role/cloudify-cached-role",
+  cloudify:info   "Runtime": "nodejs6.10",
+  cloudify:info   "Handler": "index.snsTrampoline",
+  cloudify:info   "Code": {
+  cloudify:info     "ZipFile": {...large object}
+  cloudify:info   },
+  cloudify:info   "Description": "cloudify trampoline function",
+  cloudify:info   "Timeout": 60,
+  cloudify:info   "MemorySize": 128
+  cloudify:info } +525ms
+  cloudify:info Created function cloudify-f8304186-f846-43a0-90e8-cce02669b422, FunctionArn: arn:aws:lambda:us-east-1:343675226624:function:cloudify-f830418
+6-f846-43a0-90e8-cce02669b422 +599ms
+  cloudify:info Added SNS invoke permission to function. Statement ID: {"Sid":"cloudify-f8304186-f846-43a0-90e8-cce02669b422-Invoke","Effect":"Allow","Princ
+ipal":{"Service":"sns.amazonaws.com"},"Action":"lambda:invokeFunction","Resource":"arn:aws:lambda:us-east-1:343675226624:function:cloudify-f8304186-f846-43a
+0-90e8-cce02669b422","Condition":{"ArnLike":{"AWS:SourceArn":"arn:aws:sns:us-east-1:343675226624:cloudify-f8304186-f846-43a0-90e8-cce02669b422-Requests"}}}+470ms
+  cloudify:info Created SNS subscription: arn:aws:sns:us-east-1:343675226624:cloudify-f8304186-f846-43a0-90e8-cce02669b422-Requests:f5dc00b0-e80f-4cf2-9176-
+9bbe5a24414c +719ms
+  cloudify:info Calling cloud function "hello" with args: {"name":"hello","args":["Andy"],"CallId":"6d7bb76f-3007-4fa1-b143-925e19db6ab5","ResponseQueueUrl"
+:"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-f8304186-f846-43a0-90e8-cce02669b422-Responses"}  +7ms
+  cloudify:info Invocation request: {
+  cloudify:info   "FunctionName": "cloudify-f8304186-f846-43a0-90e8-cce02669b422",
+  cloudify:info   "LogType": "Tail",
+  cloudify:info   "Payload": "{"name":"hello","args":["Andy"],"CallId":"6d7bb76f-3007-4fa1-b143-925e19db6ab5","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-f8304186-f846-43a0-90e8-cce02669b422-Responses"}"
+  cloudify:info } +0ms
+  cloudify:info Enqueuing call request CallId: 6d7bb76f-3007-4fa1-b143-925e19db6ab5, deferred: [object Object] +1ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-f8304186-f846-43a0-90e8-cce02669b422-Responses +0ms
+  cloudify:collector received 0 messages. +5s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-f8304186-f846-43a0-90e8-cce02669b422-Responses +0ms
+  cloudify:collector received 0 messages. +5s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-f8304186-f846-43a0-90e8-cce02669b422-Responses +1ms
+  cloudify:collector received 0 messages. +6s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-f8304186-f846-43a0-90e8-cce02669b422-Responses +1ms
+  cloudify:info Clearing result promises +20s
+  cloudify:info { '6d7bb76f-3007-4fa1-b143-925e19db6ab5':
+  cloudify:info    { resolve: [Function: s],
+  cloudify:info      reject: [Function: t],
+  cloudify:info      promise: Promise { <pending> } } } +1ms
+  cloudify:info Rejecting call result: 6d7bb76f-3007-4fa1-b143-925e19db6ab5 +16ms
+  cloudify:info Waiting for result collector to stop (this can take up to 20s) +1ms
+  cloudify:collector received 0 messages. +5s
+ FAIL  build/test/aws.test.js
+  ● Test suite failed to run
+
+    Error: Call to cloud function cancelled in cleanup
+
+      554 | }
+      555 |
+    > 556 | export function getResourceList(state: State) {
+          |                                             ^
+      557 |     return JSON.stringify(state.resources);
+      558 | }
+      559 |
+
+      at Object.<anonymous> (src/aws/aws-cloudify.ts:556:45)
+      at node_modules/tslib/tslib.js:107:75
+      at Object.__awaiter (node_modules/tslib/tslib.js:103:16)
+      at Object.cancelWithoutCleanup (src/aws/aws-cloudify.ts:550:9)
+      at AWSLambda.cancelAll (src/cloudify.ts:137:6)
+      at Object.<anonymous>.afterAll (build/test/aws.test.js:20:23)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        35.17s
+Ran all test suites matching /build\/test\/aws.test.js/i.
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$ npx jest build/test/aws.test.js
+  cloudify:info Nonce: cd06bd4b-51ec-4cf4-a113-52326cf73af4 +0ms
+  cloudify:info Limits: {
+  cloudify:info   "AccountLimit": {
+  cloudify:info     "TotalCodeSize": 80530636800,
+  cloudify:info     "CodeSizeUnzipped": 262144000,
+  cloudify:info     "CodeSizeZipped": 52428800,
+  cloudify:info     "ConcurrentExecutions": 1000,
+  cloudify:info     "UnreservedConcurrentExecutions": 1000
+  cloudify:info   },
+  cloudify:info   "AccountUsage": {
+  cloudify:info     "TotalCodeSize": 37494,
+  cloudify:info     "FunctionCount": 4
+  cloudify:info   }
+  cloudify:info } +606ms
+  cloudify:info Adding inline policy to not allow log group creation to role "cloudify-cached-role" +2s
+  cloudify:info Running webpack +2s
+  cloudify:info Hash: e4dceb1bb4d72d250b73
+  cloudify:info Version: webpack 4.11.1
+  cloudify:info Time: 276ms
+  cloudify:info Built at: 06/09/2018 5:05:04 PM
+  cloudify:info    Asset    Size  Chunks             Chunk Names
+  cloudify:info index.js  31 KiB    main  [emitted]  main
+  cloudify:info Entrypoint main = index.js
+  cloudify:info [./build/src/aws/aws-trampoline.js] 3.4 KiB {main} [built]
+  cloudify:info [./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js!./] ./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js 328 bytes {main} [built]
+  cloudify:info [./build/test/functions.js] 1.66 KiB {main} [built]
+  cloudify:info [./node_modules/human-stringify/dist/lib/index.js] 6.75 KiB {main} [built]
+  cloudify:info [./node_modules/tslib/tslib.es6.js] 8.66 KiB {main} [built]
+  cloudify:info [aws-sdk] external "aws-sdk" 42 bytes {main} [built] +496ms
+  cloudify:info Memory filesystem: {
+  cloudify:info   "index.js": {...large object}
+  cloudify:info } +1ms
+  cloudify:info createFunctionRequest: {
+  cloudify:info   "FunctionName": "cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4",
+  cloudify:info   "Role": "arn:aws:iam::343675226624:role/cloudify-cached-role",
+  cloudify:info   "Runtime": "nodejs6.10",
+  cloudify:info   "Handler": "index.snsTrampoline",
+  cloudify:info   "Code": {
+  cloudify:info     "ZipFile": {...large object}
+  cloudify:info   },
+  cloudify:info   "Description": "cloudify trampoline function",
+  cloudify:info   "Timeout": 60,
+  cloudify:info   "MemorySize": 128
+  cloudify:info } +447ms
+  cloudify:info Created function cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4, FunctionArn: arn:aws:lambda:us-east-1:343675226624:function:cloudify-cd06bd4
+b-51ec-4cf4-a113-52326cf73af4 +591ms
+  cloudify:info Added SNS invoke permission to function. Statement ID: {"Sid":"cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4-Invoke","Effect":"Allow","Princ
+ipal":{"Service":"sns.amazonaws.com"},"Action":"lambda:invokeFunction","Resource":"arn:aws:lambda:us-east-1:343675226624:function:cloudify-cd06bd4b-51ec-4cf
+4-a113-52326cf73af4","Condition":{"ArnLike":{"AWS:SourceArn":"arn:aws:sns:us-east-1:343675226624:cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4-Requests"}}}+425ms
+  cloudify:info Created SNS subscription: arn:aws:sns:us-east-1:343675226624:cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4-Requests:13c67ec7-203d-4169-848d-
+4a6ff15f378b +689ms
+  cloudify:info Calling cloud function "hello" with args: {"name":"hello","args":["Andy"],"CallId":"1838aa2a-98b5-4130-b37e-07a6d68a4c90","ResponseQueueUrl"
+:"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4-Responses"}  +7ms
+  cloudify:info Invocation request: {
+  cloudify:info   "FunctionName": "cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4",
+  cloudify:info   "LogType": "Tail",
+  cloudify:info   "Payload": "{"name":"hello","args":["Andy"],"CallId":"1838aa2a-98b5-4130-b37e-07a6d68a4c90","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4-Responses"}"
+  cloudify:info } +1ms
+  cloudify:info Enqueuing call request CallId: 1838aa2a-98b5-4130-b37e-07a6d68a4c90, deferred: [object Object] +0ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4-Responses +0ms
+  cloudify:info SNS Message ID: 3f14f06d-6ffb-51a4-bb1a-a3fb0288d06f +565ms
+  cloudify:collector received 0 messages. +5s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4-Responses +1ms
+  cloudify:collector received 0 messages. +6s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4-Responses +1ms
+  cloudify:collector received 0 messages. +6s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4-Responses +1ms
+  cloudify:info Clearing result promises +19s
+  cloudify:info { '1838aa2a-98b5-4130-b37e-07a6d68a4c90':
+  cloudify:info    { resolve: [Function: s],
+  cloudify:info      reject: [Function: t],
+  cloudify:info      promise: Promise { <pending> } } } +1ms
+  cloudify:info Rejecting call result: 1838aa2a-98b5-4130-b37e-07a6d68a4c90 +27ms
+  cloudify:info Waiting for result collector to stop (this can take up to 20s) +0ms
+  cloudify:collector received 0 messages. +5s
+ FAIL  build/test/aws.test.js
+  ● Test suite failed to run
+
+    Error: Call to cloud function cancelled in cleanup
+
+      554 | }
+      555 |
+    > 556 | export function getResourceList(state: State) {
+          |                                             ^
+      557 |     return JSON.stringify(state.resources);
+      558 | }
+      559 |
+
+      at Object.<anonymous> (src/aws/aws-cloudify.ts:556:45)
+      at node_modules/tslib/tslib.js:107:75
+      at Object.__awaiter (node_modules/tslib/tslib.js:103:16)
+      at Object.cancelWithoutCleanup (src/aws/aws-cloudify.ts:550:9)
+      at AWSLambda.cancelAll (src/cloudify.ts:137:6)
+      at Object.<anonymous>.afterAll (build/test/aws.test.js:20:23)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        34.959s
+Ran all test suites matching /build\/test\/aws.test.js/i.
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$ node build/src/cloudify-cleanup.js aws -x --force
+Cleaning up AWS resources
+Cleaning up SNS subscriptions
+  Removing: arn:aws:sns:us-east-1:343675226624:cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4-Requests:13c67ec7-203d-4169-848d-4a6ff15f378b
+  Removing: arn:aws:sns:us-east-1:343675226624:cloudify-94fe394e-ba9b-4e19-b194-d946e923640f-Requests:1736e0ef-2638-49c0-8ebf-8f51b3948586
+  Removing: arn:aws:sns:us-east-1:343675226624:cloudify-f8304186-f846-43a0-90e8-cce02669b422-Requests:f5dc00b0-e80f-4cf2-9176-9bbe5a24414c
+  Removing: arn:aws:sns:us-east-1:343675226624:cloudify-9a713955-9864-426d-89ab-f7a483e74e06-Requests:62506ff0-103a-40d0-bf50-a266b9789bf7
+Cleaning up SNS topics
+  Removing: arn:aws:sns:us-east-1:343675226624:cloudify-94fe394e-ba9b-4e19-b194-d946e923640f-Requests
+  Removing: arn:aws:sns:us-east-1:343675226624:cloudify-9a713955-9864-426d-89ab-f7a483e74e06-Requests
+  Removing: arn:aws:sns:us-east-1:343675226624:cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4-Requests
+  Removing: arn:aws:sns:us-east-1:343675226624:cloudify-f8304186-f846-43a0-90e8-cce02669b422-Requests
+Cleaning up SQS queues
+  Removing: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-94fe394e-ba9b-4e19-b194-d946e923640f-Responses
+  Removing: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9a713955-9864-426d-89ab-f7a483e74e06-Responses
+  Removing: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4-Responses
+  Removing: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-f8304186-f846-43a0-90e8-cce02669b422-Responses
+Cleaning up lambda functions
+  Removing: cloudify-f8304186-f846-43a0-90e8-cce02669b422
+  Removing: cloudify-9a713955-9864-426d-89ab-f7a483e74e06
+  Removing: cloudify-94fe394e-ba9b-4e19-b194-d946e923640f
+  Removing: cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4
+Cleaning up cloudwatch log groups
+  Removing: /aws/lambda/cloudify-94fe394e-ba9b-4e19-b194-d946e923640f
+  Removing: /aws/lambda/cloudify-9a713955-9864-426d-89ab-f7a483e74e06
+  Removing: /aws/lambda/cloudify-cd06bd4b-51ec-4cf4-a113-52326cf73af4
+  Removing: /aws/lambda/cloudify-f8304186-f846-43a0-90e8-cce02669b422
+Cleaning up IAM roles
+  Removing: cloudify-cached-role
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$ npx jest build/test/aws.test.js
+  cloudify:info Nonce: da0badc2-3df7-4077-a174-b035ebeb732f +0ms
+  cloudify:info Limits: {
+  cloudify:info   "AccountLimit": {
+  cloudify:info     "TotalCodeSize": 80530636800,
+  cloudify:info     "CodeSizeUnzipped": 262144000,
+  cloudify:info     "CodeSizeZipped": 52428800,
+  cloudify:info     "ConcurrentExecutions": 1000,
+  cloudify:info     "UnreservedConcurrentExecutions": 1000
+  cloudify:info   },
+  cloudify:info   "AccountUsage": {
+  cloudify:info     "TotalCodeSize": 29798,
+  cloudify:info     "FunctionCount": 3
+  cloudify:info   }
+  cloudify:info } +556ms
+  cloudify:info Creating role "cloudify-cached-role" for cloudify trampoline function +2s
+  cloudify:info Creating test function to ensure new role is ready for use +896ms
+  cloudify:info Running webpack +2ms
+  cloudify:info Hash: 2aca42e029b9ff5cd531
+  cloudify:info Version: webpack 4.11.1
+  cloudify:info Time: 461ms
+  cloudify:info Built at: 06/09/2018 5:06:11 PM
+  cloudify:info    Asset      Size  Chunks             Chunk Names
+  cloudify:info index.js  28.3 KiB    main  [emitted]  main
+  cloudify:info Entrypoint main = index.js
+  cloudify:info [./build/src/aws/aws-trampoline.js] 3.4 KiB {main} [built]
+  cloudify:info [./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js!./] ./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js 152 bytes {main} [built]
+  cloudify:info [./node_modules/human-stringify/dist/lib/index.js] 6.75 KiB {main} [built]
+  cloudify:info [./node_modules/tslib/tslib.es6.js] 8.66 KiB {main} [built]
+  cloudify:info [aws-sdk] external "aws-sdk" 42 bytes {main} [built] +845ms
+  cloudify:info Memory filesystem: {
+  cloudify:info   "index.js": {...large object}
+  cloudify:info } +2ms
+  cloudify:info Polling for role readiness... +2s
+  cloudify:info Polling for role readiness... +2s
+  cloudify:info Polling for role readiness... +2s
+  cloudify:info Role ready. Cleaning up. +1s
+  cloudify:info Adding inline policy to not allow log group creation to role "cloudify-cached-role" +946ms
+  cloudify:info Running webpack +536ms
+  cloudify:info Hash: e4dceb1bb4d72d250b73
+  cloudify:info Version: webpack 4.11.1
+  cloudify:info Time: 172ms
+  cloudify:info Built at: 06/09/2018 5:06:20 PM
+  cloudify:info    Asset    Size  Chunks             Chunk Names
+  cloudify:info index.js  31 KiB    main  [emitted]  main
+  cloudify:info Entrypoint main = index.js
+  cloudify:info [./build/src/aws/aws-trampoline.js] 3.4 KiB {main} [built]
+  cloudify:info [./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js!./] ./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js 328 bytes {main} [built]
+  cloudify:info [./build/test/functions.js] 1.66 KiB {main} [built]
+  cloudify:info [./node_modules/human-stringify/dist/lib/index.js] 6.75 KiB {main} [built]
+  cloudify:info [./node_modules/tslib/tslib.es6.js] 8.66 KiB {main} [built]
+  cloudify:info [aws-sdk] external "aws-sdk" 42 bytes {main} [built] +191ms
+  cloudify:info Memory filesystem: {
+  cloudify:info   "index.js": {...large object}
+  cloudify:info } +1ms
+  cloudify:info createFunctionRequest: {
+  cloudify:info   "FunctionName": "cloudify-da0badc2-3df7-4077-a174-b035ebeb732f",
+  cloudify:info   "Role": "arn:aws:iam::343675226624:role/cloudify-cached-role",
+  cloudify:info   "Runtime": "nodejs6.10",
+  cloudify:info   "Handler": "index.snsTrampoline",
+  cloudify:info   "Code": {
+  cloudify:info     "ZipFile": {...large object}
+  cloudify:info   },
+  cloudify:info   "Description": "cloudify trampoline function",
+  cloudify:info   "Timeout": 60,
+  cloudify:info   "MemorySize": 128
+  cloudify:info } +482ms
+  cloudify:info Created function cloudify-da0badc2-3df7-4077-a174-b035ebeb732f, FunctionArn: arn:aws:lambda:us-east-1:343675226624:function:cloudify-da0badc
+2-3df7-4077-a174-b035ebeb732f +719ms
+  cloudify:info Added SNS invoke permission to function. Statement ID: {"Sid":"cloudify-da0badc2-3df7-4077-a174-b035ebeb732f-Invoke","Effect":"Allow","Princ
+ipal":{"Service":"sns.amazonaws.com"},"Action":"lambda:invokeFunction","Resource":"arn:aws:lambda:us-east-1:343675226624:function:cloudify-da0badc2-3df7-407
+7-a174-b035ebeb732f","Condition":{"ArnLike":{"AWS:SourceArn":"arn:aws:sns:us-east-1:343675226624:cloudify-da0badc2-3df7-4077-a174-b035ebeb732f-Requests"}}}+483ms
+  cloudify:info Created SNS subscription: arn:aws:sns:us-east-1:343675226624:cloudify-da0badc2-3df7-4077-a174-b035ebeb732f-Requests:3bdc61b2-eb44-45ac-8e82-
+974ee4bd6e28 +848ms
+  cloudify:info Calling cloud function "hello" with args: {"name":"hello","args":["Andy"],"CallId":"28551a04-bcc6-4f34-ab76-255ddfb0a4b7","ResponseQueueUrl"
+:"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-da0badc2-3df7-4077-a174-b035ebeb732f-Responses"}  +9ms
+  cloudify:info Invocation request: {
+  cloudify:info   "FunctionName": "cloudify-da0badc2-3df7-4077-a174-b035ebeb732f",
+  cloudify:info   "LogType": "Tail",
+  cloudify:info   "Payload": "{"name":"hello","args":["Andy"],"CallId":"28551a04-bcc6-4f34-ab76-255ddfb0a4b7","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-da0badc2-3df7-4077-a174-b035ebeb732f-Responses"}"
+  cloudify:info } +0ms
+  cloudify:info Enqueuing call request CallId: 28551a04-bcc6-4f34-ab76-255ddfb0a4b7, deferred: [object Object] +2ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-da0badc2-3df7-4077-a174-b035ebeb732f-Responses +0ms
+  cloudify:info SNS Message ID: d5cf646e-6250-532b-9886-37f80fef4c5a +511ms
+  cloudify:collector received 0 messages. +5s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-da0badc2-3df7-4077-a174-b035ebeb732f-Responses +1ms
+  cloudify:collector received 0 messages. +5s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-da0badc2-3df7-4077-a174-b035ebeb732f-Responses +0ms
+  cloudify:collector received 0 messages. +5s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-da0badc2-3df7-4077-a174-b035ebeb732f-Responses +0ms
+  cloudify:info Clearing result promises +20s
+  cloudify:info { '28551a04-bcc6-4f34-ab76-255ddfb0a4b7':
+  cloudify:info    { resolve: [Function: s],
+  cloudify:info      reject: [Function: t],
+  cloudify:info      promise: Promise { <pending> } } } +0ms
+  cloudify:info Rejecting call result: 28551a04-bcc6-4f34-ab76-255ddfb0a4b7 +16ms
+  cloudify:info Waiting for result collector to stop (this can take up to 20s) +0ms
+  cloudify:collector received 0 messages. +6s
+ FAIL  build/test/aws.test.js
+  ● Test suite failed to run
+
+    Error: Call to cloud function cancelled in cleanup
+
+      554 | }
+      555 |
+    > 556 | export function getResourceList(state: State) {
+          |                                             ^
+      557 |     return JSON.stringify(state.resources);
+      558 | }
+      559 |
+
+      at Object.<anonymous> (src/aws/aws-cloudify.ts:556:45)
+      at node_modules/tslib/tslib.js:107:75
+      at Object.__awaiter (node_modules/tslib/tslib.js:103:16)
+      at Object.cancelWithoutCleanup (src/aws/aws-cloudify.ts:550:9)
+      at AWSLambda.cancelAll (src/cloudify.ts:137:6)
+      at Object.<anonymous>.afterAll (build/test/aws.test.js:20:23)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        43.12s
+Ran all test suites matching /build\/test\/aws.test.js/i.
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$ npx jest build/test/aws.test.js
+  cloudify:info Nonce: a49fbcd0-560a-43c1-9a92-bb66c7858daf +0ms
+  cloudify:info Limits: {
+  cloudify:info   "AccountLimit": {
+  cloudify:info     "TotalCodeSize": 80530636800,
+  cloudify:info     "CodeSizeUnzipped": 262144000,
+  cloudify:info     "CodeSizeZipped": 52428800,
+  cloudify:info     "ConcurrentExecutions": 1000,
+  cloudify:info     "UnreservedConcurrentExecutions": 1000
+  cloudify:info   },
+  cloudify:info   "AccountUsage": {
+  cloudify:info     "TotalCodeSize": 22102,
+  cloudify:info     "FunctionCount": 2
+  cloudify:info   }
+  cloudify:info } +650ms
+  cloudify:info Adding inline policy to not allow log group creation to role "cloudify-cached-role" +2s
+  cloudify:info Running webpack +604ms
+  cloudify:info Hash: e4dceb1bb4d72d250b73
+  cloudify:info Version: webpack 4.11.1
+  cloudify:info Time: 317ms
+  cloudify:info Built at: 06/09/2018 5:13:24 PM
+  cloudify:info    Asset    Size  Chunks             Chunk Names
+  cloudify:info index.js  31 KiB    main  [emitted]  main
+  cloudify:info Entrypoint main = index.js
+  cloudify:info [./build/src/aws/aws-trampoline.js] 3.4 KiB {main} [built]
+  cloudify:info [./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js!./] ./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js 328 bytes {main} [built]
+  cloudify:info [./build/test/functions.js] 1.66 KiB {main} [built]
+  cloudify:info [./node_modules/human-stringify/dist/lib/index.js] 6.75 KiB {main} [built]
+  cloudify:info [./node_modules/tslib/tslib.es6.js] 8.66 KiB {main} [built]
+  cloudify:info [aws-sdk] external "aws-sdk" 42 bytes {main} [built] +535ms
+  cloudify:info Memory filesystem: {
+  cloudify:info   "index.js": {...large object}
+  cloudify:info } +1ms
+  cloudify:info createFunctionRequest: {
+  cloudify:info   "FunctionName": "cloudify-a49fbcd0-560a-43c1-9a92-bb66c7858daf",
+  cloudify:info   "Role": "arn:aws:iam::343675226624:role/cloudify-cached-role",
+  cloudify:info   "Runtime": "nodejs6.10",
+  cloudify:info   "Handler": "index.snsTrampoline",
+  cloudify:info   "Code": {
+  cloudify:info     "ZipFile": {...large object}
+  cloudify:info   },
+  cloudify:info   "Description": "cloudify trampoline function",
+  cloudify:info   "Timeout": 60,
+  cloudify:info   "MemorySize": 128
+  cloudify:info } +521ms
+  cloudify:info Created function cloudify-a49fbcd0-560a-43c1-9a92-bb66c7858daf, FunctionArn: arn:aws:lambda:us-east-1:343675226624:function:cloudify-a49fbcd
+0-560a-43c1-9a92-bb66c7858daf +600ms
+  cloudify:info Added SNS invoke permission to function. Statement ID: {"Sid":"cloudify-a49fbcd0-560a-43c1-9a92-bb66c7858daf-Invoke","Effect":"Allow","Princ
+ipal":{"Service":"sns.amazonaws.com"},"Action":"lambda:invokeFunction","Resource":"arn:aws:lambda:us-east-1:343675226624:function:cloudify-a49fbcd0-560a-43c
+1-9a92-bb66c7858daf","Condition":{"ArnLike":{"AWS:SourceArn":"arn:aws:sns:us-east-1:343675226624:cloudify-a49fbcd0-560a-43c1-9a92-bb66c7858daf-Requests"}}}+580ms
+  cloudify:info Created SNS subscription: arn:aws:sns:us-east-1:343675226624:cloudify-a49fbcd0-560a-43c1-9a92-bb66c7858daf-Requests:be27b635-7fdc-4d66-bae7-
+af6253490abd +744ms
+  cloudify:info Calling cloud function "hello" with args: {"name":"hello","args":["Andy"],"CallId":"2386c5ed-45f4-4a9f-ad36-a6f838c703d0","ResponseQueueUrl"
+:"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-a49fbcd0-560a-43c1-9a92-bb66c7858daf-Responses"}  +8ms
+  cloudify:info Enqueuing call request CallId: 2386c5ed-45f4-4a9f-ad36-a6f838c703d0, deferred: [object Object] +0ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-a49fbcd0-560a-43c1-9a92-bb66c7858daf-Responses +0ms
+  cloudify:info SNS Message ID: b5c56413-3060-5f22-946b-37855f077f38 +529ms
+  cloudify:collector received 1 messages. +2s
+  cloudify:info Clearing result promises +2s
+  cloudify:info {} +0ms
+  cloudify:info Waiting for result collector to stop (this can take up to 20s) +2ms
+ PASS  build/test/aws.test.js (13.859s)
+  Cloudify AWS
+    ✓ hello: string => string (2121ms)
+    ○ skipped 7 tests
+
+Test Suites: 1 passed, 1 total
+Tests:       7 skipped, 1 passed, 8 total
+Snapshots:   0 total
+Time:        15.373s
+Ran all test suites matching /build\/test\/aws.test.js/i.
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$
+AC-MacBook:cloudify achou$ npx jest build/test/aws.test.js
+  cloudify:info Nonce: 804ff52c-a7c9-4809-bbf3-0ef65040ff83 +0ms
+  cloudify:info Limits: {
+  cloudify:info   "AccountLimit": {
+  cloudify:info     "TotalCodeSize": 80530636800,
+  cloudify:info     "CodeSizeUnzipped": 262144000,
+  cloudify:info     "CodeSizeZipped": 52428800,
+  cloudify:info     "ConcurrentExecutions": 1000,
+  cloudify:info     "UnreservedConcurrentExecutions": 1000
+  cloudify:info   },
+  cloudify:info   "AccountUsage": {
+  cloudify:info     "TotalCodeSize": 29798,
+  cloudify:info     "FunctionCount": 3
+  cloudify:info   }
+  cloudify:info } +927ms
+  cloudify:info Adding inline policy to not allow log group creation to role "cloudify-cached-role" +2s
+  cloudify:info Running webpack +535ms
+  cloudify:info Hash: e4dceb1bb4d72d250b73
+  cloudify:info Version: webpack 4.11.1
+  cloudify:info Time: 284ms
+  cloudify:info Built at: 06/09/2018 5:14:50 PM
+  cloudify:info    Asset    Size  Chunks             Chunk Names
+  cloudify:info index.js  31 KiB    main  [emitted]  main
+  cloudify:info Entrypoint main = index.js
+  cloudify:info [./build/src/aws/aws-trampoline.js] 3.4 KiB {main} [built]
+  cloudify:info [./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js!./] ./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js 328 bytes {main} [built]
+  cloudify:info [./build/test/functions.js] 1.66 KiB {main} [built]
+  cloudify:info [./node_modules/human-stringify/dist/lib/index.js] 6.75 KiB {main} [built]
+  cloudify:info [./node_modules/tslib/tslib.es6.js] 8.66 KiB {main} [built]
+  cloudify:info [aws-sdk] external "aws-sdk" 42 bytes {main} [built] +497ms
+  cloudify:info Memory filesystem: {
+  cloudify:info   "index.js": {...large object}
+  cloudify:info } +1ms
+  cloudify:info createFunctionRequest: {
+  cloudify:info   "FunctionName": "cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83",
+  cloudify:info   "Role": "arn:aws:iam::343675226624:role/cloudify-cached-role",
+  cloudify:info   "Runtime": "nodejs6.10",
+  cloudify:info   "Handler": "index.snsTrampoline",
+  cloudify:info   "Code": {
+  cloudify:info     "ZipFile": {...large object}
+  cloudify:info   },
+  cloudify:info   "Description": "cloudify trampoline function",
+  cloudify:info   "Timeout": 60,
+  cloudify:info   "MemorySize": 128
+  cloudify:info } +533ms
+  cloudify:info Created function cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83, FunctionArn: arn:aws:lambda:us-east-1:343675226624:function:cloudify-804ff52
+c-a7c9-4809-bbf3-0ef65040ff83 +603ms
+  cloudify:info Added SNS invoke permission to function. Statement ID: {"Sid":"cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Invoke","Effect":"Allow","Princ
+ipal":{"Service":"sns.amazonaws.com"},"Action":"lambda:invokeFunction","Resource":"arn:aws:lambda:us-east-1:343675226624:function:cloudify-804ff52c-a7c9-480
+9-bbf3-0ef65040ff83","Condition":{"ArnLike":{"AWS:SourceArn":"arn:aws:sns:us-east-1:343675226624:cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Requests"}}}+488ms
+  cloudify:info Created SNS subscription: arn:aws:sns:us-east-1:343675226624:cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Requests:a1cbfedf-51ac-4652-bf27-
+ee499631d00c +758ms
+  cloudify:info Calling cloud function "hello" with args: {"name":"hello","args":["Andy"],"CallId":"c5cc7531-fccf-49bf-8cb8-fd58134da948","ResponseQueueUrl"
+:"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses"}  +7ms
+  cloudify:info Enqueuing call request CallId: c5cc7531-fccf-49bf-8cb8-fd58134da948, deferred: [object Object] +1ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses +0ms
+  cloudify:info SNS Message ID: 74a99333-2a04-54e7-baa5-c0a545b991bf +434ms
+  cloudify:collector received 1 messages. +3s
+  cloudify:info Calling cloud function "fact" with args: {"name":"fact","args":[5],"CallId":"a2285e5c-9850-48ce-9692-774d174b318f","ResponseQueueUrl":"https
+://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses"}  +2s
+  cloudify:info Enqueuing call request CallId: a2285e5c-9850-48ce-9692-774d174b318f, deferred: [object Object] +0ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses +394ms
+  cloudify:info SNS Message ID: e45c5177-de38-506f-9b45-02e1b1f889d6 +505ms
+  cloudify:collector received 1 messages. +412ms
+  cloudify:info Calling cloud function "concat" with args: {"name":"concat","args":["abc","def"],"CallId":"36aa2108-9abc-4ebd-ad5b-348799393be1","ResponseQu
+eueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses"}  +297ms
+  cloudify:info Enqueuing call request CallId: 36aa2108-9abc-4ebd-ad5b-348799393be1, deferred: [object Object] +0ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses +352ms
+  cloudify:info SNS Message ID: 9e4d4407-9c13-50de-bd5c-1791f3d25a27 +477ms
+  cloudify:collector received 1 messages. +360ms
+  cloudify:info Calling cloud function "error" with args: {"name":"error","args":["hey"],"CallId":"53c0eb9f-a6b5-4128-9c8d-5107bf99fbd9","ResponseQueueUrl":
+"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses"}  +232ms
+  cloudify:info Enqueuing call request CallId: 53c0eb9f-a6b5-4128-9c8d-5107bf99fbd9, deferred: [object Object] +1ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses +355ms
+  cloudify:info SNS Message ID: cd05bb30-8f1a-5f0f-b0b3-e8a6e0db25b1 +431ms
+  cloudify:collector received 1 messages. +363ms
+  cloudify:info Calling cloud function "noargs" with args: {"name":"noargs","args":[],"CallId":"240ad6b8-767a-4f19-8578-c27cdb52037c","ResponseQueueUrl":"ht
+tps://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses"}  +286ms
+  cloudify:info Enqueuing call request CallId: 240ad6b8-767a-4f19-8578-c27cdb52037c, deferred: [object Object] +0ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses +417ms
+  cloudify:info SNS Message ID: f326708a-5dc5-578d-a0c6-231c3207c254 +537ms
+  cloudify:collector received 1 messages. +395ms
+  cloudify:info Calling cloud function "async" with args: {"name":"async","args":[],"CallId":"231e2b66-566e-4a8f-ad5b-0df9f2baa924","ResponseQueueUrl":"http
+s://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses"}  +286ms
+  cloudify:info Enqueuing call request CallId: 231e2b66-566e-4a8f-ad5b-0df9f2baa924, deferred: [object Object] +1ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses +414ms
+  cloudify:info SNS Message ID: 8847653e-8746-568d-8fcd-36a8e88561d4 +582ms
+  cloudify:collector received 1 messages. +810ms
+  cloudify:info Calling cloud function "path" with args: {"name":"path","args":[],"CallId":"b86a5fad-4b8c-446f-a2da-170f78f4971d","ResponseQueueUrl":"https:
+//sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses"}  +631ms
+  cloudify:info Enqueuing call request CallId: b86a5fad-4b8c-446f-a2da-170f78f4971d, deferred: [object Object] +0ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses +335ms
+  cloudify:info SNS Message ID: b17a7dde-f5be-5bf4-a099-2e489a7ab26f +491ms
+  cloudify:collector received 1 messages. +538ms
+  cloudify:info Calling cloud function "rejected" with args: {"name":"rejected","args":[],"CallId":"ae7d9d8d-9bfa-442e-aeb4-29e1688bc7f3","ResponseQueueUrl"
+:"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses"}  +381ms
+  cloudify:info Enqueuing call request CallId: ae7d9d8d-9bfa-442e-aeb4-29e1688bc7f3, deferred: [object Object] +0ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses +351ms
+  cloudify:info SNS Message ID: b57770f9-ca7d-59dc-b720-236fa5b87f7c +487ms
+  cloudify:collector received 1 messages. +361ms
+  cloudify:info Cleaning up cloudify state +225ms
+  cloudify:info Deleting Request queue subscription to lambda +1ms
+  cloudify:info Clearing result promises +709ms
+  cloudify:info Deleting function: cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83 +0ms
+  cloudify:info Deleting log group: /aws/lambda/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83 +574ms
+  cloudify:info Deleting Request queue topic: arn:aws:sns:us-east-1:343675226624:cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Requests +551ms
+  cloudify:info Deleting Response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-804ff52c-a7c9-4809-bbf3-0ef65040ff83-Responses +3ms
+ PASS  build/test/aws.test.js (22.698s)
+  Cloudify AWS
+    ✓ hello: string => string (2517ms)
+    ✓ fact: number => number (802ms)
+    ✓ concat: (string, string) => string (709ms)
+    ✓ error: string => raise exception (717ms)
+    ✓ noargs: () => string (819ms)
+    ✓ async: () => Promise<string> (1218ms)
+    ✓ path: () => Promise<string> (872ms)
+    ✓ rejected: () => rejected promise (712ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       8 passed, 8 total
+Snapshots:   0 total
+Time:        24.111s
+Ran all test suites matching /build\/test\/aws.test.js/i.
+AC-MacBook:cloudify achou$ npx jest build/test/aws-lo
+aws-load.test.d.ts     aws-load.test.js       aws-load.test.js.map   aws-local.test.d.ts    aws-local.test.js      aws-local.test.js.map
+AC-MacBook:cloudify achou$ npx jest build/test/aws-load.test.js
+  cloudify:info Nonce: 9bd39e42-b953-4886-a856-1bdfc3077118 +0ms
+  cloudify:info Limits: {
+  cloudify:info   "AccountLimit": {
+  cloudify:info     "TotalCodeSize": 80530636800,
+  cloudify:info     "CodeSizeUnzipped": 262144000,
+  cloudify:info     "CodeSizeZipped": 52428800,
+  cloudify:info     "ConcurrentExecutions": 1000,
+  cloudify:info     "UnreservedConcurrentExecutions": 1000
+  cloudify:info   },
+  cloudify:info   "AccountUsage": {
+  cloudify:info     "TotalCodeSize": 29798,
+  cloudify:info     "FunctionCount": 3
+  cloudify:info   }
+  cloudify:info } +2s
+  cloudify:info Adding inline policy to not allow log group creation to role "cloudify-cached-role" +1s
+  cloudify:info Running webpack +454ms
+  cloudify:info Hash: e4dceb1bb4d72d250b73
+  cloudify:info Version: webpack 4.11.1
+  cloudify:info Time: 298ms
+  cloudify:info Built at: 06/09/2018 5:15:26 PM
+  cloudify:info    Asset    Size  Chunks             Chunk Names
+  cloudify:info index.js  31 KiB    main  [emitted]  main
+  cloudify:info Entrypoint main = index.js
+  cloudify:info [./build/src/aws/aws-trampoline.js] 3.4 KiB {main} [built]
+  cloudify:info [./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js!./] ./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest%2Ffunctions.js 328 bytes {main} [built]
+  cloudify:info [./build/test/functions.js] 1.66 KiB {main} [built]
+  cloudify:info [./node_modules/human-stringify/dist/lib/index.js] 6.75 KiB {main} [built]
+  cloudify:info [./node_modules/tslib/tslib.es6.js] 8.66 KiB {main} [built]
+  cloudify:info [aws-sdk] external "aws-sdk" 42 bytes {main} [built] +534ms
+  cloudify:info Memory filesystem: {
+  cloudify:info   "index.js": {...large object}
+  cloudify:info } +1ms
+  cloudify:info createFunctionRequest: {
+  cloudify:info   "FunctionName": "cloudify-9bd39e42-b953-4886-a856-1bdfc3077118",
+  cloudify:info   "Role": "arn:aws:iam::343675226624:role/cloudify-cached-role",
+  cloudify:info   "Runtime": "nodejs6.10",
+  cloudify:info   "Handler": "index.snsTrampoline",
+  cloudify:info   "Code": {
+  cloudify:info     "ZipFile": {...large object}
+  cloudify:info   },
+  cloudify:info   "Description": "cloudify trampoline function",
+  cloudify:info   "Timeout": 60,
+  cloudify:info   "MemorySize": 128
+  cloudify:info } +531ms
+  cloudify:info Created function cloudify-9bd39e42-b953-4886-a856-1bdfc3077118, FunctionArn: arn:aws:lambda:us-east-1:343675226624:function:cloudify-9bd39e4
+2-b953-4886-a856-1bdfc3077118 +636ms
+  cloudify:info Added SNS invoke permission to function. Statement ID: {"Sid":"cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Invoke","Effect":"Allow","Princ
+ipal":{"Service":"sns.amazonaws.com"},"Action":"lambda:invokeFunction","Resource":"arn:aws:lambda:us-east-1:343675226624:function:cloudify-9bd39e42-b953-488
+6-a856-1bdfc3077118","Condition":{"ArnLike":{"AWS:SourceArn":"arn:aws:sns:us-east-1:343675226624:cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Requests"}}}+509ms
+  cloudify:info Created SNS subscription: arn:aws:sns:us-east-1:343675226624:cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Requests:7713da0c-7f20-4391-8940-
+9c61f56f67dd +941ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729612],"CallId":"df25d39f-6a8a-499a-bae8-1d4
+83e3ee8e5","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +9ms
+  cloudify:info Enqueuing call request CallId: df25d39f-6a8a-499a-bae8-1d483e3ee8e5, deferred: [object Object] +0ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729622],"CallId":"9151da85-3b66-43f7-ab23-fc4
+6b0aa9982","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +9ms
+  cloudify:info Enqueuing call request CallId: 9151da85-3b66-43f7-ab23-fc46b0aa9982, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729626],"CallId":"6080b8c3-9c82-4b85-b8e7-0b1
+df2b462b7","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 6080b8c3-9c82-4b85-b8e7-0b1df2b462b7, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729630],"CallId":"480bb87c-ff89-435a-b303-70b
+f075da6e9","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: 480bb87c-ff89-435a-b303-70bf075da6e9, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729634],"CallId":"2cda1236-c651-4758-817e-180
+d2ae34d4a","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: 2cda1236-c651-4758-817e-180d2ae34d4a, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729638],"CallId":"31834bd3-d255-4ae8-94d3-eba
+bd9e4b187","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: 31834bd3-d255-4ae8-94d3-ebabd9e4b187, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729643],"CallId":"f1ef90f9-aace-49eb-96ee-26d
+11927c69c","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +5ms
+  cloudify:info Enqueuing call request CallId: f1ef90f9-aace-49eb-96ee-26d11927c69c, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729647],"CallId":"251fd7a8-5db2-4b57-b599-8bd
+3344e25e1","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: 251fd7a8-5db2-4b57-b599-8bd3344e25e1, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729651],"CallId":"a94d7267-1f7c-45af-9184-38b
+26c021fda","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: a94d7267-1f7c-45af-9184-38b26c021fda, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729654],"CallId":"36f0db47-a78f-4315-8037-460
+11a4a9c7f","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 36f0db47-a78f-4315-8037-46011a4a9c7f, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729658],"CallId":"c4d38d6c-40f4-4549-b24c-769
+47bd0098d","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: c4d38d6c-40f4-4549-b24c-76947bd0098d, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729663],"CallId":"0f619161-68bf-400c-be87-d1e
+715836183","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: 0f619161-68bf-400c-be87-d1e715836183, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729666],"CallId":"683bf11a-6509-41f8-9be2-6aa
+79fc38b38","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 683bf11a-6509-41f8-9be2-6aa79fc38b38, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729669],"CallId":"c7e7a394-14c8-4828-8c66-566
+0f38ceb62","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: c7e7a394-14c8-4828-8c66-5660f38ceb62, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729672],"CallId":"d89353cd-9bbd-4745-8eb1-94c
+bd86dd799","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: d89353cd-9bbd-4745-8eb1-94cbd86dd799, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729676],"CallId":"c00ff6a7-ef22-4c65-9325-539
+6fb64dcbb","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: c00ff6a7-ef22-4c65-9325-5396fb64dcbb, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729679],"CallId":"14c60885-f7d2-4a1c-8ca8-43a
+02c314970","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 14c60885-f7d2-4a1c-8ca8-43a02c314970, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729683],"CallId":"671850a5-47cb-4b10-9297-00d
+998d5c054","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 671850a5-47cb-4b10-9297-00d998d5c054, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729690],"CallId":"f0f18ed0-0ace-4cdf-9906-394
+9b842f546","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +7ms
+  cloudify:info Enqueuing call request CallId: f0f18ed0-0ace-4cdf-9906-3949b842f546, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729697],"CallId":"75707068-f6db-44ce-a167-f9e
+c304c05f3","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +6ms
+  cloudify:info Enqueuing call request CallId: 75707068-f6db-44ce-a167-f9ec304c05f3, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729701],"CallId":"33f0e3bf-7ea5-4b95-b8e5-fe0
+9bc311903","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: 33f0e3bf-7ea5-4b95-b8e5-fe09bc311903, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729707],"CallId":"ef25663c-7d15-4333-9c98-39d
+f42981e37","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +5ms
+  cloudify:info Enqueuing call request CallId: ef25663c-7d15-4333-9c98-39df42981e37, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729712],"CallId":"d1563054-053e-4af1-83aa-000
+f25990c65","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: d1563054-053e-4af1-83aa-000f25990c65, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729715],"CallId":"0e46cc5e-9150-4ab0-8465-920
+61a7042b1","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 0e46cc5e-9150-4ab0-8465-92061a7042b1, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729717],"CallId":"422e1ca1-80ba-4bcc-ad8c-744
+f22ece3df","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 422e1ca1-80ba-4bcc-ad8c-744f22ece3df, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729720],"CallId":"ecbead8b-8b3e-4c60-9235-c1d
+da4710b63","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: ecbead8b-8b3e-4c60-9235-c1dda4710b63, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729723],"CallId":"37b4313f-222a-45a9-a434-84f
+169f655fc","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 37b4313f-222a-45a9-a434-84f169f655fc, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729727],"CallId":"d7d0c49b-df67-4d4f-8c77-d21
+428a499f1","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: d7d0c49b-df67-4d4f-8c77-d21428a499f1, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729730],"CallId":"40c86ee1-cbb2-4bfd-93ba-93c
+f3114993e","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 40c86ee1-cbb2-4bfd-93ba-93cf3114993e, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729733],"CallId":"24933607-55fa-439c-b4ad-eb9
+1f52c6987","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 24933607-55fa-439c-b4ad-eb91f52c6987, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729736],"CallId":"a18e1298-a93c-4a29-af00-f4f
+2a293fe7e","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: a18e1298-a93c-4a29-af00-f4f2a293fe7e, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729739],"CallId":"1a956d0a-2047-432d-8b15-162
+1ccde1ae3","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 1a956d0a-2047-432d-8b15-1621ccde1ae3, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729743],"CallId":"da20c92f-2a27-4e4c-aeb7-f26
+77a567ffb","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: da20c92f-2a27-4e4c-aeb7-f2677a567ffb, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729746],"CallId":"f8c50630-099f-4459-adf9-a97
+a25980a14","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: f8c50630-099f-4459-adf9-a97a25980a14, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729750],"CallId":"2e8ebd2e-3241-4620-9b9c-774
+38395a1d2","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 2e8ebd2e-3241-4620-9b9c-77438395a1d2, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729754],"CallId":"65b9ab2a-d2e9-41d8-82a7-de6
+7039afabe","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 65b9ab2a-d2e9-41d8-82a7-de67039afabe, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729757],"CallId":"889402f7-1951-4606-bf5c-8d1
+d090c2691","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 889402f7-1951-4606-bf5c-8d1d090c2691, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729759],"CallId":"e2426d7c-1f82-4579-969d-29b
+d62de974b","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: e2426d7c-1f82-4579-969d-29bd62de974b, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729762],"CallId":"f15bf335-8abe-43fd-9f6c-d5b
+e08be0558","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: f15bf335-8abe-43fd-9f6c-d5be08be0558, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729764],"CallId":"d787d521-5aa4-4ebd-9dae-7cb
+0b27a591f","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: d787d521-5aa4-4ebd-9dae-7cb0b27a591f, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729768],"CallId":"d97ab88c-52a2-4c10-aef5-bec
+13e537566","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: d97ab88c-52a2-4c10-aef5-bec13e537566, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729771],"CallId":"f9e20ceb-ca11-4752-9766-a56
+7a6d9f4dd","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: f9e20ceb-ca11-4752-9766-a567a6d9f4dd, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729774],"CallId":"93e45d1d-5b5e-40e7-9a41-1ea
+dd0fdaab4","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 93e45d1d-5b5e-40e7-9a41-1eadd0fdaab4, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729776],"CallId":"f18ffa1f-7130-4dd4-baee-992
+cf96ffd66","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: f18ffa1f-7130-4dd4-baee-992cf96ffd66, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729781],"CallId":"ac04e676-7555-4773-9d9e-144
+044c342f5","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: ac04e676-7555-4773-9d9e-144044c342f5, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729788],"CallId":"83596883-2114-4a87-b90b-9e2
+21c9dcff3","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +8ms
+  cloudify:info Enqueuing call request CallId: 83596883-2114-4a87-b90b-9e221c9dcff3, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729795],"CallId":"d56520f4-6f94-46d5-ae16-5cd
+4444e6522","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +6ms
+  cloudify:info Enqueuing call request CallId: d56520f4-6f94-46d5-ae16-5cd4444e6522, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729801],"CallId":"9ee225df-f08b-4410-b3c0-b9b
+3e5482775","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +5ms
+  cloudify:info Enqueuing call request CallId: 9ee225df-f08b-4410-b3c0-b9b3e5482775, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729810],"CallId":"6cb9bd44-5833-4528-972b-ff3
+5b0aa9889","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +10ms
+  cloudify:info Enqueuing call request CallId: 6cb9bd44-5833-4528-972b-ff35b0aa9889, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729813],"CallId":"c6b016a8-4aca-4b80-b2ac-339
+aeaaa35ef","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: c6b016a8-4aca-4b80-b2ac-339aeaaa35ef, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729816],"CallId":"cce20805-ddc5-4ec2-87dd-1b9
+7fb2998a3","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: cce20805-ddc5-4ec2-87dd-1b97fb2998a3, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729818],"CallId":"9908e9cb-ab42-4d8b-90b3-184
+40b592839","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 9908e9cb-ab42-4d8b-90b3-18440b592839, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729820],"CallId":"267b814c-74aa-4797-9de4-2de
+15a368c55","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 267b814c-74aa-4797-9de4-2de15a368c55, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729828],"CallId":"49210436-4127-442f-90ec-051
+3422164ee","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +8ms
+  cloudify:info Enqueuing call request CallId: 49210436-4127-442f-90ec-0513422164ee, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729834],"CallId":"fdbccff0-7f11-4c42-b2ae-ee0
+49242cc5d","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +6ms
+  cloudify:info Enqueuing call request CallId: fdbccff0-7f11-4c42-b2ae-ee049242cc5d, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729837],"CallId":"220eeeac-2b73-4038-9608-f69
+e29ba753a","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 220eeeac-2b73-4038-9608-f69e29ba753a, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729840],"CallId":"26c771f2-247c-4bc2-9514-1bb
+970867dcd","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 26c771f2-247c-4bc2-9514-1bb970867dcd, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729841],"CallId":"7f3ad969-b22d-45c2-bf17-dfc
+2bce37370","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 7f3ad969-b22d-45c2-bf17-dfc2bce37370, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729843],"CallId":"a839aee3-f6f3-4276-b7f9-cd7
+e3086affe","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: a839aee3-f6f3-4276-b7f9-cd7e3086affe, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729846],"CallId":"465d9354-294d-4412-bb86-2cf
+8e85c54e4","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 465d9354-294d-4412-bb86-2cf8e85c54e4, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729853],"CallId":"fca5560c-7abe-449c-82c3-d11
+075f7229f","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +7ms
+  cloudify:info Enqueuing call request CallId: fca5560c-7abe-449c-82c3-d11075f7229f, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729856],"CallId":"05317a38-2267-4274-b1c5-9da
+5d7843f9f","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 05317a38-2267-4274-b1c5-9da5d7843f9f, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729858],"CallId":"902e3af5-204e-4666-b15b-d64
+39f15fe40","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 902e3af5-204e-4666-b15b-d6439f15fe40, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729860],"CallId":"afb0015d-c67c-4772-bafa-e5c
+82a0847f1","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: afb0015d-c67c-4772-bafa-e5c82a0847f1, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729861],"CallId":"a7ac1897-7be3-44d7-a6b7-1ef
+71c1e4dca","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: a7ac1897-7be3-44d7-a6b7-1ef71c1e4dca, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729862],"CallId":"22ed2396-ca2a-49dd-8a4c-92d
+f61a4a93f","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 22ed2396-ca2a-49dd-8a4c-92df61a4a93f, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729863],"CallId":"5155f1dd-bf56-46a1-8a43-add
+06fde2e5c","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 5155f1dd-bf56-46a1-8a43-add06fde2e5c, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729865],"CallId":"c2b33271-3716-42ab-80e7-ac2
+08eaef058","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: c2b33271-3716-42ab-80e7-ac208eaef058, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729866],"CallId":"c226f219-c4d9-4609-815f-f4d
+7baf8d73a","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: c226f219-c4d9-4609-815f-f4d7baf8d73a, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729867],"CallId":"2eb67ad1-980c-47df-98c1-e91
+98d98e1ab","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 2eb67ad1-980c-47df-98c1-e9198d98e1ab, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729868],"CallId":"d0f973f5-8d2e-45dc-a385-03e
+b2b6bfc7d","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: d0f973f5-8d2e-45dc-a385-03eb2b6bfc7d, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729870],"CallId":"12dcb028-0ce5-487a-a158-7c7
+bbeb88a7b","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 12dcb028-0ce5-487a-a158-7c7bbeb88a7b, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729871],"CallId":"76ed6e4f-ed5d-4116-a68e-caa
+432891c19","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 76ed6e4f-ed5d-4116-a68e-caa432891c19, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729872],"CallId":"e8f37b84-c573-4a7b-89c5-3c9
+55bd06d29","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: e8f37b84-c573-4a7b-89c5-3c955bd06d29, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729874],"CallId":"54920f01-a253-4c62-9df5-b38
+9c014eebd","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 54920f01-a253-4c62-9df5-b389c014eebd, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729875],"CallId":"810e882f-d598-40a1-9386-27e
+588484ea3","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 810e882f-d598-40a1-9386-27e588484ea3, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729876],"CallId":"79635031-84ed-44a6-872d-aa1
+fd4c4a108","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 79635031-84ed-44a6-872d-aa1fd4c4a108, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729878],"CallId":"97cd670e-50c2-4823-95da-591
+807a97ed3","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 97cd670e-50c2-4823-95da-591807a97ed3, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729880],"CallId":"0f9c15f8-345f-4ad4-ae89-279
+3cad41e72","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 0f9c15f8-345f-4ad4-ae89-2793cad41e72, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729881],"CallId":"43d87f28-cdf6-4244-8c61-e01
+f3a0c726b","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 43d87f28-cdf6-4244-8c61-e01f3a0c726b, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729882],"CallId":"24a3204d-7fcc-4c49-81a3-bd4
+ffee56a59","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 24a3204d-7fcc-4c49-81a3-bd4ffee56a59, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729885],"CallId":"af2e814b-8387-4651-8f27-d16
+abf542913","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: af2e814b-8387-4651-8f27-d16abf542913, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729886],"CallId":"029cfe75-e381-417b-ab3f-8be
+d36ca8a49","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 029cfe75-e381-417b-ab3f-8bed36ca8a49, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729888],"CallId":"043c4f68-e210-4a2b-a4f5-5c4
+dd22302c5","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 043c4f68-e210-4a2b-a4f5-5c4dd22302c5, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729890],"CallId":"0cb1abf8-e204-4067-9781-8fc
+67e118843","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 0cb1abf8-e204-4067-9781-8fc67e118843, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729892],"CallId":"3bad02fc-a978-44ef-9bbf-66d
+2c6f2a8fc","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 3bad02fc-a978-44ef-9bbf-66d2c6f2a8fc, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729894],"CallId":"63734bb5-7189-43f4-acfa-d87
+2cad37b47","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 63734bb5-7189-43f4-acfa-d872cad37b47, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729896],"CallId":"1590a7f5-d87a-43a2-a3a5-3ab
+9919bbed5","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 1590a7f5-d87a-43a2-a3a5-3ab9919bbed5, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729897],"CallId":"8398eb25-328e-4db3-a266-94d
+4d0557940","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 8398eb25-328e-4db3-a266-94d4d0557940, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729899],"CallId":"accd5f15-a7f0-4b1c-ac43-2aa
+e729282b6","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: accd5f15-a7f0-4b1c-ac43-2aae729282b6, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729901],"CallId":"1a280363-3f67-434c-8ef9-684
+26635339b","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 1a280363-3f67-434c-8ef9-68426635339b, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729902],"CallId":"e419944c-836f-478c-935a-cc2
+a23cf4f30","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: e419944c-836f-478c-935a-cc2a23cf4f30, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729904],"CallId":"a50fbb2d-8aa1-4c8b-960c-702
+a83127541","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: a50fbb2d-8aa1-4c8b-960c-702a83127541, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729906],"CallId":"2e090cf5-f82d-4bfc-bde3-283
+ba66ea94f","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 2e090cf5-f82d-4bfc-bde3-283ba66ea94f, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729907],"CallId":"f02efbb7-b6f1-4e69-abd0-c96
+52c062f5f","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: f02efbb7-b6f1-4e69-abd0-c9652c062f5f, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729908],"CallId":"c924611c-e708-4aa2-b698-7d7
+ef0bb7ab7","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: c924611c-e708-4aa2-b698-7d7ef0bb7ab7, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729910],"CallId":"0a0e90b6-f9be-43b8-bd97-d10
+81d668bf2","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 0a0e90b6-f9be-43b8-bd97-d1081d668bf2, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729911],"CallId":"4269280b-283f-47ff-a207-b3c
+a23bcdaed","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 4269280b-283f-47ff-a207-b3ca23bcdaed, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729912],"CallId":"bd49f299-4947-4bd1-ae40-912
+026812fb4","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: bd49f299-4947-4bd1-ae40-912026812fb4, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729913],"CallId":"bf80e3e8-2c43-4f8b-aa70-f56
+4ffdc3456","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: bf80e3e8-2c43-4f8b-aa70-f564ffdc3456, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729914],"CallId":"5155b8b3-5b23-40bf-a19d-488
+a6ff21344","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 5155b8b3-5b23-40bf-a19d-488a6ff21344, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729916],"CallId":"4659f81f-b6c0-4ff2-9633-752
+7218a0262","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 4659f81f-b6c0-4ff2-9633-7527218a0262, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729917],"CallId":"ec2fd1b4-b6d9-42c3-a283-c3a
+30812d8b6","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: ec2fd1b4-b6d9-42c3-a283-c3a30812d8b6, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729920],"CallId":"5371de27-680f-4b5d-bdcb-756
+2bc4d6e90","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 5371de27-680f-4b5d-bdcb-7562bc4d6e90, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729923],"CallId":"187053aa-55e8-4457-95d1-3a1
+02de888d1","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 187053aa-55e8-4457-95d1-3a102de888d1, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729924],"CallId":"20ce370d-b253-4890-8014-2c7
+aef4dd8aa","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 20ce370d-b253-4890-8014-2c7aef4dd8aa, deferred: [object Object] +2ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729928],"CallId":"901b649a-efba-4cdf-b467-311
+65155fe15","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 901b649a-efba-4cdf-b467-31165155fe15, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729935],"CallId":"3ce43067-694e-42e9-9e89-d21
+670a92dd1","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +6ms
+  cloudify:info Enqueuing call request CallId: 3ce43067-694e-42e9-9e89-d21670a92dd1, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729937],"CallId":"c08270e6-400a-4b06-8eba-529
+2c5941ab5","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: c08270e6-400a-4b06-8eba-5292c5941ab5, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729939],"CallId":"8f924d9b-98ba-42c6-93c4-08f
+b343aee68","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 8f924d9b-98ba-42c6-93c4-08fb343aee68, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729945],"CallId":"72b3915d-ed71-434e-86f2-77d
+cdcbc69a9","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: 72b3915d-ed71-434e-86f2-77dcdcbc69a9, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729947],"CallId":"1ff50758-c577-474b-9d28-896
+36f93f28e","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 1ff50758-c577-474b-9d28-89636f93f28e, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729949],"CallId":"d3680da0-95b9-47a0-9107-f05
+9e985d2c5","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: d3680da0-95b9-47a0-9107-f059e985d2c5, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729951],"CallId":"a34cf26a-e75d-465a-8678-b8d
+9e42100e3","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: a34cf26a-e75d-465a-8678-b8d9e42100e3, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729952],"CallId":"e0214fe7-dd07-4b4e-819d-d56
+2407cb9b4","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: e0214fe7-dd07-4b4e-819d-d562407cb9b4, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729954],"CallId":"62d24b12-d9d3-44d2-a05f-7d3
+d60811616","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 62d24b12-d9d3-44d2-a05f-7d3d60811616, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729955],"CallId":"cc1b32ca-a1b7-4118-a2c8-627
+2196aeeab","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: cc1b32ca-a1b7-4118-a2c8-6272196aeeab, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729957],"CallId":"6585bc9d-3d10-4e10-b1f9-485
+f2f8909e2","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 6585bc9d-3d10-4e10-b1f9-485f2f8909e2, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729959],"CallId":"4aaebb29-6fdb-45c5-9172-7eb
+cdf19a94e","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 4aaebb29-6fdb-45c5-9172-7ebcdf19a94e, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729961],"CallId":"d126c1f5-2056-4295-a513-d4f
+d286293c4","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: d126c1f5-2056-4295-a513-d4fd286293c4, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729970],"CallId":"52c7f9e2-2920-4084-a8f6-262
+c4d90e0ac","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +9ms
+  cloudify:info Enqueuing call request CallId: 52c7f9e2-2920-4084-a8f6-262c4d90e0ac, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729972],"CallId":"7de19fe4-88d8-4a50-8681-7e5
+f0a451769","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 7de19fe4-88d8-4a50-8681-7e5f0a451769, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729974],"CallId":"063a06cd-c0cb-4c03-84c6-145
+63d11aab2","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 063a06cd-c0cb-4c03-84c6-14563d11aab2, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729975],"CallId":"da4e7855-64ae-49cb-8edb-314
+f9105e7dd","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: da4e7855-64ae-49cb-8edb-314f9105e7dd, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729977],"CallId":"ac41f66a-11e2-4134-ab4b-45a
+256483a9e","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: ac41f66a-11e2-4134-ab4b-45a256483a9e, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729979],"CallId":"ffa45769-ccfa-4dbb-92b3-6eb
+d5a89e72c","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: ffa45769-ccfa-4dbb-92b3-6ebd5a89e72c, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729989],"CallId":"03b7d566-85c6-4a3c-bcb6-945
+bf8d57343","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +9ms
+  cloudify:info Enqueuing call request CallId: 03b7d566-85c6-4a3c-bcb6-945bf8d57343, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729991],"CallId":"d35f3842-a459-46e0-b03d-841
+04f43acdd","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: d35f3842-a459-46e0-b03d-84104f43acdd, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729992],"CallId":"ed58c05d-386e-45ef-abb1-62f
+9f1e31229","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: ed58c05d-386e-45ef-abb1-62f9f1e31229, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729993],"CallId":"37ea379c-ddb9-43e3-aedf-417
+a6a41ea2b","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 37ea379c-ddb9-43e3-aedf-417a6a41ea2b, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729994],"CallId":"2bea19a4-c31d-498e-919d-8a4
+6d7a4a6f2","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 2bea19a4-c31d-498e-919d-8a46d7a4a6f2, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729995],"CallId":"f7169494-44cd-48d3-aaee-e96
+4cce96195","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: f7169494-44cd-48d3-aaee-e964cce96195, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589729998],"CallId":"e5b11886-c212-4d07-8228-32c
+4310f2932","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: e5b11886-c212-4d07-8228-32c4310f2932, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730000],"CallId":"cbc8bd91-9e1e-4500-b469-ae3
+ca92a97bb","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: cbc8bd91-9e1e-4500-b469-ae3ca92a97bb, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730001],"CallId":"d85e1e99-47cc-4f35-8aa7-33c
+e6a28af12","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: d85e1e99-47cc-4f35-8aa7-33ce6a28af12, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730003],"CallId":"0b03377e-7e94-4aab-b9fa-989
+27679e918","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 0b03377e-7e94-4aab-b9fa-98927679e918, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730004],"CallId":"1be1fb74-426c-47a1-bc21-086
+3d7325fd9","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 1be1fb74-426c-47a1-bc21-0863d7325fd9, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730005],"CallId":"f1ae329c-d5f4-4946-8924-c7b
+c3fd71d72","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: f1ae329c-d5f4-4946-8924-c7bc3fd71d72, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730006],"CallId":"574c6fb6-43a9-494f-9229-314
+0425b6e68","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 574c6fb6-43a9-494f-9229-3140425b6e68, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730008],"CallId":"db5f6bc0-2393-4891-b9aa-4f2
+db0d83831","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: db5f6bc0-2393-4891-b9aa-4f2db0d83831, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730009],"CallId":"dde46323-99b6-444e-a6d3-0f6
+107731471","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: dde46323-99b6-444e-a6d3-0f6107731471, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730010],"CallId":"1c7edd06-00ec-461a-a0ad-36a
+4160789f3","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 1c7edd06-00ec-461a-a0ad-36a4160789f3, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730011],"CallId":"f21653eb-f007-4a49-85c8-c96
+7210b09ad","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: f21653eb-f007-4a49-85c8-c967210b09ad, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730013],"CallId":"ae58c356-1f43-4a96-ad29-dab
+77d8bdcdc","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: ae58c356-1f43-4a96-ad29-dab77d8bdcdc, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730015],"CallId":"4bcb3397-f439-4731-9896-de8
+85e630600","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 4bcb3397-f439-4731-9896-de885e630600, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730016],"CallId":"6926b92c-63d1-402c-bd09-ec4
+c3dc07102","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 6926b92c-63d1-402c-bd09-ec4c3dc07102, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730018],"CallId":"3a911da2-6f51-42c9-a704-457
+1802f397c","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 3a911da2-6f51-42c9-a704-4571802f397c, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730019],"CallId":"db64d722-6d5a-4f62-b79f-96a
+d2bb634aa","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: db64d722-6d5a-4f62-b79f-96ad2bb634aa, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730020],"CallId":"c8747195-fd36-4aa1-92f5-8e7
+5163d1256","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: c8747195-fd36-4aa1-92f5-8e75163d1256, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730021],"CallId":"202770ea-3441-478f-a55e-51f
+70d13e7dc","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 202770ea-3441-478f-a55e-51f70d13e7dc, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730023],"CallId":"211b460f-2714-4f8f-91da-0ab
+f5e3c35ae","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 211b460f-2714-4f8f-91da-0abf5e3c35ae, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730024],"CallId":"5d2291a7-5983-473d-b6a9-cbd
+21d92ef74","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 5d2291a7-5983-473d-b6a9-cbd21d92ef74, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730025],"CallId":"13d3cf8d-f1b3-4289-9d36-f46
+6f8149d63","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 13d3cf8d-f1b3-4289-9d36-f466f8149d63, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730026],"CallId":"246e7e55-cd80-4b70-81df-d36
+3984f9d79","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 246e7e55-cd80-4b70-81df-d363984f9d79, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730027],"CallId":"abdfe2c6-c4aa-4d3a-a29c-aab
+b60532ab4","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: abdfe2c6-c4aa-4d3a-a29c-aabb60532ab4, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730028],"CallId":"573ef07d-f88f-45a5-a03d-82d
+c810d76d4","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 573ef07d-f88f-45a5-a03d-82dc810d76d4, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730043],"CallId":"e97cbfe3-c55a-4d80-a668-e94
+231c34143","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +14ms
+  cloudify:info Enqueuing call request CallId: e97cbfe3-c55a-4d80-a668-e94231c34143, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730046],"CallId":"598935aa-a67d-47f0-8d56-4ec
+f8a094277","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 598935aa-a67d-47f0-8d56-4ecf8a094277, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730049],"CallId":"f90b1a5b-71da-4907-8646-506
+0944e703f","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: f90b1a5b-71da-4907-8646-5060944e703f, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730051],"CallId":"5fb4f305-1c61-4520-9c11-850
+8bf166e46","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: 5fb4f305-1c61-4520-9c11-8508bf166e46, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730056],"CallId":"10cc523e-a49b-4d96-a3c0-105
+1c704303d","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: 10cc523e-a49b-4d96-a3c0-1051c704303d, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730063],"CallId":"9d29651f-3698-4525-83bf-2c8
+af25f866b","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +5ms
+  cloudify:info Enqueuing call request CallId: 9d29651f-3698-4525-83bf-2c8af25f866b, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730064],"CallId":"da0de366-a836-4ea7-8d7f-287
+a9bbd2e5e","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: da0de366-a836-4ea7-8d7f-287a9bbd2e5e, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730066],"CallId":"9fd84a36-0ac5-48f0-85fe-4df
+c16ed2911","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 9fd84a36-0ac5-48f0-85fe-4dfc16ed2911, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730067],"CallId":"5f221a46-a4a6-4e27-bead-3f3
+2817a1001","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 5f221a46-a4a6-4e27-bead-3f32817a1001, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730069],"CallId":"733b6a5a-9e89-4500-a1bf-55d
+25d90d9fe","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 733b6a5a-9e89-4500-a1bf-55d25d90d9fe, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730071],"CallId":"dc1a0c52-753d-451e-879f-b20
+d1070b3ea","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: dc1a0c52-753d-451e-879f-b20d1070b3ea, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730076],"CallId":"ae100604-7daa-4f73-8853-b7f
+277ba008f","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +3ms
+  cloudify:info Enqueuing call request CallId: ae100604-7daa-4f73-8853-b7f277ba008f, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730078],"CallId":"f8581358-9126-4805-97f6-a45
+0d6fb269d","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: f8581358-9126-4805-97f6-a450d6fb269d, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730080],"CallId":"e5742d14-82a5-4131-85e5-3f4
+296224e09","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: e5742d14-82a5-4131-85e5-3f4296224e09, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730081],"CallId":"c077fc52-44a9-4ec0-a91c-e62
+1333fe39b","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: c077fc52-44a9-4ec0-a91c-e621333fe39b, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730084],"CallId":"4f5e1d8c-0e2e-4947-a4a5-6fa
+440584596","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 4f5e1d8c-0e2e-4947-a4a5-6fa440584596, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730085],"CallId":"fefaec99-1460-459e-a37e-9fa
+6c10f95f4","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: fefaec99-1460-459e-a37e-9fa6c10f95f4, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730086],"CallId":"5712f016-72b8-4d89-97b2-52c
+c864182f5","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 5712f016-72b8-4d89-97b2-52cc864182f5, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730087],"CallId":"3570fcf6-b58b-4210-9a02-5ac
+91dfee51c","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 3570fcf6-b58b-4210-9a02-5ac91dfee51c, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730089],"CallId":"47ea3ea1-0a8c-458d-ada7-f95
+cf35aaed0","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 47ea3ea1-0a8c-458d-ada7-f95cf35aaed0, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730090],"CallId":"f3564cbb-b68a-4672-b2b9-abe
+dabb34038","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: f3564cbb-b68a-4672-b2b9-abedabb34038, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730092],"CallId":"084074ce-c4f1-43ea-b966-724
+bc0f176b1","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 084074ce-c4f1-43ea-b966-724bc0f176b1, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730093],"CallId":"80105a48-a3ea-4379-b4e5-184
+f48768ebc","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 80105a48-a3ea-4379-b4e5-184f48768ebc, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730094],"CallId":"0d97256a-0dc2-4039-863d-a8b
+32f0f0874","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 0d97256a-0dc2-4039-863d-a8b32f0f0874, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730096],"CallId":"05e7989e-c743-4426-867f-be0
+6e61a7621","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 05e7989e-c743-4426-867f-be06e61a7621, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730097],"CallId":"c2bd4604-4117-4a82-9815-3df
+2005cdbe8","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: c2bd4604-4117-4a82-9815-3df2005cdbe8, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730101],"CallId":"e0a3e7e6-ccf1-478c-ac32-7bd
+4ea34196b","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +4ms
+  cloudify:info Enqueuing call request CallId: e0a3e7e6-ccf1-478c-ac32-7bd4ea34196b, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730103],"CallId":"e5de1168-e909-4602-9bc7-fc6
+cc983fa86","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: e5de1168-e909-4602-9bc7-fc6cc983fa86, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730104],"CallId":"2cfe96cb-105c-4d79-aa70-00f
+ef58b4712","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 2cfe96cb-105c-4d79-aa70-00fef58b4712, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730107],"CallId":"79ae3a22-1f51-4952-9c54-c4b
+5a3fb258b","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 79ae3a22-1f51-4952-9c54-c4b5a3fb258b, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730109],"CallId":"dd3fd829-d77f-4277-b915-dc0
+86e707555","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: dd3fd829-d77f-4277-b915-dc086e707555, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730111],"CallId":"40c18d82-7357-44a6-94c8-003
+384239f91","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: 40c18d82-7357-44a6-94c8-003384239f91, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730112],"CallId":"181a39ec-d090-4bdc-a3b3-258
+38fc5f363","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 181a39ec-d090-4bdc-a3b3-25838fc5f363, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730113],"CallId":"6dbd0309-dfe4-4df6-8870-a47
+f850f3613","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 6dbd0309-dfe4-4df6-8870-a47f850f3613, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730114],"CallId":"4163ce2d-f902-4e7b-bb9a-863
+d12ca9b36","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 4163ce2d-f902-4e7b-bb9a-863d12ca9b36, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730115],"CallId":"138c94e5-49cb-4dab-98a3-b01
+e9546fda6","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 138c94e5-49cb-4dab-98a3-b01e9546fda6, deferred: [object Object] +4ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730120],"CallId":"9069cd4f-727c-4cb4-998b-1a3
+4e537b052","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 9069cd4f-727c-4cb4-998b-1a34e537b052, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730121],"CallId":"0d6392b5-5251-4b2e-95a9-364
+ae9ccf76a","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 0d6392b5-5251-4b2e-95a9-364ae9ccf76a, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730122],"CallId":"895a35e9-70b9-41c0-90c7-9a6
+c9a1d10d1","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 895a35e9-70b9-41c0-90c7-9a6c9a1d10d1, deferred: [object Object] +1ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730123],"CallId":"321809a7-99ab-4de9-a048-077
+b7175b7a9","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 321809a7-99ab-4de9-a048-077b7175b7a9, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730125],"CallId":"907b7341-de21-40d8-8d89-fb1
+b45700bb4","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 907b7341-de21-40d8-8d89-fb1b45700bb4, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730126],"CallId":"a1f741fb-cd4b-410a-9b79-8e8
+56f2c8d55","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: a1f741fb-cd4b-410a-9b79-8e856f2c8d55, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730127],"CallId":"1f6b7173-383c-4bc5-8328-39d
+aa774c16d","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +1ms
+  cloudify:info Enqueuing call request CallId: 1f6b7173-383c-4bc5-8328-39daa774c16d, deferred: [object Object] +0ms
+  cloudify:info Calling cloud function "monteCarloPI" with args: {"name":"monteCarloPI","args":[5000000,1528589730128],"CallId":"b412ad34-7dcf-4163-9c66-7ee
+fa2574b06","ResponseQueueUrl":"https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses"}  +2ms
+  cloudify:info Enqueuing call request CallId: b412ad34-7dcf-4163-9c66-7eefa2574b06, deferred: [object Object] +0ms
+  cloudify:info SNS Message ID: c6297c22-b6b5-5155-ba6f-2fb4d95722e6 +622ms
+  cloudify:info SNS Message ID: 2405b534-6e70-588a-b664-e6a2019237b6 +1ms
+  cloudify:info SNS Message ID: 6d70ad74-dfa0-5ee5-8b06-fee2b042c119 +2ms
+  cloudify:info SNS Message ID: 06132a8d-e06d-59af-827a-791b8f8f0eda +2ms
+  cloudify:info SNS Message ID: 8ab29cf2-f23d-54b7-aace-cf649ddf9281 +1ms
+  cloudify:info SNS Message ID: a915d055-1a77-56e1-9219-83c37595f19f +2ms
+  cloudify:info SNS Message ID: ad38cb46-d884-5876-a744-98d0b766686e +1ms
+  cloudify:info SNS Message ID: e8ab706e-787d-5326-9677-23f8179ff6c2 +2ms
+  cloudify:info SNS Message ID: b7a32579-081f-5d93-a09e-76ef67fd9640 +1ms
+  cloudify:info SNS Message ID: a4cf8326-0bf4-5f6a-b4f5-d0b06416a056 +2ms
+  cloudify:info SNS Message ID: 16225eff-ebff-5ee8-92ae-0d69841db0b6 +2ms
+  cloudify:info SNS Message ID: be07c3cb-d67b-5aeb-85fb-905db99912b7 +1ms
+  cloudify:info SNS Message ID: fdd652a1-ff82-5fe6-bf5b-013790609290 +1ms
+  cloudify:info SNS Message ID: 731c7259-8a13-59a3-af35-21cfe5f1759b +2ms
+  cloudify:info SNS Message ID: b411c7f0-45de-56b8-aaee-94662a3caec0 +1ms
+  cloudify:info SNS Message ID: 04a0dea7-56bf-5ea1-a1cf-8d31395d8db4 +1ms
+  cloudify:info SNS Message ID: d79e804d-1129-577a-8acc-d3db7ecbbb8b +0ms
+  cloudify:info SNS Message ID: a9ef1263-43c8-545c-be29-41f52c2aa493 +1ms
+  cloudify:info SNS Message ID: c0a6e591-4f2c-5e3e-9c94-b60720ce5e43 +1ms
+  cloudify:info SNS Message ID: 2a622b57-6337-5992-b5a5-78c10cd5a493 +1ms
+  cloudify:info SNS Message ID: 90275edf-b296-5ba1-bae1-0d49dd74021e +34ms
+  cloudify:info SNS Message ID: ae12f148-1485-5aac-85fc-a2de7b67893b +1ms
+  cloudify:info SNS Message ID: 46c8eb2d-0bf7-5921-b569-b8bb64152713 +2ms
+  cloudify:info SNS Message ID: ea5d4628-d1da-52ea-8592-15bebe3873b5 +1ms
+  cloudify:info SNS Message ID: 43eb7420-b3df-5aa6-867a-27b6dc3d023b +1ms
+  cloudify:info SNS Message ID: 6da35b06-a069-5d81-99a1-0890cf8b9a5d +1ms
+  cloudify:info SNS Message ID: 9a1cb4c3-3e59-5f35-892f-e75551bbf329 +1ms
+  cloudify:info SNS Message ID: 2b95087f-6b2d-5c06-b9bf-5be904cf5f93 +2ms
+  cloudify:info SNS Message ID: eabbb045-0595-5178-8845-e3d36a7714c7 +1ms
+  cloudify:info SNS Message ID: 03d711c3-cf75-5e6a-a06d-4255a097c037 +5ms
+  cloudify:info SNS Message ID: 8ec1dad8-9a07-54cb-a08a-894ef5e5dbbe +12ms
+  cloudify:info SNS Message ID: f733a24a-61c7-54ff-89c7-f1dc0e25da86 +7ms
+  cloudify:info SNS Message ID: d4ae6741-9d90-5f24-a867-34d7f2720881 +32ms
+  cloudify:info SNS Message ID: 9070ba0d-5969-5f39-9645-e99b368b0d22 +1ms
+  cloudify:info SNS Message ID: 31e2ebac-c035-5f67-be19-b83aafd71293 +0ms
+  cloudify:info SNS Message ID: 28192c9d-278d-5b15-b302-7f0b486fb74f +2ms
+  cloudify:info SNS Message ID: 386a6b53-4ca7-5427-80c9-38c523451ddc +2ms
+  cloudify:info SNS Message ID: 085ff0b8-dff4-5d6d-a687-a32eb0161ede +47ms
+  cloudify:info SNS Message ID: 97c62339-b738-5f24-9e14-70afd8daf912 +2ms
+  cloudify:info SNS Message ID: 4ee812ad-3ca5-5252-abb1-413b53475d6e +1ms
+  cloudify:info SNS Message ID: efe474fd-4d7a-5104-864b-276b2298b671 +2ms
+  cloudify:info SNS Message ID: 683df8bc-21b9-50da-80d9-ab2a4e5bddac +1ms
+  cloudify:info SNS Message ID: 9fb40e90-bd37-5c6f-b852-5d06d2d53231 +2ms
+  cloudify:info SNS Message ID: cc2588e3-d4c5-55a3-89c8-db75bb27199b +2ms
+  cloudify:info SNS Message ID: 50c23cab-aedc-52c9-a8b7-6f3dc13e7ab1 +4ms
+  cloudify:info SNS Message ID: 4baec5f7-20fd-5848-96fb-96614f1f3835 +3ms
+  cloudify:info SNS Message ID: 63355c77-6e5c-57e2-9c6a-0fe101be981e +1ms
+  cloudify:info SNS Message ID: 22c35e1f-ed64-5104-be7b-0d8982862211 +1ms
+  cloudify:info SNS Message ID: a04c42b8-4369-576a-964a-112e2c8b34fd +1ms
+  cloudify:info SNS Message ID: 2f9797d7-815c-5f86-ae66-c441eebe30ba +1ms
+  cloudify:info SNS Message ID: 24f43d21-8266-5324-8887-6eb7ed8426c0 +3ms
+  cloudify:info SNS Message ID: 7a0ab37c-4703-5653-bd87-e0ea28e1c64b +2ms
+  cloudify:info SNS Message ID: b6a8a52b-2ea0-5233-a04a-f6bd41422b8c +2ms
+  cloudify:info SNS Message ID: ea23a7e5-fc86-5320-958a-f4739364ce21 +2ms
+  cloudify:info SNS Message ID: d35d9626-ed25-56a1-8af5-c5b082c74efd +1ms
+  cloudify:info SNS Message ID: 3c3af3e7-9853-59fb-a030-a071f7b1ee85 +2ms
+  cloudify:info SNS Message ID: 0d673d3f-947f-50cc-ba79-6ea9fb9dc003 +2ms
+  cloudify:info SNS Message ID: 8ee13506-7c5f-521f-b4ac-669013bd1340 +2ms
+  cloudify:info SNS Message ID: fbf37cfe-c04c-512e-8545-2f68afae5afd +1ms
+  cloudify:info SNS Message ID: 3abc9ff0-d97e-56ed-adb8-cc66b69ce8df +2ms
+  cloudify:info SNS Message ID: d96d1227-a4b5-588f-ac52-41b1cb577012 +2ms
+  cloudify:info SNS Message ID: 32b3b362-cf05-5a97-9b98-e0f4a0e7d68b +2ms
+  cloudify:info SNS Message ID: 40c89ab2-a490-56c3-a5aa-c924cb72811f +2ms
+  cloudify:info SNS Message ID: ade9091e-eea6-50b5-8ecf-5a888144f320 +2ms
+  cloudify:info SNS Message ID: 94dc31cf-e452-51ad-bc89-62598bb0dd5c +1ms
+  cloudify:info SNS Message ID: 9bee0efa-1003-57de-b011-5d6c7fe1d261 +17ms
+  cloudify:info SNS Message ID: ab3e6b1e-dded-59b6-a0ea-3888b20f77eb +1ms
+  cloudify:info SNS Message ID: aa3d0327-f491-5fbf-a35b-50b19b7350ca +1ms
+  cloudify:info SNS Message ID: 58b889b7-4479-54df-b9bf-da212b9bc92b +1ms
+  cloudify:info SNS Message ID: 4c253370-267c-5fc9-aba8-60e6499e51b0 +5ms
+  cloudify:info SNS Message ID: 4834a42a-c488-59da-8c7f-f7bcab6a7e7f +1ms
+  cloudify:info SNS Message ID: a13e2c81-4450-510c-aa1c-7f172bb21317 +1ms
+  cloudify:info SNS Message ID: 9bbe3a65-c6b6-5451-8508-69f3a954e80b +2ms
+  cloudify:info SNS Message ID: d7bbeb41-5298-5419-a229-b8d73d7abde2 +11ms
+  cloudify:info SNS Message ID: 9873d032-39ef-530e-bd80-83a4560d3538 +48ms
+  cloudify:info SNS Message ID: 70b0d3f7-47f8-52cf-becd-8061281bf17c +1ms
+  cloudify:info SNS Message ID: 0fe4b5fc-081d-5b04-9cf3-e66a67ffa4f8 +7ms
+  cloudify:info SNS Message ID: 6d1b07f0-4f7e-509d-885b-5466209cedeb +1ms
+  cloudify:info SNS Message ID: 8ac04dd2-392a-54f7-a3d8-1e4456c84bcb +1ms
+  cloudify:info SNS Message ID: 329478cf-018d-5194-98ca-2b596e6f0ea8 +2ms
+  cloudify:info SNS Message ID: 7c60210b-bc9a-54a0-be35-729dd378a4dd +2ms
+  cloudify:info SNS Message ID: 498be112-bd01-5f97-b38f-b284d2e323af +2ms
+  cloudify:info SNS Message ID: 8403128c-4c04-524f-8023-411a23e621d8 +1ms
+  cloudify:info SNS Message ID: a9fae9a3-f4f9-5880-ac75-ba359b1b76de +2ms
+  cloudify:info SNS Message ID: 5ae40f98-f936-53d2-9e1b-5c0e96d4f0c7 +1ms
+  cloudify:info SNS Message ID: 922fcbb9-429b-5e35-a57f-982f2d798bd1 +3ms
+  cloudify:info SNS Message ID: f9ea2331-9f18-5133-bc4d-70a7f0fa394b +2ms
+  cloudify:info SNS Message ID: d7554c8b-aa9a-57cc-9aaf-1f1dc57880b9 +1ms
+  cloudify:info SNS Message ID: 1ea926ae-98ae-581c-92b3-7538f74cf040 +3ms
+  cloudify:info SNS Message ID: e6c896eb-ef1d-5fd2-8e60-c57d80fe08ac +2ms
+  cloudify:info SNS Message ID: 1f34af10-cab2-5073-bfc3-fc86a551106b +2ms
+  cloudify:info SNS Message ID: e9668128-b6e6-5515-87d8-d2bed904dcaa +1ms
+  cloudify:info SNS Message ID: 11f1d717-6eef-5d1f-a1ab-8481010c46cc +1ms
+  cloudify:info SNS Message ID: 8a6ce400-c8cc-5314-a4ca-b796a72e33db +1ms
+  cloudify:info SNS Message ID: 1e32a3ac-f31c-5b93-81d8-f03a9cffe692 +1ms
+  cloudify:info SNS Message ID: ef961e5e-fd8c-5d9c-a354-4dc8926f53ae +1ms
+  cloudify:info SNS Message ID: dba004e6-f05b-5d1e-bca2-57709fb81583 +1ms
+  cloudify:info SNS Message ID: 840b939c-0bae-534b-b77e-c00a644d8fba +0ms
+  cloudify:info SNS Message ID: d2672397-acd5-5286-a2e4-7001c3361e9a +1ms
+  cloudify:info SNS Message ID: 954f1443-caf1-5fce-8cea-47d5a5131e91 +1ms
+  cloudify:info SNS Message ID: b2abd35e-7c22-5a11-b8d6-80c813c1fdcd +1ms
+  cloudify:info SNS Message ID: b9fe4b2c-b7f5-57cc-b20a-18bad816c459 +1ms
+  cloudify:info SNS Message ID: eec27d6b-f7e1-5c57-8607-2efd9802d1a3 +11ms
+  cloudify:info SNS Message ID: a2766890-fd5b-58f5-8db2-3b0692b8c780 +1ms
+  cloudify:info SNS Message ID: b09d484e-4f8c-59e8-9129-1bd8206f77b5 +13ms
+  cloudify:info SNS Message ID: ad863a50-0cde-5e82-a265-69c6633d3b3d +2ms
+  cloudify:info SNS Message ID: 5de68d54-9be7-5e0d-bc2a-dec2f40499a8 +1ms
+  cloudify:info SNS Message ID: c73b857a-1551-5d70-b6e0-d6ec7ab25309 +1ms
+  cloudify:info SNS Message ID: 746ee684-a5f3-5078-a8d7-b512ca10cc22 +40ms
+  cloudify:info SNS Message ID: c6f9370b-2355-572c-928a-649d4cb6fed7 +2ms
+  cloudify:info SNS Message ID: c0840cf4-2024-5bf2-8144-5f624fc7adc4 +63ms
+  cloudify:info SNS Message ID: 534d7ddb-41ef-5133-9a7c-2e4d2e0c3ecf +2ms
+  cloudify:info SNS Message ID: 7adf84f7-6f25-5920-8d0c-d76100c66981 +2ms
+  cloudify:info SNS Message ID: e1b7e557-ebe7-51b2-b9a9-b6c1840459ca +22ms
+  cloudify:info SNS Message ID: a577e1a2-3df0-5007-8e5a-b23452135390 +2ms
+  cloudify:info SNS Message ID: 7d678a94-6bb5-577f-8fff-d90204567843 +1ms
+  cloudify:info SNS Message ID: 6e68923f-cc36-5d07-8fa9-c1a9a3d5923b +1ms
+  cloudify:info SNS Message ID: 91da95cc-b311-5039-b54f-c65adcf2b74c +1ms
+  cloudify:info SNS Message ID: 5c21d16a-dd6a-5026-8322-82fcb289fb93 +2ms
+  cloudify:info SNS Message ID: 7ad95e7a-19b5-5eb2-b26c-0dec765623c4 +1ms
+  cloudify:info SNS Message ID: 3a26bf70-4e01-5fed-8b97-ece621e2dc5e +3ms
+  cloudify:info SNS Message ID: c537718c-aa15-582a-89a1-221ac5f643f9 +2ms
+  cloudify:info SNS Message ID: 48cf363d-5eab-5731-9156-65ab3148db2d +2ms
+  cloudify:info SNS Message ID: aa5ba89c-71f0-5922-be78-fb0a1e131cc6 +4ms
+  cloudify:info SNS Message ID: 8983ae78-c668-5f7b-a555-fdeea98b2727 +1ms
+  cloudify:info SNS Message ID: 90e70ef7-3bc8-5a37-b7a9-5d61542bca2f +2ms
+  cloudify:info SNS Message ID: 2c5cc128-fbd0-56b2-8948-92be94337a43 +3ms
+  cloudify:info SNS Message ID: fb57b49f-328b-5183-a07c-e7095d68c91e +2ms
+  cloudify:info SNS Message ID: 2f7eea02-7742-53a7-bdd7-b99418a1e47b +1ms
+  cloudify:info SNS Message ID: 30464750-34e9-52ec-b18d-14c65b0a53b3 +1ms
+  cloudify:info SNS Message ID: 84a3fb77-c502-5d47-8e39-a8e1aae1c375 +0ms
+  cloudify:info SNS Message ID: c1fe5b4b-9664-5eff-82c9-08ddf98710a1 +1ms
+  cloudify:info SNS Message ID: ca840ee3-5ac0-55ed-8fe1-5d7535231c52 +1ms
+  cloudify:info SNS Message ID: 8d0d0b16-8daf-54ab-8068-5880e24c63d5 +1ms
+  cloudify:info SNS Message ID: eb01c237-6e01-5910-9378-91a101e2a9df +1ms
+  cloudify:info SNS Message ID: 9e1f594c-ef80-5384-87c9-0ada8063f091 +2ms
+  cloudify:info SNS Message ID: e222d310-f66a-5bbc-acd7-80869989a784 +1ms
+  cloudify:info SNS Message ID: d098ab67-14a5-5178-966d-f8f17b464105 +1ms
+  cloudify:info SNS Message ID: 579fc5b8-4bf4-521c-b2cd-962e2417df1d +1ms
+  cloudify:info SNS Message ID: 0efe170a-d1c9-569c-b89b-449cbe2a3509 +1ms
+  cloudify:info SNS Message ID: 24827cce-e5ea-5b6f-bbb2-2f588a09ded0 +2ms
+  cloudify:info SNS Message ID: a0dc8ee1-2661-5988-ac39-dd774982b7d5 +1ms
+  cloudify:info SNS Message ID: bd5058a1-a54f-5767-911b-0b37caac5812 +3ms
+  cloudify:info SNS Message ID: 9e22ef62-c377-5bfe-89e3-bcf4ac943f8d +1ms
+  cloudify:info SNS Message ID: 3a2213bc-65f6-5b3d-b0cd-402a0a156544 +1ms
+  cloudify:info SNS Message ID: d428bd53-e70b-5088-aecb-eec588e8572d +33ms
+  cloudify:info SNS Message ID: 7db1b4a1-9731-5167-b8db-e737f8d2fd3d +2ms
+  cloudify:info SNS Message ID: 4f633133-8e32-51b2-abbd-62a5e1d12849 +2ms
+  cloudify:info SNS Message ID: 002d4f2a-6e34-5cf3-abc3-1cbc01d75cad +1ms
+  cloudify:info SNS Message ID: e09d3b0b-0f2a-5d65-b559-689d60c9ee5c +1ms
+  cloudify:info SNS Message ID: 9930d134-ca74-51be-8ebd-82a2a597b7a3 +4ms
+  cloudify:info SNS Message ID: 80216f0a-e0d4-5f87-8af0-3c9c8f376012 +2ms
+  cloudify:info SNS Message ID: ba9bc562-a0ea-5da5-a4e4-96f4cf094db6 +2ms
+  cloudify:info SNS Message ID: f23a2bc0-87c0-57dd-b394-7856e823ea29 +1ms
+  cloudify:info SNS Message ID: e5af44c1-70c4-567c-b173-17571f272882 +2ms
+  cloudify:info SNS Message ID: 9c6fe195-b9e5-5ab2-857e-b203d606fc84 +20ms
+  cloudify:info SNS Message ID: 3eabbfba-a5b0-52ff-b456-ec2cca53325e +0ms
+  cloudify:info SNS Message ID: 50af138d-0191-5178-bb54-401b6e72de84 +19ms
+  cloudify:info SNS Message ID: fed8f977-b8b5-5f16-88ee-aae1d756bd0d +6ms
+  cloudify:info SNS Message ID: 157c9808-567c-55a0-93e9-cb9e399fe8d6 +1ms
+  cloudify:info SNS Message ID: b98221b0-5605-581c-a379-722639e693cf +1ms
+  cloudify:info SNS Message ID: 6a174d09-4246-5c77-aac3-1e9f2da5f34b +0ms
+  cloudify:info SNS Message ID: a0a66359-5271-5b0a-bf6a-30cf3d929436 +1ms
+  cloudify:info SNS Message ID: 031715a7-aa41-56f3-855a-4631c5a21d46 +1ms
+  cloudify:info SNS Message ID: 1f893ada-8199-5014-8f87-694cee7ad761 +1ms
+  cloudify:info SNS Message ID: ef5f38ac-2bfc-5f21-8d2b-6b3a441fc33d +1ms
+  cloudify:info SNS Message ID: 23a3437f-be83-53b5-835c-10e9d160b022 +0ms
+  cloudify:info SNS Message ID: 825a21f5-2b1d-5b13-a487-726344fe9ef7 +3ms
+  cloudify:info SNS Message ID: 076f6c05-724e-5981-bae0-3f931dadaa32 +2ms
+  cloudify:info SNS Message ID: e5fb32e3-52f4-5938-9dc6-61753d174164 +2ms
+  cloudify:info SNS Message ID: 08514b84-5d2e-5fdc-94fe-181232cd97a4 +13ms
+  cloudify:info SNS Message ID: 5eab6d8e-fe18-5717-943f-3e1891fb7be6 +47ms
+  cloudify:info SNS Message ID: 9ef15915-ff6f-58b6-9bdc-0a83908cf8ae +8ms
+  cloudify:info SNS Message ID: 9b7a7325-c693-5baa-82a2-20b3a97035f4 +1ms
+  cloudify:info SNS Message ID: a5fde897-597a-551a-a765-bb013699b445 +1ms
+  cloudify:info SNS Message ID: 16b191a6-1f9e-558e-b18e-c230707d0d13 +1ms
+  cloudify:info SNS Message ID: 4ff0d8bb-de6d-5a7f-8b33-8b2db18eada3 +2ms
+  cloudify:info SNS Message ID: 7f0d3a03-4e26-57f7-aff3-699521c5e9c5 +2ms
+  cloudify:info SNS Message ID: 699b97ac-c650-5c51-879a-c43aa9b3db2f +1ms
+  cloudify:info SNS Message ID: 90eaac38-332b-5f9c-aded-ffae5cc88c89 +1ms
+  cloudify:info SNS Message ID: 02d75830-20ef-5bee-a884-0ba64f0c1b21 +1ms
+  cloudify:info SNS Message ID: 6cbc22a1-ec55-5b0e-94f1-713783b60b73 +1ms
+  cloudify:info SNS Message ID: cc5d1c79-9d76-519c-8cc0-4feff2953823 +1ms
+  cloudify:info SNS Message ID: 7d23abf2-9065-5892-a633-f864ff865593 +3ms
+  cloudify:info SNS Message ID: eba071d4-0b36-5d7a-bcaa-224264d59909 +1ms
+  cloudify:info SNS Message ID: 39194a5a-18f8-519a-b76c-19cc771b9da2 +2ms
+  cloudify:info SNS Message ID: 61ed31c5-6f16-5d5d-8999-625300f55ec8 +1ms
+  cloudify:info SNS Message ID: c9459731-be73-5b97-aca7-c4a7d1901e28 +1ms
+  cloudify:info SNS Message ID: 2b9388c6-a136-53b5-9fa2-db50ced5ade8 +1ms
+  cloudify:info SNS Message ID: 0bf185f3-5c25-58bd-8aba-d66533c646c4 +1ms
+  cloudify:info SNS Message ID: 4b795ad4-455f-5ccd-9f04-09422abcc097 +0ms
+  cloudify:info SNS Message ID: 8307c7b2-beb0-5f1d-9589-9424d15338b8 +3ms
+  cloudify:info SNS Message ID: e936141a-28f5-5b9b-8dc7-478c4716a4ee +2ms
+  cloudify:info SNS Message ID: 26e89bbc-6bba-59aa-8cde-c82a0459ca93 +1ms
+  cloudify:info SNS Message ID: 455b4151-fdb3-5dbf-bea5-12c79250bde1 +1ms
+  cloudify:info SNS Message ID: 715d366b-30b6-5a93-856e-65fd5f5503ab +1ms
+  cloudify:info SNS Message ID: 8f007372-076c-55a1-9ef5-20e4688f8c5a +2ms
+  cloudify:info SNS Message ID: 499e9937-94d3-598d-97d1-caa1fb30bb7f +2ms
+  cloudify:info SNS Message ID: bb0b98ae-597f-5f58-82a6-cb38369cb9cc +189ms
+  cloudify:info SNS Message ID: d39a3847-ee4b-5c70-bffc-6bd181a87bac +227ms
+  cloudify:collector received 0 messages. +6s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +1ms
+  cloudify:collector received 0 messages. +6s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +1ms
+  cloudify:collector received 0 messages. +6s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +1ms
+  cloudify:collector received 0 messages. +6s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +0ms
+  cloudify:collector received 0 messages. +6s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +0ms
+  cloudify:collector received 0 messages. +5s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +1ms
+  cloudify:collector received 0 messages. +5s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +1ms
+  cloudify:collector received 1 messages. +2s
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +378ms
+  cloudify:collector received 1 messages. +369ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +372ms
+  cloudify:collector received 1 messages. +399ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +413ms
+  cloudify:collector received 2 messages. +388ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +375ms
+  cloudify:collector received 1 messages. +398ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +345ms
+  cloudify:collector received 1 messages. +393ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +390ms
+  cloudify:collector received 1 messages. +355ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +391ms
+  cloudify:collector received 1 messages. +362ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +357ms
+  cloudify:collector received 3 messages. +363ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +419ms
+  cloudify:collector received 3 messages. +375ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +491ms
+  cloudify:collector received 6 messages. +459ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +358ms
+  cloudify:collector received 8 messages. +400ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +496ms
+  cloudify:collector received 10 messages. +362ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +456ms
+  cloudify:collector received 10 messages. +460ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +579ms
+  cloudify:collector received 10 messages. +346ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +871ms
+  cloudify:collector received 2 messages. +375ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +1s
+  cloudify:collector received 3 messages. +404ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +330ms
+  cloudify:collector received 10 messages. +383ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +452ms
+  cloudify:collector received 10 messages. +415ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +403ms
+  cloudify:collector received 10 messages. +397ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +452ms
+  cloudify:collector received 5 messages. +405ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +381ms
+  cloudify:collector received 9 messages. +365ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +439ms
+  cloudify:collector received 5 messages. +374ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +417ms
+  cloudify:collector received 2 messages. +465ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +367ms
+  cloudify:collector received 10 messages. +364ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +387ms
+  cloudify:collector received 7 messages. +342ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +352ms
+  cloudify:collector received 10 messages. +365ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +1s
+  cloudify:collector received 1 messages. +370ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +340ms
+  cloudify:collector received 2 messages. +380ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +380ms
+  cloudify:collector received 10 messages. +633ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +528ms
+  cloudify:collector received 4 messages. +467ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +437ms
+  cloudify:collector received 9 messages. +366ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +427ms
+  cloudify:collector received 10 messages. +475ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +535ms
+  cloudify:collector received 10 messages. +377ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +397ms
+  cloudify:collector received 10 messages. +410ms
+  cloudify:collector Polling response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +487ms
+  cloudify:collector received 2 messages. +391ms
+  cloudify:info Start latencies: +1m
+  cloudify:info start[1]: 6128 +1ms
+  cloudify:info start[2]: 6275 +0ms
+  cloudify:info start[3]: 6420 +0ms
+  cloudify:info start[4]: 6529 +0ms
+  cloudify:info start[5]: 6554 +0ms
+  cloudify:info start[6]: 7122 +0ms
+  cloudify:info start[7]: 7260 +0ms
+  cloudify:info start[8]: 7413 +0ms
+  cloudify:info start[9]: 7423 +1ms
+  cloudify:info start[10]: 7488 +0ms
+  cloudify:info start[11]: 7556 +0ms
+  cloudify:info start[12]: 7559 +0ms
+  cloudify:info start[13]: 7612 +0ms
+  cloudify:info start[14]: 7663 +0ms
+  cloudify:info start[15]: 7732 +0ms
+  cloudify:info start[16]: 7748 +0ms
+  cloudify:info start[17]: 7777 +0ms
+  cloudify:info start[18]: 7860 +0ms
+  cloudify:info start[19]: 7861 +0ms
+  cloudify:info start[20]: 7884 +0ms
+  cloudify:info start[21]: 7896 +0ms
+  cloudify:info start[22]: 7945 +0ms
+  cloudify:info start[23]: 7961 +0ms
+  cloudify:info start[24]: 7965 +0ms
+  cloudify:info start[25]: 7978 +0ms
+  cloudify:info start[26]: 8006 +0ms
+  cloudify:info start[27]: 8007 +0ms
+  cloudify:info start[28]: 8054 +1ms
+  cloudify:info start[29]: 8115 +0ms
+  cloudify:info start[30]: 8205 +0ms
+  cloudify:info start[31]: 8467 +0ms
+  cloudify:info start[32]: 8582 +0ms
+  cloudify:info start[33]: 8605 +0ms
+  cloudify:info start[34]: 8620 +0ms
+  cloudify:info start[35]: 8637 +0ms
+  cloudify:info start[36]: 8801 +0ms
+  cloudify:info start[37]: 8852 +0ms
+  cloudify:info start[38]: 8869 +0ms
+  cloudify:info start[39]: 8930 +0ms
+  cloudify:info start[40]: 8963 +0ms
+  cloudify:info start[41]: 8993 +0ms
+  cloudify:info start[42]: 9002 +0ms
+  cloudify:info start[43]: 9007 +0ms
+  cloudify:info start[44]: 9024 +0ms
+  cloudify:info start[45]: 9025 +0ms
+  cloudify:info start[46]: 9041 +0ms
+  cloudify:info start[47]: 9062 +1ms
+  cloudify:info start[48]: 9064 +0ms
+  cloudify:info start[49]: 9070 +0ms
+  cloudify:info start[50]: 9072 +0ms
+  cloudify:info start[51]: 9110 +0ms
+  cloudify:info start[52]: 9116 +0ms
+  cloudify:info start[53]: 9179 +0ms
+  cloudify:info start[54]: 9208 +0ms
+  cloudify:info start[55]: 9217 +0ms
+  cloudify:info start[56]: 9223 +0ms
+  cloudify:info start[57]: 9254 +0ms
+  cloudify:info start[58]: 9269 +0ms
+  cloudify:info start[59]: 9269 +0ms
+  cloudify:info start[60]: 9283 +0ms
+  cloudify:info start[61]: 9301 +0ms
+  cloudify:info start[62]: 9302 +0ms
+  cloudify:info start[63]: 9312 +0ms
+  cloudify:info start[64]: 9328 +0ms
+  cloudify:info start[65]: 9340 +0ms
+  cloudify:info start[66]: 9347 +0ms
+  cloudify:info start[67]: 9351 +1ms
+  cloudify:info start[68]: 9366 +0ms
+  cloudify:info start[69]: 9368 +0ms
+  cloudify:info start[70]: 9373 +0ms
+  cloudify:info start[71]: 9379 +0ms
+  cloudify:info start[72]: 9426 +0ms
+  cloudify:info start[73]: 9441 +0ms
+  cloudify:info start[74]: 9463 +0ms
+  cloudify:info start[75]: 9464 +0ms
+  cloudify:info start[76]: 9547 +0ms
+  cloudify:info start[77]: 9548 +0ms
+  cloudify:info start[78]: 9591 +0ms
+  cloudify:info start[79]: 9606 +0ms
+  cloudify:info start[80]: 9610 +0ms
+  cloudify:info start[81]: 9646 +0ms
+  cloudify:info start[82]: 9648 +0ms
+  cloudify:info start[83]: 9656 +0ms
+  cloudify:info start[84]: 9674 +0ms
+  cloudify:info start[85]: 9702 +0ms
+  cloudify:info start[86]: 9735 +0ms
+  cloudify:info start[87]: 9742 +0ms
+  cloudify:info start[88]: 9745 +1ms
+  cloudify:info start[89]: 9787 +0ms
+  cloudify:info start[90]: 9790 +0ms
+  cloudify:info start[91]: 9795 +0ms
+  cloudify:info start[92]: 9800 +0ms
+  cloudify:info start[93]: 9802 +0ms
+  cloudify:info start[94]: 9804 +0ms
+  cloudify:info start[95]: 9811 +0ms
+  cloudify:info start[96]: 9869 +0ms
+  cloudify:info start[97]: 9880 +0ms
+  cloudify:info start[98]: 9890 +0ms
+  cloudify:info start[99]: 9912 +0ms
+  cloudify:info start[100]: 9927 +0ms
+  cloudify:info start[101]: 9990 +0ms
+  cloudify:info start[102]: 10060 +0ms
+  cloudify:info start[103]: 10061 +0ms
+  cloudify:info start[104]: 10063 +0ms
+  cloudify:info start[105]: 10084 +0ms
+  cloudify:info start[106]: 10094 +0ms
+  cloudify:info start[107]: 10096 +0ms
+  cloudify:info start[108]: 10108 +0ms
+  cloudify:info start[109]: 10133 +1ms
+  cloudify:info start[110]: 10134 +0ms
+  cloudify:info start[111]: 10210 +0ms
+  cloudify:info start[112]: 10216 +0ms
+  cloudify:info start[113]: 10263 +0ms
+  cloudify:info start[114]: 10263 +0ms
+  cloudify:info start[115]: 10317 +0ms
+  cloudify:info start[116]: 10323 +0ms
+  cloudify:info start[117]: 10351 +0ms
+  cloudify:info start[118]: 10475 +0ms
+  cloudify:info start[119]: 10493 +0ms
+  cloudify:info start[120]: 10520 +0ms
+  cloudify:info start[121]: 10542 +0ms
+  cloudify:info start[122]: 10555 +0ms
+  cloudify:info start[123]: 10622 +1ms
+  cloudify:info start[124]: 10641 +0ms
+  cloudify:info start[125]: 10721 +1ms
+  cloudify:info start[126]: 10732 +0ms
+  cloudify:info start[127]: 10904 +0ms
+  cloudify:info start[128]: 10908 +0ms
+  cloudify:info start[129]: 10967 +0ms
+  cloudify:info start[130]: 10991 +0ms
+  cloudify:info start[131]: 11011 +0ms
+  cloudify:info start[132]: 11025 +0ms
+  cloudify:info start[133]: 11059 +0ms
+  cloudify:info start[134]: 11093 +1ms
+  cloudify:info start[135]: 11151 +0ms
+  cloudify:info start[136]: 11163 +0ms
+  cloudify:info start[137]: 11170 +0ms
+  cloudify:info start[138]: 11182 +0ms
+  cloudify:info start[139]: 11300 +0ms
+  cloudify:info start[140]: 11342 +0ms
+  cloudify:info start[141]: 11344 +0ms
+  cloudify:info start[142]: 11352 +0ms
+  cloudify:info start[143]: 11402 +0ms
+  cloudify:info start[144]: 11479 +0ms
+  cloudify:info start[145]: 11568 +0ms
+  cloudify:info start[146]: 11626 +1ms
+  cloudify:info start[147]: 11712 +0ms
+  cloudify:info start[148]: 11716 +0ms
+  cloudify:info start[149]: 11760 +0ms
+  cloudify:info start[150]: 11784 +0ms
+  cloudify:info start[151]: 11821 +0ms
+  cloudify:info start[152]: 11888 +0ms
+  cloudify:info start[153]: 11898 +0ms
+  cloudify:info start[154]: 11901 +0ms
+  cloudify:info start[155]: 11927 +0ms
+  cloudify:info start[156]: 11945 +0ms
+  cloudify:info start[157]: 11974 +0ms
+  cloudify:info start[158]: 12045 +0ms
+  cloudify:info start[159]: 12115 +0ms
+  cloudify:info start[160]: 12136 +1ms
+  cloudify:info start[161]: 12152 +0ms
+  cloudify:info start[162]: 12157 +0ms
+  cloudify:info start[163]: 12164 +0ms
+  cloudify:info start[164]: 12164 +0ms
+  cloudify:info start[165]: 12171 +0ms
+  cloudify:info start[166]: 12225 +0ms
+  cloudify:info start[167]: 12242 +0ms
+  cloudify:info start[168]: 12271 +0ms
+  cloudify:info start[169]: 12275 +0ms
+  cloudify:info start[170]: 12286 +0ms
+  cloudify:info start[171]: 12319 +0ms
+  cloudify:info start[172]: 12485 +0ms
+  cloudify:info start[173]: 12527 +0ms
+  cloudify:info start[174]: 12740 +1ms
+  cloudify:info start[175]: 12833 +0ms
+  cloudify:info start[176]: 12860 +0ms
+  cloudify:info start[177]: 12867 +0ms
+  cloudify:info start[178]: 12910 +0ms
+  cloudify:info start[179]: 12950 +0ms
+  cloudify:info start[180]: 12986 +0ms
+  cloudify:info start[181]: 13007 +0ms
+  cloudify:info start[182]: 13124 +0ms
+  cloudify:info start[183]: 13146 +1ms
+  cloudify:info start[184]: 13158 +0ms
+  cloudify:info start[185]: 13166 +0ms
+  cloudify:info start[186]: 13184 +1ms
+  cloudify:info start[187]: 13285 +1ms
+  cloudify:info start[188]: 13330 +0ms
+  cloudify:info start[189]: 13355 +0ms
+  cloudify:info start[190]: 13478 +0ms
+  cloudify:info start[191]: 13495 +0ms
+  cloudify:info start[192]: 13496 +0ms
+  cloudify:info start[193]: 13506 +0ms
+  cloudify:info start[194]: 13674 +1ms
+  cloudify:info start[195]: 13759 +0ms
+  cloudify:info start[196]: 13782 +0ms
+  cloudify:info start[197]: 13865 +0ms
+  cloudify:info start[198]: 13953 +0ms
+  cloudify:info start[199]: 15344 +0ms
+  cloudify:info start[200]: 22177 +0ms
+  cloudify:info Execution latencies:  +0ms
+  cloudify:info execution[1]: 32673 +0ms
+  cloudify:info execution[2]: 33256 +0ms
+  cloudify:info execution[3]: 33452 +0ms
+  cloudify:info execution[4]: 34652 +1ms
+  cloudify:info execution[5]: 34983 +0ms
+  cloudify:info execution[6]: 34991 +0ms
+  cloudify:info execution[7]: 35475 +0ms
+  cloudify:info execution[8]: 35924 +0ms
+  cloudify:info execution[9]: 36627 +0ms
+  cloudify:info execution[10]: 36839 +0ms
+  cloudify:info execution[11]: 37059 +0ms
+  cloudify:info execution[12]: 37066 +0ms
+  cloudify:info execution[13]: 37522 +0ms
+  cloudify:info execution[14]: 37606 +0ms
+  cloudify:info execution[15]: 37781 +0ms
+  cloudify:info execution[16]: 37795 +0ms
+  cloudify:info execution[17]: 37838 +1ms
+  cloudify:info execution[18]: 37928 +0ms
+  cloudify:info execution[19]: 37931 +0ms
+  cloudify:info execution[20]: 38029 +0ms
+  cloudify:info execution[21]: 38101 +0ms
+  cloudify:info execution[22]: 38153 +0ms
+  cloudify:info execution[23]: 38154 +0ms
+  cloudify:info execution[24]: 38155 +0ms
+  cloudify:info execution[25]: 38244 +0ms
+  cloudify:info execution[26]: 38278 +0ms
+  cloudify:info execution[27]: 38284 +0ms
+  cloudify:info execution[28]: 38311 +0ms
+  cloudify:info execution[29]: 38397 +0ms
+  cloudify:info execution[30]: 38476 +0ms
+  cloudify:info execution[31]: 38510 +0ms
+  cloudify:info execution[32]: 38513 +0ms
+  cloudify:info execution[33]: 38522 +0ms
+  cloudify:info execution[34]: 38543 +0ms
+  cloudify:info execution[35]: 38563 +0ms
+  cloudify:info execution[36]: 38582 +0ms
+  cloudify:info execution[37]: 38639 +1ms
+  cloudify:info execution[38]: 38650 +0ms
+  cloudify:info execution[39]: 38805 +0ms
+  cloudify:info execution[40]: 38864 +0ms
+  cloudify:info execution[41]: 38883 +0ms
+  cloudify:info execution[42]: 38885 +0ms
+  cloudify:info execution[43]: 38901 +0ms
+  cloudify:info execution[44]: 38915 +0ms
+  cloudify:info execution[45]: 38925 +0ms
+  cloudify:info execution[46]: 38985 +0ms
+  cloudify:info execution[47]: 39004 +0ms
+  cloudify:info execution[48]: 39053 +0ms
+  cloudify:info execution[49]: 39058 +0ms
+  cloudify:info execution[50]: 39073 +0ms
+  cloudify:info execution[51]: 39141 +0ms
+  cloudify:info execution[52]: 39151 +0ms
+  cloudify:info execution[53]: 39164 +0ms
+  cloudify:info execution[54]: 39176 +0ms
+  cloudify:info execution[55]: 39247 +0ms
+  cloudify:info execution[56]: 39266 +0ms
+  cloudify:info execution[57]: 39273 +0ms
+  cloudify:info execution[58]: 39290 +0ms
+  cloudify:info execution[59]: 39305 +1ms
+  cloudify:info execution[60]: 39328 +0ms
+  cloudify:info execution[61]: 39344 +0ms
+  cloudify:info execution[62]: 39384 +0ms
+  cloudify:info execution[63]: 39412 +0ms
+  cloudify:info execution[64]: 39496 +0ms
+  cloudify:info execution[65]: 39575 +0ms
+  cloudify:info execution[66]: 39577 +0ms
+  cloudify:info execution[67]: 39635 +0ms
+  cloudify:info execution[68]: 39661 +0ms
+  cloudify:info execution[69]: 39667 +0ms
+  cloudify:info execution[70]: 39679 +0ms
+  cloudify:info execution[71]: 39695 +0ms
+  cloudify:info execution[72]: 39716 +0ms
+  cloudify:info execution[73]: 39736 +0ms
+  cloudify:info execution[74]: 39763 +0ms
+  cloudify:info execution[75]: 39795 +0ms
+  cloudify:info execution[76]: 39824 +0ms
+  cloudify:info execution[77]: 39948 +0ms
+  cloudify:info execution[78]: 39965 +0ms
+  cloudify:info execution[79]: 39991 +0ms
+  cloudify:info execution[80]: 40019 +0ms
+  cloudify:info execution[81]: 40084 +0ms
+  cloudify:info execution[82]: 40125 +1ms
+  cloudify:info execution[83]: 40195 +0ms
+  cloudify:info execution[84]: 40200 +0ms
+  cloudify:info execution[85]: 40273 +0ms
+  cloudify:info execution[86]: 40338 +0ms
+  cloudify:info execution[87]: 40345 +0ms
+  cloudify:info execution[88]: 40424 +0ms
+  cloudify:info execution[89]: 40534 +0ms
+  cloudify:info execution[90]: 40588 +0ms
+  cloudify:info execution[91]: 40628 +0ms
+  cloudify:info execution[92]: 40667 +0ms
+  cloudify:info execution[93]: 40706 +0ms
+  cloudify:info execution[94]: 40809 +0ms
+  cloudify:info execution[95]: 40839 +0ms
+  cloudify:info execution[96]: 40854 +0ms
+  cloudify:info execution[97]: 40924 +0ms
+  cloudify:info execution[98]: 40936 +0ms
+  cloudify:info execution[99]: 41192 +0ms
+  cloudify:info execution[100]: 41277 +2ms
+  cloudify:info execution[101]: 41340 +0ms
+  cloudify:info execution[102]: 41426 +1ms
+  cloudify:info execution[103]: 41552 +0ms
+  cloudify:info execution[104]: 42282 +0ms
+  cloudify:info execution[105]: 42486 +0ms
+  cloudify:info execution[106]: 42541 +0ms
+  cloudify:info execution[107]: 42665 +0ms
+  cloudify:info execution[108]: 42902 +0ms
+  cloudify:info execution[109]: 43330 +0ms
+  cloudify:info execution[110]: 43417 +0ms
+  cloudify:info execution[111]: 43475 +0ms
+  cloudify:info execution[112]: 43506 +0ms
+  cloudify:info execution[113]: 43532 +0ms
+  cloudify:info execution[114]: 43652 +0ms
+  cloudify:info execution[115]: 43722 +0ms
+  cloudify:info execution[116]: 43727 +0ms
+  cloudify:info execution[117]: 43767 +0ms
+  cloudify:info execution[118]: 43779 +0ms
+  cloudify:info execution[119]: 43803 +0ms
+  cloudify:info execution[120]: 43810 +0ms
+  cloudify:info execution[121]: 43855 +0ms
+  cloudify:info execution[122]: 44022 +0ms
+  cloudify:info execution[123]: 44103 +1ms
+  cloudify:info execution[124]: 44112 +0ms
+  cloudify:info execution[125]: 44180 +0ms
+  cloudify:info execution[126]: 44188 +0ms
+  cloudify:info execution[127]: 44313 +0ms
+  cloudify:info execution[128]: 44362 +0ms
+  cloudify:info execution[129]: 44430 +0ms
+  cloudify:info execution[130]: 44490 +0ms
+  cloudify:info execution[131]: 44667 +0ms
+  cloudify:info execution[132]: 44858 +0ms
+  cloudify:info execution[133]: 44879 +0ms
+  cloudify:info execution[134]: 44989 +0ms
+  cloudify:info execution[135]: 45052 +0ms
+  cloudify:info execution[136]: 45059 +0ms
+  cloudify:info execution[137]: 45130 +0ms
+  cloudify:info execution[138]: 45203 +0ms
+  cloudify:info execution[139]: 45260 +0ms
+  cloudify:info execution[140]: 45292 +0ms
+  cloudify:info execution[141]: 45308 +0ms
+  cloudify:info execution[142]: 45315 +0ms
+  cloudify:info execution[143]: 45342 +0ms
+  cloudify:info execution[144]: 45358 +1ms
+  cloudify:info execution[145]: 45381 +0ms
+  cloudify:info execution[146]: 45420 +0ms
+  cloudify:info execution[147]: 45441 +0ms
+  cloudify:info execution[148]: 45482 +0ms
+  cloudify:info execution[149]: 45503 +0ms
+  cloudify:info execution[150]: 45525 +0ms
+  cloudify:info execution[151]: 45537 +0ms
+  cloudify:info execution[152]: 45593 +0ms
+  cloudify:info execution[153]: 45683 +0ms
+  cloudify:info execution[154]: 45755 +0ms
+  cloudify:info execution[155]: 45770 +0ms
+  cloudify:info execution[156]: 45799 +0ms
+  cloudify:info execution[157]: 45858 +0ms
+  cloudify:info execution[158]: 45862 +0ms
+  cloudify:info execution[159]: 45927 +0ms
+  cloudify:info execution[160]: 45984 +0ms
+  cloudify:info execution[161]: 46089 +0ms
+  cloudify:info execution[162]: 46254 +0ms
+  cloudify:info execution[163]: 46358 +0ms
+  cloudify:info execution[164]: 46426 +0ms
+  cloudify:info execution[165]: 46443 +0ms
+  cloudify:info execution[166]: 46489 +0ms
+  cloudify:info execution[167]: 46508 +1ms
+  cloudify:info execution[168]: 46513 +0ms
+  cloudify:info execution[169]: 46521 +0ms
+  cloudify:info execution[170]: 46617 +0ms
+  cloudify:info execution[171]: 46683 +0ms
+  cloudify:info execution[172]: 46734 +0ms
+  cloudify:info execution[173]: 46794 +0ms
+  cloudify:info execution[174]: 46922 +0ms
+  cloudify:info execution[175]: 47132 +0ms
+  cloudify:info execution[176]: 47369 +0ms
+  cloudify:info execution[177]: 47502 +0ms
+  cloudify:info execution[178]: 47835 +0ms
+  cloudify:info execution[179]: 47870 +0ms
+  cloudify:info execution[180]: 47966 +0ms
+  cloudify:info execution[181]: 47998 +0ms
+  cloudify:info execution[182]: 48009 +0ms
+  cloudify:info execution[183]: 48083 +0ms
+  cloudify:info execution[184]: 48169 +0ms
+  cloudify:info execution[185]: 48198 +0ms
+  cloudify:info execution[186]: 48359 +0ms
+  cloudify:info execution[187]: 48444 +0ms
+  cloudify:info execution[188]: 48476 +0ms
+  cloudify:info execution[189]: 48520 +0ms
+  cloudify:info execution[190]: 48521 +1ms
+  cloudify:info execution[191]: 48571 +0ms
+  cloudify:info execution[192]: 48579 +0ms
+  cloudify:info execution[193]: 48793 +0ms
+  cloudify:info execution[194]: 48927 +0ms
+  cloudify:info execution[195]: 49258 +0ms
+  cloudify:info execution[196]: 49482 +1ms
+  cloudify:info execution[197]: 49509 +0ms
+  cloudify:info execution[198]: 49638 +0ms
+  cloudify:info execution[199]: 49751 +0ms
+  cloudify:info execution[200]: 50110 +0ms
+  cloudify:info Return latencies: +0ms
+  cloudify:info return[1]: 1536 +0ms
+  cloudify:info return[2]: 1578 +0ms
+  cloudify:info return[3]: 1589 +0ms
+  cloudify:info return[4]: 1633 +0ms
+  cloudify:info return[5]: 1646 +0ms
+  cloudify:info return[6]: 1660 +0ms
+  cloudify:info return[7]: 1771 +0ms
+  cloudify:info return[8]: 1841 +0ms
+  cloudify:info return[9]: 1844 +1ms
+  cloudify:info return[10]: 1857 +0ms
+  cloudify:info return[11]: 1877 +0ms
+  cloudify:info return[12]: 1916 +0ms
+  cloudify:info return[13]: 1927 +0ms
+  cloudify:info return[14]: 2013 +0ms
+  cloudify:info return[15]: 2034 +0ms
+  cloudify:info return[16]: 2060 +0ms
+  cloudify:info return[17]: 2064 +0ms
+  cloudify:info return[18]: 2070 +0ms
+  cloudify:info return[19]: 2073 +0ms
+  cloudify:info return[20]: 2077 +0ms
+  cloudify:info return[21]: 2080 +0ms
+  cloudify:info return[22]: 2109 +0ms
+  cloudify:info return[23]: 2114 +0ms
+  cloudify:info return[24]: 2168 +1ms
+  cloudify:info return[25]: 2177 +0ms
+  cloudify:info return[26]: 2209 +0ms
+  cloudify:info return[27]: 2212 +0ms
+  cloudify:info return[28]: 2230 +1ms
+  cloudify:info return[29]: 2237 +0ms
+  cloudify:info return[30]: 2351 +0ms
+  cloudify:info return[31]: 2358 +0ms
+  cloudify:info return[32]: 2485 +0ms
+  cloudify:info return[33]: 2505 +0ms
+  cloudify:info return[34]: 2515 +1ms
+  cloudify:info return[35]: 2559 +0ms
+  cloudify:info return[36]: 2577 +0ms
+  cloudify:info return[37]: 2589 +0ms
+  cloudify:info return[38]: 2630 +0ms
+  cloudify:info return[39]: 2783 +0ms
+  cloudify:info return[40]: 2834 +0ms
+  cloudify:info return[41]: 2855 +0ms
+  cloudify:info return[42]: 2880 +0ms
+  cloudify:info return[43]: 2931 +0ms
+  cloudify:info return[44]: 2960 +0ms
+  cloudify:info return[45]: 2962 +0ms
+  cloudify:info return[46]: 2974 +0ms
+  cloudify:info return[47]: 3010 +0ms
+  cloudify:info return[48]: 3038 +0ms
+  cloudify:info return[49]: 3040 +0ms
+  cloudify:info return[50]: 3048 +0ms
+  cloudify:info return[51]: 3095 +1ms
+  cloudify:info return[52]: 3143 +0ms
+  cloudify:info return[53]: 3194 +0ms
+  cloudify:info return[54]: 3194 +0ms
+  cloudify:info return[55]: 3339 +0ms
+  cloudify:info return[56]: 3340 +0ms
+  cloudify:info return[57]: 3374 +0ms
+  cloudify:info return[58]: 3415 +0ms
+  cloudify:info return[59]: 3419 +0ms
+  cloudify:info return[60]: 3463 +0ms
+  cloudify:info return[61]: 3508 +0ms
+  cloudify:info return[62]: 3540 +0ms
+  cloudify:info return[63]: 3541 +0ms
+  cloudify:info return[64]: 3603 +1ms
+  cloudify:info return[65]: 3606 +0ms
+  cloudify:info return[66]: 3628 +0ms
+  cloudify:info return[67]: 3644 +1ms
+  cloudify:info return[68]: 3706 +0ms
+  cloudify:info return[69]: 4039 +0ms
+  cloudify:info return[70]: 4248 +0ms
+  cloudify:info return[71]: 4285 +0ms
+  cloudify:info return[72]: 4357 +0ms
+  cloudify:info return[73]: 4435 +1ms
+  cloudify:info return[74]: 4482 +0ms
+  cloudify:info return[75]: 4494 +0ms
+  cloudify:info return[76]: 4553 +0ms
+  cloudify:info return[77]: 4734 +0ms
+  cloudify:info return[78]: 4800 +0ms
+  cloudify:info return[79]: 4828 +0ms
+  cloudify:info return[80]: 4860 +1ms
+  cloudify:info return[81]: 4879 +0ms
+  cloudify:info return[82]: 4942 +0ms
+  cloudify:info return[83]: 4962 +0ms
+  cloudify:info return[84]: 4964 +0ms
+  cloudify:info return[85]: 4977 +0ms
+  cloudify:info return[86]: 4988 +0ms
+  cloudify:info return[87]: 5006 +0ms
+  cloudify:info return[88]: 5034 +0ms
+  cloudify:info return[89]: 5038 +0ms
+  cloudify:info return[90]: 5060 +0ms
+  cloudify:info return[91]: 5082 +0ms
+  cloudify:info return[92]: 5122 +0ms
+  cloudify:info return[93]: 5206 +0ms
+  cloudify:info return[94]: 5255 +0ms
+  cloudify:info return[95]: 5349 +1ms
+  cloudify:info return[96]: 5357 +0ms
+  cloudify:info return[97]: 5374 +0ms
+  cloudify:info return[98]: 5549 +0ms
+  cloudify:info return[99]: 5587 +2ms
+  cloudify:info return[100]: 5703 +0ms
+  cloudify:info return[101]: 5743 +0ms
+  cloudify:info return[102]: 5772 +0ms
+  cloudify:info return[103]: 5974 +0ms
+  cloudify:info return[104]: 5990 +0ms
+  cloudify:info return[105]: 6025 +0ms
+  cloudify:info return[106]: 6180 +1ms
+  cloudify:info return[107]: 6287 +0ms
+  cloudify:info return[108]: 6311 +0ms
+  cloudify:info return[109]: 6401 +0ms
+  cloudify:info return[110]: 6413 +0ms
+  cloudify:info return[111]: 6572 +0ms
+  cloudify:info return[112]: 6590 +0ms
+  cloudify:info return[113]: 6679 +0ms
+  cloudify:info return[114]: 6750 +0ms
+  cloudify:info return[115]: 6954 +0ms
+  cloudify:info return[116]: 7186 +0ms
+  cloudify:info return[117]: 7279 +0ms
+  cloudify:info return[118]: 7331 +0ms
+  cloudify:info return[119]: 7355 +0ms
+  cloudify:info return[120]: 7448 +0ms
+  cloudify:info return[121]: 7476 +0ms
+  cloudify:info return[122]: 7541 +0ms
+  cloudify:info return[123]: 7581 +0ms
+  cloudify:info return[124]: 7613 +0ms
+  cloudify:info return[125]: 8023 +0ms
+  cloudify:info return[126]: 8039 +1ms
+  cloudify:info return[127]: 8142 +0ms
+  cloudify:info return[128]: 8359 +0ms
+  cloudify:info return[129]: 8389 +0ms
+  cloudify:info return[130]: 8894 +0ms
+  cloudify:info return[131]: 8897 +0ms
+  cloudify:info return[132]: 8931 +0ms
+  cloudify:info return[133]: 8993 +0ms
+  cloudify:info return[134]: 9077 +0ms
+  cloudify:info return[135]: 9148 +0ms
+  cloudify:info return[136]: 9317 +0ms
+  cloudify:info return[137]: 9318 +0ms
+  cloudify:info return[138]: 9425 +0ms
+  cloudify:info return[139]: 9642 +0ms
+  cloudify:info return[140]: 9650 +1ms
+  cloudify:info return[141]: 9667 +0ms
+  cloudify:info return[142]: 9930 +0ms
+  cloudify:info return[143]: 9983 +0ms
+  cloudify:info return[144]: 9988 +0ms
+  cloudify:info return[145]: 10300 +0ms
+  cloudify:info return[146]: 10413 +0ms
+  cloudify:info return[147]: 10427 +0ms
+  cloudify:info return[148]: 10584 +0ms
+  cloudify:info return[149]: 10612 +0ms
+  cloudify:info return[150]: 10797 +0ms
+  cloudify:info return[151]: 10847 +0ms
+  cloudify:info return[152]: 10871 +0ms
+  cloudify:info return[153]: 10874 +1ms
+  cloudify:info return[154]: 10911 +0ms
+  cloudify:info return[155]: 10975 +0ms
+  cloudify:info return[156]: 10993 +0ms
+  cloudify:info return[157]: 11136 +0ms
+  cloudify:info return[158]: 11540 +0ms
+  cloudify:info return[159]: 11624 +0ms
+  cloudify:info return[160]: 11816 +0ms
+  cloudify:info return[161]: 12108 +0ms
+  cloudify:info return[162]: 12156 +1ms
+  cloudify:info return[163]: 12369 +0ms
+  cloudify:info return[164]: 12408 +0ms
+  cloudify:info return[165]: 12444 +0ms
+  cloudify:info return[166]: 12508 +0ms
+  cloudify:info return[167]: 12564 +0ms
+  cloudify:info return[168]: 13067 +0ms
+  cloudify:info return[169]: 13191 +0ms
+  cloudify:info return[170]: 13206 +1ms
+  cloudify:info return[171]: 13515 +0ms
+  cloudify:info return[172]: 13529 +0ms
+  cloudify:info return[173]: 13641 +0ms
+  cloudify:info return[174]: 13787 +0ms
+  cloudify:info return[175]: 13811 +0ms
+  cloudify:info return[176]: 13886 +0ms
+  cloudify:info return[177]: 13946 +0ms
+  cloudify:info return[178]: 13993 +0ms
+  cloudify:info return[179]: 13996 +0ms
+  cloudify:info return[180]: 14133 +1ms
+  cloudify:info return[181]: 14217 +0ms
+  cloudify:info return[182]: 14932 +0ms
+  cloudify:info return[183]: 15100 +0ms
+  cloudify:info return[184]: 15546 +0ms
+  cloudify:info return[185]: 15605 +0ms
+  cloudify:info return[186]: 16471 +0ms
+  cloudify:info return[187]: 18522 +0ms
+  cloudify:info return[188]: 19038 +0ms
+  cloudify:info return[189]: 19039 +1ms
+  cloudify:info return[190]: 21171 +0ms
+  cloudify:info return[191]: 21188 +0ms
+  cloudify:info return[192]: 21212 +0ms
+  cloudify:info return[193]: 21393 +0ms
+  cloudify:info return[194]: 21704 +0ms
+  cloudify:info return[195]: 21887 +0ms
+  cloudify:info return[196]: 22255 +0ms
+  cloudify:info return[197]: 22307 +0ms
+  cloudify:info return[198]: 23194 +0ms
+  cloudify:info return[199]: 23357 +0ms
+  cloudify:info return[200]: 26123 +0ms
+  cloudify:info Cleaning up cloudify state +25ms
+  cloudify:info Deleting Request queue subscription to lambda +0ms
+  console.log build/test/aws-load.test.js:65
+    inside: 785385132, samples: 1000000000
+
+  cloudify:info Clearing result promises +594ms
+  cloudify:info Deleting function: cloudify-9bd39e42-b953-4886-a856-1bdfc3077118 +0ms
+  cloudify:info Deleting log group: /aws/lambda/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118 +751ms
+  cloudify:info Deleting Request queue topic: arn:aws:sns:us-east-1:343675226624:cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Requests +702ms
+  cloudify:info Deleting Response queue: https://sqs.us-east-1.amazonaws.com/343675226624/cloudify-9bd39e42-b953-4886-a856-1bdfc3077118-Responses +3ms
+ PASS  build/test/aws-load.test.js (88.536s)
+  ✓ Monte Carlo estimate of PI using 1B samples and 200 invocations (73426ms)
+  ○ skipped 1 test
+
+Test Suites: 1 passed, 1 total
+Tests:       1 skipped, 1 passed, 2 total
+Snapshots:   0 total
+Time:        89.557s, estimated 218s
+Ran all test suites matching /build\/test\/aws-load.test.js/i.
+AC-MacBook:cloudify achou$

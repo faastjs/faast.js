@@ -1,5 +1,4 @@
 import * as aws from "aws-sdk";
-import { AWSError, Request } from "aws-sdk";
 import debug from "debug";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
@@ -51,11 +50,11 @@ export interface State {
     resultCollectorPromise?: Promise<void>;
 }
 
-export function carefully<U>(arg: Request<U, AWSError>) {
+export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
     return arg.promise().catch(err => log(err));
 }
 
-export function quietly<U>(arg: Request<U, AWSError>) {
+export function quietly<U>(arg: aws.Request<U, aws.AWSError>) {
     return arg.promise().catch(_ => {});
 }
 
@@ -301,12 +300,16 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         state.resources = { ...state.resources, RequestTopicArn, ResponseQueueUrl };
 
         if (useQueue) {
-            await addSnsInvokePermissionsToFunction(
+            const addPermissionResponse = await addSnsInvokePermissionsToFunction(
                 FunctionName,
                 RequestTopicArn,
                 services
             );
-            log(`Added SNS invoke permission to function`);
+            log(
+                `Added SNS invoke permission to function. Statement ID: ${
+                    addPermissionResponse.Statement
+                }`
+            );
             const snsRepsonse = await sns
                 .subscribe({
                     TopicArn: RequestTopicArn,
@@ -352,7 +355,7 @@ async function resultCollector(state: State) {
     const log = debug("cloudify:collector");
 
     while (!isEmpty(state.callResultPromises)) {
-        log(`polling...`);
+        log(`Polling response queue: ${ResponseQueueUrl}`);
         const rawResponse = await sqs
             .receiveMessage({
                 QueueUrl: ResponseQueueUrl!,
@@ -430,23 +433,25 @@ export function cloudifyWithResponse<F extends AnyFunction>(
         };
         const callArgsStr = JSON.stringify(callArgs);
         log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`, "");
-        const request: aws.Lambda.Types.InvocationRequest = {
-            FunctionName: FunctionName,
-            LogType: "Tail",
-            Payload: callArgsStr
-        };
-        log(`Invocation request: ${humanStringify(request)}`);
-        const { sns, lambda } = state.services;
+        const { lambda } = state.services;
         let returned: FunctionReturn | undefined;
         let error: Error | undefined;
         let rawResponse: any;
         if (state.useQueue) {
-            const queueResponse = await enqueueCallRequest(state, CallId).promise;
-            await sns
-                .publish({ TopicArn: RequestTopicArn, Message: JSON.stringify(request) })
+            const { sns } = state.services;
+            const responsePromise = enqueueCallRequest(state, CallId).promise;
+            const snsResponse = await sns
+                .publish({ TopicArn: RequestTopicArn, Message: callArgsStr })
                 .promise();
-            ({ returned, rawResponse } = queueResponse);
+            log(`SNS Message ID: ${snsResponse.MessageId}`);
+            ({ returned, rawResponse } = await responsePromise);
         } else {
+            const request: aws.Lambda.Types.InvocationRequest = {
+                FunctionName: FunctionName,
+                LogType: "Tail",
+                Payload: callArgsStr
+            };
+            log(`Invocation request: ${humanStringify(request)}`);
             rawResponse = await lambda.invoke(request).promise();
             log(`  returned: ${humanStringify(rawResponse)}`);
             log(`  requestId: ${rawResponse.$response.requestId}`);
@@ -566,7 +571,6 @@ export async function cancelWithoutCleanup(state: State) {
     log(`Clearing result promises`);
     const callResultPromises = state.callResultPromises;
     state.callResultPromises = {};
-    log(`%O`, callResultPromises);
     for (const key of Object.keys(callResultPromises)) {
         log(`Rejecting call result: ${key}`);
         callResultPromises[key].reject(

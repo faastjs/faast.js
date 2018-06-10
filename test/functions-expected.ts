@@ -12,9 +12,13 @@ export function checkFunctions(
             remote = service();
         });
 
-        test.only("hello: string => string", async () => {
-            expect(await remote.hello("Andy")).toBe("Hello Andy!");
-        });
+        test(
+            "hello: string => string",
+            async () => {
+                expect(await remote.hello("Andy")).toBe("Hello Andy!");
+            },
+            20 * 1000
+        );
 
         test("fact: number => number", async () => {
             expect(await remote.fact(5)).toBe(120);
