@@ -46,7 +46,7 @@ export interface State {
     resources: AWSResources;
     services: AWSServices;
     useQueue?: boolean;
-    callResultPromises: { [MessageId: string]: Deferred<QueuedResponse<any>> };
+    callResultPromises: Map<string, Deferred<QueuedResponse<any>>>;
     resultCollectorPromise?: Promise<void>;
 }
 
@@ -278,7 +278,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
 
     let state: State = {
         useQueue,
-        callResultPromises: {},
+        callResultPromises: new Map(),
         resources: {
             FunctionName,
             RoleName,
@@ -340,21 +340,12 @@ interface Deferred<T> {
     promise: Promise<T>;
 }
 
-function isEmpty(obj: object) {
-    for (const k in obj) {
-        if (obj.hasOwnProperty(k)) {
-            return false;
-        }
-    }
-    return true;
-}
-
 async function resultCollector(state: State) {
     const { sqs } = state.services;
     const { ResponseQueueUrl } = state.resources;
     const log = debug("cloudify:collector");
 
-    while (!isEmpty(state.callResultPromises)) {
+    while (state.callResultPromises.size > 0) {
         log(`Polling response queue: ${ResponseQueueUrl}`);
         const rawResponse = await sqs
             .receiveMessage({
@@ -366,17 +357,19 @@ async function resultCollector(state: State) {
         const { Messages = [] } = rawResponse;
         log(`received ${Messages.length} messages.`);
 
-        carefully(
-            sqs.deleteMessageBatch({
-                QueueUrl: ResponseQueueUrl!,
-                Entries: Messages.map(m => ({
-                    Id: m.MessageId!,
-                    ReceiptHandle: m.ReceiptHandle!
-                }))
-            })
-        );
+        if (Messages.length > 0) {
+            carefully(
+                sqs.deleteMessageBatch({
+                    QueueUrl: ResponseQueueUrl!,
+                    Entries: Messages.map(m => ({
+                        Id: m.MessageId!,
+                        ReceiptHandle: m.ReceiptHandle!
+                    }))
+                })
+            );
+        }
 
-        processResponseMessages(Messages, state, log);
+        processResponseMessages(Messages, state.callResultPromises, log);
     }
     delete state.resultCollectorPromise;
     setTimeout(() => {
@@ -386,25 +379,25 @@ async function resultCollector(state: State) {
 
 function processResponseMessages(
     Messages: aws.SQS.Message[],
-    state: State,
+    callResultPromises: Map<string, Deferred<QueuedResponse<any>>>,
     log: debug.IDebugger
 ) {
     for (const message of Messages) {
         if (!message.Body) continue;
         const returned: FunctionReturn = JSON.parse(message.Body);
         const { CallId } = returned;
-        const promise = state.callResultPromises[CallId];
-        delete state.callResultPromises[CallId];
+        const promise = callResultPromises.get(CallId);
         if (!promise) {
             log(`promise not found for CallID: ${returned.CallId}`);
         } else {
+            callResultPromises.delete(CallId);
             promise.resolve({ returned, rawResponse: message });
         }
     }
 }
 
 function startResultCollectorIfNeeded(state: State) {
-    if (!isEmpty(state.callResultPromises) && !state.resultCollectorPromise) {
+    if (state.callResultPromises.size > 0 && !state.resultCollectorPromise) {
         state.resultCollectorPromise = resultCollector(state);
     }
 }
@@ -422,7 +415,7 @@ function enqueueCallRequest(state: State, CallId: string): Deferred<any> {
         promise
     };
     log(`Enqueuing call request CallId: ${CallId}, deferred: ${deferred}`);
-    state.callResultPromises[CallId] = deferred;
+    state.callResultPromises.set(CallId, deferred);
     startResultCollectorIfNeeded(state);
     return deferred;
 }
@@ -573,19 +566,17 @@ export function cleanupResources(resourceString: string) {
         throw new Error("Resources missing 'region'");
     }
     const services = createAWSApis(resources.region);
-    return cleanup({ resources, services, callResultPromises: {} });
+    return cleanup({ resources, services, callResultPromises: new Map() });
 }
 
 export async function cancelWithoutCleanup(state: State) {
     log(`Clearing result promises`);
     const callResultPromises = state.callResultPromises;
-    state.callResultPromises = {};
-    for (const key of Object.keys(callResultPromises)) {
+    for (const [key, promise] of callResultPromises) {
         log(`Rejecting call result: ${key}`);
-        callResultPromises[key].reject(
-            new Error("Call to cloud function cancelled in cleanup")
-        );
+        promise.reject(new Error("Call to cloud function cancelled in cleanup"));
     }
+    state.callResultPromises.clear();
     if (state.resultCollectorPromise) {
         log(`Waiting for result collector to stop (this can take up to 20s)`);
         await state.resultCollectorPromise;
