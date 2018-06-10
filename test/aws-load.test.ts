@@ -42,8 +42,8 @@ test.only(
     "Monte Carlo estimate of PI using 1B samples and 200 invocations",
     async () => {
         //nock.recorder.rec({ logging: log });
-        const nParallelFunctions = 200;
-        const nSamplesPerFunction = 5000000;
+        const nParallelFunctions = 500;
+        const nSamplesPerFunction = 2000000;
         const promises: Promise<MonteCarloReturn & { returned: number }>[] = [];
         for (let i = 0; i < nParallelFunctions; i++) {
             promises.push(
@@ -90,3 +90,4 @@ test.only(
 );
 
 afterAll(() => lambda.cleanup(), 30 * 1000);
+//afterAll(() => lambda.cancelAll(), 30 * 1000);

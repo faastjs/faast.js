@@ -359,39 +359,48 @@ async function resultCollector(state: State) {
         const rawResponse = await sqs
             .receiveMessage({
                 QueueUrl: ResponseQueueUrl!,
-                WaitTimeSeconds: 5,
+                WaitTimeSeconds: 20,
                 MaxNumberOfMessages: 10
             })
             .promise();
         const { Messages = [] } = rawResponse;
-        let deletePromises = [];
         log(`received ${Messages.length} messages.`);
-        for (const { Body, ReceiptHandle } of Messages) {
-            if (Body) {
-                const returned: FunctionReturn = JSON.parse(Body);
-                const { CallId } = returned;
-                const promise = state.callResultPromises[CallId];
-                delete state.callResultPromises[CallId];
-                if (!promise) {
-                    log(`promise not found for CallID: ${returned.CallId}`);
-                } else {
-                    promise.resolve({ returned, rawResponse });
-                }
-            }
-            const deletePromise = carefully(
-                sqs.deleteMessage({
-                    QueueUrl: ResponseQueueUrl!,
-                    ReceiptHandle: ReceiptHandle!
-                })
-            );
-            deletePromises.push(deletePromise);
-        }
-        await Promise.all(deletePromises);
+
+        carefully(
+            sqs.deleteMessageBatch({
+                QueueUrl: ResponseQueueUrl!,
+                Entries: Messages.map(m => ({
+                    Id: m.MessageId!,
+                    ReceiptHandle: m.ReceiptHandle!
+                }))
+            })
+        );
+
+        processResponseMessages(Messages, state, log);
     }
     delete state.resultCollectorPromise;
     setTimeout(() => {
         startResultCollectorIfNeeded(state);
     }, 0);
+}
+
+function processResponseMessages(
+    Messages: aws.SQS.Message[],
+    state: State,
+    log: debug.IDebugger
+) {
+    for (const message of Messages) {
+        if (!message.Body) continue;
+        const returned: FunctionReturn = JSON.parse(message.Body);
+        const { CallId } = returned;
+        const promise = state.callResultPromises[CallId];
+        delete state.callResultPromises[CallId];
+        if (!promise) {
+            log(`promise not found for CallID: ${returned.CallId}`);
+        } else {
+            promise.resolve({ returned, rawResponse: message });
+        }
+    }
 }
 
 function startResultCollectorIfNeeded(state: State) {
