@@ -14,7 +14,8 @@ beforeAll(async () => {
     cloud = cloudify.create("aws");
     lambda = await cloud.createFunction("./functions", {
         //Timeout: 120
-        //cloudSpecific: { useQueue: false }
+        cloudSpecific: { /*useQueue: false, */ region: "us-west-1" },
+        memorySize: 3008
     });
     remote = lambda.cloudifyAll(funcs);
 }, 90 * 1000);
@@ -41,7 +42,7 @@ function printLatencies(str: string, latencies: number[]) {
     });
 }
 
-test(
+test.only(
     "Monte Carlo estimate of PI using 1B samples and 500 invocations",
     async () => {
         //nock.recorder.rec({ logging: log });

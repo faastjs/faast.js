@@ -241,9 +241,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     const logGroupName = `/aws/lambda/${FunctionName}`;
     const noCreateLogGroupPolicy = `cloudify-deny-create-log-group-policy`;
 
-    const limits = await carefully(lambda.getAccountSettings());
-    log(`Limits: ${humanStringify(limits)}`);
-
     if (rolePolicy === "createTemporaryRole") {
         RoleName = `cloudify-role-${nonce}`;
     }
@@ -340,28 +337,37 @@ interface Deferred<T> {
     promise: Promise<T>;
 }
 
+function createDeferred<T>(): Deferred<T> {
+    let resolver!: (arg?: any) => void;
+    let rejector!: (err?: any) => void;
+    const promise = new Promise<any>((resolve, reject) => {
+        resolver = resolve;
+        rejector = reject;
+    });
+    return {
+        resolve: resolver,
+        reject: rejector,
+        promise
+    };
+}
+
 async function resultCollector(state: State) {
     const { sqs } = state.services;
     const { ResponseQueueUrl } = state.resources;
     const log = debug("cloudify:collector");
     const { callResultPromises } = state;
 
-    while (callResultPromises.size > 0) {
-        log(
-            `Polling response queue (size ${
-                callResultPromises.size
-            }): ${ResponseQueueUrl}`
-        );
-        const rawResponse = await sqs
+    async function pollSQSQueue() {
+        const response = await sqs
             .receiveMessage({
                 QueueUrl: ResponseQueueUrl!,
-                WaitTimeSeconds: 20,
+                WaitTimeSeconds: 10,
                 MaxNumberOfMessages: 10
             })
             .promise();
-        const { Messages = [] } = rawResponse;
-        log(`received ${Messages.length} messages.`);
 
+        const { Messages = [] } = response;
+        log(`received ${Messages.length} messages.`);
         if (Messages.length > 0) {
             carefully(
                 sqs.deleteMessageBatch({
@@ -373,32 +379,40 @@ async function resultCollector(state: State) {
                 })
             );
         }
+        for (const message of Messages) {
+            if (!message.Body) continue;
+            const returned: FunctionReturn = JSON.parse(message.Body);
+            const { CallId } = returned;
+            const promise = callResultPromises.get(CallId);
+            if (!promise) {
+                log(`promise not found for CallID: ${returned.CallId}`);
+            } else {
+                callResultPromises.delete(CallId);
+                promise.resolve({ returned, rawResponse: message });
+            }
+        }
+    }
 
-        processResponseMessages(Messages, callResultPromises, log);
+    const pollers: Promise<number>[] = [];
+    pollers.push(pollSQSQueue().then(_ => 0));
+    pollers.push(pollSQSQueue().then(_ => 1));
+    // pollers.push(pollSQSQueue().then(_ => 2));
+
+    while (callResultPromises.size > 0) {
+        log(
+            `Polling response queue (size ${
+                callResultPromises.size
+            }): ${ResponseQueueUrl}`
+        );
+
+        // await pollSQSQueue();
+        const i = await Promise.race(pollers);
+        pollers[i] = pollSQSQueue().then(_ => i);
     }
     delete state.resultCollectorPromise;
     setTimeout(() => {
         startResultCollectorIfNeeded(state);
     }, 0);
-}
-
-function processResponseMessages(
-    Messages: aws.SQS.Message[],
-    callResultPromises: Map<string, Deferred<QueuedResponse<any>>>,
-    log: debug.IDebugger
-) {
-    for (const message of Messages) {
-        if (!message.Body) continue;
-        const returned: FunctionReturn = JSON.parse(message.Body);
-        const { CallId } = returned;
-        const promise = callResultPromises.get(CallId);
-        if (!promise) {
-            log(`promise not found for CallID: ${returned.CallId}`);
-        } else {
-            callResultPromises.delete(CallId);
-            promise.resolve({ returned, rawResponse: message });
-        }
-    }
 }
 
 function startResultCollectorIfNeeded(state: State) {
@@ -408,17 +422,7 @@ function startResultCollectorIfNeeded(state: State) {
 }
 
 function enqueueCallRequest(state: State, CallId: string): Deferred<any> {
-    let resolver!: (arg?: any) => void;
-    let rejector!: (err?: any) => void;
-    const promise = new Promise<any>((resolve, reject) => {
-        resolver = resolve;
-        rejector = reject;
-    });
-    const deferred: Deferred<any> = {
-        resolve: resolver,
-        reject: rejector,
-        promise
-    };
+    const deferred = createDeferred<QueuedResponse<any>>();
     log(`Enqueuing call request CallId: ${CallId}, deferred: ${deferred}`);
     state.callResultPromises.set(CallId, deferred);
     startResultCollectorIfNeeded(state);
