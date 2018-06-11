@@ -9,7 +9,7 @@ import * as inquirer from "inquirer";
 const warn = console.warn;
 const log = console.log;
 
-async function cleanupAWS(region: string, execute: boolean) {
+async function cleanupAWS(region: string, execute: boolean, cleanAll: boolean) {
     const { cloudwatch, iam, lambda, sns, sqs } = awsCloudify.createAWSApis(region);
     log(`Cleaning up AWS resources`);
     async function deleteAWSResource<T, U>(
@@ -32,13 +32,13 @@ async function cleanupAWS(region: string, execute: boolean) {
             });
         });
         const matchingResources = allResources.filter(t => t.match(pattern));
-        matchingResources.forEach(resource => log(`  Removing: ${resource}`));
+        matchingResources.forEach(resource => log(`  ${resource}`));
         if (execute) {
             await Promise.all(matchingResources.map(remove));
         }
     }
 
-    log(`Cleaning up SNS subscriptions`);
+    log(`SNS subscriptions`);
     await deleteAWSResource(
         /:cloudify-/,
         () => sns.listSubscriptions(),
@@ -47,7 +47,7 @@ async function cleanupAWS(region: string, execute: boolean) {
         SubscriptionArn => sns.unsubscribe({ SubscriptionArn }).promise()
     );
 
-    log(`Cleaning up SNS topics`);
+    log(`SNS topics`);
     await deleteAWSResource(
         /:cloudify-/,
         () => sns.listTopics(),
@@ -56,7 +56,7 @@ async function cleanupAWS(region: string, execute: boolean) {
         TopicArn => sns.deleteTopic({ TopicArn }).promise()
     );
 
-    log(`Cleaning up SQS queues`);
+    log(`SQS queues`);
     await deleteAWSResource(
         /\/cloudify-/,
         () => sqs.listQueues(),
@@ -65,7 +65,7 @@ async function cleanupAWS(region: string, execute: boolean) {
         QueueUrl => sqs.deleteQueue({ QueueUrl }).promise()
     );
 
-    log(`Cleaning up lambda functions`);
+    log(`Lambda functions`);
     await deleteAWSResource(
         /^cloudify-/,
         () => lambda.listFunctions(),
@@ -74,7 +74,7 @@ async function cleanupAWS(region: string, execute: boolean) {
         FunctionName => lambda.deleteFunction({ FunctionName }).promise()
     );
 
-    log(`Cleaning up cloudwatch log groups`);
+    log(`Cloudwatch log groups`);
     await deleteAWSResource(
         /^\/aws\/lambda\/cloudify-/,
         () =>
@@ -84,9 +84,9 @@ async function cleanupAWS(region: string, execute: boolean) {
         logGroupName => cloudwatch.deleteLogGroup({ logGroupName }).promise()
     );
 
-    log(`Cleaning up IAM roles`);
+    log(`IAM roles`);
     await deleteAWSResource(
-        /^cloudify-/,
+        cleanAll ? /^cloudify-/ : /^cloudify-(?!cached)/,
         () => iam.listRoles(),
         page => page.Roles,
         role => role.RoleName,
@@ -100,13 +100,17 @@ async function main() {
         .version("0.1.0")
         .option("-v, --verbose", "Verbose mode")
         .option(
+            "-a, --all",
+            `Removes the IAM role 'cloudify-cached-role', which is used to speed cloudify startup.`
+        )
+        .option(
             "-x, --execute",
             "Execute the cleanup process. If this option is not specified, the output will be a dry run."
         )
         .option("-f, --force", "When used with -x, skips the prompt")
         .option(
             "-r, --region <region>",
-            "Region to clean up. Defaults to us-east-1 for AWS, and us-central1 for Google."
+            "Region to clean up. Defaults to us-west-1 for AWS, and us-central1 for Google."
         )
         .arguments("<cloud>")
         .action(arg => {
@@ -124,6 +128,7 @@ async function main() {
     let execute = commander.execute || false;
     const region = commander.region || awsCloudify.defaults.region;
     const force = commander.force || false;
+    const cleanAll = commander.all || false;
 
     if (execute) {
         if (!force) {
@@ -141,10 +146,11 @@ async function main() {
             }
         }
     } else {
-        log(`Dry run mode: no resources will be deleted. Specify -x to execute cleanup.`);
+        log(`=== Dry run mode ===`);
+        log(`No resources will be deleted. Specify -x to execute cleanup.`);
     }
     if (cloud === "aws") {
-        cleanupAWS(region, execute);
+        cleanupAWS(region, execute, cleanAll);
         return;
     }
     warn(`Unknown cloud name ${commander.cloud}. Must specify "aws" or "google"`);

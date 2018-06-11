@@ -72,7 +72,7 @@ function sleep(ms: number) {
 }
 
 export let defaults: Required<Options> = {
-    region: "us-east-1",
+    region: "us-west-1",
     PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
     rolePolicy: "createOrReuseCachedRole",
     RoleName: "cloudify-cached-role",
@@ -351,23 +351,19 @@ function createDeferred<T>(): Deferred<T> {
     };
 }
 
+interface CallResults {
+    CallId?: string;
+    message: aws.SQS.Message;
+    deferred?: Deferred<QueuedResponse<any>>;
+}
+
 async function resultCollector(state: State) {
     const { sqs } = state.services;
     const { ResponseQueueUrl } = state.resources;
     const log = debug("cloudify:collector");
     const { callResultPromises } = state;
 
-    async function pollSQSQueue() {
-        const response = await sqs
-            .receiveMessage({
-                QueueUrl: ResponseQueueUrl!,
-                WaitTimeSeconds: 10,
-                MaxNumberOfMessages: 10
-            })
-            .promise();
-
-        const { Messages = [] } = response;
-        log(`received ${Messages.length} messages.`);
+    function deleteMessages(Messages: aws.SQS.Message[]) {
         if (Messages.length > 0) {
             carefully(
                 sqs.deleteMessageBatch({
@@ -379,24 +375,25 @@ async function resultCollector(state: State) {
                 })
             );
         }
-        for (const message of Messages) {
+    }
+
+    function resolvePromises(results: CallResults[]) {
+        for (const { message, CallId, deferred } of results) {
+            if (!CallId) {
+                const { MessageId, MessageAttributes, Body } = message;
+                log(
+                    `No CallId for MessageId: ${MessageId}, attributes: ${MessageAttributes}, Body: ${Body}`
+                );
+            }
             if (!message.Body) continue;
             const returned: FunctionReturn = JSON.parse(message.Body);
-            const { CallId } = returned;
-            const promise = callResultPromises.get(CallId);
-            if (!promise) {
-                log(`promise not found for CallID: ${returned.CallId}`);
+            if (!deferred) {
+                log(`Deferred promise not found for CallID: ${CallId}`);
             } else {
-                callResultPromises.delete(CallId);
-                promise.resolve({ returned, rawResponse: message });
+                deferred.resolve({ returned, rawResponse: message });
             }
         }
     }
-
-    const pollers: Promise<number>[] = [];
-    pollers.push(pollSQSQueue().then(_ => 0));
-    pollers.push(pollSQSQueue().then(_ => 1));
-    // pollers.push(pollSQSQueue().then(_ => 2));
 
     while (callResultPromises.size > 0) {
         log(
@@ -405,9 +402,34 @@ async function resultCollector(state: State) {
             }): ${ResponseQueueUrl}`
         );
 
-        // await pollSQSQueue();
-        const i = await Promise.race(pollers);
-        pollers[i] = pollSQSQueue().then(_ => i);
+        const response = await sqs
+            .receiveMessage({
+                QueueUrl: ResponseQueueUrl!,
+                WaitTimeSeconds: 20,
+                MaxNumberOfMessages: 10,
+                MessageAttributeNames: ["All"]
+            })
+            .promise();
+
+        const { Messages = [] } = response;
+        log(`received ${Messages.length} messages.`);
+
+        deleteMessages(Messages);
+
+        try {
+            const callResults = Messages.map(m => {
+                const CallId = m.MessageAttributes!.CallId.StringValue!;
+                return {
+                    CallId,
+                    message: m,
+                    deferred: callResultPromises.get(CallId)
+                };
+            });
+            callResults.forEach(({ CallId }) => callResultPromises.delete(CallId));
+            setTimeout(() => resolvePromises(callResults), 0);
+        } catch (err) {
+            log(err);
+        }
     }
     delete state.resultCollectorPromise;
     setTimeout(() => {

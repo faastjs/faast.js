@@ -95,7 +95,8 @@ export async function snsTrampoline(
             console.log(`Result: ${JSON.stringify(result)}`);
             sqs.sendMessage({
                 QueueUrl: ResponseQueueUrl!,
-                MessageBody: JSON.stringify(result)
+                MessageBody: JSON.stringify(result),
+                MessageAttributes: { CallId: { DataType: "String", StringValue: CallId } }
             }).send(err => {
                 if (err) {
                     sendError(err, ResponseQueueUrl!, CallId);

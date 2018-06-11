@@ -11,13 +11,17 @@ let lambda: cloudify.AWSLambda;
 let remote: cloudify.Promisified<typeof funcs>;
 
 beforeAll(async () => {
-    cloud = cloudify.create("aws");
-    lambda = await cloud.createFunction("./functions", {
-        //Timeout: 120
-        cloudSpecific: { /*useQueue: false, */ region: "us-west-1" },
-        memorySize: 3008
-    });
-    remote = lambda.cloudifyAll(funcs);
+    try {
+        cloud = cloudify.create("aws");
+        lambda = await cloud.createFunction("./functions", {
+            //Timeout: 120
+            // cloudSpecific: { useQueue: false }
+            memorySize: 3008
+        });
+        remote = lambda.cloudifyAll(funcs);
+    } catch (err) {
+        console.error(err);
+    }
 }, 90 * 1000);
 
 test(

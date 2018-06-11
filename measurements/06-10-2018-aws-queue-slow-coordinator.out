@@ -1,5 +1,5 @@
-2018-06-11T06:42:36.110Z cloudify:info Nonce: 6fd45f90-1f2f-4319-9302-ec525928b92f
 2018-06-11T06:42:36.924Z cloudify:info Adding inline policy to not allow log group creation to role "cloudify-cached-role"
+2018-06-11T06:42:36.110Z cloudify:info Nonce: 6fd45f90-1f2f-4319-9302-ec525928b92f
 2018-06-11T06:42:37.355Z cloudify:info Running webpack
 2018-06-11T06:42:37.909Z cloudify:info Hash: e4dceb1bb4d72d250b73
 Version: webpack 4.11.1
