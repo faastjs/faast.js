@@ -16,7 +16,7 @@ beforeAll(async () => {
         lambda = await cloud.createFunction("./functions", {
             //Timeout: 120
             // cloudSpecific: { useQueue: false }
-            memorySize: 3008
+            memorySize: 1024
         });
         remote = lambda.cloudifyAll(funcs);
     } catch (err) {
@@ -46,7 +46,7 @@ function printLatencies(str: string, latencies: number[]) {
     });
 }
 
-test.only(
+test(
     "Monte Carlo estimate of PI using 1B samples and 500 invocations",
     async () => {
         //nock.recorder.rec({ logging: log });

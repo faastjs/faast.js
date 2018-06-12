@@ -26,6 +26,7 @@ export interface AWSResources {
     RoleName: string;
     RequestTopicArn?: string;
     ResponseQueueUrl?: string;
+    DeadLetterQueueUrl?: string;
     rolePolicy: RoleHandling;
     logGroupName: string;
     region: string;
@@ -92,7 +93,57 @@ export function createAWSApis(region: string): AWSServices {
     };
 }
 
-async function createRole(RoleName: string, PolicyArn: string, services: AWSServices) {
+async function createSNSFailureFeedbackRole(RoleName: string, services: AWSServices) {
+    const { iam } = services;
+    log(`Creating role "${RoleName}" for SNS failure feedback`);
+    const AssumeRolePolicyDocument = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+            {
+                Principal: { Service: "sns.amazonaws.com" },
+                Action: "sts:AssumeRole",
+                Effect: "Allow"
+            }
+        ]
+    });
+    const PolicyDocument = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+            {
+                Effect: "Allow",
+                Action: [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                    "logs:PutMetricFilter",
+                    "logs:PutRetentionPolicy"
+                ],
+                Resource: ["*"]
+            }
+        ]
+    });
+    const roleParams: aws.IAM.CreateRoleRequest = {
+        AssumeRolePolicyDocument,
+        RoleName,
+        Description: "role for SNS failures created by cloudify",
+        MaxSessionDuration: 36000
+    };
+    const roleResponse = await iam.createRole(roleParams).promise();
+    await iam.putRolePolicy({
+        RoleName,
+        PolicyName: "cloudify-SNS-cloudwatch-access-policy",
+        PolicyDocument
+    });
+    return roleResponse;
+    XXX;
+    // XXX Wait for role to be ready?
+}
+
+async function createLambdaRole(
+    RoleName: string,
+    PolicyArn: string,
+    services: AWSServices
+) {
     const { iam } = services;
     log(`Creating role "${RoleName}" for cloudify trampoline function`);
     const AssumeRolePolicyDocument = JSON.stringify({
@@ -111,7 +162,7 @@ async function createRole(RoleName: string, PolicyArn: string, services: AWSServ
         Description: "role for lambda functions created by cloudify",
         MaxSessionDuration: 3600
     };
-    let roleResponse = await iam.createRole(roleParams).promise();
+    const roleResponse = await iam.createRole(roleParams).promise();
     await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
     await waitForRoleReadiness(roleResponse.Role, services);
     return roleResponse;
@@ -179,28 +230,67 @@ async function addNoCreateLogPolicyToRole(
         .promise();
 }
 
-async function createQueue(QueueName: string, VTimeout: number, services: AWSServices) {
+async function createQueue(
+    QueueName: string,
+    VTimeout: number,
+    services: AWSServices,
+    deadLetterTargetArn?: string
+) {
     const { sqs } = services;
-    const response = await sqs
-        .createQueue({
-            QueueName,
-            Attributes: { VisibilityTimeout: `${VTimeout}` }
-        })
-        .promise();
+    const createQueueRequest: aws.SQS.CreateQueueRequest = {
+        QueueName,
+        Attributes: {
+            VisibilityTimeout: `${VTimeout}`
+        }
+    };
+    if (deadLetterTargetArn) {
+        createQueueRequest.Attributes!.RedrivePolicy = JSON.stringify({
+            maxReceiveCount: "5",
+            deadLetterTargetArn
+        });
+    }
+    const response = await sqs.createQueue(createQueueRequest).promise();
     return response.QueueUrl!;
     // XXX Need to set the VisibilityTimeout when the message is being processed but not finished yet.
+}
+
+async function createDeadLetterQueue(
+    FunctionName: string,
+    Timeout: number,
+    services: AWSServices
+) {
+    const { sqs } = services;
+    const DeadLetterQueueUrl = await createQueue(
+        `${FunctionName}-DLQ`,
+        Timeout,
+        services
+    );
+    const attributeResponse = await sqs
+        .getQueueAttributes({
+            QueueUrl: DeadLetterQueueUrl,
+            AttributeNames: ["QueueArn"]
+        })
+        .promise();
+    return attributeResponse.Attributes!.QueueArn;
 }
 
 async function createNotifier(Name: string, services: AWSServices) {
     const { sns } = services;
     const topic = await sns.createTopic({ Name }).promise();
-    return topic.TopicArn!;
+    const TopicArn = topic.TopicArn!;
+    sns.setTopicAttributes({
+        TopicArn,
+        AttributeName: "LambdaFailureFeedbackRoleArn",
+        AttributeValue: XXX
+    });
+    return TopicArn!;
 }
 
 async function createLogGroup(logGroupName: string, services: AWSServices) {
     const { cloudwatch } = services;
     const response = await cloudwatch.createLogGroup({ logGroupName }).promise();
     await cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 }).promise();
+    return response;
 }
 
 function addSnsInvokePermissionsToFunction(
@@ -245,10 +335,10 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         RoleName = `cloudify-role-${nonce}`;
     }
 
-    async function createFunction() {
+    async function createFunction(DeadLetterQueueUrl?: string) {
         let roleResponse =
             (await quietly(iam.getRole({ RoleName }))) ||
-            (await createRole(RoleName, PolicyArn, services));
+            (await createLambdaRole(RoleName, PolicyArn, services));
         await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
         const { archive } = await pack(fModule);
         const previous = await quietly(lambda.getFunction({ FunctionName }));
@@ -264,6 +354,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             Description: "cloudify trampoline function",
             Timeout,
             MemorySize,
+            DeadLetterConfig: { TargetArn: DeadLetterQueueUrl },
             ...rest,
             ...awsLambdaOptions
         };
@@ -288,10 +379,23 @@ export async function initialize(fModule: string, options: Options = {}): Promis
 
     try {
         await createLogGroup(logGroupName, services);
-        let tasks = [createFunction()];
+        const DeadLetterQueueArn = await createDeadLetterQueue(
+            FunctionName,
+            Timeout,
+            services
+        );
+
+        let tasks = [createFunction(DeadLetterQueueArn)];
         if (useQueue) {
             tasks.push(createNotifier(`${FunctionName}-Requests`, services));
-            tasks.push(createQueue(`${FunctionName}-Responses`, Timeout, services));
+            tasks.push(
+                createQueue(
+                    `${FunctionName}-Responses`,
+                    Timeout,
+                    services,
+                    DeadLetterQueueArn
+                )
+            );
         }
         const [FunctionArn, RequestTopicArn, ResponseQueueUrl] = await Promise.all(tasks);
         state.resources = { ...state.resources, RequestTopicArn, ResponseQueueUrl };
@@ -476,7 +580,6 @@ export function cloudifyWithResponse<F extends AnyFunction>(
             const snsResponse = await sns
                 .publish({ TopicArn: RequestTopicArn, Message: callArgsStr })
                 .promise();
-            log(`SNS Message ID: ${snsResponse.MessageId}`);
             ({ returned, rawResponse } = await responsePromise);
         } else {
             const request: aws.Lambda.Types.InvocationRequest = {
@@ -544,8 +647,13 @@ export async function cleanup(state: PartialState) {
         rolePolicy,
         RequestTopicArn,
         ResponseQueueUrl,
-        SNSLambdaSubscriptionArn
+        SNSLambdaSubscriptionArn,
+        region,
+        DeadLetterQueueUrl,
+        ...rest
     } = state.resources;
+    const _exhaustiveCheck: Required<typeof rest> = {};
+
     const { cloudwatch, iam, lambda, sqs, sns } = state.services;
     log(`Cleaning up cloudify state`);
     if (SNSLambdaSubscriptionArn) {
@@ -566,7 +674,7 @@ export async function cleanup(state: PartialState) {
         await deleteRole(RoleName, iam);
     }
     await cancelPromise;
-    let requestPromise, responsePromise;
+    let requestPromise, responsePromise, dlqPromise;
     if (RequestTopicArn) {
         log(`Deleting Request queue topic: ${RequestTopicArn}`);
         requestPromise = quietly(sns.deleteTopic({ TopicArn: RequestTopicArn }));
@@ -575,7 +683,11 @@ export async function cleanup(state: PartialState) {
         log(`Deleting Response queue: ${ResponseQueueUrl}`);
         responsePromise = quietly(sqs.deleteQueue({ QueueUrl: ResponseQueueUrl }));
     }
-    await Promise.all([requestPromise, responsePromise]);
+    if (DeadLetterQueueUrl) {
+        log(`Deleting dead letter queue: ${DeadLetterQueueUrl}`);
+        dlqPromise = quietly(sqs.deleteQueue({ QueueUrl: DeadLetterQueueUrl }));
+    }
+    await Promise.all([requestPromise, responsePromise, dlqPromise]);
 }
 
 export async function pack(functionModule: string): Promise<PackerResult> {
