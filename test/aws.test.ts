@@ -7,9 +7,13 @@ let lambda: cloudify.CloudFunction<any>;
 let remote: cloudify.Promisified<typeof funcs>;
 
 beforeAll(async () => {
-    cloud = cloudify.create("aws");
-    lambda = await cloud.createFunction("./functions");
-    remote = lambda.cloudifyAll(funcs);
+    try {
+        cloud = cloudify.create("aws");
+        lambda = await cloud.createFunction("./functions");
+        remote = lambda.cloudifyAll(funcs);
+    } catch (err) {
+        console.error(err);
+    }
 }, 30 * 1000);
 
 checkFunctions("Cloudify AWS", () => remote);

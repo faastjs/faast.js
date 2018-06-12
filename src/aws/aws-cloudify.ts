@@ -128,15 +128,15 @@ async function createSNSFailureFeedbackRole(RoleName: string, services: AWSServi
         Description: "role for SNS failures created by cloudify",
         MaxSessionDuration: 36000
     };
+    log(`Creating SNS role...`);
     const roleResponse = await iam.createRole(roleParams).promise();
+    log(`Putting SNS role policy...`);
     await iam.putRolePolicy({
         RoleName,
         PolicyName: "cloudify-SNS-cloudwatch-access-policy",
         PolicyDocument
     });
     return roleResponse;
-    XXX;
-    // XXX Wait for role to be ready?
 }
 
 async function createLambdaRole(
@@ -186,16 +186,10 @@ async function waitForRoleReadiness(Role: aws.IAM.Role, services: AWSServices) {
         Code: { ZipFile: await zipStreamToBuffer(archive) }
     };
     let testfunc: aws.Lambda.FunctionConfiguration | void;
-    await sleep(2000);
-    for (let i = 0; i < 100; i++) {
-        log(`Polling for role readiness...`);
-        testfunc = await quietly(lambda.createFunction(createFunctionRequest));
-        if (testfunc) {
-            break;
-        }
-        await sleep(1000);
-    }
-    if (!testfunc) {
+    const success = pollAWSRequest(100, "lambda function role readiness", () =>
+        lambda.createFunction(createFunctionRequest)
+    );
+    if (!success) {
         throw new Error("Could not initialize lambda execution role");
     }
     log(`Role ready. Cleaning up.`);
@@ -274,15 +268,46 @@ async function createDeadLetterQueue(
     return attributeResponse.Attributes!.QueueArn;
 }
 
-async function createNotifier(Name: string, services: AWSServices) {
+async function pollAWSRequest(
+    n: number,
+    description: string,
+    fn: () => aws.Request<{}, aws.AWSError>
+) {
+    await sleep(2000);
+    let success = false;
+    for (let i = 0; i < n; i++) {
+        log(`Polling ${description}...`);
+        const result = await quietly(fn());
+        if (result) {
+            success = true;
+            break;
+        }
+        await sleep(1000);
+    }
+    return success;
+}
+
+async function createSNSNotifier(Name: string, RoleArn: string, services: AWSServices) {
     const { sns } = services;
+    log(`Creating SNS notifier`);
     const topic = await sns.createTopic({ Name }).promise();
     const TopicArn = topic.TopicArn!;
-    sns.setTopicAttributes({
-        TopicArn,
-        AttributeName: "LambdaFailureFeedbackRoleArn",
-        AttributeValue: XXX
-    });
+    log(`Created SNS notifier with TopicArn: ${TopicArn}`);
+    const success = pollAWSRequest(
+        100,
+        "role for SNS invocation of lambda function feedback",
+        () =>
+            sns.setTopicAttributes({
+                TopicArn,
+                AttributeName: "LambdaFailureFeedbackRoleArn",
+                AttributeValue: RoleArn
+            })
+    );
+
+    if (!success) {
+        throw new Error("Could not initialize lambda execution role");
+    }
+
     return TopicArn!;
 }
 
@@ -387,7 +412,13 @@ export async function initialize(fModule: string, options: Options = {}): Promis
 
         let tasks = [createFunction(DeadLetterQueueArn)];
         if (useQueue) {
-            tasks.push(createNotifier(`${FunctionName}-Requests`, services));
+            const snsRole = await createSNSFailureFeedbackRole(
+                `${FunctionName}-SNSRole`,
+                services
+            );
+            tasks.push(
+                createSNSNotifier(`${FunctionName}-Requests`, snsRole.Role.Arn, services)
+            );
             tasks.push(
                 createQueue(
                     `${FunctionName}-Responses`,
@@ -405,11 +436,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
                 FunctionName,
                 RequestTopicArn,
                 services
-            );
-            log(
-                `Added SNS invoke permission to function. Statement ID: ${
-                    addPermissionResponse.Statement
-                }`
             );
             const snsRepsonse = await sns
                 .subscribe({
