@@ -91,6 +91,7 @@ test(
         console.log(`inside: ${inside}, samples: ${samples}`);
         expect(samples).toBe(nParallelFunctions * nSamplesPerFunction);
         const estimatedPI = (inside / samples) * 4;
+        console.log(`PI estimate: ${estimatedPI}`);
         expect(Number(estimatedPI.toFixed(2))).toBe(3.14);
         //nock.restore();
     },
