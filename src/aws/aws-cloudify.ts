@@ -204,7 +204,6 @@ async function createQueue(
     }
     const response = await sqs.createQueue(createQueueRequest).promise();
     return response.QueueUrl!;
-    // XXX Need to set the VisibilityTimeout when the message is being processed but not finished yet.
 }
 
 async function createDLQ(FunctionName: string, Timeout: number, state: State) {
