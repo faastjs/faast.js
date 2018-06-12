@@ -121,26 +121,3 @@ $ node build/src/cloudify-cleanup.js aws -x
 ```
 
 # Concurrency
-
-Empirically we see a 50 concurrent cloud function execution limit. It's unclear
-where this limit is coming from. Here are some possibilities:
-
-- [ ] At the cloud layer
-  - [ ] Try both AWS and Google
-  - [ ] Issue requests to the same function from multiple machines.
-- [ ] At the MacOS layer.
-  - [ ] Try running the load test from EC2.
-  - [ ] Remove the
-- [ ] At the Node.js layer.
-  - [*] Run two different loads from one client.
-  - [ ] Try latest node version
-  - [ ] Try changing node libuv thread pool size
-  - [ ] Try changing v8 thread pool size
-  - [ ] Consider NODE_ENV=production?
-- [ ] At the http layer
-  - [ ] Turn on logging for low level http requests and responses
-  - [ ] Use nock to mock/intercept/record and log http requests
-- [ ] At the cloud API layer
-  - [ ] Try both AWS and Google
-- [ ] At the Axios layer (Google only)
-  - [ ] Turn on logging for Axio requests - Axios interceptors

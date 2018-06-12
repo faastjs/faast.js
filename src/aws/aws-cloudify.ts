@@ -31,6 +31,7 @@ export interface AWSResources {
     logGroupName: string;
     region: string;
     SNSLambdaSubscriptionArn?: string;
+    SNSFeedbackRole?: string;
 }
 
 export interface AWSServices {
@@ -76,7 +77,7 @@ export let defaults: Required<Options> = {
     region: "us-west-1",
     PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
     rolePolicy: "createOrReuseCachedRole",
-    RoleName: "cloudify-cached-role",
+    RoleName: "cloudify-cached-lambda-role",
     timeout: 60,
     memorySize: 128,
     useQueue: true,
@@ -93,8 +94,12 @@ export function createAWSApis(region: string): AWSServices {
     };
 }
 
-async function createSNSFailureFeedbackRole(RoleName: string, services: AWSServices) {
+async function createSNSFeedbackRole(RoleName: string, services: AWSServices) {
     const { iam } = services;
+    const previousRole = await quietly(iam.getRole({ RoleName }));
+    if (previousRole) {
+        return previousRole;
+    }
     log(`Creating role "${RoleName}" for SNS failure feedback`);
     const AssumeRolePolicyDocument = JSON.stringify({
         Version: "2012-10-17",
@@ -106,36 +111,16 @@ async function createSNSFailureFeedbackRole(RoleName: string, services: AWSServi
             }
         ]
     });
-    const PolicyDocument = JSON.stringify({
-        Version: "2012-10-17",
-        Statement: [
-            {
-                Effect: "Allow",
-                Action: [
-                    "logs:CreateLogGroup",
-                    "logs:CreateLogStream",
-                    "logs:PutLogEvents",
-                    "logs:PutMetricFilter",
-                    "logs:PutRetentionPolicy"
-                ],
-                Resource: ["*"]
-            }
-        ]
-    });
     const roleParams: aws.IAM.CreateRoleRequest = {
         AssumeRolePolicyDocument,
         RoleName,
         Description: "role for SNS failures created by cloudify",
         MaxSessionDuration: 36000
     };
-    log(`Creating SNS role...`);
     const roleResponse = await iam.createRole(roleParams).promise();
-    log(`Putting SNS role policy...`);
-    await iam.putRolePolicy({
-        RoleName,
-        PolicyName: "cloudify-SNS-cloudwatch-access-policy",
-        PolicyDocument
-    });
+    log(`Putting SNS role policy`);
+    const PolicyArn = "arn:aws:iam::aws:policy/service-role/AmazonSNSRole";
+    await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
     return roleResponse;
 }
 
@@ -145,6 +130,10 @@ async function createLambdaRole(
     services: AWSServices
 ) {
     const { iam } = services;
+    const previousRole = await quietly(iam.getRole({ RoleName }));
+    if (previousRole) {
+        return previousRole;
+    }
     log(`Creating role "${RoleName}" for cloudify trampoline function`);
     const AssumeRolePolicyDocument = JSON.stringify({
         Version: "2012-10-17",
@@ -164,37 +153,7 @@ async function createLambdaRole(
     };
     const roleResponse = await iam.createRole(roleParams).promise();
     await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
-    await waitForRoleReadiness(roleResponse.Role, services);
     return roleResponse;
-}
-
-async function waitForRoleReadiness(Role: aws.IAM.Role, services: AWSServices) {
-    const { lambda } = services;
-    log(`Creating test function to ensure new role is ready for use`);
-    const { archive } = await packer({
-        trampolineModule: require.resolve("./aws-trampoline"),
-        packageBundling: "bundleNodeModules",
-        webpackOptions: { externals: "aws-sdk" }
-    });
-    const nonce = uuidv4();
-    const FunctionName = `cloudify-testfunction-${nonce}`;
-    const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
-        FunctionName,
-        Role: Role.Arn,
-        Runtime: "nodejs6.10",
-        Handler: "index.trampoline",
-        Code: { ZipFile: await zipStreamToBuffer(archive) }
-    };
-    let testfunc: aws.Lambda.FunctionConfiguration | void;
-    const success = pollAWSRequest(100, "lambda function role readiness", () =>
-        lambda.createFunction(createFunctionRequest)
-    );
-    if (!success) {
-        throw new Error("Could not initialize lambda execution role");
-    }
-    log(`Role ready. Cleaning up.`);
-    // XXX Need to garbage collect this test function more robustly.
-    await lambda.deleteFunction({ FunctionName }).promise();
 }
 
 async function addNoCreateLogPolicyToRole(
@@ -248,30 +207,76 @@ async function createQueue(
     // XXX Need to set the VisibilityTimeout when the message is being processed but not finished yet.
 }
 
-async function createDeadLetterQueue(
-    FunctionName: string,
-    Timeout: number,
-    services: AWSServices
-) {
-    const { sqs } = services;
-    const DeadLetterQueueUrl = await createQueue(
+async function createDLQ(FunctionName: string, Timeout: number, state: State) {
+    const { sqs } = state.services;
+    state.resources.DeadLetterQueueUrl = await createQueue(
         `${FunctionName}-DLQ`,
         Timeout,
-        services
+        state.services
     );
     const attributeResponse = await sqs
         .getQueueAttributes({
-            QueueUrl: DeadLetterQueueUrl,
+            QueueUrl: state.resources.DeadLetterQueueUrl,
             AttributeNames: ["QueueArn"]
         })
         .promise();
     return attributeResponse.Attributes!.QueueArn;
 }
 
-async function pollAWSRequest(
+function sendQueueStopMessage(QueueUrl: string, sqs: aws.SQS) {
+    log(`Sending queue stop message to: ${QueueUrl}`);
+    return carefully(
+        sqs.sendMessage({
+            QueueUrl,
+            MessageBody: "empty",
+            MessageAttributes: {
+                cloudify: { DataType: "String", StringValue: "stop" }
+            }
+        })
+    );
+}
+
+function isQueueStopMessage({ MessageAttributes }: aws.SQS.Message) {
+    return (
+        MessageAttributes &&
+        MessageAttributes.cloudify &&
+        MessageAttributes.cloudify.StringValue === "stop"
+    );
+}
+
+async function deadLetterQueueCollector(state: State) {
+    const { sqs } = state.services;
+    const { DeadLetterQueueUrl } = state.resources;
+    let continueMonitoring = true;
+    while (continueMonitoring) {
+        const response = await sqs
+            .receiveMessage({
+                QueueUrl: DeadLetterQueueUrl!,
+                WaitTimeSeconds: 20,
+                MaxNumberOfMessages: 10,
+                MessageAttributeNames: ["cloudify"]
+            })
+            .promise();
+        const { Messages = [] } = response;
+        if (Messages.length > 0) {
+            log(`received ${Messages.length} dead letter queue messages`);
+        }
+        deleteSQSMessages(DeadLetterQueueUrl!, Messages, sqs);
+        Messages.forEach(m => {
+            if (isQueueStopMessage(m)) {
+                log(`Dead letter queue received stop message.`);
+                continueMonitoring = false;
+            } else {
+                log(`Dead letter message: %O`, m);
+            }
+        });
+    }
+}
+
+async function pollAWSRequest<T>(
     n: number,
     description: string,
-    fn: () => aws.Request<{}, aws.AWSError>
+    fn: () => aws.Request<T, aws.AWSError>
 ) {
     await sleep(2000);
     let success = false;
@@ -279,23 +284,24 @@ async function pollAWSRequest(
         log(`Polling ${description}...`);
         const result = await quietly(fn());
         if (result) {
-            success = true;
-            break;
+            return result;
         }
         await sleep(1000);
     }
-    return success;
+    throw new Error("Polling failed for ${description}");
 }
 
+// XXX The log group created by SNS doesn't have a programmatic API to get the name. Skip?
+// Try testing with limited function concurrency to see what errors are generated.
 async function createSNSNotifier(Name: string, RoleArn: string, services: AWSServices) {
     const { sns } = services;
     log(`Creating SNS notifier`);
     const topic = await sns.createTopic({ Name }).promise();
     const TopicArn = topic.TopicArn!;
     log(`Created SNS notifier with TopicArn: ${TopicArn}`);
-    const success = pollAWSRequest(
+    let success = await pollAWSRequest(
         100,
-        "role for SNS invocation of lambda function feedback",
+        "role for SNS invocation of lambda function failure feedback",
         () =>
             sns.setTopicAttributes({
                 TopicArn,
@@ -361,9 +367,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     }
 
     async function createFunction(DeadLetterQueueUrl?: string) {
-        let roleResponse =
-            (await quietly(iam.getRole({ RoleName }))) ||
-            (await createLambdaRole(RoleName, PolicyArn, services));
+        let roleResponse = await createLambdaRole(RoleName, PolicyArn, services);
         await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
         const { archive } = await pack(fModule);
         const previous = await quietly(lambda.getFunction({ FunctionName }));
@@ -384,7 +388,9 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             ...awsLambdaOptions
         };
         log(`createFunctionRequest: ${humanStringify(createFunctionRequest)}`);
-        const func = await lambda.createFunction(createFunctionRequest).promise();
+        const func = await pollAWSRequest(100, "creating function", () =>
+            lambda.createFunction(createFunctionRequest)
+        );
         log(`Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`);
         return func.FunctionArn!;
     }
@@ -404,42 +410,40 @@ export async function initialize(fModule: string, options: Options = {}): Promis
 
     try {
         await createLogGroup(logGroupName, services);
-        const DeadLetterQueueArn = await createDeadLetterQueue(
-            FunctionName,
-            Timeout,
-            services
-        );
+        const { resources } = state;
+        const DeadLetterQueueArn = await createDLQ(FunctionName, Timeout, state);
+        deadLetterQueueCollector(state);
 
-        let tasks = [createFunction(DeadLetterQueueArn)];
+        let createFunctionPromise = createFunction(DeadLetterQueueArn);
         if (useQueue) {
-            const snsRole = await createSNSFailureFeedbackRole(
-                `${FunctionName}-SNSRole`,
+            let SNSFeedbackRoleName = "cloudify-cached-SNSFeedbackRole";
+            if (rolePolicy === "createTemporaryRole") {
+                SNSFeedbackRoleName = `${FunctionName}-SNSRole`;
+            }
+            const snsRole = await createSNSFeedbackRole(SNSFeedbackRoleName, services);
+            resources.SNSFeedbackRole = snsRole.Role.RoleName;
+            resources.RequestTopicArn = await createSNSNotifier(
+                `${FunctionName}-Requests`,
+                snsRole.Role.Arn,
                 services
             );
-            tasks.push(
-                createSNSNotifier(`${FunctionName}-Requests`, snsRole.Role.Arn, services)
-            );
-            tasks.push(
-                createQueue(
-                    `${FunctionName}-Responses`,
-                    Timeout,
-                    services,
-                    DeadLetterQueueArn
-                )
+            resources.ResponseQueueUrl = await createQueue(
+                `${FunctionName}-Responses`,
+                Timeout,
+                services,
+                DeadLetterQueueArn
             );
         }
-        const [FunctionArn, RequestTopicArn, ResponseQueueUrl] = await Promise.all(tasks);
-        state.resources = { ...state.resources, RequestTopicArn, ResponseQueueUrl };
-
+        const FunctionArn = await createFunctionPromise;
         if (useQueue) {
             const addPermissionResponse = await addSnsInvokePermissionsToFunction(
                 FunctionName,
-                RequestTopicArn,
+                resources.RequestTopicArn!,
                 services
             );
             const snsRepsonse = await sns
                 .subscribe({
-                    TopicArn: RequestTopicArn,
+                    TopicArn: resources.RequestTopicArn!,
                     Protocol: "lambda",
                     Endpoint: FunctionArn
                 })
@@ -487,25 +491,25 @@ interface CallResults {
     deferred?: Deferred<QueuedResponse<any>>;
 }
 
+function deleteSQSMessages(QueueUrl: string, Messages: aws.SQS.Message[], sqs: aws.SQS) {
+    if (Messages.length > 0) {
+        carefully(
+            sqs.deleteMessageBatch({
+                QueueUrl,
+                Entries: Messages.map(m => ({
+                    Id: m.MessageId!,
+                    ReceiptHandle: m.ReceiptHandle!
+                }))
+            })
+        );
+    }
+}
+
 async function resultCollector(state: State) {
     const { sqs } = state.services;
     const { ResponseQueueUrl } = state.resources;
     const log = debug("cloudify:collector");
     const { callResultPromises } = state;
-
-    function deleteMessages(Messages: aws.SQS.Message[]) {
-        if (Messages.length > 0) {
-            carefully(
-                sqs.deleteMessageBatch({
-                    QueueUrl: ResponseQueueUrl!,
-                    Entries: Messages.map(m => ({
-                        Id: m.MessageId!,
-                        ReceiptHandle: m.ReceiptHandle!
-                    }))
-                })
-            );
-        }
-    }
 
     function resolvePromises(results: CallResults[]) {
         for (const { message, CallId, deferred } of results) {
@@ -522,6 +526,18 @@ async function resultCollector(state: State) {
             } else {
                 deferred.resolve({ returned, rawResponse: message });
             }
+        }
+    }
+
+    function cleanup() {
+        state.resultCollectorPromise = undefined;
+    }
+
+    function rejectAll() {
+        log(`Rejecting ${callResultPromises.size} result promises`);
+        for (const [key, promise] of callResultPromises) {
+            log(`Rejecting call result: ${key}`);
+            promise.reject(new Error("Call to cloud function cancelled in cleanup"));
         }
     }
 
@@ -544,24 +560,30 @@ async function resultCollector(state: State) {
         const { Messages = [] } = response;
         log(`received ${Messages.length} messages.`);
 
-        deleteMessages(Messages);
+        deleteSQSMessages(ResponseQueueUrl!, Messages, sqs);
 
         try {
-            const callResults = Messages.map(m => {
+            const callResults: CallResults[] = [];
+            for (const m of Messages) {
+                if (isQueueStopMessage(m)) {
+                    rejectAll();
+                    cleanup();
+                    return;
+                }
                 const CallId = m.MessageAttributes!.CallId.StringValue!;
-                return {
+                callResults.push({
                     CallId,
                     message: m,
                     deferred: callResultPromises.get(CallId)
-                };
-            });
-            callResults.forEach(({ CallId }) => callResultPromises.delete(CallId));
+                });
+                callResultPromises.delete(CallId);
+            }
             setTimeout(() => resolvePromises(callResults), 0);
         } catch (err) {
             log(err);
         }
     }
-    delete state.resultCollectorPromise;
+    cleanup();
     setTimeout(() => {
         startResultCollectorIfNeeded(state);
     }, 0);
@@ -676,6 +698,7 @@ export async function cleanup(state: PartialState) {
         SNSLambdaSubscriptionArn,
         region,
         DeadLetterQueueUrl,
+        SNSFeedbackRole,
         ...rest
     } = state.resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
@@ -683,7 +706,7 @@ export async function cleanup(state: PartialState) {
     const { cloudwatch, iam, lambda, sqs, sns } = state.services;
     log(`Cleaning up cloudify state`);
     if (SNSLambdaSubscriptionArn) {
-        log(`Deleting Request queue subscription to lambda`);
+        log(`Deleting request queue subscription to lambda`);
         await quietly(sns.unsubscribe({ SubscriptionArn: SNSLambdaSubscriptionArn }));
     }
     const cancelPromise = cancelWithoutCleanup(state);
@@ -699,21 +722,23 @@ export async function cleanup(state: PartialState) {
         log(`Deleting temporary role: ${RoleName}`);
         await deleteRole(RoleName, iam);
     }
+    if (SNSFeedbackRole && rolePolicy === "createTemporaryRole") {
+        log(`Deleting SNS feedback role: ${SNSFeedbackRole}`);
+        await deleteRole(SNSFeedbackRole, iam);
+    }
     await cancelPromise;
-    let requestPromise, responsePromise, dlqPromise;
     if (RequestTopicArn) {
-        log(`Deleting Request queue topic: ${RequestTopicArn}`);
-        requestPromise = quietly(sns.deleteTopic({ TopicArn: RequestTopicArn }));
+        log(`Deleting request queue topic: ${RequestTopicArn}`);
+        await quietly(sns.deleteTopic({ TopicArn: RequestTopicArn }));
     }
     if (ResponseQueueUrl) {
-        log(`Deleting Response queue: ${ResponseQueueUrl}`);
-        responsePromise = quietly(sqs.deleteQueue({ QueueUrl: ResponseQueueUrl }));
+        log(`Deleting response queue: ${ResponseQueueUrl}`);
+        await quietly(sqs.deleteQueue({ QueueUrl: ResponseQueueUrl }));
     }
     if (DeadLetterQueueUrl) {
         log(`Deleting dead letter queue: ${DeadLetterQueueUrl}`);
-        dlqPromise = quietly(sqs.deleteQueue({ QueueUrl: DeadLetterQueueUrl }));
+        await quietly(sqs.deleteQueue({ QueueUrl: DeadLetterQueueUrl }));
     }
-    await Promise.all([requestPromise, responsePromise, dlqPromise]);
 }
 
 export async function pack(functionModule: string): Promise<PackerResult> {
@@ -739,15 +764,18 @@ export function cleanupResources(resourceString: string) {
 }
 
 export async function cancelWithoutCleanup(state: State) {
-    log(`Clearing result promises`);
-    const callResultPromises = state.callResultPromises;
-    for (const [key, promise] of callResultPromises) {
-        log(`Rejecting call result: ${key}`);
-        promise.reject(new Error("Call to cloud function cancelled in cleanup"));
+    const { sqs } = state.services;
+    const { ResponseQueueUrl } = state.resources;
+    let tasks = [];
+    if (ResponseQueueUrl && state.resultCollectorPromise) {
+        tasks.push(sendQueueStopMessage(ResponseQueueUrl, sqs));
+        log(`Stopping result collector`);
+        tasks.push(state.resultCollectorPromise);
     }
-    state.callResultPromises.clear();
-    if (state.resultCollectorPromise) {
-        log(`Waiting for result collector to stop (this can take up to 20s)`);
-        await state.resultCollectorPromise;
+    const { DeadLetterQueueUrl } = state.resources;
+    if (DeadLetterQueueUrl) {
+        log(`Stopping dead letter queue collector`);
+        tasks.push(sendQueueStopMessage(DeadLetterQueueUrl, sqs));
     }
+    await Promise.all(tasks);
 }

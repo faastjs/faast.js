@@ -5,13 +5,27 @@ import * as awsCloudify from "./aws/aws-cloudify";
 import * as googleCloudify from "./google/google-cloudify";
 import * as aws from "aws-sdk";
 import * as inquirer from "inquirer";
+import { match } from "minimatch";
 
 const warn = console.warn;
 const log = console.log;
 
-async function cleanupAWS(region: string, execute: boolean, cleanAll: boolean) {
+interface CleanupAWSOptions {
+    region: string;
+    execute: boolean;
+    cleanAll: boolean;
+    print?: boolean;
+}
+
+async function cleanupAWS({
+    region,
+    execute,
+    cleanAll,
+    print = true
+}: CleanupAWSOptions) {
+    let nResources = 0;
+    const output = (msg: string) => print && log(msg);
     const { cloudwatch, iam, lambda, sns, sqs } = awsCloudify.createAWSApis(region);
-    log(`Cleaning up AWS resources`);
     async function deleteAWSResource<T, U>(
         pattern: RegExp,
         getList: () => aws.Request<T, aws.AWSError>,
@@ -32,13 +46,14 @@ async function cleanupAWS(region: string, execute: boolean, cleanAll: boolean) {
             });
         });
         const matchingResources = allResources.filter(t => t.match(pattern));
-        matchingResources.forEach(resource => log(`  ${resource}`));
+        matchingResources.forEach(resource => output(`  ${resource}`));
+        nResources += matchingResources.length;
         if (execute) {
             await Promise.all(matchingResources.map(remove));
         }
     }
 
-    log(`SNS subscriptions`);
+    output(`SNS subscriptions`);
     await deleteAWSResource(
         /:cloudify-/,
         () => sns.listSubscriptions(),
@@ -47,7 +62,7 @@ async function cleanupAWS(region: string, execute: boolean, cleanAll: boolean) {
         SubscriptionArn => sns.unsubscribe({ SubscriptionArn }).promise()
     );
 
-    log(`SNS topics`);
+    output(`SNS topics`);
     await deleteAWSResource(
         /:cloudify-/,
         () => sns.listTopics(),
@@ -56,7 +71,7 @@ async function cleanupAWS(region: string, execute: boolean, cleanAll: boolean) {
         TopicArn => sns.deleteTopic({ TopicArn }).promise()
     );
 
-    log(`SQS queues`);
+    output(`SQS queues`);
     await deleteAWSResource(
         /\/cloudify-/,
         () => sqs.listQueues(),
@@ -65,7 +80,7 @@ async function cleanupAWS(region: string, execute: boolean, cleanAll: boolean) {
         QueueUrl => sqs.deleteQueue({ QueueUrl }).promise()
     );
 
-    log(`Lambda functions`);
+    output(`Lambda functions`);
     await deleteAWSResource(
         /^cloudify-/,
         () => lambda.listFunctions(),
@@ -74,17 +89,16 @@ async function cleanupAWS(region: string, execute: boolean, cleanAll: boolean) {
         FunctionName => lambda.deleteFunction({ FunctionName }).promise()
     );
 
-    log(`Cloudwatch log groups`);
+    output(`Cloudwatch log groups`);
     await deleteAWSResource(
-        /^\/aws\/lambda\/cloudify-/,
-        () =>
-            cloudwatch.describeLogGroups({ logGroupNamePrefix: "/aws/lambda/cloudify-" }),
+        /\/cloudify-/,
+        () => cloudwatch.describeLogGroups(),
         page => page.logGroups,
         logGroup => logGroup.logGroupName,
         logGroupName => cloudwatch.deleteLogGroup({ logGroupName }).promise()
     );
 
-    log(`IAM roles`);
+    output(`IAM roles`);
     await deleteAWSResource(
         cleanAll ? /^cloudify-/ : /^cloudify-(?!cached)/,
         () => iam.listRoles(),
@@ -92,6 +106,22 @@ async function cleanupAWS(region: string, execute: boolean, cleanAll: boolean) {
         role => role.RoleName,
         RoleName => awsCloudify.deleteRole(RoleName, iam)
     );
+    return nResources;
+}
+
+async function prompt() {
+    const answer = await inquirer.prompt<any>([
+        {
+            type: "confirm",
+            name: "execute",
+            message: "WARNING: this operation will delete resources. Confirm?",
+            default: false
+        }
+    ]);
+    if (!answer.execute) {
+        log(`Execution aborted.`);
+        process.exit(0);
+    }
 }
 
 async function main() {
@@ -101,7 +131,7 @@ async function main() {
         .option("-v, --verbose", "Verbose mode")
         .option(
             "-a, --all",
-            `Removes the IAM role 'cloudify-cached-role', which is used to speed cloudify startup.`
+            `Removes the IAM 'cloudify-cached-*' roles, which are used to speed cloudify startup.`
         )
         .option(
             "-x, --execute",
@@ -130,27 +160,27 @@ async function main() {
     const force = commander.force || false;
     const cleanAll = commander.all || false;
 
-    if (execute) {
-        if (!force) {
-            const answer = await inquirer.prompt<any>([
-                {
-                    type: "confirm",
-                    name: "execute",
-                    message: "WARNING: this operation will delete resources. Confirm?",
-                    default: false
-                }
-            ]);
-            if (!answer.execute) {
-                log(`Execution aborted.`);
-                process.exit(0);
-            }
-        }
-    } else {
+    if (!execute) {
         log(`=== Dry run mode ===`);
         log(`No resources will be deleted. Specify -x to execute cleanup.`);
     }
     if (cloud === "aws") {
-        cleanupAWS(region, execute, cleanAll);
+        if (execute && !force) {
+            const nResources = await cleanupAWS({
+                region,
+                execute: false,
+                cleanAll
+            });
+            if (nResources === 0) {
+                log(`No resources to clean up.`);
+                process.exit(0);
+            }
+            await prompt();
+        }
+        const nResources = await cleanupAWS({ region, execute, cleanAll });
+        if (execute) {
+            log(`Cleaned up ${nResources} resources.`);
+        }
         return;
     }
     warn(`Unknown cloud name ${commander.cloud}. Must specify "aws" or "google"`);

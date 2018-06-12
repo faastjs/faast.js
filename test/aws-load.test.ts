@@ -14,8 +14,8 @@ beforeAll(async () => {
     try {
         cloud = cloudify.create("aws");
         lambda = await cloud.createFunction("./functions", {
-            //Timeout: 120
-            // cloudSpecific: { useQueue: false }
+            // Timeout: 120
+            // cloudSpecific: { useQueue: false },
             memorySize: 1024
         });
         remote = lambda.cloudifyAll(funcs);
