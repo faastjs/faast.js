@@ -27,7 +27,7 @@ beforeAll(async () => {
 test(
     "Load test ~100 concurrent executions",
     async () => {
-        const N = 500;
+        const N = 100;
         const promises: Promise<string>[] = [];
         for (let i = 0; i < N; i++) {
             promises.push(remote.hello(`function ${i}`));
