@@ -17,14 +17,9 @@ interface CleanupAWSOptions {
     print?: boolean;
 }
 
-async function cleanupAWS({
-    region,
-    execute,
-    cleanAll,
-    print = true
-}: CleanupAWSOptions) {
+async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
     let nResources = 0;
-    const output = (msg: string) => print && log(msg);
+    const output = (msg: string) => !execute && log(msg);
     const { cloudwatch, iam, lambda, sns, sqs } = awsCloudify.createAWSApis(region);
     async function deleteAWSResource<T, U>(
         pattern: RegExp,
