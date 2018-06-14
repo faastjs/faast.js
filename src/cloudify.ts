@@ -72,6 +72,7 @@ export abstract class CloudFunction<S> {
     abstract getResourceList(): string;
     abstract getState(): S;
     abstract cancelAll(): Promise<void>;
+    abstract setConcurrency(maxConcurrentExecutions: number): Promise<void>;
 
     cloudify<F extends AnyFunction>(fn: F): PromisifiedFunction<F> {
         const cloudifiedFunc = async (...args: any[]) => {
@@ -141,6 +142,9 @@ export class AWSLambda extends CloudFunction<aws.State> {
     getState() {
         return this.state;
     }
+    setConcurrency(maxConcurrentExecutions: number): Promise<void> {
+        return aws.setConcurrency(this.state, maxConcurrentExecutions);
+    }
 }
 
 export class Google implements Cloud<google.Options, google.State> {
@@ -183,6 +187,9 @@ export class GoogleCloudFunction extends CloudFunction<google.State> {
     }
     getState() {
         return this.state;
+    }
+    setConcurrency(_maxConcurrentExecutions: number): Promise<void> {
+        throw new Error("Method not implemented.");
     }
 }
 

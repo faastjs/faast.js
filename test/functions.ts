@@ -22,7 +22,7 @@ export function noargs() {
     return "successfully called function with no args.";
 }
 
-function delay(ms: number) {
+export function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -66,4 +66,11 @@ export function monteCarloPI(samples: number, clientStart: number): MonteCarloRe
         end,
         startLatency: start - clientStart
     };
+}
+
+export async function timer(delayMs: number) {
+    const start = Date.now();
+    await delay(delayMs);
+    const end = Date.now();
+    return { start, end };
 }

@@ -13,31 +13,33 @@ beforeAll(async () => {
         cloud = cloudify.create("aws");
         func = await cloud.createFunction("./functions", {
             // Timeout: 120
-            // cloudSpecific: { useQueue: false },
+            cloudSpecific: { useQueue: false },
             memorySize: 1024
         });
+        await func.setConcurrency(1);
         remote = func.cloudifyAll(funcs);
-        const awsLambda = new aws.Lambda();
-
-        awsLambda.putFunctionConcurrency({
-            FunctionName: func.getState().resources.FunctionName,
-            ReservedConcurrentExecutions: 10
-        });
     } catch (err) {
         console.error(err);
     }
 }, 90 * 1000);
 
 test(
-    "Load test ~100 concurrent executions with 10 concurrency limit",
+    "Throttling test with no concurrency",
     async () => {
-        const N = 100;
-        const promises: Promise<string>[] = [];
-        for (let i = 0; i < N; i++) {
-            promises.push(remote.async());
+        const N = 10;
+        const promises = [remote.timer(1000)];
+        for (let i = 1; i < N; i++) {
+            promises.push(remote.timer(1000));
         }
         const results = await Promise.all(promises);
-        results.forEach(m => expect(m).toMatch(/function \d+/));
+        results.sort(({ start: a }, { start: b }) => a - b);
+        log(results);
+        let lastEnd = 0;
+        // Executions should not overlap in their timestamps.
+        for (const timing of results) {
+            expect(timing.start > lastEnd).toBe(true);
+            lastEnd = timing.end;
+        }
     },
     90 * 1000
 );

@@ -7,6 +7,7 @@ import { AnyFunction, Response, ResponsifiedFunction } from "../cloudify";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import { FunctionCall, FunctionReturn } from "../shared";
+import { Funnel, Deferred } from "../funnel";
 
 export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
 
@@ -50,6 +51,7 @@ export interface State {
     useQueue?: boolean;
     callResultPromises: Map<string, Deferred<QueuedResponse<any>>>;
     resultCollectorPromise?: Promise<void>;
+    funnel: Funnel;
 }
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
@@ -183,7 +185,7 @@ async function addNoCreateLogPolicyToRole(
         .promise();
 }
 
-async function createQueue(
+async function createSQSQueue(
     QueueName: string,
     VTimeout: number,
     services: AWSServices,
@@ -208,7 +210,7 @@ async function createQueue(
 
 async function createDLQ(FunctionName: string, Timeout: number, state: State) {
     const { sqs } = state.services;
-    state.resources.DeadLetterQueueUrl = await createQueue(
+    state.resources.DeadLetterQueueUrl = await createSQSQueue(
         `${FunctionName}-DLQ`,
         Timeout,
         state.services
@@ -404,7 +406,8 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             logGroupName,
             region
         },
-        services: { lambda, cloudwatch, iam, sqs, sns }
+        services: { lambda, cloudwatch, iam, sqs, sns },
+        funnel: new Funnel()
     };
 
     try {
@@ -426,7 +429,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
                 snsRole.Role.Arn,
                 services
             );
-            resources.ResponseQueueUrl = await createQueue(
+            resources.ResponseQueueUrl = await createSQSQueue(
                 `${FunctionName}-Responses`,
                 Timeout,
                 services,
@@ -462,26 +465,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
 interface QueuedResponse<T> {
     returned: T;
     rawResponse: any;
-}
-
-interface Deferred<T> {
-    resolve: (arg?: T) => void;
-    reject: (err?: any) => void;
-    promise: Promise<T>;
-}
-
-function createDeferred<T>(): Deferred<T> {
-    let resolver!: (arg?: any) => void;
-    let rejector!: (err?: any) => void;
-    const promise = new Promise<any>((resolve, reject) => {
-        resolver = resolve;
-        rejector = reject;
-    });
-    return {
-        resolve: resolver,
-        reject: rejector,
-        promise
-    };
 }
 
 interface CallResults {
@@ -595,11 +578,70 @@ function startResultCollectorIfNeeded(state: State) {
 }
 
 function enqueueCallRequest(state: State, CallId: string): Deferred<any> {
-    const deferred = createDeferred<QueuedResponse<any>>();
+    const deferred = new Deferred<QueuedResponse<any>>();
     log(`Enqueuing call request CallId: ${CallId}, deferred: ${deferred}`);
     state.callResultPromises.set(CallId, deferred);
     startResultCollectorIfNeeded(state);
     return deferred;
+}
+
+interface QueuedCall {
+    fname: string;
+    args: any[];
+}
+
+async function callFunction(state: State, call: QueuedCall) {
+    const CallId = uuidv4();
+    const { FunctionName, RequestTopicArn, ResponseQueueUrl } = state.resources;
+    let callArgs: FunctionCall = {
+        name: call.fname,
+        args: call.args,
+        CallId,
+        ResponseQueueUrl
+    };
+    const callArgsStr = JSON.stringify(callArgs);
+    log(`Calling cloud function "${call.fname}" with args: ${callArgsStr}`, "");
+    const { lambda } = state.services;
+    let returned: FunctionReturn | undefined;
+    let error: Error | undefined;
+    let rawResponse: any;
+    if (state.useQueue) {
+        const { sns } = state.services;
+        const responsePromise = enqueueCallRequest(state, CallId).promise;
+        const snsResponse = await sns
+            .publish({ TopicArn: RequestTopicArn, Message: callArgsStr })
+            .promise();
+        ({ returned, rawResponse } = await responsePromise);
+    } else {
+        const request: aws.Lambda.Types.InvocationRequest = {
+            FunctionName: FunctionName,
+            LogType: "Tail",
+            Payload: callArgsStr
+        };
+        log(`Invocation request: ${humanStringify(request)}`);
+        const { funnel } = state;
+        rawResponse = await funnel.push(() => lambda.invoke(request).promise());
+        log(`  returned: ${humanStringify(rawResponse)}`);
+        log(`  requestId: ${rawResponse.$response.requestId}`);
+        if (rawResponse.FunctionError) {
+            if (rawResponse.LogResult) {
+                log(Buffer.from(rawResponse.LogResult!, "base64").toString());
+            }
+            error = new Error(rawResponse.Payload as string);
+        }
+        returned =
+            !error && rawResponse.Payload && JSON.parse(rawResponse.Payload as string);
+    }
+
+    if (returned && returned.type === "error") {
+        const errValue = returned.value;
+        error = new Error(errValue.message);
+        error.name = errValue.name;
+        error.stack = errValue.stack;
+    }
+    const value = !error && returned && returned.value;
+    let rv: Response<ReturnType<any>> = { value, error, rawResponse };
+    return rv;
 }
 
 export function cloudifyWithResponse<F extends AnyFunction>(
@@ -607,58 +649,10 @@ export function cloudifyWithResponse<F extends AnyFunction>(
     fn: F
 ): ResponsifiedFunction<F> {
     const responsifedFunc = async (...args: any[]) => {
-        const CallId = uuidv4();
-        const { FunctionName, RequestTopicArn, ResponseQueueUrl } = state.resources;
-        let callArgs: FunctionCall = {
-            name: fn.name,
-            args,
-            CallId,
-            ResponseQueueUrl
-        };
-        const callArgsStr = JSON.stringify(callArgs);
-        log(`Calling cloud function "${fn.name}" with args: ${callArgsStr}`, "");
-        const { lambda } = state.services;
-        let returned: FunctionReturn | undefined;
-        let error: Error | undefined;
-        let rawResponse: any;
-        if (state.useQueue) {
-            const { sns } = state.services;
-            const responsePromise = enqueueCallRequest(state, CallId).promise;
-            const snsResponse = await sns
-                .publish({ TopicArn: RequestTopicArn, Message: callArgsStr })
-                .promise();
-            ({ returned, rawResponse } = await responsePromise);
-        } else {
-            const request: aws.Lambda.Types.InvocationRequest = {
-                FunctionName: FunctionName,
-                LogType: "Tail",
-                Payload: callArgsStr
-            };
-            log(`Invocation request: ${humanStringify(request)}`);
-            rawResponse = await lambda.invoke(request).promise();
-            log(`  returned: ${humanStringify(rawResponse)}`);
-            log(`  requestId: ${rawResponse.$response.requestId}`);
-            if (rawResponse.FunctionError) {
-                if (rawResponse.LogResult) {
-                    log(Buffer.from(rawResponse.LogResult!, "base64").toString());
-                }
-                error = new Error(rawResponse.Payload as string);
-            }
-            returned =
-                !error &&
-                rawResponse.Payload &&
-                JSON.parse(rawResponse.Payload as string);
-        }
-
-        if (returned && returned.type === "error") {
-            const errValue = returned.value;
-            error = new Error(errValue.message);
-            error.name = errValue.name;
-            error.stack = errValue.stack;
-        }
-        const value = !error && returned && returned.value;
-        let rv: Response<ReturnType<F>> = { value, error, rawResponse };
-        return rv;
+        return callFunction(state, {
+            fname: fn.name,
+            args
+        });
     };
     return responsifedFunc as any;
 }
@@ -759,13 +753,20 @@ export function cleanupResources(resourceString: string) {
         throw new Error("Resources missing 'region'");
     }
     const services = createAWSApis(resources.region);
-    return cleanup({ resources, services, callResultPromises: new Map() });
+    return cleanup({
+        resources,
+        services,
+        callResultPromises: new Map(),
+        funnel: new Funnel()
+    });
 }
 
 export async function cancelWithoutCleanup(state: State) {
     const { sqs } = state.services;
     const { ResponseQueueUrl } = state.resources;
+    const { funnel } = state;
     let tasks = [];
+    funnel && funnel.clear();
     if (ResponseQueueUrl && state.resultCollectorPromise) {
         tasks.push(sendQueueStopMessage(ResponseQueueUrl, sqs));
         log(`Stopping result collector`);
@@ -777,4 +778,24 @@ export async function cancelWithoutCleanup(state: State) {
         tasks.push(sendQueueStopMessage(DeadLetterQueueUrl, sqs));
     }
     await Promise.all(tasks);
+}
+
+export async function setConcurrency(state: State, maxConcurrentExecutions: number) {
+    const { lambda } = state.services;
+    const { FunctionName } = state.resources;
+
+    if (state.useQueue) {
+        await lambda
+            .putFunctionConcurrency({
+                FunctionName,
+                ReservedConcurrentExecutions: maxConcurrentExecutions
+            })
+            .promise();
+    } else {
+        if (state.funnel) {
+            state.funnel.setConcurrency(maxConcurrentExecutions);
+        } else {
+            state.funnel = new Funnel(maxConcurrentExecutions);
+        }
+    }
 }
