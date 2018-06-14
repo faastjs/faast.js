@@ -27,7 +27,7 @@ function measureConcurrency(timings: Timing[]) {
 }
 
 describe("Funnel", () => {
-    test("Defaults to infinite concurrency", async () => {
+    test("Defaults to infinite concurrency (tested with 200)", async () => {
         const funnel = new Funnel(0);
         const promises = [];
         const N = 200;
@@ -73,5 +73,25 @@ describe("Funnel", () => {
         const time1 = await funnel.push(() => timer(10));
         const time2 = await funnel.push(() => timer(10));
         expect(measureConcurrency([time1, time2])).toBe(1);
+    });
+    test("clears funnel", async () => {
+        const funnel = new Funnel(1);
+        let count = 0;
+        const promise = funnel.push(async () => {
+            count++;
+        });
+        funnel
+            .push(async () => {
+                count++;
+            })
+            .catch(_ => {});
+        funnel
+            .push(async () => {
+                count++;
+            })
+            .catch(_ => {});
+        funnel.clear();
+        await promise;
+        expect(count).toBe(1);
     });
 });

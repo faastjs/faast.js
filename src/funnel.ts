@@ -56,6 +56,9 @@ export class Funnel {
     }
 
     clear() {
+        this.pendingQueue.forEach(p =>
+            p.reject(new Error("Funnel cleared while promise pending"))
+        );
         this.pendingQueue.clear();
     }
 

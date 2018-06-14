@@ -45,13 +45,18 @@ export interface AWSServices {
 
 export const name: string = "aws";
 
+interface QueueState {
+    callResultPromises: Map<string, Deferred<QueuedResponse<any>>>;
+    collectorFunnel: Funnel;
+    resultCollectorPromise?: Promise<void>;
+}
+
 export interface State {
     resources: AWSResources;
     services: AWSServices;
     useQueue?: boolean;
-    callResultPromises: Map<string, Deferred<QueuedResponse<any>>>;
-    resultCollectorPromise?: Promise<void>;
-    funnel: Funnel;
+    queue: QueueState;
+    callFunnel: Funnel;
 }
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
@@ -405,8 +410,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     }
 
     let state: State = {
-        useQueue,
-        callResultPromises: new Map(),
         resources: {
             FunctionName,
             RoleName,
@@ -415,7 +418,12 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             region
         },
         services: { lambda, cloudwatch, iam, sqs, sns },
-        funnel: new Funnel()
+        callFunnel: new Funnel(),
+        queue: {
+            callResultPromises: new Map(),
+            collectorFunnel: new Funnel()
+        },
+        useQueue
     };
 
     try {
@@ -501,7 +509,7 @@ async function resultCollector(state: State) {
     const { sqs } = state.services;
     const { ResponseQueueUrl } = state.resources;
     const log = debug("cloudify:collector");
-    const { callResultPromises } = state;
+    const { callResultPromises } = state.queue!;
 
     function resolvePromises(results: CallResults[]) {
         for (const { message, CallId, deferred } of results) {
@@ -522,7 +530,7 @@ async function resultCollector(state: State) {
     }
 
     function cleanup() {
-        state.resultCollectorPromise = undefined;
+        state.queue.resultCollectorPromise = undefined;
     }
 
     function rejectAll() {
@@ -589,8 +597,8 @@ async function resultCollector(state: State) {
 }
 
 function startResultCollectorIfNeeded(state: State) {
-    if (state.callResultPromises.size > 0 && !state.resultCollectorPromise) {
-        state.resultCollectorPromise = Promise.all([
+    if (state.queue.callResultPromises.size > 0 && !state.queue.resultCollectorPromise) {
+        state.queue.resultCollectorPromise = Promise.all([
             resultCollector(state),
             resultCollector(state)
         ]).then(_ => {});
@@ -599,8 +607,7 @@ function startResultCollectorIfNeeded(state: State) {
 
 function enqueueCallRequest(state: State, CallId: string): Deferred<any> {
     const deferred = new Deferred<QueuedResponse<any>>();
-    log(`Enqueuing call request CallId: ${CallId}, deferred: ${deferred}`);
-    state.callResultPromises.set(CallId, deferred);
+    state.queue.callResultPromises.set(CallId, deferred);
     startResultCollectorIfNeeded(state);
     return deferred;
 }
@@ -639,8 +646,8 @@ async function callFunction(state: State, call: QueuedCall) {
             Payload: callArgsStr
         };
         log(`Invocation request: ${humanStringify(request)}`);
-        const { funnel } = state;
-        rawResponse = await funnel.push(() => lambda.invoke(request).promise());
+        const { callFunnel } = state;
+        rawResponse = await callFunnel.push(() => lambda.invoke(request).promise());
         log(`  returned: ${humanStringify(rawResponse)}`);
         log(`  requestId: ${rawResponse.$response.requestId}`);
         if (rawResponse.FunctionError) {
@@ -696,9 +703,7 @@ export async function deleteRole(RoleName: string, iam: aws.IAM) {
     await carefully(iam.deleteRole({ RoleName }));
 }
 
-type PartialState = Exclude<State, "resources"> & {
-    resources: Partial<AWSResources>;
-};
+export type PartialState = Partial<State> & Pick<State, "services" | "resources">;
 
 export async function cleanup(state: PartialState) {
     const {
@@ -775,22 +780,20 @@ export function cleanupResources(resourceString: string) {
     const services = createAWSApis(resources.region);
     return cleanup({
         resources,
-        services,
-        callResultPromises: new Map(),
-        funnel: new Funnel()
+        services
     });
 }
 
-export async function cancelWithoutCleanup(state: State) {
+export async function cancelWithoutCleanup(state: PartialState) {
     const { sqs } = state.services;
     const { ResponseQueueUrl } = state.resources;
-    const { funnel } = state;
+    const { callFunnel } = state;
     let tasks = [];
-    funnel && funnel.clear();
-    if (ResponseQueueUrl && state.resultCollectorPromise) {
+    callFunnel && callFunnel.clear();
+    if (ResponseQueueUrl && state.queue && state.queue.resultCollectorPromise) {
         tasks.push(sendQueueStopMessage(ResponseQueueUrl, sqs));
         log(`Stopping result collector`);
-        tasks.push(state.resultCollectorPromise);
+        tasks.push(state.queue.resultCollectorPromise);
     }
     const { DeadLetterQueueUrl } = state.resources;
     if (DeadLetterQueueUrl) {
@@ -812,10 +815,10 @@ export async function setConcurrency(state: State, maxConcurrentExecutions: numb
             })
             .promise();
     } else {
-        if (state.funnel) {
-            state.funnel.setConcurrency(maxConcurrentExecutions);
+        if (state.callFunnel) {
+            state.callFunnel.setConcurrency(maxConcurrentExecutions);
         } else {
-            state.funnel = new Funnel(maxConcurrentExecutions);
+            state.callFunnel = new Funnel(maxConcurrentExecutions);
         }
     }
 }
