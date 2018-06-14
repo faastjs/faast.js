@@ -74,7 +74,6 @@ function sendError(err: any, ResponseQueueUrl: string, CallId: string) {
             CallId
         })
     }).send();
-    // XXX in case of error while sending...? Need DLQ...
 }
 
 export async function snsTrampoline(
