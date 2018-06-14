@@ -135,7 +135,7 @@ async function main() {
         .option("-f, --force", "When used with -x, skips the prompt")
         .option(
             "-r, --region <region>",
-            "Region to clean up. Defaults to us-west-1 for AWS, and us-central1 for Google."
+            "Region to clean up. Defaults to us-west-2 for AWS, and us-central1 for Google."
         )
         .arguments("<cloud>")
         .action(arg => {

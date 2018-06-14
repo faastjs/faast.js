@@ -76,7 +76,7 @@ function sleep(ms: number) {
 }
 
 export let defaults: Required<Options> = {
-    region: "us-west-1",
+    region: "us-west-2",
     PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
     rolePolicy: "createOrReuseCachedRole",
     RoleName: "cloudify-cached-lambda-role",
@@ -320,8 +320,15 @@ async function createSNSNotifier(Name: string, RoleArn: string, services: AWSSer
 
 async function createLogGroup(logGroupName: string, services: AWSServices) {
     const { cloudwatch } = services;
-    const response = await cloudwatch.createLogGroup({ logGroupName }).promise();
-    await cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 }).promise();
+    log(`Creating log group: ${logGroupName}`);
+    const response = await carefully(cloudwatch.createLogGroup({ logGroupName }));
+    if (response) {
+        await carefully(
+            cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 })
+        );
+    } else {
+        log(`Log group could not be created, proceeding without logs.`);
+    }
     return response;
 }
 
@@ -357,6 +364,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         awsLambdaOptions = {},
         ...rest
     } = options;
+    log(`Creating AWS APIs`);
     const services = createAWSApis(region);
     const { lambda, iam, cloudwatch, sqs, sns } = services;
     const FunctionName = `cloudify-${nonce}`;
@@ -413,9 +421,11 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     try {
         await createLogGroup(logGroupName, services);
         const { resources } = state;
+        log(`Creating DLQ`);
         const DeadLetterQueueArn = await createDLQ(FunctionName, Timeout, state);
         deadLetterQueueCollector(state);
 
+        log(`Creating function`);
         let createFunctionPromise = createFunction(DeadLetterQueueArn);
         if (useQueue) {
             let SNSFeedbackRoleName = "cloudify-cached-SNSFeedbackRole";
@@ -521,6 +531,7 @@ async function resultCollector(state: State) {
             log(`Rejecting call result: ${key}`);
             promise.reject(new Error("Call to cloud function cancelled in cleanup"));
         }
+        callResultPromises.clear();
     }
 
     while (callResultPromises.size > 0) {
@@ -541,6 +552,12 @@ async function resultCollector(state: State) {
 
         const { Messages = [] } = response;
         log(`received ${Messages.length} messages.`);
+        if (
+            Messages.length === 0 &&
+            callResultPromises.size > 0 &&
+            callResultPromises.size < 10
+        ) {
+        }
 
         deleteSQSMessages(ResponseQueueUrl!, Messages, sqs);
 
@@ -573,7 +590,10 @@ async function resultCollector(state: State) {
 
 function startResultCollectorIfNeeded(state: State) {
     if (state.callResultPromises.size > 0 && !state.resultCollectorPromise) {
-        state.resultCollectorPromise = resultCollector(state);
+        state.resultCollectorPromise = Promise.all([
+            resultCollector(state),
+            resultCollector(state)
+        ]).then(_ => {});
     }
 }
 
