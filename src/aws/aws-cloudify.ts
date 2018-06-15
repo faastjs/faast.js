@@ -8,6 +8,11 @@ import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import { FunctionCall, FunctionReturn } from "../shared";
 import { Funnel, Deferred, AutoFunnel } from "../funnel";
+import {
+    isQueueStopMessage,
+    sendQueueStopMessage,
+    isFunctionStartedMessage
+} from "./aws-messages";
 
 export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
 
@@ -45,9 +50,18 @@ export interface AWSServices {
 
 export const name: string = "aws";
 
+class PendingSNSRequest extends Deferred<QueuedResponse<any>> {
+    created: number = Date.now();
+    executing?: boolean;
+    constructor(readonly sendRequest: () => Promise<aws.SNS.Types.PublishResponse>) {
+        super();
+    }
+}
+
 interface QueueState {
-    callResultPromises: Map<string, Deferred<QueuedResponse<any>>>;
+    callResultsPending: Map<string, PendingSNSRequest>;
     collectorFunnel: AutoFunnel<void>;
+    retryTimer?: NodeJS.Timer;
 }
 
 export interface State {
@@ -228,27 +242,6 @@ async function createDLQ(FunctionName: string, Timeout: number, state: State) {
     return attributeResponse.Attributes!.QueueArn;
 }
 
-function sendQueueStopMessage(QueueUrl: string, sqs: aws.SQS) {
-    log(`Sending queue stop message to: ${QueueUrl}`);
-    return carefully(
-        sqs.sendMessage({
-            QueueUrl,
-            MessageBody: "empty",
-            MessageAttributes: {
-                cloudify: { DataType: "String", StringValue: "stop" }
-            }
-        })
-    );
-}
-
-function isQueueStopMessage({ MessageAttributes }: aws.SQS.Message) {
-    return (
-        MessageAttributes &&
-        MessageAttributes.cloudify &&
-        MessageAttributes.cloudify.StringValue === "stop"
-    );
-}
-
 async function deadLetterQueueCollector(state: State) {
     const { sqs } = state.services;
     const { DeadLetterQueueUrl } = state.resources;
@@ -419,7 +412,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         services: { lambda, cloudwatch, iam, sqs, sns },
         callFunnel: new Funnel(),
         queue: {
-            callResultPromises: new Map(),
+            callResultsPending: new Map(),
             collectorFunnel: new AutoFunnel<void>(() => resultCollector(state), 10)
         },
         useQueue
@@ -470,6 +463,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             log(`Created SNS subscription: ${snsRepsonse.SubscriptionArn}`);
             state.resources.SNSLambdaSubscriptionArn = snsRepsonse.SubscriptionArn!;
             startResultCollectorIfNeeded(state);
+            state.queue.retryTimer = setInterval(() => retryQueue(state), 5 * 1000);
         }
         return state;
     } catch (err) {
@@ -508,7 +502,7 @@ async function resultCollector(state: State) {
     const { sqs } = state.services;
     const { ResponseQueueUrl } = state.resources;
     const log = debug("cloudify:collector");
-    const { callResultPromises } = state.queue!;
+    const { callResultsPending } = state.queue!;
 
     function resolvePromises(results: CallResults[]) {
         for (const { message, CallId, deferred } of results) {
@@ -528,21 +522,12 @@ async function resultCollector(state: State) {
         }
     }
 
-    function rejectAll() {
-        log(`Rejecting ${callResultPromises.size} result promises`);
-        for (const [key, promise] of callResultPromises) {
-            log(`Rejecting call result: ${key}`);
-            promise.reject(new Error("Call to cloud function cancelled in cleanup"));
-        }
-        callResultPromises.clear();
-    }
-
     let full = false;
 
-    if (callResultPromises.size > 0) {
+    if (callResultsPending.size > 0) {
         log(
             `Polling response queue (size ${
-                callResultPromises.size
+                callResultsPending.size
             }): ${ResponseQueueUrl}`
         );
 
@@ -560,12 +545,6 @@ async function resultCollector(state: State) {
         if (Messages.length === 10) {
             full = true;
         }
-        if (
-            Messages.length === 0 &&
-            callResultPromises.size > 0 &&
-            callResultPromises.size < 10
-        ) {
-        }
 
         deleteSQSMessages(ResponseQueueUrl!, Messages, sqs);
 
@@ -573,16 +552,23 @@ async function resultCollector(state: State) {
             const callResults: CallResults[] = [];
             for (const m of Messages) {
                 if (isQueueStopMessage(m)) {
-                    rejectAll();
                     return;
                 }
                 const CallId = m.MessageAttributes!.CallId.StringValue!;
-                callResults.push({
-                    CallId,
-                    message: m,
-                    deferred: callResultPromises.get(CallId)
-                });
-                callResultPromises.delete(CallId);
+                if (isFunctionStartedMessage(m)) {
+                    log(`Received Function Started message CallID: ${CallId}`);
+                    const deferred = callResultsPending.get(CallId);
+                    if (deferred) {
+                        deferred!.executing = true;
+                    }
+                } else {
+                    callResults.push({
+                        CallId,
+                        message: m,
+                        deferred: callResultsPending.get(CallId)
+                    });
+                    callResultsPending.delete(CallId);
+                }
             }
             resolvePromises(callResults);
         } catch (err) {
@@ -594,8 +580,25 @@ async function resultCollector(state: State) {
     }, 0);
 }
 
+// Only used when SNS fails to invoke lambda.
+function retryQueue(state: State) {
+    const { callResultsPending } = state.queue;
+    const { size } = callResultsPending;
+    const now = Date.now();
+    if (size > 0 && size < 10) {
+        for (let [CallId, pending] of callResultsPending.entries()) {
+            if (!pending.executing) {
+                if (now - pending.created > 4 * 1000) {
+                    log(`Lambda function not started for CallId ${CallId}, retrying...`);
+                    pending.sendRequest();
+                }
+            }
+        }
+    }
+}
+
 function startResultCollectorIfNeeded(state: State, full: boolean = false) {
-    const nPending = state.queue.callResultPromises.size;
+    const nPending = state.queue.callResultsPending.size;
     if (nPending > 0) {
         let nCollectors = full ? Math.floor(nPending / 20) + 2 : 2;
         const funnel = state.queue.collectorFunnel;
@@ -610,10 +613,15 @@ function startResultCollectorIfNeeded(state: State, full: boolean = false) {
     }
 }
 
-function enqueueCallRequest(state: State, CallId: string): Deferred<any> {
-    const deferred = new Deferred<QueuedResponse<any>>();
-    state.queue.callResultPromises.set(CallId, deferred);
+function enqueueCallRequest(
+    state: State,
+    CallId: string,
+    sendRequest: () => Promise<aws.SNS.Types.PublishResponse>
+): Deferred<any> {
+    const deferred = new PendingSNSRequest(sendRequest);
+    state.queue.callResultsPending.set(CallId, deferred);
     startResultCollectorIfNeeded(state);
+    deferred.sendRequest();
     return deferred;
 }
 
@@ -639,10 +647,9 @@ async function callFunction(state: State, call: QueuedCall) {
     let rawResponse: any;
     if (state.useQueue) {
         const { sns } = state.services;
-        const responsePromise = enqueueCallRequest(state, CallId).promise;
-        const snsResponse = await sns
-            .publish({ TopicArn: RequestTopicArn, Message: callArgsStr })
-            .promise();
+        const responsePromise = enqueueCallRequest(state, CallId, () =>
+            sns.publish({ TopicArn: RequestTopicArn, Message: callArgsStr }).promise()
+        ).promise;
         ({ returned, rawResponse } = await responsePromise);
     } else {
         const request: aws.Lambda.Types.InvocationRequest = {
@@ -789,6 +796,15 @@ export function cleanupResources(resourceString: string) {
     });
 }
 
+function rejectAll(callResultsPending: Map<string, PendingSNSRequest>) {
+    log(`Rejecting ${callResultsPending.size} result promises`);
+    for (const [key, promise] of callResultsPending) {
+        log(`Rejecting call result: ${key}`);
+        promise.reject(new Error("Call to cloud function cancelled in cleanup"));
+    }
+    callResultsPending.clear();
+}
+
 export async function cancelWithoutCleanup(state: PartialState) {
     const { sqs } = state.services;
     const { ResponseQueueUrl } = state.resources;
@@ -796,13 +812,22 @@ export async function cancelWithoutCleanup(state: PartialState) {
     let tasks = [];
     callFunnel && callFunnel.clear();
     if (ResponseQueueUrl) {
+        const { collectorFunnel, retryTimer, callResultsPending, ...rest } = state.queue!;
+        const _exhaustiveCheck: Required<typeof rest> = {};
+        collectorFunnel.clear();
+        retryTimer && clearInterval(retryTimer);
+        rejectAll(callResultsPending);
         log(`Stopping result collector`);
-        tasks.push(sendQueueStopMessage(ResponseQueueUrl, sqs));
+        let count = 0;
+        while (collectorFunnel.getConcurrency() > 0 && count++ < 100) {
+            tasks.push(carefully(sendQueueStopMessage(ResponseQueueUrl, sqs)));
+            await sleep(100);
+        }
     }
     const { DeadLetterQueueUrl } = state.resources;
     if (DeadLetterQueueUrl) {
         log(`Stopping dead letter queue collector`);
-        tasks.push(sendQueueStopMessage(DeadLetterQueueUrl, sqs));
+        tasks.push(carefully(sendQueueStopMessage(DeadLetterQueueUrl, sqs)));
     }
     await Promise.all(tasks);
 }

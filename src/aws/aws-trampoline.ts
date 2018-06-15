@@ -1,11 +1,11 @@
-import humanStringify from "human-stringify";
-import { AnyFunction } from "../cloudify";
 import { FunctionCall, FunctionReturn } from "../shared";
 import * as aws from "aws-sdk";
 import { SNSEvent } from "aws-lambda";
+import { sendFunctionStartedMessage } from "./aws-messages";
 
 let sqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
+type AnyFunction = (...args: any[]) => any;
 const funcs: { [func: string]: AnyFunction } = {};
 
 export function registerFunction(fn: AnyFunction, name?: string) {
@@ -27,7 +27,6 @@ export async function trampoline(
     _context: any,
     callback: (err: Error | null, obj: FunctionReturn) => void
 ) {
-    console.log(`${humanStringify(event)}`);
     const { name, args, CallId } = event as FunctionCall;
     try {
         if (!name) {
@@ -43,8 +42,6 @@ export async function trampoline(
             throw new Error("Invalid arguments to function call");
         }
 
-        console.log(`func: ${name}, args: ${humanStringify(args)}`);
-
         const rv = await func.apply(undefined, args);
 
         callback(null, {
@@ -55,7 +52,6 @@ export async function trampoline(
     } catch (err) {
         const errObj = {};
         Object.getOwnPropertyNames(err).forEach(name => (errObj[name] = err[name]));
-        console.log(`errObj: ${humanStringify(errObj)}`);
         callback(null, {
             type: "error",
             value: errObj,
@@ -85,7 +81,12 @@ export async function snsTrampoline(
     for (const record of snsEvent.Records) {
         const event = JSON.parse(record.Sns.Message) as FunctionCall;
         const { CallId, ResponseQueueUrl } = event;
+        const startedMessage = setTimeout(
+            () => sendFunctionStartedMessage(ResponseQueueUrl!, CallId, sqs).send(),
+            2 * 1000
+        );
         trampoline(event, context, (err, obj) => {
+            clearTimeout(startedMessage);
             let result = obj;
             if (err) {
                 sendError(err, ResponseQueueUrl!, CallId);

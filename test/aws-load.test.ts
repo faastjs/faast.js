@@ -38,12 +38,16 @@ test(
     90 * 1000
 );
 
-function printLatencies(str: string, latencies: number[]) {
-    latencies.forEach((n, i) => {
-        if (i > 0) {
-            log(`${str}[${i}]: ${n}`);
-        }
-    });
+const sum = (a: number[]) => a.reduce((sum, n) => sum + n, 0);
+const avg = (a: number[]) => sum(a) / a.length;
+
+function printLatencies(latencies: number[]) {
+    const count = latencies.length;
+    const median = latencies[Math.floor(count / 2)];
+    const [min, max] = [latencies[0], latencies[count - 1]];
+    const average = avg(latencies);
+    const stdev = Math.sqrt(avg(latencies.map(v => (v - average) ** 2)));
+    log(`%O`, { min, max, median, average, stdev });
 }
 
 test(
@@ -82,11 +86,11 @@ test(
         returnLatencies.sort((a, b) => a - b);
 
         log(`Start latencies:`);
-        printLatencies("start", startLatencies);
+        printLatencies(startLatencies);
         log(`Execution latencies: `);
-        printLatencies("execution", executionLatencies);
+        printLatencies(executionLatencies);
         log(`Return latencies:`);
-        printLatencies("return", returnLatencies);
+        printLatencies(returnLatencies);
 
         console.log(`inside: ${inside}, samples: ${samples}`);
         expect(samples).toBe(nParallelFunctions * nSamplesPerFunction);
