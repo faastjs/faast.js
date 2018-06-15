@@ -514,10 +514,11 @@ async function resultCollector(state: State) {
             }
             if (!message.Body) continue;
             const returned: FunctionReturn = JSON.parse(message.Body);
-            if (!deferred) {
-                log(`Deferred promise not found for CallID: ${CallId}`);
-            } else {
+            if (deferred) {
                 deferred.resolve({ returned, rawResponse: message });
+            } else {
+                // Caused by retries: CallId returned more than once. Ignore.
+                //log(`Deferred promise not found for CallID: ${CallId}`);
             }
         }
     }
