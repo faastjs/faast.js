@@ -1,6 +1,11 @@
 import Axios, { AxiosPromise, AxiosResponse } from "axios";
 import * as sys from "child_process";
-import { cloudfunctions_v1beta2 as gcf, google, GoogleApis } from "googleapis";
+import {
+    cloudfunctions_v1beta2 as gcf,
+    pubsub_v1 as pubsub,
+    google,
+    GoogleApis
+} from "googleapis";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
@@ -13,6 +18,7 @@ export interface Options {
     region?: string;
     timeoutSec?: number;
     memorySize?: number;
+    useQueue?: boolean;
     googleCloudFunctionOptions?: gcf.Schema$CloudFunction;
 }
 
@@ -25,6 +31,7 @@ export interface GoogleVariables {
 
 export interface GoogleServices {
     readonly cloudFunctionsApi: gcf.Cloudfunctions;
+    readonly pubsub: pubsub.Pubsub;
 }
 
 export const name: string = "google";
@@ -172,6 +179,7 @@ export const defaults: Required<Options> = {
     region: "us-central1",
     timeoutSec: 60,
     memorySize: 256,
+    useQueue: true,
     googleCloudFunctionOptions: {}
 };
 
@@ -190,6 +198,7 @@ async function initializeWithApi(
         region = defaults.region,
         timeoutSec = defaults.timeoutSec,
         memorySize = defaults.memorySize,
+        useQueue = defaults.useQueue,
         googleCloudFunctionOptions,
         ...rest
     } = options;
@@ -253,9 +262,10 @@ async function initializeWithApi(
         throw new Error("Could not get http trigger url");
     }
     log(`Function URL: ${url}`);
+    const pubsub = google.pubsub("v1");
     return {
         vars: { trampoline, project, isEmulator, url },
-        services: { cloudFunctionsApi }
+        services: { cloudFunctionsApi, pubsub }
     };
 }
 
