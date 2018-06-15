@@ -23,6 +23,18 @@ export class Future<T> extends Deferred<T> {
     }
 }
 
+function popFirst<T>(set: Set<T>): T | undefined {
+    let firstElem: T | undefined;
+    for (const elem of set) {
+        firstElem = elem;
+        break;
+    }
+    if (firstElem) {
+        set.delete(firstElem);
+    }
+    return firstElem;
+}
+
 export class Funnel {
     protected pendingQueue: Set<Future<any>>;
     protected concurrency: number;
@@ -62,19 +74,28 @@ export class Funnel {
         this.pendingQueue.clear();
     }
 
-    setConcurrency(maxConcurrency: number) {
+    setMaxConcurrency(maxConcurrency: number) {
         this.maxConcurrency = maxConcurrency;
+    }
+
+    getConcurrency() {
+        return this.concurrency;
     }
 }
 
-function popFirst<T>(set: Set<T>): T | undefined {
-    let firstElem: T | undefined;
-    for (const elem of set) {
-        firstElem = elem;
-        break;
+export class AutoFunnel<T> extends Funnel {
+    constructor(protected worker: () => Promise<T>, maxConcurrency: number = 0) {
+        super(maxConcurrency);
     }
-    if (firstElem) {
-        set.delete(firstElem);
+
+    fill(nWorkers: number) {
+        const promises: Promise<T>[] = [];
+        if (this.maxConcurrency > 0 && nWorkers > this.maxConcurrency) {
+            nWorkers = this.maxConcurrency;
+        }
+        while (this.concurrency < nWorkers) {
+            promises.push(this.push(this.worker));
+        }
+        return promises;
     }
-    return firstElem;
 }

@@ -7,7 +7,7 @@ import { AnyFunction, Response, ResponsifiedFunction } from "../cloudify";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import { FunctionCall, FunctionReturn } from "../shared";
-import { Funnel, Deferred } from "../funnel";
+import { Funnel, Deferred, AutoFunnel } from "../funnel";
 
 export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
 
@@ -47,8 +47,7 @@ export const name: string = "aws";
 
 interface QueueState {
     callResultPromises: Map<string, Deferred<QueuedResponse<any>>>;
-    collectorFunnel: Funnel;
-    resultCollectorPromise?: Promise<void>;
+    collectorFunnel: AutoFunnel<void>;
 }
 
 export interface State {
@@ -421,7 +420,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         callFunnel: new Funnel(),
         queue: {
             callResultPromises: new Map(),
-            collectorFunnel: new Funnel()
+            collectorFunnel: new AutoFunnel<void>(() => resultCollector(state), 10)
         },
         useQueue
     };
@@ -529,10 +528,6 @@ async function resultCollector(state: State) {
         }
     }
 
-    function cleanup() {
-        state.queue.resultCollectorPromise = undefined;
-    }
-
     function rejectAll() {
         log(`Rejecting ${callResultPromises.size} result promises`);
         for (const [key, promise] of callResultPromises) {
@@ -542,7 +537,9 @@ async function resultCollector(state: State) {
         callResultPromises.clear();
     }
 
-    while (callResultPromises.size > 0) {
+    let full = false;
+
+    if (callResultPromises.size > 0) {
         log(
             `Polling response queue (size ${
                 callResultPromises.size
@@ -560,6 +557,9 @@ async function resultCollector(state: State) {
 
         const { Messages = [] } = response;
         log(`received ${Messages.length} messages.`);
+        if (Messages.length === 10) {
+            full = true;
+        }
         if (
             Messages.length === 0 &&
             callResultPromises.size > 0 &&
@@ -574,7 +574,6 @@ async function resultCollector(state: State) {
             for (const m of Messages) {
                 if (isQueueStopMessage(m)) {
                     rejectAll();
-                    cleanup();
                     return;
                 }
                 const CallId = m.MessageAttributes!.CallId.StringValue!;
@@ -585,23 +584,29 @@ async function resultCollector(state: State) {
                 });
                 callResultPromises.delete(CallId);
             }
-            setTimeout(() => resolvePromises(callResults), 0);
+            resolvePromises(callResults);
         } catch (err) {
             log(err);
         }
     }
-    cleanup();
     setTimeout(() => {
-        startResultCollectorIfNeeded(state);
+        startResultCollectorIfNeeded(state, full);
     }, 0);
 }
 
-function startResultCollectorIfNeeded(state: State) {
-    if (state.queue.callResultPromises.size > 0 && !state.queue.resultCollectorPromise) {
-        state.queue.resultCollectorPromise = Promise.all([
-            resultCollector(state),
-            resultCollector(state)
-        ]).then(_ => {});
+function startResultCollectorIfNeeded(state: State, full: boolean = false) {
+    const nPending = state.queue.callResultPromises.size;
+    if (nPending > 0) {
+        let nCollectors = full ? Math.floor(nPending / 20) + 2 : 2;
+        const funnel = state.queue.collectorFunnel;
+        const newCollectors = funnel.fill(nCollectors);
+        if (newCollectors.length > 0) {
+            log(
+                `Started ${
+                    newCollectors.length
+                } result collectors, total: ${funnel.getConcurrency()}`
+            );
+        }
     }
 }
 
@@ -790,10 +795,9 @@ export async function cancelWithoutCleanup(state: PartialState) {
     const { callFunnel } = state;
     let tasks = [];
     callFunnel && callFunnel.clear();
-    if (ResponseQueueUrl && state.queue && state.queue.resultCollectorPromise) {
-        tasks.push(sendQueueStopMessage(ResponseQueueUrl, sqs));
+    if (ResponseQueueUrl) {
         log(`Stopping result collector`);
-        tasks.push(state.queue.resultCollectorPromise);
+        tasks.push(sendQueueStopMessage(ResponseQueueUrl, sqs));
     }
     const { DeadLetterQueueUrl } = state.resources;
     if (DeadLetterQueueUrl) {
@@ -816,7 +820,7 @@ export async function setConcurrency(state: State, maxConcurrentExecutions: numb
             .promise();
     } else {
         if (state.callFunnel) {
-            state.callFunnel.setConcurrency(maxConcurrentExecutions);
+            state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
         } else {
             state.callFunnel = new Funnel(maxConcurrentExecutions);
         }

@@ -121,3 +121,5 @@ $ node build/src/cloudify-cleanup.js aws -x
 ```
 
 # Concurrency
+
+Response queue funnel: create a request listener for every 20 outstanding requests. With a minimum of 2.

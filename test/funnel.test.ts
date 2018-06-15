@@ -1,4 +1,4 @@
-import { Funnel } from "../src/funnel";
+import { Funnel, AutoFunnel } from "../src/funnel";
 
 function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -93,5 +93,21 @@ describe("Funnel", () => {
         funnel.clear();
         await promise;
         expect(count).toBe(1);
+    });
+});
+
+describe("AutoFunnel", () => {
+    test("Fills workers", async () => {
+        const N = 10;
+        const funnel = new AutoFunnel(() => timer(10));
+        const times = await Promise.all(funnel.fill(N));
+        expect(measureConcurrency(times)).toBe(N);
+    });
+    test("respects maxConcurrency", async () => {
+        const N = 10;
+        const funnel = new AutoFunnel(() => timer(10));
+        funnel.setMaxConcurrency(3);
+        const times = await Promise.all(funnel.fill(N));
+        expect(measureConcurrency(times)).toBe(3);
     });
 });
