@@ -1,7 +1,7 @@
 import { FunctionCall, FunctionReturn } from "../shared";
 import * as aws from "aws-sdk";
 import { SNSEvent } from "aws-lambda";
-import { sendFunctionStartedMessage } from "./aws-messages";
+import { sendFunctionStartedMessage } from "./aws-queue";
 
 let sqs = new aws.SQS({ apiVersion: "2012-11-05" });
 

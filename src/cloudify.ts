@@ -52,27 +52,55 @@ export type Responsified<M> = {
     [K in keyof M]: M[K] extends AnyFunction ? ResponsifiedFunction<M[K]> : never
 };
 
-export interface Options<CloudSpecificOptions> {
+export interface CreateFunctionOptions<CloudSpecificOptions> {
     timeout?: number;
     memorySize?: number;
     cloudSpecific?: CloudSpecificOptions;
 }
 
-export interface Cloud<O, S> {
-    name: string;
-    cleanupResources(resources: string): Promise<void>;
-    pack(fmodule: string): Promise<PackerResult>;
-    createFunction(fmodule: string, options?: Options<O>): Promise<CloudFunction<S>>;
+export class Cloud<O, S> {
+    name: string = this.impl.name;
+    constructor(readonly impl: CloudImpl<O, S>) {}
+    cleanupResources(resources: string): Promise<void> {
+        return this.impl.cleanupResources(resources);
+    }
+    pack(fmodule: string): Promise<PackerResult> {
+        return this.impl.pack(resolve(fmodule));
+    }
+
+    async createFunction(
+        fmodule: string,
+        options?: CreateFunctionOptions<O>
+    ): Promise<CloudFunction<S>> {
+        const optionsImpl: O = this.impl.translateOptions(options);
+        return new CloudFunction(
+            this.impl.getFunctionImpl(),
+            await this.impl.initialize(resolve(fmodule), optionsImpl)
+        );
+    }
 }
 
-export abstract class CloudFunction<S> {
-    abstract cloudName: string;
-    abstract cloudifyWithResponse<F extends AnyFunction>(fn: F): ResponsifiedFunction<F>;
-    abstract cleanup(): Promise<void>;
-    abstract getResourceList(): string;
-    abstract getState(): S;
-    abstract cancelAll(): Promise<void>;
-    abstract setConcurrency(maxConcurrentExecutions: number): Promise<void>;
+export class CloudFunction<S> {
+    cloudName = this.impl.name;
+    constructor(readonly impl: CloudFunctionImpl<S>, readonly state: S) {}
+    cloudifyWithResponse<F extends AnyFunction>(fn: F) {
+        return this.impl.cloudifyWithResponse(this.state, fn);
+    }
+    cleanup() {
+        return this.impl.cleanup(this.state);
+    }
+    cancelAll() {
+        return this.impl.cancelWithoutCleanup(this.state);
+    }
+    getResourceList() {
+        return this.impl.getResourceList(this.state);
+    }
+    getState() {
+        return this.state;
+    }
+    setConcurrency(maxConcurrentExecutions: number): Promise<void> {
+        return this.impl.setConcurrency(this.state, maxConcurrentExecutions);
+    }
 
     cloudify<F extends AnyFunction>(fn: F): PromisifiedFunction<F> {
         const cloudifiedFunc = async (...args: any[]) => {
@@ -107,105 +135,27 @@ export abstract class CloudFunction<S> {
     }
 }
 
-export class AWS implements Cloud<aws.Options, aws.State> {
-    name = aws.name;
-    cleanupResources = aws.cleanupResources;
-    pack(fmodule: string) {
-        return aws.pack(resolve(fmodule));
-    }
-    async createFunction(
-        fmodule: string,
-        { timeout, memorySize, cloudSpecific }: Options<aws.Options> = {}
-    ): Promise<AWSLambda> {
-        const options: aws.Options = { timeout, memorySize, ...cloudSpecific };
-        return new AWSLambda(await aws.initialize(resolve(fmodule), options));
+export class AWS extends Cloud<aws.Options, aws.State> {
+    constructor() {
+        super(aws);
     }
 }
 
-export class AWSLambda extends CloudFunction<aws.State> {
-    cloudName = aws.name;
-    constructor(readonly state: aws.State) {
-        super();
-    }
-    cloudifyWithResponse<F extends AnyFunction>(fn: F) {
-        return aws.cloudifyWithResponse(this.state, fn);
-    }
-    cleanup() {
-        return aws.cleanup(this.state);
-    }
-    cancelAll() {
-        return aws.cancelWithoutCleanup(this.state);
-    }
-    getResourceList() {
-        return aws.getResourceList(this.state);
-    }
-    getState() {
-        return this.state;
-    }
-    setConcurrency(maxConcurrentExecutions: number): Promise<void> {
-        return aws.setConcurrency(this.state, maxConcurrentExecutions);
+export class AWSLambda extends CloudFunction<aws.State> {}
+
+export class Google extends Cloud<google.Options, google.State> {
+    constructor() {
+        super(google);
     }
 }
 
-export class Google implements Cloud<google.Options, google.State> {
-    name = google.name;
-    cleanupResources = google.cleanupResources;
-    pack(fmodule: string) {
-        return google.pack(resolve(fmodule));
-    }
-    async createFunction(
-        fmodule: string,
-        { timeout, memorySize, cloudSpecific }: Options<google.Options> = {}
-    ) {
-        const options: google.Options = {
-            timeoutSec: timeout,
-            memorySize,
-            ...cloudSpecific
+export class GoogleEmulator extends Cloud<google.Options, google.State> {
+    constructor() {
+        let googleEmulator = {
+            ...google,
+            initialize: google.initializeEmulator
         };
-        return new GoogleCloudFunction(
-            await google.initialize(resolve(fmodule), options)
-        );
-    }
-}
-
-export class GoogleCloudFunction extends CloudFunction<google.State> {
-    cloudName = google.name;
-    constructor(readonly state: google.State) {
-        super();
-    }
-    cloudifyWithResponse<F extends AnyFunction>(fn: F) {
-        return google.cloudifyWithResponse(this.state, fn);
-    }
-    cleanup() {
-        return google.cleanup(this.state);
-    }
-    cancelAll(): Promise<void> {
-        throw new Error("Not implemented");
-    }
-    getResourceList() {
-        return google.getResourceList(this.state);
-    }
-    getState() {
-        return this.state;
-    }
-    setConcurrency(_maxConcurrentExecutions: number): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
-}
-
-export class GoogleEmulator extends Google {
-    async createFunction(
-        fmodule: string,
-        { timeout, memorySize, cloudSpecific }: Options<google.Options> = {}
-    ) {
-        const options: google.Options = {
-            timeoutSec: timeout,
-            memorySize,
-            ...cloudSpecific
-        };
-        return new GoogleCloudFunction(
-            await google.initializeEmulator(resolve(fmodule), options)
-        );
+        super(googleEmulator);
     }
 }
 
@@ -225,9 +175,17 @@ export function create(cloudName: string): Cloud<any, any> {
     throw new Error(`Unknown cloud name: "${cloudName}"`);
 }
 
-export interface CloudImpl<Options, State> {
+export interface CloudImpl<O, S> {
     name: string;
-    initialize(serverModule: string, options?: Options): Promise<State>;
+    initialize(serverModule: string, options?: O): Promise<S>;
+    cleanupResources(resources: string): Promise<void>;
+    pack(functionModule: string): Promise<PackerResult>;
+    translateOptions(options?: CreateFunctionOptions<O>): O;
+    getFunctionImpl(): CloudFunctionImpl<S>;
+}
+
+export interface CloudFunctionImpl<State> {
+    name: string;
     cloudifyWithResponse<F extends AnyFunction>(
         state: State,
         fn: F
@@ -235,6 +193,5 @@ export interface CloudImpl<Options, State> {
     cleanup(state: State): Promise<void>;
     cancelWithoutCleanup(state: State): Promise<void>;
     getResourceList(state: State): string;
-    cleanupResources(resources: string): Promise<void>;
-    pack(functionModule: string): Promise<PackerResult>;
+    setConcurrency(state: State, maxConcurrentExecutions: number): Promise<void>;
 }
