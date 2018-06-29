@@ -1,5 +1,3 @@
-import { AnyFunction } from "./cloudify";
-
 export class Deferred<T> {
     promise: Promise<T>;
     resolve!: (arg?: any) => void;

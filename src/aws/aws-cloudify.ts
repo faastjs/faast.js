@@ -11,10 +11,10 @@ import {
 import { Funnel } from "../funnel";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
-import { FunctionCall, FunctionReturn, sleep } from "../shared";
-import { AWSFunctionQueue } from "./aws-queue";
-import { pollAWSRequest } from "./aws-shared";
 import * as cloudqueue from "../queue";
+import { FunctionCall, FunctionReturn } from "../shared";
+import { NonFunctionProperties, PartialRequire } from "../type-helpers";
+import { pollAWSRequest } from "./aws-shared";
 
 export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
 
@@ -35,10 +35,10 @@ export interface AWSResources {
     rolePolicy: RoleHandling;
     logGroupName: string;
     region: string;
-    RequestTopicArn?: string;
     ResponseQueueUrl?: string;
-    SNSLambdaSubscriptionArn?: string;
+    RequestTopicArn?: string;
     SNSFeedbackRole?: string;
+    SNSLambdaSubscriptionArn?: string;
 }
 
 export interface AWSServices {
@@ -51,11 +51,14 @@ export interface AWSServices {
 
 export const name: string = "aws";
 
+type AWSCloudQueueState = cloudqueue.StateWithMessageType<aws.SQS.Message>;
+type AWSCloudQueueImpl = cloudqueue.Impl<aws.SQS.Message>;
+
 export interface State {
     resources: AWSResources;
     services: AWSServices;
-    queue?: AWSFunctionQueue;
     callFunnel: Funnel;
+    queueState?: AWSCloudQueueState;
 }
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
@@ -241,12 +244,13 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         log(`Creating function`);
         const func = await createFunction();
         if (useQueue) {
-            state.queue = await AWSFunctionQueue.initialize(
-                services,
+            const awsQueueImpl = await initializeQueue(
+                state,
                 FunctionName,
                 func.FunctionArn!,
                 rolePolicy
             );
+            state.queueState = cloudqueue.initializeCloudFunctionQueue(awsQueueImpl);
         }
         return state;
     } catch (err) {
@@ -263,7 +267,8 @@ interface QueuedCall {
 
 async function callFunction(state: State, call: QueuedCall) {
     const CallId = uuidv4();
-    const { FunctionName, RequestTopicArn, ResponseQueueUrl } = state.resources;
+    const { FunctionName } = state.resources;
+    const { ResponseQueueUrl } = state.resources;
     let callArgs: FunctionCall = {
         name: call.fname,
         args: call.args,
@@ -276,9 +281,12 @@ async function callFunction(state: State, call: QueuedCall) {
     let returned: FunctionReturn | undefined;
     let error: Error | undefined;
     let rawResponse: any;
-    if (state.queue) {
+    if (state.queueState) {
         const { sns } = state.services;
-        const responsePromise = await cloudqueue.enqueueCallRequest(state, callArgs);
+        const responsePromise = await cloudqueue.enqueueCallRequest(
+            state.queueState!,
+            callArgs
+        );
         ({ returned, rawResponse } = await responsePromise);
     } else {
         const request: aws.Lambda.Types.InvocationRequest = {
@@ -352,10 +360,10 @@ export async function cleanup(state: PartialState) {
         RoleName,
         logGroupName,
         rolePolicy,
+        region,
         RequestTopicArn,
         ResponseQueueUrl,
         SNSLambdaSubscriptionArn,
-        region,
         SNSFeedbackRole,
         ...rest
     } = state.resources;
@@ -379,6 +387,23 @@ export async function cleanup(state: PartialState) {
     if (RoleName && rolePolicy === "createTemporaryRole") {
         log(`Deleting temporary role: ${RoleName}`);
         await deleteRole(RoleName, iam);
+    }
+    if (SNSLambdaSubscriptionArn) {
+        log(`Deleting request queue subscription to lambda`);
+        await quietly(sns.unsubscribe({ SubscriptionArn: SNSLambdaSubscriptionArn }));
+    }
+
+    if (SNSFeedbackRole && rolePolicy === "createTemporaryRole") {
+        log(`Deleting SNS feedback role: ${SNSFeedbackRole}`);
+        await deleteRole(SNSFeedbackRole, iam);
+    }
+    if (RequestTopicArn) {
+        log(`Deleting request queue topic: ${RequestTopicArn}`);
+        await quietly(sns.deleteTopic({ TopicArn: RequestTopicArn }));
+    }
+    if (ResponseQueueUrl) {
+        log(`Deleting response queue: ${ResponseQueueUrl}`);
+        await quietly(sqs.deleteQueue({ QueueUrl: ResponseQueueUrl }));
     }
     await cancelPromise;
 }
@@ -414,8 +439,8 @@ export async function cancelWithoutCleanup(state: PartialState) {
     const { callFunnel } = state;
     let tasks = [];
     callFunnel && callFunnel.clear();
-    if (state.queue) {
-        tasks.push(cloudqueue.stop(state));
+    if (state.queueState) {
+        tasks.push(cloudqueue.stop(state.queueState));
     }
     await Promise.all(tasks);
 }
@@ -424,7 +449,7 @@ export async function setConcurrency(state: State, maxConcurrentExecutions: numb
     const { lambda } = state.services;
     const { FunctionName } = state.resources;
 
-    if (state.queue) {
+    if (state.queueState) {
         await lambda
             .putFunctionConcurrency({
                 FunctionName,
@@ -454,4 +479,227 @@ export function translateOptions({
 
 export function getFunctionImpl() {
     return exports;
+}
+
+function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
+    const a = message.MessageAttributes;
+    if (!a) {
+        return undefined;
+    }
+    return a[attr] && a[attr].StringValue;
+}
+
+export function createControlMessage(
+    QueueUrl: string,
+    attrs: cloudqueue.Attributes
+): aws.SQS.SendMessageRequest {
+    const attributes: aws.SQS.MessageBodyAttributeMap = {};
+    Object.keys(attrs).forEach(key => {
+        attributes[key] = { DataType: "String", StringValue: attrs[key] };
+    });
+    return {
+        QueueUrl,
+        MessageBody: "empty",
+        MessageAttributes: {
+            ...attributes
+        }
+    };
+}
+
+export function sendFunctionStartedMessage(
+    QueueUrl: string,
+    CallId: string,
+    sqs: aws.SQS
+) {
+    const message = createControlMessage(QueueUrl, { CallId, cloudify: "started" });
+    return sqs.sendMessage(message);
+}
+
+export async function initializeQueue(
+    state: State,
+    FunctionName: string,
+    FunctionArn: string,
+    rolePolicy: RoleHandling
+): Promise<AWSCloudQueueImpl> {
+    const { iam, sqs, sns, lambda } = state.services;
+    const resources = state.resources;
+    resources.SNSFeedbackRole = "cloudify-cached-SNSFeedbackRole";
+    if (rolePolicy === "createTemporaryRole") {
+        resources.SNSFeedbackRole = `${FunctionName}-SNSRole`;
+    }
+
+    const snsRole = await createSNSFeedbackRole(resources.SNSFeedbackRole, iam);
+    resources.SNSFeedbackRole = snsRole.Role.RoleName;
+    resources.RequestTopicArn = await createSNSNotifier(
+        `${FunctionName}-Requests`,
+        snsRole.Role.Arn,
+        sns
+    );
+    resources.ResponseQueueUrl = await createSQSQueue(
+        `${FunctionName}-Responses`,
+        60,
+        sqs
+    );
+
+    const addPermissionResponse = await addSnsInvokePermissionsToFunction(
+        FunctionName,
+        resources.RequestTopicArn!,
+        lambda
+    );
+    const snsRepsonse = await sns
+        .subscribe({
+            TopicArn: resources.RequestTopicArn,
+            Protocol: "lambda",
+            Endpoint: FunctionArn
+        })
+        .promise();
+    log(`Created SNS subscription: ${snsRepsonse.SubscriptionArn}`);
+    resources.SNSLambdaSubscriptionArn = snsRepsonse.SubscriptionArn!;
+
+    return {
+        isStopQueueMessage: message =>
+            sqsMessageAttribute(message, "cloudify") === "stop",
+        isStartedFunctionCallMessage: message =>
+            sqsMessageAttribute(message, "cloudify") === "started",
+        receiveMessages: () => receiveMessages(state),
+        getMessageBody: message => message.Body || "",
+        getCallId: message => sqsMessageAttribute(message, "CallId") || "",
+        publish: call => publish(state, call),
+        sendStopQueueMessage: () => sendStopQueueMessage(state),
+        description: () => state.resources.ResponseQueueUrl!
+    };
+}
+
+export function publish(state: State, call: FunctionCall): void {
+    carefully(
+        state.services.sns.publish({
+            TopicArn: state.resources.RequestTopicArn,
+            Message: JSON.stringify(call)
+        })
+    );
+}
+
+export function sendStopQueueMessage(state: State): Promise<any> {
+    const { sqs } = state.services;
+    const { ResponseQueueUrl } = state.resources;
+    const message = createControlMessage(ResponseQueueUrl!, { cloudify: "stop" });
+    return sqs.sendMessage(message).promise();
+}
+
+export async function receiveMessages(state: State): Promise<aws.SQS.Message[]> {
+    const { sqs } = state.services;
+    const { ResponseQueueUrl } = state.resources;
+    const response = await sqs
+        .receiveMessage({
+            QueueUrl: ResponseQueueUrl!,
+            WaitTimeSeconds: 20,
+            MaxNumberOfMessages: 10,
+            MessageAttributeNames: ["All"]
+        })
+        .promise();
+    const { Messages = [] } = response;
+    if (Messages.length > 0) {
+        carefully(
+            sqs.deleteMessageBatch({
+                QueueUrl: ResponseQueueUrl!,
+                Entries: Messages.map(m => ({
+                    Id: m.MessageId!,
+                    ReceiptHandle: m.ReceiptHandle!
+                }))
+            })
+        );
+    }
+    return Messages;
+}
+
+// XXX The log group created by SNS doesn't have a programmatic API to get the name. Skip?
+// Try testing with limited function concurrency to see what errors are generated.
+async function createSNSNotifier(Name: string, RoleArn: string, sns: aws.SNS) {
+    log(`Creating SNS notifier`);
+    const topic = await sns.createTopic({ Name }).promise();
+    const TopicArn = topic.TopicArn!;
+    log(`Created SNS notifier with TopicArn: ${TopicArn}`);
+    let success = await pollAWSRequest(
+        100,
+        "role for SNS invocation of lambda function failure feedback",
+        () =>
+            sns.setTopicAttributes({
+                TopicArn,
+                AttributeName: "LambdaFailureFeedbackRoleArn",
+                AttributeValue: RoleArn
+            })
+    );
+
+    if (!success) {
+        throw new Error("Could not initialize lambda execution role");
+    }
+
+    return TopicArn!;
+}
+
+async function createSNSFeedbackRole(RoleName: string, iam: aws.IAM) {
+    const previousRole = await quietly(iam.getRole({ RoleName }));
+    if (previousRole) {
+        return previousRole;
+    }
+    log(`Creating role "${RoleName}" for SNS failure feedback`);
+    const AssumeRolePolicyDocument = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+            {
+                Principal: { Service: "sns.amazonaws.com" },
+                Action: "sts:AssumeRole",
+                Effect: "Allow"
+            }
+        ]
+    });
+    const roleParams: aws.IAM.CreateRoleRequest = {
+        AssumeRolePolicyDocument,
+        RoleName,
+        Description: "role for SNS failures created by cloudify",
+        MaxSessionDuration: 36000
+    };
+    const roleResponse = await iam.createRole(roleParams).promise();
+    log(`Putting SNS role policy`);
+    const PolicyArn = "arn:aws:iam::aws:policy/service-role/AmazonSNSRole";
+    await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
+    return roleResponse;
+}
+
+function addSnsInvokePermissionsToFunction(
+    FunctionName: string,
+    RequestTopicArn: string,
+    lambda: aws.Lambda
+) {
+    return lambda
+        .addPermission({
+            FunctionName,
+            Action: "lambda:invokeFunction",
+            Principal: "sns.amazonaws.com",
+            StatementId: `${FunctionName}-Invoke`,
+            SourceArn: RequestTopicArn
+        })
+        .promise();
+}
+
+async function createSQSQueue(
+    QueueName: string,
+    VTimeout: number,
+    sqs: aws.SQS,
+    deadLetterTargetArn?: string
+) {
+    const createQueueRequest: aws.SQS.CreateQueueRequest = {
+        QueueName,
+        Attributes: {
+            VisibilityTimeout: `${VTimeout}`
+        }
+    };
+    if (deadLetterTargetArn) {
+        createQueueRequest.Attributes!.RedrivePolicy = JSON.stringify({
+            maxReceiveCount: "5",
+            deadLetterTargetArn
+        });
+    }
+    const response = await sqs.createQueue(createQueueRequest).promise();
+    return response.QueueUrl!;
 }

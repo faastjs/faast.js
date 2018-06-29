@@ -5,34 +5,18 @@ import { FunctionCall, FunctionReturn, sleep } from "./shared";
 
 export type Attributes = { [key: string]: string };
 
-interface CloudFunctionQueueMessagesImpl<MessageType> {
-    isStopQueueMessage(message: MessageType): boolean;
-    isStartedFunctionCallMessage(message: MessageType): boolean;
-    receiveMessages(): Promise<MessageType[]>;
-    getMessageBody(message: MessageType): string;
-    getCallId(message: MessageType): string;
-}
-
-interface CloudFunctionQueueOtherImpl {
+export interface Impl<M> {
+    isStopQueueMessage(message: M): boolean;
+    isStartedFunctionCallMessage(message: M): boolean;
+    receiveMessages(): Promise<M[]>;
+    getMessageBody(message: M): string;
+    getCallId(message: M): string;
     publish(call: FunctionCall): void;
     sendStopQueueMessage(): Promise<any>;
     description(): string;
-    cleanup(): Promise<void>;
 }
 
-interface CloudFunctionQueueImpl<MessageType>
-    extends CloudFunctionQueueMessagesImpl<MessageType>,
-        CloudFunctionQueueOtherImpl {}
-
-interface Vars {
-    callResultsPending: Map<string, PendingRequest>;
-    collectorFunnel: AutoFunnel<void>;
-    retryTimer?: NodeJS.Timer;
-}
-
-interface State<MessageType> extends Vars, CloudFunctionQueueImpl<MessageType> {}
-
-class PendingRequest extends Deferred<QueuedResponse<any>> {
+export class PendingRequest extends Deferred<QueuedResponse<any>> {
     created: number = Date.now();
     executing?: boolean;
     constructor(readonly call: FunctionCall) {
@@ -40,9 +24,53 @@ class PendingRequest extends Deferred<QueuedResponse<any>> {
     }
 }
 
-interface QueuedResponse<T> {
+export interface Vars {
+    readonly callResultsPending: Map<string, PendingRequest>;
+    readonly collectorFunnel: AutoFunnel<void>;
+    readonly retryTimer: NodeJS.Timer;
+}
+
+export type StateWithMessageType<M> = Vars & Impl<M>;
+export type State = StateWithMessageType<{}>;
+
+export interface QueuedResponse<T> {
     returned: T;
     rawResponse: any;
+}
+
+export function initializeCloudFunctionQueue<M>(impl: Impl<M>): StateWithMessageType<M> {
+    let state: StateWithMessageType<M> = {
+        ...impl,
+        callResultsPending: new Map(),
+        collectorFunnel: new AutoFunnel<void>(() => resultCollector(state), 10),
+        retryTimer: setInterval(() => retryQueue(state), 5 * 1000)
+    };
+    startResultCollectorIfNeeded(state);
+    return state;
+}
+
+export function enqueueCallRequest(
+    state: State,
+    call: FunctionCall
+): Promise<QueuedResponse<any>> {
+    const deferred = new PendingRequest(call);
+    state.callResultsPending.set(call.CallId, deferred);
+    startResultCollectorIfNeeded(state);
+    state.publish(deferred.call);
+    return deferred.promise;
+}
+
+export async function stop(state: State) {
+    state.collectorFunnel.clear();
+    clearInterval(state.retryTimer);
+    rejectAll(state.callResultsPending);
+    let count = 0;
+    let tasks = [];
+    while (state.collectorFunnel.getConcurrency() > 0 && count++ < 100) {
+        tasks.push(state.sendStopQueueMessage());
+        await sleep(100);
+    }
+    await Promise.all(tasks);
 }
 
 interface CallResults<M> {
@@ -51,18 +79,7 @@ interface CallResults<M> {
     deferred?: Deferred<QueuedResponse<any>>;
 }
 
-function makeCloudFunctionQueue<MessageType>(
-    impl: CloudFunctionQueueImpl<MessageType>
-): State<MessageType> {
-    let state: State<MessageType> = {
-        ...impl,
-        callResultsPending: new Map(),
-        collectorFunnel: new AutoFunnel<void>(() => resultCollector(state), 10)
-    };
-    return state;
-}
-
-async function resultCollector<MessageType>(state: State<MessageType>) {
+async function resultCollector<MessageType>(state: StateWithMessageType<MessageType>) {
     const log = debug("cloudify:collector");
     let resolvePromises = (results: CallResults<MessageType>[]) => {
         for (const { message, CallId, deferred } of results) {
@@ -128,7 +145,7 @@ async function resultCollector<MessageType>(state: State<MessageType>) {
 }
 
 // Only used when SNS fails to invoke lambda.
-function retryQueue(state: Vars & CloudFunctionQueueOtherImpl) {
+function retryQueue(state: State) {
     const { size } = state.callResultsPending;
     const now = Date.now();
     if (size > 0 && size < 10) {
@@ -157,34 +174,6 @@ function startResultCollectorIfNeeded(vars: Vars, full: boolean = false) {
             );
         }
     }
-}
-
-function startRetryTimer(vars: Vars & CloudFunctionQueueOtherImpl) {
-    vars.retryTimer = setInterval(() => retryQueue(vars), 5 * 1000);
-}
-
-export function enqueueCallRequest(
-    state: Vars & CloudFunctionQueueOtherImpl,
-    call: FunctionCall
-): Promise<QueuedResponse<any>> {
-    const deferred = new PendingRequest(call);
-    state.callResultsPending.set(call.CallId, deferred);
-    startResultCollectorIfNeeded(state);
-    state.publish(deferred.call);
-    return deferred.promise;
-}
-
-export async function stop(state: Vars & CloudFunctionQueueOtherImpl) {
-    state.collectorFunnel.clear();
-    state.retryTimer && clearInterval(state.retryTimer);
-    rejectAll(state.callResultsPending);
-    let count = 0;
-    let tasks = [];
-    while (state.collectorFunnel.getConcurrency() > 0 && count++ < 100) {
-        tasks.push(state.sendStopQueueMessage());
-        await sleep(100);
-    }
-    await Promise.all(tasks);
 }
 
 function rejectAll(callResultsPending: Map<string, PendingRequest>) {
