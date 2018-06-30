@@ -1,7 +1,7 @@
 import { FunctionCall, FunctionReturn } from "../shared";
 import * as aws from "aws-sdk";
 import { SNSEvent } from "aws-lambda";
-// import { sendFunctionStartedMessage } from "./aws-queue";
+import { publishControlMessage } from "./aws-queue";
 
 let sqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
@@ -82,7 +82,10 @@ export async function snsTrampoline(
         const event = JSON.parse(record.Sns.Message) as FunctionCall;
         const { CallId, ResponseQueueUrl } = event;
         const startedMessage = setTimeout(
-            () => sendFunctionStartedMessage(ResponseQueueUrl!, CallId, sqs).send(),
+            () =>
+                publishControlMessage(sqs, ResponseQueueUrl!, "functionstarted", {
+                    CallId
+                }),
             2 * 1000
         );
         trampoline(event, context, (err, obj) => {

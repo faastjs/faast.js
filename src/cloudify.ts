@@ -3,10 +3,15 @@ require("source-map-support").install();
 import * as aws from "./aws/aws-cloudify";
 import * as google from "./google/google-cloudify";
 import { PackerResult } from "./packer";
+import { AnyFunction, Unpacked } from "./type-helpers";
 
-export type AnyFunction = (...args: any[]) => any;
+export interface ResponseDetails<D> {
+    value?: D;
+    error?: Error;
+    rawResponse: any;
+}
 
-export type Unpacked<T> = T extends Promise<infer D> ? D : T;
+export type Response<D> = ResponseDetails<Unpacked<D>>;
 
 export type PromisifiedFunction<T extends AnyFunction> =
     // prettier-ignore
@@ -25,14 +30,6 @@ export type PromisifiedFunction<T extends AnyFunction> =
 export type Promisified<M> = {
     [K in keyof M]: M[K] extends AnyFunction ? PromisifiedFunction<M[K]> : never
 };
-
-export interface ResponseDetails<D> {
-    value?: D;
-    error?: Error;
-    rawResponse: any;
-}
-
-export type Response<D> = ResponseDetails<Unpacked<D>>;
 
 export type ResponsifiedFunction<T extends AnyFunction> =
     // prettier-ignore

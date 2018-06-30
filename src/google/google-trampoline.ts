@@ -1,10 +1,7 @@
 import { Request, Response } from "express";
 import humanStringify from "human-stringify";
-import { AnyFunction } from "../cloudify";
 import { FunctionCall, FunctionReturn } from "../shared";
-import MemoryFileSystem = require("memory-fs");
-import archiver = require("archiver");
-import nodeExternals = require("webpack-node-externals");
+import { AnyFunction } from "../type-helpers";
 
 const funcs: { [func: string]: AnyFunction } = {};
 

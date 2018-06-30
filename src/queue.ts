@@ -5,21 +5,29 @@ import { FunctionCall, FunctionReturn, sleep } from "./shared";
 
 export type Attributes = { [key: string]: string };
 
-export interface Impl<M> {
-    isStopQueueMessage(message: M): boolean;
-    isStartedFunctionCallMessage(message: M): boolean;
-    receiveMessages(): Promise<M[]>;
-    getMessageBody(message: M): string;
-    getCallId(message: M): string;
-    publish(call: FunctionCall): void;
-    sendStopQueueMessage(): Promise<any>;
-    description(): string;
+export interface RequestQueueImpl {
+    publishMessage(body: string, attributes?: Attributes): Promise<any>;
 }
+
+export type ControlMessageType = "stopqueue" | "functionstarted";
+
+const CallIdAttribute = "CallId";
+
+export interface ResponseQueueImpl<M> {
+    receiveMessages(): Promise<M[]>;
+    getMessageAttribute(message: M, attribute: string): string | undefined;
+    getMessageBody(message: M): string;
+    description(): string;
+    publishControlMessage(type: ControlMessageType, attr?: Attributes): Promise<any>;
+    isControlMessage(message: M, type: ControlMessageType): boolean;
+}
+
+export type QueueImpl<M> = RequestQueueImpl & ResponseQueueImpl<M>;
 
 export class PendingRequest extends Deferred<QueuedResponse<any>> {
     created: number = Date.now();
     executing?: boolean;
-    constructor(readonly call: FunctionCall) {
+    constructor(readonly callArgsStr: string) {
         super();
     }
 }
@@ -30,7 +38,7 @@ export interface Vars {
     readonly retryTimer: NodeJS.Timer;
 }
 
-export type StateWithMessageType<M> = Vars & Impl<M>;
+export type StateWithMessageType<M> = Vars & QueueImpl<M>;
 export type State = StateWithMessageType<{}>;
 
 export interface QueuedResponse<T> {
@@ -38,7 +46,9 @@ export interface QueuedResponse<T> {
     rawResponse: any;
 }
 
-export function initializeCloudFunctionQueue<M>(impl: Impl<M>): StateWithMessageType<M> {
+export function initializeCloudFunctionQueue<M>(
+    impl: QueueImpl<M>
+): StateWithMessageType<M> {
     let state: StateWithMessageType<M> = {
         ...impl,
         callResultsPending: new Map(),
@@ -51,12 +61,13 @@ export function initializeCloudFunctionQueue<M>(impl: Impl<M>): StateWithMessage
 
 export function enqueueCallRequest(
     state: State,
-    call: FunctionCall
+    callArgsStr: string,
+    CallId: string
 ): Promise<QueuedResponse<any>> {
-    const deferred = new PendingRequest(call);
-    state.callResultsPending.set(call.CallId, deferred);
+    const deferred = new PendingRequest(callArgsStr);
+    state.callResultsPending.set(CallId, deferred);
     startResultCollectorIfNeeded(state);
-    state.publish(deferred.call);
+    state.publishMessage(deferred.callArgsStr);
     return deferred.promise;
 }
 
@@ -67,7 +78,7 @@ export async function stop(state: State) {
     let count = 0;
     let tasks = [];
     while (state.collectorFunnel.getConcurrency() > 0 && count++ < 100) {
-        tasks.push(state.sendStopQueueMessage());
+        tasks.push(state.publishControlMessage("stopqueue"));
         await sleep(100);
     }
     await Promise.all(tasks);
@@ -115,23 +126,25 @@ async function resultCollector<MessageType>(state: StateWithMessageType<MessageT
         try {
             const callResults: CallResults<MessageType>[] = [];
             for (const m of Messages) {
-                if (state.isStopQueueMessage(m)) {
+                if (state.isControlMessage(m, "stopqueue")) {
                     return;
                 }
-                const CallId = state.getCallId(m);
-                if (state.isStartedFunctionCallMessage(m)) {
+                const CallId = state.getMessageAttribute(m, CallIdAttribute);
+                if (state.isControlMessage(m, "functionstarted")) {
                     log(`Received Function Started message CallID: ${CallId}`);
-                    const deferred = state.callResultsPending.get(CallId);
+                    const deferred = CallId && state.callResultsPending.get(CallId);
                     if (deferred) {
                         deferred!.executing = true;
                     }
                 } else {
-                    callResults.push({
-                        CallId,
-                        message: m,
-                        deferred: state.callResultsPending.get(CallId)
-                    });
-                    state.callResultsPending.delete(CallId);
+                    if (CallId) {
+                        callResults.push({
+                            CallId,
+                            message: m,
+                            deferred: state.callResultsPending.get(CallId)
+                        });
+                        state.callResultsPending.delete(CallId);
+                    }
                 }
             }
             resolvePromises(callResults);
@@ -153,7 +166,7 @@ function retryQueue(state: State) {
             if (!pending.executing) {
                 if (now - pending.created > 4 * 1000) {
                     log(`Lambda function not started for CallId ${CallId}, retrying...`);
-                    state.publish(pending.call);
+                    state.publishMessage(pending.callArgsStr);
                 }
             }
         }

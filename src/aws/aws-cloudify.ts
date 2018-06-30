@@ -2,19 +2,20 @@ import * as aws from "aws-sdk";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
-import {
-    AnyFunction,
-    CreateFunctionOptions,
-    Response,
-    ResponsifiedFunction
-} from "../cloudify";
+import { CreateFunctionOptions, ResponsifiedFunction } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { FunctionCall, FunctionReturn } from "../shared";
-import { NonFunctionProperties, PartialRequire } from "../type-helpers";
-import { pollAWSRequest } from "./aws-shared";
+import { FunctionCall, FunctionReturn, processResponse, sleep } from "../shared";
+import { AnyFunction } from "../type-helpers";
+import {
+    isControlMessage,
+    publishControlMessage,
+    publishSNS,
+    receiveMessages,
+    sqsMessageAttribute
+} from "./aws-queue";
 
 export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
 
@@ -52,7 +53,7 @@ export interface AWSServices {
 export const name: string = "aws";
 
 type AWSCloudQueueState = cloudqueue.StateWithMessageType<aws.SQS.Message>;
-type AWSCloudQueueImpl = cloudqueue.Impl<aws.SQS.Message>;
+type AWSCloudQueueImpl = cloudqueue.QueueImpl<aws.SQS.Message>;
 
 export interface State {
     resources: AWSResources;
@@ -172,6 +173,24 @@ async function createLogGroup(logGroupName: string, services: AWSServices) {
     return response;
 }
 
+export async function pollAWSRequest<T>(
+    n: number,
+    description: string,
+    fn: () => aws.Request<T, aws.AWSError>
+) {
+    await sleep(2000);
+    let success = false;
+    for (let i = 0; i < n; i++) {
+        log(`Polling ${description}...`);
+        const result = await quietly(fn());
+        if (result) {
+            return result;
+        }
+        await sleep(1000);
+    }
+    throw new Error("Polling failed for ${description}");
+}
+
 export async function initialize(fModule: string, options: Options = {}): Promise<State> {
     const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
@@ -260,64 +279,45 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     }
 }
 
-interface QueuedCall {
-    fname: string;
-    args: any[];
+async function callFunctionWithQueue(
+    queueState: AWSCloudQueueState,
+    callArgsStr: string,
+    CallId: string
+) {
+    const responsePromise = await cloudqueue.enqueueCallRequest(
+        queueState,
+        callArgsStr,
+        CallId
+    );
+    const { returned, rawResponse } = await responsePromise;
+    return processResponse(undefined, returned, rawResponse);
 }
 
-async function callFunction(state: State, call: QueuedCall) {
-    const CallId = uuidv4();
-    const { FunctionName } = state.resources;
-    const { ResponseQueueUrl } = state.resources;
-    let callArgs: FunctionCall = {
-        name: call.fname,
-        args: call.args,
-        CallId,
-        ResponseQueueUrl
-    };
-    const callArgsStr = JSON.stringify(callArgs);
-    log(`Calling cloud function "${call.fname}" with args: ${callArgsStr}`, "");
-    const { lambda } = state.services;
+async function callFunction(
+    lambda: aws.Lambda,
+    FunctionName: string,
+    callArgsStr: string,
+    callFunnel: Funnel
+) {
     let returned: FunctionReturn | undefined;
     let error: Error | undefined;
     let rawResponse: any;
-    if (state.queueState) {
-        const { sns } = state.services;
-        const responsePromise = await cloudqueue.enqueueCallRequest(
-            state.queueState!,
-            callArgs
-        );
-        ({ returned, rawResponse } = await responsePromise);
-    } else {
-        const request: aws.Lambda.Types.InvocationRequest = {
-            FunctionName: FunctionName,
-            LogType: "Tail",
-            Payload: callArgsStr
-        };
-        log(`Invocation request: ${humanStringify(request)}`);
-        const { callFunnel } = state;
-        rawResponse = await callFunnel.push(() => lambda.invoke(request).promise());
-        log(`  returned: ${humanStringify(rawResponse)}`);
-        log(`  requestId: ${rawResponse.$response.requestId}`);
-        if (rawResponse.FunctionError) {
-            if (rawResponse.LogResult) {
-                log(Buffer.from(rawResponse.LogResult!, "base64").toString());
-            }
-            error = new Error(rawResponse.Payload as string);
+    const request: aws.Lambda.Types.InvocationRequest = {
+        FunctionName: FunctionName,
+        LogType: "Tail",
+        Payload: callArgsStr
+    };
+    rawResponse = await callFunnel.push(() => lambda.invoke(request).promise());
+    log(`  returned: ${humanStringify(rawResponse)}`);
+    log(`  requestId: ${rawResponse.$response.requestId}`);
+    if (rawResponse.FunctionError) {
+        if (rawResponse.LogResult) {
+            log(Buffer.from(rawResponse.LogResult!, "base64").toString());
         }
-        returned =
-            !error && rawResponse.Payload && JSON.parse(rawResponse.Payload as string);
+        error = new Error(rawResponse.Payload as string);
     }
-
-    if (returned && returned.type === "error") {
-        const errValue = returned.value;
-        error = new Error(errValue.message);
-        error.name = errValue.name;
-        error.stack = errValue.stack;
-    }
-    const value = !error && returned && returned.value;
-    let rv: Response<ReturnType<any>> = { value, error, rawResponse };
-    return rv;
+    returned = !error && rawResponse.Payload && JSON.parse(rawResponse.Payload as string);
+    return processResponse(error, returned, rawResponse);
 }
 
 export function cloudifyWithResponse<F extends AnyFunction>(
@@ -325,10 +325,26 @@ export function cloudifyWithResponse<F extends AnyFunction>(
     fn: F
 ): ResponsifiedFunction<F> {
     const responsifedFunc = async (...args: any[]) => {
-        return callFunction(state, {
-            fname: fn.name,
-            args
-        });
+        const CallId = uuidv4();
+        const { ResponseQueueUrl } = state.resources;
+        let callArgs: FunctionCall = {
+            name: fn.name,
+            args,
+            CallId,
+            ResponseQueueUrl
+        };
+        const callArgsStr = JSON.stringify(callArgs);
+        log(`Calling cloud function "${callArgs.name}" with args: ${callArgsStr}`, "");
+        if (state.queueState) {
+            return callFunctionWithQueue(state.queueState, callArgsStr, CallId);
+        } else {
+            const {
+                callFunnel,
+                services: { lambda },
+                resources: { FunctionName }
+            } = state;
+            return callFunction(lambda, FunctionName, callArgsStr, callFunnel);
+        }
     };
     return responsifedFunc as any;
 }
@@ -434,15 +450,11 @@ export function cleanupResources(resourceString: string) {
 }
 
 export async function cancelWithoutCleanup(state: PartialState) {
-    const { sqs } = state.services;
-    const { ResponseQueueUrl } = state.resources;
     const { callFunnel } = state;
-    let tasks = [];
     callFunnel && callFunnel.clear();
     if (state.queueState) {
-        tasks.push(cloudqueue.stop(state.queueState));
+        await cloudqueue.stop(state.queueState);
     }
-    await Promise.all(tasks);
 }
 
 export async function setConcurrency(state: State, maxConcurrentExecutions: number) {
@@ -457,11 +469,7 @@ export async function setConcurrency(state: State, maxConcurrentExecutions: numb
             })
             .promise();
     } else {
-        if (state.callFunnel) {
-            state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
-        } else {
-            state.callFunnel = new Funnel(maxConcurrentExecutions);
-        }
+        state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
     }
 }
 
@@ -479,40 +487,6 @@ export function translateOptions({
 
 export function getFunctionImpl() {
     return exports;
-}
-
-function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
-    const a = message.MessageAttributes;
-    if (!a) {
-        return undefined;
-    }
-    return a[attr] && a[attr].StringValue;
-}
-
-export function createControlMessage(
-    QueueUrl: string,
-    attrs: cloudqueue.Attributes
-): aws.SQS.SendMessageRequest {
-    const attributes: aws.SQS.MessageBodyAttributeMap = {};
-    Object.keys(attrs).forEach(key => {
-        attributes[key] = { DataType: "String", StringValue: attrs[key] };
-    });
-    return {
-        QueueUrl,
-        MessageBody: "empty",
-        MessageAttributes: {
-            ...attributes
-        }
-    };
-}
-
-export function sendFunctionStartedMessage(
-    QueueUrl: string,
-    CallId: string,
-    sqs: aws.SQS
-) {
-    const message = createControlMessage(QueueUrl, { CallId, cloudify: "started" });
-    return sqs.sendMessage(message);
 }
 
 export async function initializeQueue(
@@ -557,59 +531,15 @@ export async function initializeQueue(
     resources.SNSLambdaSubscriptionArn = snsRepsonse.SubscriptionArn!;
 
     return {
-        isStopQueueMessage: message =>
-            sqsMessageAttribute(message, "cloudify") === "stop",
-        isStartedFunctionCallMessage: message =>
-            sqsMessageAttribute(message, "cloudify") === "started",
-        receiveMessages: () => receiveMessages(state),
+        getMessageAttribute: (message, attr) => sqsMessageAttribute(message, attr),
+        receiveMessages: () => receiveMessages(sqs, resources.ResponseQueueUrl!),
         getMessageBody: message => message.Body || "",
-        getCallId: message => sqsMessageAttribute(message, "CallId") || "",
-        publish: call => publish(state, call),
-        sendStopQueueMessage: () => sendStopQueueMessage(state),
-        description: () => state.resources.ResponseQueueUrl!
+        description: () => resources.ResponseQueueUrl!,
+        publishMessage: call => publishSNS(sns, resources.RequestTopicArn!, call),
+        publishControlMessage: (type, attr) =>
+            publishControlMessage(sqs, resources.ResponseQueueUrl!, type, attr),
+        isControlMessage: (message, type) => isControlMessage(message, type)
     };
-}
-
-export function publish(state: State, call: FunctionCall): void {
-    carefully(
-        state.services.sns.publish({
-            TopicArn: state.resources.RequestTopicArn,
-            Message: JSON.stringify(call)
-        })
-    );
-}
-
-export function sendStopQueueMessage(state: State): Promise<any> {
-    const { sqs } = state.services;
-    const { ResponseQueueUrl } = state.resources;
-    const message = createControlMessage(ResponseQueueUrl!, { cloudify: "stop" });
-    return sqs.sendMessage(message).promise();
-}
-
-export async function receiveMessages(state: State): Promise<aws.SQS.Message[]> {
-    const { sqs } = state.services;
-    const { ResponseQueueUrl } = state.resources;
-    const response = await sqs
-        .receiveMessage({
-            QueueUrl: ResponseQueueUrl!,
-            WaitTimeSeconds: 20,
-            MaxNumberOfMessages: 10,
-            MessageAttributeNames: ["All"]
-        })
-        .promise();
-    const { Messages = [] } = response;
-    if (Messages.length > 0) {
-        carefully(
-            sqs.deleteMessageBatch({
-                QueueUrl: ResponseQueueUrl!,
-                Entries: Messages.map(m => ({
-                    Id: m.MessageId!,
-                    ReceiptHandle: m.ReceiptHandle!
-                }))
-            })
-        );
-    }
-    return Messages;
 }
 
 // XXX The log group created by SNS doesn't have a programmatic API to get the name. Skip?

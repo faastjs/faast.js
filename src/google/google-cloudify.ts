@@ -1,24 +1,19 @@
-import Axios, { AxiosPromise, AxiosResponse } from "axios";
+import Axios, { AxiosPromise } from "axios";
 import * as sys from "child_process";
-import { google, cloudfunctions_v1beta2, pubsub_v1 } from "googleapis";
+import { cloudfunctions_v1beta2, google, pubsub_v1 } from "googleapis";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
-import {
-    AnyFunction,
-    Response,
-    ResponsifiedFunction,
-    CreateFunctionOptions
-} from "../cloudify";
+import { CreateFunctionOptions, ResponsifiedFunction } from "../cloudify";
+import { Funnel } from "../funnel";
 import { log } from "../log";
-import { PackerResult, packer } from "../packer";
-import { FunctionCall, FunctionReturn, sleep } from "../shared";
-
+import { packer, PackerResult } from "../packer";
+import * as cloudqueue from "../queue";
+import { FunctionCall, FunctionReturn, processResponse, sleep } from "../shared";
+import { Mutable, AnyFunction } from "../type-helpers";
+import { publish, pubsubMessageAttribute, receiveMessages } from "./google-queue";
 import CloudFunctionsApi = cloudfunctions_v1beta2;
 import PubSubApi = pubsub_v1;
-import { Funnel, AutoFunnel, Deferred } from "../funnel";
-import * as cloudqueue from "../queue";
-import { Mutable } from "../type-helpers";
 
 export interface Options {
     region?: string;
@@ -32,7 +27,7 @@ export interface GoogleResources {
     trampoline: string;
     project: string;
     isEmulator: boolean;
-    url: string;
+    url?: string;
     requestQueueTopic?: string;
     responseQueueTopic?: string;
     responseSubscription?: string;
@@ -48,7 +43,7 @@ export const name: string = "google";
 type ReceivedMessage = PubSubApi.Schema$ReceivedMessage;
 
 type GoogleCloudQueueState = cloudqueue.StateWithMessageType<ReceivedMessage>;
-type GoogleCloudQueueImpl = cloudqueue.Impl<ReceivedMessage>;
+type GoogleCloudQueueImpl = cloudqueue.QueueImpl<ReceivedMessage>;
 
 export type State = {
     resources: GoogleResources;
@@ -222,16 +217,40 @@ async function initializeWithApi(
     log(`Upload zip file response: ${uploadResult.statusText}`);
     const functionName = "cloudify-" + nonce;
     const trampoline = `projects/${project}/locations/${region}/functions/${functionName}`;
+
+    let pubsub = google.pubsub("v1");
+    let resources: Mutable<GoogleResources> = {
+        trampoline,
+        project,
+        isEmulator
+    };
+    let state: State = {
+        resources,
+        services: { cloudFunctionsApi, pubsub },
+        callFunnel: new Funnel()
+    };
+    if (useQueue) {
+        const googleQueueImpl = await initializeGoogleQueue(state, project, functionName);
+        state.queueState = cloudqueue.initializeCloudFunctionQueue(googleQueueImpl);
+    }
+
     const requestBody: CloudFunctionsApi.Schema$CloudFunction = {
         name: trampoline,
-        entryPoint: "trampoline",
+        entryPoint: useQueue ? "pubsubTrampoline" : "trampoline",
         timeout: `${timeoutSec}s`,
         availableMemoryMb: memorySize,
-        httpsTrigger: {},
         sourceUploadUrl: uploadUrlResponse.uploadUrl,
         ...googleCloudFunctionOptions,
         ...rest
     };
+    if (useQueue) {
+        requestBody.eventTrigger = {
+            eventType: "providers/cloud.pubsub/eventTypes/topic.publish",
+            resource: resources.responseQueueTopic
+        };
+    } else {
+        requestBody.httpsTrigger = {};
+    }
     validateGoogleLabels(requestBody.labels);
     const existingFunc = await quietly(
         cloudFunctionsApi.projects.locations.functions.get({ name })
@@ -272,22 +291,7 @@ async function initializeWithApi(
         throw new Error("Could not get http trigger url");
     }
     log(`Function URL: ${url}`);
-    let pubsub = google.pubsub("v1");
-    let resources: Mutable<GoogleResources> = {
-        trampoline,
-        project,
-        isEmulator,
-        url
-    };
-    let state: State = {
-        resources,
-        services: { cloudFunctionsApi, pubsub },
-        callFunnel: new Funnel()
-    };
-    if (useQueue) {
-        const googleQueueImpl = await initializeGoogleQueue(state, project, functionName);
-        state.queueState = cloudqueue.initializeCloudFunctionQueue(googleQueueImpl);
-    }
+    resources.url = url;
     return state;
 }
 
@@ -303,74 +307,29 @@ async function initializeGoogleQueue(
     resources.responseQueueTopic = `projects/${project}/topics/${functionName}-Responses`;
     await pubsub.projects.topics.create({ name: resources.responseQueueTopic });
 
+    resources.responseSubscription = `projects/${project}/subscriptions/${functionName}-Responses`;
+    await pubsub.projects.subscriptions.create({
+        name: resources.responseSubscription,
+        requestBody: {
+            topic: resources.responseQueueTopic
+        }
+    });
+
     return {
-        isStopQueueMessage: message =>
-            pubsubMessageAttribute(message, "cloudify") === "stop",
-        isStartedFunctionCallMessage: message =>
-            pubsubMessageAttribute(message, "cloudify") === "started",
-        receiveMessages: () => receiveMessages(state),
+        getMessageAttribute: (message, attr) => pubsubMessageAttribute(message, attr),
+        receiveMessages: () => receiveMessages(pubsub, resources.responseSubscription!),
         getMessageBody: received => (received.message && received.message.data) || "",
-        getCallId: message => pubsubMessageAttribute(message, "CallId") || "",
-        publish: call => publish(state, call),
-        sendStopQueueMessage: () => sendStopQueueMessage(state),
-        description: () => state.resources.responseQueueTopic!
+        description: () => state.resources.responseQueueTopic!,
+        publishMessage: (body, attributes) =>
+            publish(pubsub, resources.requestQueueTopic!, body, attributes),
+        publishControlMessage: (type, attr) =>
+            publish(pubsub, resources.responseQueueTopic!, "empty", {
+                ...attr,
+                cloudify: type
+            }),
+        isControlMessage: (message, type) =>
+            pubsubMessageAttribute(message, "cloudify") === type
     };
-}
-
-function pubsubMessageAttribute({ message }: ReceivedMessage, attr: string) {
-    return message && message.attributes && (message.attributes[attr] as string);
-}
-
-async function receiveMessages(state: State) {
-    const { pubsub } = state.services;
-    const { responseSubscription } = state.resources;
-    const response = await pubsub.projects.subscriptions.pull({
-        subscription: responseSubscription,
-        // XXX maxMessages?
-        requestBody: { returnImmediately: false, maxMessages: 10 }
-    });
-    const messages = response.data.receivedMessages || [];
-    if (messages.length > 0) {
-        carefully(
-            pubsub.projects.subscriptions.acknowledge({
-                subscription: responseSubscription,
-                requestBody: {
-                    ackIds: messages.map(m => m.ackId || "").filter(m => m != "")
-                }
-            })
-        );
-    }
-    return messages;
-}
-
-async function publish(state: State, call: FunctionCall) {
-    const { pubsub } = state.services;
-    const { requestQueueTopic } = state.resources!;
-    carefully(
-        pubsub.projects.topics.publish({
-            topic: requestQueueTopic,
-            requestBody: { messages: [{ data: JSON.stringify(call) }] }
-        })
-    );
-}
-
-export function createControlMessage(
-    attrs: cloudqueue.Attributes
-): PubSubApi.Schema$PubsubMessage {
-    const attributes: object = {};
-    Object.keys(attrs).forEach(key => {
-        attributes[key] = { DataType: "String", StringValue: attrs[key] };
-    });
-    return { attributes };
-}
-
-async function sendStopQueueMessage(state: State) {
-    const { pubsub } = state.services;
-    const { responseQueueTopic } = state.resources;
-    return pubsub.projects.topics.publish({
-        topic: responseQueueTopic,
-        requestBody: { messages: [createControlMessage({ cloudify: "stop" })] }
-    });
 }
 
 export function exec(cmd: string) {
@@ -379,11 +338,35 @@ export function exec(cmd: string) {
     return result;
 }
 
+async function callFunctionWithQueue(
+    queueState: GoogleCloudQueueState,
+    callArgs: FunctionCall
+) {
+    const responsePromise = await cloudqueue.enqueueCallRequest(
+        queueState,
+        JSON.stringify(callArgs),
+        callArgs.CallId
+    );
+    const { returned, rawResponse } = await responsePromise;
+    return processResponse(undefined, returned, rawResponse);
+}
+
+async function callFunction(url: string, callArgs: FunctionCall, callFunnel: Funnel) {
+    let error: Error | undefined;
+    const rawResponse = await callFunnel.push(() =>
+        Axios.put<FunctionReturn>(url!, callArgs)
+    );
+    if (rawResponse.status < 200 || rawResponse.status >= 300) {
+        error = new Error(rawResponse.statusText);
+    }
+    log(`  returned: ${humanStringify(rawResponse.data)}`);
+    return processResponse(error, rawResponse.data, rawResponse);
+}
+
 export function cloudifyWithResponse<F extends AnyFunction>(
     state: State,
     fn: F
 ): ResponsifiedFunction<F> {
-    const { isEmulator, trampoline, url } = state.resources;
     const promisifedFunc = async (...args: any[]) => {
         const CallId = uuidv4();
         let callArgs: FunctionCall = {
@@ -393,31 +376,23 @@ export function cloudifyWithResponse<F extends AnyFunction>(
         };
         const data = JSON.stringify(callArgs);
         log(`Calling cloud function "${fn.name}" with args: ${data}`, "");
-        const rawResponse = await Axios.put<FunctionReturn>(url, callArgs);
-        let error: Error | undefined;
-        if (rawResponse.status < 200 || rawResponse.status >= 300) {
-            error = new Error(rawResponse.statusText);
+        if (state.queueState) {
+            return callFunctionWithQueue(state.queueState, callArgs);
+        } else {
+            return callFunction(state.resources.url!, callArgs, state.callFunnel);
         }
-        log(`  returned: ${humanStringify(rawResponse.data)}`);
-        let returned: FunctionReturn = rawResponse.data;
-        if (returned && returned.type === "error") {
-            const errValue = returned.value;
-            error = new Error(errValue.message);
-            error.name = errValue.name;
-            error.stack = errValue.stack;
-        }
-        const value = returned && returned.value;
-        const rv: Response<ReturnType<F>> = { error, value, rawResponse };
-        return rv;
     };
     return promisifedFunc as any;
 }
 
 export async function cleanup(state: State) {
+    const cancelPromise = cancelWithoutCleanup(state);
     await deleteFunction(
         state.services.cloudFunctionsApi,
         state.resources.trampoline
     ).catch(_ => {});
+    xxx;
+    await cancelPromise;
 }
 
 /**
@@ -500,9 +475,12 @@ export async function cleanupResources(resources: string) {
     }
 }
 
-/// XXX All the below are unimplemented
-export async function cancelWithoutCleanup(_state: State) {
-    throw new Error("cancelWithoutCleanup not implemented");
+export async function cancelWithoutCleanup(state: Partial<State>) {
+    const { callFunnel } = state;
+    callFunnel && callFunnel.clear();
+    if (state.queueState) {
+        await cloudqueue.stop(state.queueState);
+    }
 }
 
 export async function setConcurrency(
@@ -510,7 +488,11 @@ export async function setConcurrency(
     maxConcurrentExecutions: number
 ): Promise<void> {
     const { pubsub } = state.services;
-    xxx;
+    if (state.queueState) {
+        throw new Error("setConcurrency not implemented");
+    } else {
+        state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
+    }
 }
 
 export function translateOptions({
