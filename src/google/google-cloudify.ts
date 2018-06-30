@@ -1,6 +1,6 @@
 import Axios, { AxiosPromise } from "axios";
 import * as sys from "child_process";
-import { cloudfunctions_v1beta2, google, pubsub_v1 } from "googleapis";
+import { cloudfunctions_v1beta2, google, pubsub_v1, GoogleApis } from "googleapis";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
@@ -10,9 +10,9 @@ import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import { FunctionCall, FunctionReturn, processResponse, sleep } from "../shared";
-import { Mutable, AnyFunction } from "../type-helpers";
+import { Mutable, AnyFunction, Omit } from "../type-helpers";
 import { publish, pubsubMessageAttribute, receiveMessages } from "./google-queue";
-import CloudFunctionsApi = cloudfunctions_v1beta2;
+import CloudFunctions = cloudfunctions_v1beta2;
 import PubSubApi = pubsub_v1;
 
 export interface Options {
@@ -20,22 +20,21 @@ export interface Options {
     timeoutSec?: number;
     memorySize?: number;
     useQueue?: boolean;
-    googleCloudFunctionOptions?: CloudFunctionsApi.Schema$CloudFunction;
+    googleCloudFunctionOptions?: CloudFunctions.Schema$CloudFunction;
 }
 
 export interface GoogleResources {
     trampoline: string;
-    project: string;
-    isEmulator: boolean;
-    url?: string;
     requestQueueTopic?: string;
     responseQueueTopic?: string;
     responseSubscription?: string;
+    isEmulator: boolean;
 }
 
 export interface GoogleServices {
-    readonly cloudFunctionsApi: CloudFunctionsApi.Cloudfunctions;
+    readonly cloudFunctions: CloudFunctions.Cloudfunctions;
     readonly pubsub: PubSubApi.Pubsub;
+    readonly google: GoogleApis;
 }
 
 export const name: string = "google";
@@ -50,16 +49,25 @@ export type State = {
     services: GoogleServices;
     queueState?: GoogleCloudQueueState;
     callFunnel: Funnel;
+    url?: string;
 };
 
-export async function initializeGoogleAPIs() {
+export async function initializeGoogleServices(
+    useEmulator: boolean
+): Promise<GoogleServices> {
     const auth = await google.auth.getClient({
         scopes: ["https://www.googleapis.com/auth/cloud-platform"]
     });
 
     const project = await google.auth.getDefaultProjectId();
     google.options({ auth });
-    return google;
+    return {
+        cloudFunctions: useEmulator
+            ? await getEmulator()
+            : google.cloudfunctions("v1beta2"),
+        pubsub: google.pubsub("v1"),
+        google
+    };
 }
 
 interface PollOptions {
@@ -119,8 +127,8 @@ async function quietly<T>(promise: AxiosPromise<T>) {
 }
 
 async function waitFor(
-    api: CloudFunctionsApi.Cloudfunctions,
-    response: AxiosPromise<CloudFunctionsApi.Schema$Operation>
+    api: CloudFunctions.Cloudfunctions,
+    response: AxiosPromise<CloudFunctions.Schema$Operation>
 ) {
     const name = (await response).data.name!;
     return poll({
@@ -134,7 +142,7 @@ async function waitFor(
     });
 }
 
-async function deleteFunction(api: CloudFunctionsApi.Cloudfunctions, path: string) {
+async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) {
     log(`delete function ${path}`);
     const response = await waitFor(
         api,
@@ -145,13 +153,12 @@ async function deleteFunction(api: CloudFunctionsApi.Cloudfunctions, path: strin
 }
 
 export async function initialize(fmodule: string, options: Options = {}): Promise<State> {
-    const google = await initializeGoogleAPIs();
+    const services = await initializeGoogleServices(false);
     const project = await google.auth.getDefaultProjectId();
-    const cloudFunctionsApi = google.cloudfunctions("v1beta2");
-    return initializeWithApi(fmodule, options, cloudFunctionsApi, project, false);
+    return initializeWithApi(services, fmodule, options, project, false);
 }
 
-async function getEmulator(): Promise<CloudFunctionsApi.Cloudfunctions> {
+async function getEmulator(): Promise<CloudFunctions.Cloudfunctions> {
     exec("functions start");
     const output = exec(`functions status`);
     const rest = output.match(/REST Service\s+│\s+(http:\/\/localhost:\S+)/);
@@ -159,8 +166,6 @@ async function getEmulator(): Promise<CloudFunctionsApi.Cloudfunctions> {
         throw new Error("Could not find cloud functions service REST url");
     }
     const url = rest[1];
-
-    // Adjust localhost:8008 to match the host and port where your Emulator is running
     const DISCOVERY_URL = `${url}$discovery/rest?version=v1beta2`;
     log(`DISCOVERY_URL: ${DISCOVERY_URL}`);
     const emulator = await google.discoverAPI(DISCOVERY_URL);
@@ -168,13 +173,12 @@ async function getEmulator(): Promise<CloudFunctionsApi.Cloudfunctions> {
 }
 
 export async function initializeEmulator(fmodule: string, options: Options = {}) {
-    const google = await initializeGoogleAPIs();
+    const services = await initializeGoogleServices(true);
     const project = await google.auth.getDefaultProjectId();
-    const emulator = await getEmulator();
     return initializeWithApi(
+        services,
         fmodule,
         { ...options, useQueue: false },
-        emulator,
         project,
         true
     );
@@ -189,13 +193,14 @@ export const defaults: Required<Options> = {
 };
 
 async function initializeWithApi(
+    services: GoogleServices,
     serverModule: string,
     options: Options,
-    cloudFunctionsApi: CloudFunctionsApi.Cloudfunctions,
     project: string,
     isEmulator: boolean
 ): Promise<State> {
     log(`Create cloud function`);
+    const { cloudFunctions, pubsub } = services;
     const { archive } = await pack(serverModule);
     const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
@@ -209,7 +214,7 @@ async function initializeWithApi(
     } = options;
     const location = `projects/${project}/locations/${region}`;
     const uploadUrlResponse = await carefully(
-        cloudFunctionsApi.projects.locations.functions.generateUploadUrl({
+        cloudFunctions.projects.locations.functions.generateUploadUrl({
             parent: location
         })
     );
@@ -218,23 +223,14 @@ async function initializeWithApi(
     const functionName = "cloudify-" + nonce;
     const trampoline = `projects/${project}/locations/${region}/functions/${functionName}`;
 
-    let pubsub = google.pubsub("v1");
-    let resources: Mutable<GoogleResources> = {
-        trampoline,
-        project,
-        isEmulator
-    };
-    let state: State = {
-        resources,
-        services: { cloudFunctionsApi, pubsub },
-        callFunnel: new Funnel()
-    };
+    let resources: Mutable<GoogleResources> = { trampoline, isEmulator };
+    let state: State = { resources, services, callFunnel: new Funnel() };
     if (useQueue) {
         const googleQueueImpl = await initializeGoogleQueue(state, project, functionName);
         state.queueState = cloudqueue.initializeCloudFunctionQueue(googleQueueImpl);
     }
 
-    const requestBody: CloudFunctionsApi.Schema$CloudFunction = {
+    const requestBody: CloudFunctions.Schema$CloudFunction = {
         name: trampoline,
         entryPoint: useQueue ? "pubsubTrampoline" : "trampoline",
         timeout: `${timeoutSec}s`,
@@ -253,7 +249,7 @@ async function initializeWithApi(
     }
     validateGoogleLabels(requestBody.labels);
     const existingFunc = await quietly(
-        cloudFunctionsApi.projects.locations.functions.get({ name })
+        cloudFunctions.projects.locations.functions.get({ name })
     );
 
     if (existingFunc) {
@@ -264,8 +260,8 @@ async function initializeWithApi(
     try {
         log(`create function ${requestBody.name}`);
         await waitFor(
-            cloudFunctionsApi,
-            cloudFunctionsApi.projects.locations.functions.create({
+            cloudFunctions,
+            cloudFunctions.projects.locations.functions.create({
                 location,
                 requestBody
             })
@@ -273,7 +269,7 @@ async function initializeWithApi(
     } catch (err) {
         log(`createFunction error: ${err.stack}`);
         try {
-            await deleteFunction(cloudFunctionsApi, trampoline);
+            await deleteFunction(cloudFunctions, trampoline);
         } catch (deleteErr) {
             log(`Could not clean up after failed create function. Possible leak.`);
             log(deleteErr);
@@ -281,7 +277,7 @@ async function initializeWithApi(
         throw err;
     }
     const func = await carefully(
-        cloudFunctionsApi.projects.locations.functions.get({ name: trampoline })
+        cloudFunctions.projects.locations.functions.get({ name: trampoline })
     );
     if (!func || !func.httpsTrigger) {
         throw new Error("Could not get http trigger url");
@@ -291,7 +287,7 @@ async function initializeWithApi(
         throw new Error("Could not get http trigger url");
     }
     log(`Function URL: ${url}`);
-    resources.url = url;
+    state.url = url;
     return state;
 }
 
@@ -379,19 +375,40 @@ export function cloudifyWithResponse<F extends AnyFunction>(
         if (state.queueState) {
             return callFunctionWithQueue(state.queueState, callArgs);
         } else {
-            return callFunction(state.resources.url!, callArgs, state.callFunnel);
+            return callFunction(state.url!, callArgs, state.callFunnel);
         }
     };
     return promisifedFunc as any;
 }
 
-export async function cleanup(state: State) {
+type PartialState = Partial<State> & Pick<State, "services" | "resources">;
+
+export async function cleanup(state: PartialState) {
+    const {
+        trampoline,
+        requestQueueTopic,
+        responseSubscription,
+        responseQueueTopic,
+        isEmulator,
+        ...rest
+    } = state.resources;
+    const _exhaustiveCheck: Required<typeof rest> = {};
+    const { cloudFunctions, pubsub } = state.services;
     const cancelPromise = cancelWithoutCleanup(state);
-    await deleteFunction(
-        state.services.cloudFunctionsApi,
-        state.resources.trampoline
-    ).catch(_ => {});
-    xxx;
+    if (trampoline) {
+        await deleteFunction(cloudFunctions, trampoline).catch(_ => {});
+    }
+    if (responseSubscription) {
+        await pubsub.projects.subscriptions.delete({
+            subscription: responseSubscription
+        });
+    }
+    if (responseQueueTopic) {
+        await pubsub.projects.topics.delete({ topic: responseQueueTopic });
+    }
+    if (requestQueueTopic) {
+        await pubsub.projects.topics.delete({ topic: requestQueueTopic });
+    }
     await cancelPromise;
 }
 
@@ -459,20 +476,11 @@ export function getResourceList(state: State) {
     return JSON.stringify(state.resources);
 }
 
-export async function cleanupResources(resources: string) {
-    const { trampoline, project, isEmulator }: GoogleResources = JSON.parse(resources);
-    const google = await initializeGoogleAPIs();
-    let cloudFunctionsApi: CloudFunctionsApi.Cloudfunctions;
-    if (trampoline) {
-        log(`Cleaning up cloudify trampoline function: ${trampoline}`);
-        if (isEmulator) {
-            log(`Using emulator`);
-            cloudFunctionsApi = await getEmulator();
-        } else {
-            cloudFunctionsApi = google.cloudfunctions("v1beta2");
-        }
-        await deleteFunction(cloudFunctionsApi, trampoline).catch(_ => {});
-    }
+export async function cleanupResources(resourcesString: string) {
+    const resources: GoogleResources = JSON.parse(resourcesString);
+    let cloudFunctions: CloudFunctions.Cloudfunctions;
+    const services = await initializeGoogleServices(resources.isEmulator);
+    return cleanup({ resources, services });
 }
 
 export async function cancelWithoutCleanup(state: Partial<State>) {
