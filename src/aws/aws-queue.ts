@@ -65,12 +65,13 @@ export function isControlMessage(
 export async function receiveMessages(
     sqs: aws.SQS,
     ResponseQueueUrl: string
-): Promise<aws.SQS.Message[]> {
+): Promise<cloudqueue.ReceivedMessages<aws.SQS.Message>> {
+    const MaxNumberOfMessages = 10;
     const response = await sqs
         .receiveMessage({
             QueueUrl: ResponseQueueUrl!,
             WaitTimeSeconds: 20,
-            MaxNumberOfMessages: 10,
+            MaxNumberOfMessages,
             MessageAttributeNames: ["All"]
         })
         .promise();
@@ -84,5 +85,5 @@ export async function receiveMessages(
             }))
         }).promise();
     }
-    return Messages;
+    return { Messages, isFullMessageBatch: Messages.length === MaxNumberOfMessages };
 }

@@ -13,8 +13,13 @@ export type ControlMessageType = "stopqueue" | "functionstarted";
 
 const CallIdAttribute = "CallId";
 
+export interface ReceivedMessages<M> {
+    Messages: M[];
+    isFullMessageBatch: boolean;
+}
+
 export interface ResponseQueueImpl<M> {
-    receiveMessages(): Promise<M[]>;
+    receiveMessages(): Promise<ReceivedMessages<M>>;
     getMessageAttribute(message: M, attribute: string): string | undefined;
     getMessageBody(message: M): string;
     description(): string;
@@ -117,9 +122,9 @@ async function resultCollector<MessageType>(state: StateWithMessageType<MessageT
             }): ${state.description()}`
         );
 
-        const Messages = await state.receiveMessages();
+        const { Messages, isFullMessageBatch } = await state.receiveMessages();
         log(`received ${Messages.length} messages.`);
-        if (Messages.length === 10) {
+        if (isFullMessageBatch) {
             full = true;
         }
 

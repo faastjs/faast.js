@@ -13,22 +13,23 @@ export function pubsubMessageAttribute(
 export async function receiveMessages(
     pubsub: PubSubApi.Pubsub,
     responseSubscription: string
-) {
+): Promise<cloudqueue.ReceivedMessages<PubSubApi.Schema$ReceivedMessage>> {
+    const maxMessages = 10;
     const response = await pubsub.projects.subscriptions.pull({
         subscription: responseSubscription,
         // XXX maxMessages?
-        requestBody: { returnImmediately: false, maxMessages: 10 }
+        requestBody: { returnImmediately: false, maxMessages }
     });
-    const messages = response.data.receivedMessages || [];
-    if (messages.length > 0) {
+    const Messages = response.data.receivedMessages || [];
+    if (Messages.length > 0) {
         pubsub.projects.subscriptions.acknowledge({
             subscription: responseSubscription,
             requestBody: {
-                ackIds: messages.map(m => m.ackId || "").filter(m => m != "")
+                ackIds: Messages.map(m => m.ackId || "").filter(m => m != "")
             }
         });
     }
-    return messages;
+    return { Messages, isFullMessageBatch: Messages.length === maxMessages };
 }
 
 export async function publish(
