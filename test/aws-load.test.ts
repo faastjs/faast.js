@@ -1,11 +1,8 @@
 import * as cloudify from "../src/cloudify";
 import * as funcs from "./functions";
-import * as nock from "nock";
 import { log } from "../src/log";
 import { MonteCarloReturn } from "./functions";
 
-// let cloud: cloudify.Cloud<any, any>;
-// let lambda: cloudify.CloudFunction<any>;
 let cloud: cloudify.AWS;
 let lambda: cloudify.AWSLambda;
 let remote: cloudify.Promisified<typeof funcs>;
@@ -17,6 +14,7 @@ beforeAll(async () => {
             // Timeout: 120
             // cloudSpecific: { useQueue: false },
             memorySize: 1024
+            //memorySize: 3008
         });
         remote = lambda.cloudifyAll(funcs);
     } catch (err) {
@@ -50,7 +48,7 @@ function printLatencies(latencies: number[]) {
     log(`%O`, { min, max, median, average, stdev });
 }
 
-test(
+test.only(
     "Monte Carlo estimate of PI using 1B samples and 500 invocations",
     async () => {
         //nock.recorder.rec({ logging: log });

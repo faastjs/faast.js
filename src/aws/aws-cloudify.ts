@@ -11,10 +11,10 @@ import { FunctionCall, FunctionReturn, processResponse, sleep } from "../shared"
 import { AnyFunction } from "../type-helpers";
 import {
     isControlMessage,
-    publishControlMessage,
     publishSNS,
     receiveMessages,
-    sqsMessageAttribute
+    sqsMessageAttribute,
+    publishSQSControlMessage
 } from "./aws-queue";
 
 export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
@@ -178,15 +178,17 @@ export async function pollAWSRequest<T>(
     description: string,
     fn: () => aws.Request<T, aws.AWSError>
 ) {
-    await sleep(2000);
-    let success = false;
+    let duration = 1000;
     for (let i = 0; i < n; i++) {
         log(`Polling ${description}...`);
         const result = await quietly(fn());
         if (result) {
             return result;
         }
-        await sleep(1000);
+        await sleep(duration);
+        if (duration < 5000) {
+            duration += 1000;
+        }
     }
     throw new Error("Polling failed for ${description}");
 }
@@ -238,7 +240,8 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             ...awsLambdaOptions
         };
         log(`createFunctionRequest: ${humanStringify(createFunctionRequest)}`);
-        const func = await pollAWSRequest(100, "creating function", () =>
+        const nRetries = rolePolicy === "createTemporaryRole" ? 100 : 1;
+        const func = await pollAWSRequest(nRetries, "creating function", () =>
             lambda.createFunction(createFunctionRequest)
         );
         log(`Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`);
@@ -331,7 +334,7 @@ export function cloudifyWithResponse<F extends AnyFunction>(
             name: fn.name,
             args,
             CallId,
-            ResponseQueueUrl
+            ResponseQueueId: ResponseQueueUrl
         };
         const callArgsStr = JSON.stringify(callArgs);
         log(`Calling cloud function "${callArgs.name}" with args: ${callArgsStr}`, "");
@@ -404,11 +407,6 @@ export async function cleanup(state: PartialState) {
         log(`Deleting temporary role: ${RoleName}`);
         await deleteRole(RoleName, iam);
     }
-    if (SNSLambdaSubscriptionArn) {
-        log(`Deleting request queue subscription to lambda`);
-        await quietly(sns.unsubscribe({ SubscriptionArn: SNSLambdaSubscriptionArn }));
-    }
-
     if (SNSFeedbackRole && rolePolicy === "createTemporaryRole") {
         log(`Deleting SNS feedback role: ${SNSFeedbackRole}`);
         await deleteRole(SNSFeedbackRole, iam);
@@ -501,34 +499,33 @@ export async function initializeQueue(
     if (rolePolicy === "createTemporaryRole") {
         resources.SNSFeedbackRole = `${FunctionName}-SNSRole`;
     }
-
+    log(`Creating SNS feedback role`);
     const snsRole = await createSNSFeedbackRole(resources.SNSFeedbackRole, iam);
     resources.SNSFeedbackRole = snsRole.Role.RoleName;
-    resources.RequestTopicArn = await createSNSNotifier(
+    resources.RequestTopicArn = await createSNSTopic(
+        sns,
         `${FunctionName}-Requests`,
-        snsRole.Role.Arn,
-        sns
+        snsRole.Role.Arn
     );
+    log(`Creating SQS response queue`);
     resources.ResponseQueueUrl = await createSQSQueue(
         `${FunctionName}-Responses`,
         60,
         sqs
     );
 
-    const addPermissionResponse = await addSnsInvokePermissionsToFunction(
-        FunctionName,
-        resources.RequestTopicArn!,
-        lambda
-    );
-    const snsRepsonse = await sns
+    log(`Adding SNS invoke permissions to function`);
+    addSnsInvokePermissionsToFunction(FunctionName, resources.RequestTopicArn!, lambda);
+    log(`Subscribing SNS to invoke lambda function`);
+    const snsResponse = await sns
         .subscribe({
             TopicArn: resources.RequestTopicArn,
             Protocol: "lambda",
             Endpoint: FunctionArn
         })
         .promise();
-    log(`Created SNS subscription: ${snsRepsonse.SubscriptionArn}`);
-    resources.SNSLambdaSubscriptionArn = snsRepsonse.SubscriptionArn!;
+    log(`Created SNS subscription: ${snsResponse.SubscriptionArn}`);
+    resources.SNSLambdaSubscriptionArn = snsResponse.SubscriptionArn!;
 
     return {
         getMessageAttribute: (message, attr) => sqsMessageAttribute(message, attr),
@@ -537,31 +534,33 @@ export async function initializeQueue(
         description: () => resources.ResponseQueueUrl!,
         publishMessage: call => publishSNS(sns, resources.RequestTopicArn!, call),
         publishControlMessage: (type, attr) =>
-            publishControlMessage(sqs, resources.ResponseQueueUrl!, type, attr),
+            publishSQSControlMessage(type, sqs, resources.ResponseQueueUrl!, attr),
         isControlMessage: (message, type) => isControlMessage(message, type)
     };
 }
 
 // XXX The log group created by SNS doesn't have a programmatic API to get the name. Skip?
 // Try testing with limited function concurrency to see what errors are generated.
-async function createSNSNotifier(Name: string, RoleArn: string, sns: aws.SNS) {
-    log(`Creating SNS notifier`);
+async function createSNSTopic(sns: aws.SNS, Name: string, RoleArn?: string) {
+    log(`Creating SNS topic`);
     const topic = await sns.createTopic({ Name }).promise();
     const TopicArn = topic.TopicArn!;
-    log(`Created SNS notifier with TopicArn: ${TopicArn}`);
-    let success = await pollAWSRequest(
-        100,
-        "role for SNS invocation of lambda function failure feedback",
-        () =>
-            sns.setTopicAttributes({
-                TopicArn,
-                AttributeName: "LambdaFailureFeedbackRoleArn",
-                AttributeValue: RoleArn
-            })
-    );
+    log(`Created SNS TopicArn: ${TopicArn}`);
+    if (RoleArn) {
+        let success = await pollAWSRequest(
+            100,
+            "role for SNS invocation of lambda function failure feedback",
+            () =>
+                sns.setTopicAttributes({
+                    TopicArn,
+                    AttributeName: "LambdaFailureFeedbackRoleArn",
+                    AttributeValue: RoleArn
+                })
+        );
 
-    if (!success) {
-        throw new Error("Could not initialize lambda execution role");
+        if (!success) {
+            throw new Error("Could not initialize lambda execution role");
+        }
     }
 
     return TopicArn!;

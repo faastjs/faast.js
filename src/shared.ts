@@ -4,7 +4,7 @@ export interface FunctionCall {
     name: string;
     args: any[];
     CallId: string;
-    ResponseQueueUrl?: string;
+    ResponseQueueId?: string;
 }
 
 export interface FunctionReturn {

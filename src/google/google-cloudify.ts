@@ -368,7 +368,8 @@ export function cloudifyWithResponse<F extends AnyFunction>(
         let callArgs: FunctionCall = {
             name: fn.name,
             args,
-            CallId
+            CallId,
+            ResponseQueueId: state.resources.responseQueueTopic
         };
         const data = JSON.stringify(callArgs);
         log(`Calling cloud function "${fn.name}" with args: ${data}`, "");

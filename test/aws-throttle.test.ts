@@ -1,8 +1,6 @@
 import * as cloudify from "../src/cloudify";
-import * as funcs from "./functions";
 import { log } from "../src/log";
-import { MonteCarloReturn } from "./functions";
-import * as aws from "aws-sdk";
+import * as funcs from "./functions";
 
 let cloud: cloudify.AWS;
 let func: cloudify.AWSLambda;

@@ -67,7 +67,7 @@ export class Cloud<O, S> {
 
     async createFunction(
         fmodule: string,
-        options?: CreateFunctionOptions<O>
+        options: CreateFunctionOptions<O> = {}
     ): Promise<CloudFunction<S>> {
         const optionsImpl: O = this.impl.translateOptions(options);
         return new CloudFunction(
@@ -155,6 +155,8 @@ export class GoogleEmulator extends Cloud<google.Options, google.State> {
         super(googleEmulator);
     }
 }
+
+export class GoogleCloudFunction extends CloudFunction<google.State> {}
 
 const resolve = (module.parent!.require as NodeRequire).resolve;
 

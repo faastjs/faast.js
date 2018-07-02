@@ -1,7 +1,7 @@
 import { FunctionCall, FunctionReturn } from "../shared";
 import * as aws from "aws-sdk";
 import { SNSEvent } from "aws-lambda";
-import { publishControlMessage } from "./aws-queue";
+import { publishSQS, publishSQSControlMessage } from "./aws-queue";
 
 let sqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
@@ -80,10 +80,10 @@ export async function snsTrampoline(
     console.log(`SNS event: ${snsEvent.Records.length} records`);
     for (const record of snsEvent.Records) {
         const event = JSON.parse(record.Sns.Message) as FunctionCall;
-        const { CallId, ResponseQueueUrl } = event;
+        const { CallId, ResponseQueueId } = event;
         const startedMessage = setTimeout(
             () =>
-                publishControlMessage(sqs, ResponseQueueUrl!, "functionstarted", {
+                publishSQSControlMessage("functionstarted", sqs, ResponseQueueId!, {
                     CallId
                 }),
             2 * 1000
@@ -92,20 +92,16 @@ export async function snsTrampoline(
             clearTimeout(startedMessage);
             let result = obj;
             if (err) {
-                sendError(err, ResponseQueueUrl!, CallId);
+                sendError(err, ResponseQueueId!, CallId);
                 return;
             }
             console.log(`Result: ${JSON.stringify(result)}`);
-            sqs.sendMessage({
-                QueueUrl: ResponseQueueUrl!,
-                MessageBody: JSON.stringify(result),
-                MessageAttributes: { CallId: { DataType: "String", StringValue: CallId } }
-            }).send(err => {
-                if (err) {
-                    sendError(err, ResponseQueueUrl!, CallId);
+            publishSQS(sqs, ResponseQueueId!, JSON.stringify(result), { CallId }).catch(
+                err => {
+                    sendError(err, ResponseQueueId!, CallId);
                 }
-            });
-        }).catch(err => sendError(err, ResponseQueueUrl!, CallId));
+            );
+        }).catch(err => sendError(err, ResponseQueueId!, CallId));
     }
 }
 

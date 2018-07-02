@@ -35,21 +35,27 @@ export function publishSNS(
         .promise();
 }
 
-export function publishControlMessage(
+export function publishSQS(
     sqs: aws.SQS,
-    ResponseQueueUrl: string,
-    type: cloudqueue.ControlMessageType,
+    QueueUrl: string,
+    MessageBody: string,
     attr?: cloudqueue.Attributes
 ): Promise<any> {
     const message = {
-        QueueUrl: ResponseQueueUrl,
-        MessageBody: "empty",
-        MessageAttributes: convertMapToAWSMessageAttributes({
-            cloudify: type,
-            ...(attr || {})
-        })
+        QueueUrl,
+        MessageBody,
+        MessageAttributes: convertMapToAWSMessageAttributes(attr)
     };
     return sqs.sendMessage(message).promise();
+}
+
+export function publishSQSControlMessage(
+    type: cloudqueue.ControlMessageType,
+    sqs: aws.SQS,
+    QueueUrl: string,
+    attr?: cloudqueue.Attributes
+) {
+    return publishSQS(sqs, QueueUrl, "empty", { cloudify: type, ...(attr || {}) });
 }
 
 export function isControlMessage(
