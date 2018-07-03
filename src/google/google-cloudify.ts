@@ -1,21 +1,21 @@
 import Axios, { AxiosPromise } from "axios";
 import * as sys from "child_process";
-import { cloudfunctions_v1beta2, google, pubsub_v1, GoogleApis } from "googleapis";
+import { cloudfunctions_v1beta2, google, GoogleApis, pubsub_v1 } from "googleapis";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
 import { CreateFunctionOptions, ResponsifiedFunction } from "../cloudify";
-import { Funnel, retry } from "../funnel";
+import { Funnel } from "../funnel";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import { FunctionCall, FunctionReturn, processResponse, sleep } from "../shared";
-import { Mutable, AnyFunction, Omit } from "../type-helpers";
+import { AnyFunction, Mutable } from "../type-helpers";
 import {
+    getMessageBody,
     publish,
     pubsubMessageAttribute,
-    receiveMessages,
-    getMessageBody
+    receiveMessages
 } from "./google-queue";
 import CloudFunctions = cloudfunctions_v1beta2;
 import PubSubApi = pubsub_v1;
