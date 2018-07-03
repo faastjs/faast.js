@@ -1,6 +1,7 @@
 import { pubsub_v1 } from "googleapis";
 import * as cloudqueue from "../queue";
 import PubSubApi = pubsub_v1;
+import { TextEncoder } from "util";
 
 export function pubsubMessageAttribute(
     { message }: PubSubApi.Schema$ReceivedMessage,
@@ -32,14 +33,20 @@ export async function receiveMessages(
     return { Messages, isFullMessageBatch: Messages.length === maxMessages };
 }
 
+export function getMessageBody(received: PubSubApi.Schema$ReceivedMessage) {
+    const data = (received.message && received.message.data) || "";
+    return Buffer.from(data, "base64").toString();
+}
+
 export async function publish(
     pubsub: PubSubApi.Pubsub,
     topic: string,
     data: string,
     attributes?: cloudqueue.Attributes
 ) {
+    const buf = Buffer.from(data);
     return pubsub.projects.topics.publish({
         topic,
-        requestBody: { messages: [{ data, attributes }] }
+        requestBody: { messages: [{ data: buf.toString("base64"), attributes }] }
     });
 }

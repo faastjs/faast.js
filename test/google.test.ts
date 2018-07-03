@@ -1,17 +1,32 @@
 import * as cloudify from "../src/cloudify";
-import { checkFunctions } from "./functions-expected";
 import * as funcs from "./functions";
+import { checkFunctions } from "./functions-expected";
 
 let cloud: cloudify.Google;
-let cloudFunction: cloudify.CloudFunction<any>;
-let remote: cloudify.Promisified<typeof funcs>;
+let cloudFunctionQueue: cloudify.GoogleCloudFunction;
+let cloudFunctionHttps: cloudify.GoogleCloudFunction;
 
 beforeAll(async () => {
-    cloud = cloudify.create("google");
-    cloudFunction = await cloud.createFunction("./functions");
-    remote = cloudFunction.cloudifyAll(funcs);
-}, 120 * 1000);
+    try {
+        cloud = cloudify.create("google");
+        cloudFunctionQueue = await cloud.createFunction("./functions");
+        cloudFunctionHttps = await cloud.createFunction("./functions", {
+            useQueue: false
+        });
+    } catch (err) {
+        console.error(err);
+    }
+}, 90 * 1000);
 
-checkFunctions("Cloudify Google", () => remote);
+checkFunctions("Queue trigger", () => cloudFunctionQueue.cloudifyAll(funcs));
+checkFunctions("Https trigger", () => cloudFunctionHttps.cloudifyAll(funcs));
 
-afterAll(() => cloudFunction.cleanup(), 120 * 1000);
+afterAll(async () => {
+    cloudFunctionQueue && (await cloudFunctionQueue.cleanup());
+    cloudFunctionHttps && (await cloudFunctionHttps.cleanup());
+}, 30 * 1000);
+
+// afterAll(async () => {
+//     cloudFunctionQueue && (await cloudFunctionQueue.cancelAll());
+//     cloudFunctionHttps && (await cloudFunctionHttps.cancelAll());
+// }, 30 * 1000);

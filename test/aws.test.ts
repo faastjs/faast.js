@@ -3,22 +3,28 @@ import * as funcs from "./functions";
 import { checkFunctions } from "./functions-expected";
 
 let cloud: cloudify.AWS;
-let lambda: cloudify.AWSLambda;
-let remote: cloudify.Promisified<typeof funcs>;
+let lambdaQueue: cloudify.AWSLambda;
+let lambdaHttps: cloudify.AWSLambda;
 
 beforeAll(async () => {
     try {
         cloud = cloudify.create("aws");
-        lambda = await cloud.createFunction("./functions", {
-            //cloudSpecific: { useQueue: false }
-        });
-        remote = lambda.cloudifyAll(funcs);
+        lambdaQueue = await cloud.createFunction("./functions");
+        lambdaHttps = await cloud.createFunction("./functions", { useQueue: false });
     } catch (err) {
         console.error(err);
     }
 }, 30 * 1000);
 
-checkFunctions("Cloudify AWS", () => remote);
+checkFunctions("Queue trigger", () => lambdaQueue.cloudifyAll(funcs));
+checkFunctions("Https trigger", () => lambdaHttps.cloudifyAll(funcs));
 
-afterAll(() => lambda.cleanup(), 30 * 1000);
-//afterAll(() => lambda.cancelAll(), 30 * 1000);
+afterAll(async () => {
+    await lambdaQueue.cleanup();
+    await lambdaHttps.cleanup();
+}, 30 * 1000);
+
+// afterAll(async () => {
+//     await lambdaQueue.cancelAll();
+//     await lambdaHttps.cancelAll();
+// }, 30 * 1000);

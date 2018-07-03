@@ -474,11 +474,15 @@ export async function setConcurrency(state: State, maxConcurrentExecutions: numb
 export function translateOptions({
     timeout,
     memorySize,
-    cloudSpecific
+    cloudSpecific,
+    useQueue,
+    ...rest
 }: CreateFunctionOptions<Options>): Options {
+    const _exhaustiveCheck: Required<typeof rest> = {};
     return {
         timeout,
         memorySize,
+        useQueue,
         ...cloudSpecific
     };
 }

@@ -53,6 +53,7 @@ export interface CreateFunctionOptions<CloudSpecificOptions> {
     timeout?: number;
     memorySize?: number;
     cloudSpecific?: CloudSpecificOptions;
+    useQueue?: boolean;
 }
 
 export class Cloud<O, S> {

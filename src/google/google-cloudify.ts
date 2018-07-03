@@ -11,7 +11,12 @@ import { packer, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import { FunctionCall, FunctionReturn, processResponse, sleep } from "../shared";
 import { Mutable, AnyFunction, Omit } from "../type-helpers";
-import { publish, pubsubMessageAttribute, receiveMessages } from "./google-queue";
+import {
+    publish,
+    pubsubMessageAttribute,
+    receiveMessages,
+    getMessageBody
+} from "./google-queue";
 import CloudFunctions = cloudfunctions_v1beta2;
 import PubSubApi = pubsub_v1;
 
@@ -58,8 +63,6 @@ export async function initializeGoogleServices(
     const auth = await google.auth.getClient({
         scopes: ["https://www.googleapis.com/auth/cloud-platform"]
     });
-
-    const project = await google.auth.getDefaultProjectId();
     google.options({ auth });
     return {
         cloudFunctions: useEmulator
@@ -242,7 +245,7 @@ async function initializeWithApi(
     if (useQueue) {
         requestBody.eventTrigger = {
             eventType: "providers/cloud.pubsub/eventTypes/topic.publish",
-            resource: resources.responseQueueTopic
+            resource: resources.requestQueueTopic
         };
     } else {
         requestBody.httpsTrigger = {};
@@ -276,18 +279,20 @@ async function initializeWithApi(
         }
         throw err;
     }
-    const func = await carefully(
-        cloudFunctions.projects.locations.functions.get({ name: trampoline })
-    );
-    if (!func || !func.httpsTrigger) {
-        throw new Error("Could not get http trigger url");
+    if (!state.queueState) {
+        const func = await carefully(
+            cloudFunctions.projects.locations.functions.get({ name: trampoline })
+        );
+        if (!func || !func.httpsTrigger) {
+            throw new Error("Could not get http trigger url");
+        }
+        const { url } = func.httpsTrigger!;
+        if (!url) {
+            throw new Error("Could not get http trigger url");
+        }
+        log(`Function URL: ${url}`);
+        state.url = url;
     }
-    const { url } = func.httpsTrigger!;
-    if (!url) {
-        throw new Error("Could not get http trigger url");
-    }
-    log(`Function URL: ${url}`);
-    state.url = url;
     return state;
 }
 
@@ -314,7 +319,7 @@ async function initializeGoogleQueue(
     return {
         getMessageAttribute: (message, attr) => pubsubMessageAttribute(message, attr),
         receiveMessages: () => receiveMessages(pubsub, resources.responseSubscription!),
-        getMessageBody: received => (received.message && received.message.data) || "",
+        getMessageBody: received => getMessageBody(received),
         description: () => state.resources.responseQueueTopic!,
         publishMessage: (body, attributes) =>
             publish(pubsub, resources.requestQueueTopic!, body, attributes),
@@ -479,7 +484,6 @@ export function getResourceList(state: State) {
 
 export async function cleanupResources(resourcesString: string) {
     const resources: GoogleResources = JSON.parse(resourcesString);
-    let cloudFunctions: CloudFunctions.Cloudfunctions;
     const services = await initializeGoogleServices(resources.isEmulator);
     return cleanup({ resources, services });
 }
@@ -507,11 +511,15 @@ export async function setConcurrency(
 export function translateOptions({
     timeout,
     memorySize,
-    cloudSpecific
+    cloudSpecific,
+    useQueue,
+    ...rest
 }: CreateFunctionOptions<Options> = {}): Options {
+    const _exhaustiveCheck: Required<typeof rest> = {};
     return {
         timeoutSec: timeout,
         memorySize,
+        useQueue,
         ...cloudSpecific
     };
 }

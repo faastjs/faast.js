@@ -104,6 +104,8 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
     return nResources;
 }
 
+async function cleanupGoogle() {}
+
 async function prompt() {
     const answer = await inquirer.prompt<any>([
         {

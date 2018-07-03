@@ -198,7 +198,13 @@ function rejectAll(callResultsPending: Map<string, PendingRequest>) {
     log(`Rejecting ${callResultsPending.size} result promises`);
     for (const [key, promise] of callResultsPending) {
         log(`Rejecting call result: ${key}`);
-        promise.reject(new Error("Call to cloud function cancelled in cleanup"));
+        promise.reject(
+            new Error(
+                `Call to cloud function cancelled in cleanup: ${
+                    callResultsPending[key].callArgsStr
+                }`
+            )
+        );
     }
     callResultsPending.clear();
 }

@@ -52,7 +52,11 @@ function parseFunc(body: object): ParsedFunc {
 
 function createErrorResponse(err: Error, CallId: string | undefined): FunctionReturn {
     const errObj = {};
-    Object.getOwnPropertyNames(err).forEach(name => (errObj[name] = err[name]));
+    Object.getOwnPropertyNames(err).forEach(name => {
+        if (typeof err[name] === "string") {
+            errObj[name] = err[name];
+        }
+    });
     return {
         type: "error",
         value: errObj,
@@ -95,22 +99,34 @@ interface CloudFunctionPubSubEvent {
     context: CloudFunctionContext;
 }
 
-const pubsub = google.pubsub("v1");
+let pubsub: PubSubApi.Pubsub;
+
+async function initialize() {
+    if (!pubsub) {
+        const auth = await google.auth.getClient({
+            scopes: ["https://www.googleapis.com/auth/cloud-platform"]
+        });
+        google.options({ auth });
+        pubsub = google.pubsub("v1");
+    }
+}
 
 export async function pubsubTrampoline(event: CloudFunctionPubSubEvent): Promise<void> {
+    await initialize();
     let CallId: string = "";
     let ResponseQueueId: string | undefined;
     try {
-        const parsedFunc = parseFunc(JSON.parse(event.data.data!));
+        const str = Buffer.from(event.data.data!, "base64");
+        const parsedFunc = parseFunc(JSON.parse(str.toString()));
         ({ CallId, ResponseQueueId } = parsedFunc);
         const returned = await callFunc(parsedFunc);
+        console.log(`Returned: ${returned}, ${humanStringify(returned)}`);
         await publish(pubsub, ResponseQueueId!, JSON.stringify(returned), { CallId });
     } catch (err) {
+        console.error(err);
         if (ResponseQueueId) {
             const response = createErrorResponse(err, CallId);
             await publish(pubsub, ResponseQueueId!, JSON.stringify(response), { CallId });
-        } else {
-            console.error(err);
         }
     }
 }
