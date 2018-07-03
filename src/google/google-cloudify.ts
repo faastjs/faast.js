@@ -5,7 +5,7 @@ import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
 import { CreateFunctionOptions, ResponsifiedFunction } from "../cloudify";
-import { Funnel } from "../funnel";
+import { Funnel, retry } from "../funnel";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
@@ -354,12 +354,11 @@ async function callFunctionWithQueue(
 
 async function callFunction(url: string, callArgs: FunctionCall, callFunnel: Funnel) {
     let error: Error | undefined;
-    const rawResponse = await callFunnel.push(() =>
-        Axios.put<FunctionReturn>(url!, callArgs)
+    const rawResponse = await callFunnel.pushRetry(3, () =>
+        Axios.put<FunctionReturn>(url!, callArgs).catch(err =>
+            Promise.reject((err.response && err.response.data) || err)
+        )
     );
-    if (rawResponse.status < 200 || rawResponse.status >= 300) {
-        error = new Error(rawResponse.statusText);
-    }
     log(`  returned: ${humanStringify(rawResponse.data)}`);
     return processResponse(error, rawResponse.data, rawResponse);
 }
@@ -399,6 +398,7 @@ export async function cleanup(state: PartialState) {
         ...rest
     } = state.resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
+    log(`cleanup`);
     const { cloudFunctions, pubsub } = state.services;
     const cancelPromise = cancelWithoutCleanup(state);
     if (trampoline) {
@@ -474,7 +474,8 @@ async function uploadZip(url: string, zipStream: Readable) {
 export async function pack(functionModule: string): Promise<PackerResult> {
     return packer({
         trampolineModule: require.resolve("./google-trampoline"),
-        functionModule
+        functionModule,
+        packageBundling: "usePackageJson"
     });
 }
 
@@ -489,6 +490,7 @@ export async function cleanupResources(resourcesString: string) {
 }
 
 export async function cancelWithoutCleanup(state: Partial<State>) {
+    log(`cancelWithoutCleanup`);
     const { callFunnel } = state;
     callFunnel && callFunnel.clear();
     if (state.queueState) {

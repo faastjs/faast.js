@@ -1,3 +1,6 @@
+import { sleep } from "./shared";
+import { log } from "./log";
+
 export class Deferred<T> {
     promise: Promise<T>;
     resolve!: (arg?: any) => void;
@@ -33,6 +36,18 @@ function popFirst<T>(set: Set<T>): T | undefined {
     return firstElem;
 }
 
+export async function retry<T>(n: number, fn: () => Promise<T>) {
+    for (let i = 1; i < n; i++) {
+        try {
+            return await fn();
+        } catch (err) {
+            log(`Retrying ${i}`);
+            await sleep((i + Math.random()) * 1000);
+        }
+    }
+    return await fn();
+}
+
 export class Funnel {
     protected pendingQueue: Set<Future<any>>;
     protected concurrency: number;
@@ -63,6 +78,10 @@ export class Funnel {
         this.pendingQueue.add(future);
         this.doWork();
         return future.promise;
+    }
+
+    pushRetry<T>(n: number, worker: () => Promise<T>) {
+        return this.push(() => retry(n, worker));
     }
 
     clear() {

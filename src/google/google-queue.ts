@@ -1,7 +1,6 @@
 import { pubsub_v1 } from "googleapis";
 import * as cloudqueue from "../queue";
 import PubSubApi = pubsub_v1;
-import { TextEncoder } from "util";
 
 export function pubsubMessageAttribute(
     { message }: PubSubApi.Schema$ReceivedMessage,
