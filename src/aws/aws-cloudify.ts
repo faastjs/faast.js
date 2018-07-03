@@ -85,7 +85,7 @@ export let defaults: Required<Options> = {
     rolePolicy: "createOrReuseCachedRole",
     RoleName: "cloudify-cached-lambda-role",
     timeout: 60,
-    memorySize: 128,
+    memorySize: 256,
     useQueue: true,
     awsLambdaOptions: {}
 };

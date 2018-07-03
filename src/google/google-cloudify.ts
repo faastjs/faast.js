@@ -502,12 +502,7 @@ export async function setConcurrency(
     state: State,
     maxConcurrentExecutions: number
 ): Promise<void> {
-    const { pubsub } = state.services;
-    if (state.queueState) {
-        throw new Error("setConcurrency not implemented");
-    } else {
-        state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
-    }
+    state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
 }
 
 export function translateOptions({
