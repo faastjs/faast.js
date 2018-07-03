@@ -1,12 +1,10 @@
 import { Request, Response } from "express";
+import { google, pubsub_v1 } from "googleapis";
 import humanStringify from "human-stringify";
 import { FunctionCall, FunctionReturn } from "../shared";
 import { AnyFunction } from "../type-helpers";
-import { cloudfunctions_v1beta2, google, pubsub_v1, GoogleApis } from "googleapis";
-import PubSubApi = pubsub_v1;
-import * as cloudqueue from "../queue";
-import CloudFunctions = cloudfunctions_v1beta2;
 import { publish } from "./google-queue";
+import PubSubApi = pubsub_v1;
 
 const funcs: { [func: string]: AnyFunction } = {};
 

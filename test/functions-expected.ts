@@ -1,24 +1,33 @@
 import { Promisified } from "../src/cloudify";
+import * as cloudify from "../src/cloudify";
 import * as funcs from "./functions";
 
 export function checkFunctions(
     description: string,
-    service: () => Promisified<typeof funcs>
+    cloudProvider: string,
+    options?: cloudify.CreateFunctionOptions<any>
 ) {
     describe(description, () => {
         let remote: Promisified<typeof funcs>;
+        let lambda: cloudify.CloudFunction<any>;
 
-        beforeAll(() => {
-            remote = service();
+        beforeAll(async () => {
+            try {
+                const cloud = cloudify.create(cloudProvider);
+                lambda = await cloud.createFunction("./functions", options);
+                remote = lambda.cloudifyAll(funcs);
+            } catch (err) {
+                console.error(err);
+            }
+        }, 90 * 1000);
+
+        afterAll(async () => {
+            await lambda.cleanup();
+        }, 60 * 1000);
+
+        test("hello: string => string", async () => {
+            expect(await remote.hello("Andy")).toBe("Hello Andy!");
         });
-
-        test(
-            "hello: string => string",
-            async () => {
-                expect(await remote.hello("Andy")).toBe("Hello Andy!");
-            },
-            20 * 1000
-        );
 
         test("fact: number => number", async () => {
             expect(await remote.fact(5)).toBe(120);

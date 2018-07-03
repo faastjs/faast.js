@@ -164,6 +164,7 @@ const resolve = (module.parent!.require as NodeRequire).resolve;
 export function create(cloudName: "aws"): AWS;
 export function create(cloudName: "google"): Google;
 export function create(cloudName: "google-emulator"): GoogleEmulator;
+export function create(cloudName: string): Cloud<any, any>;
 export function create(cloudName: string): Cloud<any, any> {
     if (cloudName === "aws") {
         return new AWS();
