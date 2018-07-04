@@ -69,7 +69,7 @@ export function checkFunctions(
 import { log } from "../src/log";
 import { MonteCarloReturn } from "./functions";
 
-export function loadTest(
+export function coldStartTest(
     description: string,
     cloudProvider: string,
     maxConcurrency: number,
@@ -92,20 +92,6 @@ export function loadTest(
 
         afterAll(() => lambda.cleanup(), 60 * 1000);
         // afterAll(() => lambda.cancelAll(), 30 * 1000);
-
-        test(
-            "Load test ~100 concurrent executions",
-            async () => {
-                const N = 100;
-                const promises: Promise<string>[] = [];
-                for (let i = 0; i < N; i++) {
-                    promises.push(remote.hello(`function ${i}`));
-                }
-                const results = await Promise.all(promises);
-                results.forEach(m => expect(m).toMatch(/function \d+/));
-            },
-            90 * 1000
-        );
 
         const sum = (a: number[]) => a.reduce((sum, n) => sum + n, 0);
         const avg = (a: number[]) => sum(a) / a.length;
