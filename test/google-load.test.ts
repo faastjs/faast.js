@@ -1,4 +1,4 @@
-import { loadTest } from "./load-expected";
+import { loadTest } from "./shared";
 
 loadTest("Google Https load test", "google", 200, {
     useQueue: false,

@@ -1,6 +1,18 @@
+import * as sys from "child_process";
 import * as fs from "fs";
 import { create } from "../src/cloudify";
-import { exec, unzipInDir } from "./util";
+
+export function exec(cmd: string) {
+    const result = sys.execSync(cmd).toString();
+    console.log(result);
+    return result;
+}
+
+export function unzipInDir(dir: string, zipFile: string) {
+    exec(
+        `rm -rf ${dir} && mkdir -p ${dir} && cp ${zipFile} ${dir} && cd ${dir} && unzip -o ${zipFile}`
+    );
+}
 
 test("package aws zip file", async () => {
     const { archive: archiveAWS } = await create("aws").pack("./functions");

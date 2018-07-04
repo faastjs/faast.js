@@ -1,4 +1,4 @@
-import { loadTest } from "./load-expected";
+import { loadTest } from "./shared";
 
 loadTest("AWS Https test", "aws", 200, {
     memorySize: 1024,

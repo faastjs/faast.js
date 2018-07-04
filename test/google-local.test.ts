@@ -1,3 +1,3 @@
-import { checkFunctions } from "./functions-expected";
+import { checkFunctions } from "./shared";
 
 checkFunctions("Google Emulator", "google-emulator");

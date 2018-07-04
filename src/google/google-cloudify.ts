@@ -109,7 +109,6 @@ async function poll<T>({
         if (retries++ >= maxRetries) {
             throw new Error(`Timed out after ${retries} attempts.`);
         }
-        log(`not done, retrying...`);
         await delay(retries);
     }
 }
