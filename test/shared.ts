@@ -1,6 +1,6 @@
 import * as cloudify from "../src/cloudify";
 import { Promisified } from "../src/cloudify";
-import { AutoFunnel } from "../src/funnel";
+import { AutoFunnel, Pump } from "../src/funnel";
 import { log } from "../src/log";
 import * as funcs from "./functions";
 
@@ -188,23 +188,23 @@ export function throughputTest(
             }
         }, 90 * 1000);
 
-        afterAll(() => lambda.cleanup());
+        afterAll(() => lambda.cleanup(), 30 * 1000);
 
-        test("sustained load test for 1 minute", async () => {
-            let completed = 0;
-            const nSamplesPerFunction = 2000000;
-            const start = Date.now();
-            const autoFunnel = new AutoFunnel(
-                () => remote.monteCarloPI(nSamplesPerFunction).then(_ => completed++),
-                500
-            );
-            await new Promise(resolved => {
-                autoFunnel.fill(500);
-                setTimeout(() => {
-                    autoFunnel.fill(500);
-                }, 0);
-            });
-            console.log(`Completed ${completed} calls in 1 minute`);
-        });
+        test(
+            "sustained load test for 1 minute",
+            async () => {
+                let completed = 0;
+                const nSamplesPerFunction = 2000000;
+                const start = Date.now();
+                const pump = new Pump(500, () =>
+                    remote.monteCarloPI(nSamplesPerFunction).then(_ => completed++)
+                );
+                pump.start();
+                await funcs.delay(60 * 1000);
+                pump.stop();
+                console.log(`Completed ${completed} calls in 1 minute`);
+            },
+            90 * 1000
+        );
     });
 }
