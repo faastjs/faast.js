@@ -42,13 +42,11 @@ export function rejected(): Promise<string> {
 export interface MonteCarloReturn {
     inside: number;
     samples: number;
-    clientStart: number;
     start: number;
     end: number;
-    startLatency: number;
 }
 
-export function monteCarloPI(samples: number, clientStart: number): MonteCarloReturn {
+export function monteCarloPI(samples: number): MonteCarloReturn {
     let inside = 0;
     const start = Date.now();
     for (let n = 0; n < samples; n++) {
@@ -61,10 +59,8 @@ export function monteCarloPI(samples: number, clientStart: number): MonteCarloRe
     return {
         inside,
         samples,
-        clientStart,
         start,
-        end,
-        startLatency: start - clientStart
+        end
     };
 }
 

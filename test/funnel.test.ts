@@ -1,4 +1,4 @@
-import { Funnel, AutoFunnel } from "../src/funnel";
+import { Funnel, AutoFunnel, Pump } from "../src/funnel";
 
 function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -94,6 +94,15 @@ describe("Funnel", () => {
         await promise;
         expect(count).toBe(1);
     });
+    test("handles promise rejections without losing concurrency", async () => {
+        const funnel = new Funnel(1);
+        let executed = false;
+        expect(funnel.push(() => Promise.reject("message"))).rejects.toBe("message");
+        await funnel.push(async () => {
+            executed = true;
+        });
+        expect(executed).toBe(true);
+    });
 });
 
 describe("AutoFunnel", () => {
@@ -109,5 +118,43 @@ describe("AutoFunnel", () => {
         funnel.setMaxConcurrency(3);
         const times = await Promise.all(funnel.fill(N));
         expect(measureConcurrency(times)).toBe(3);
+    });
+});
+
+describe("Pump", () => {
+    test("Works for concurrency level 1", async () => {
+        let executed = 0;
+        const pump = new Pump(1, () => {
+            executed++;
+            return delay(100);
+        });
+        pump.start();
+        await delay(1000);
+        pump.stop();
+        expect(executed).toBe(10);
+    });
+
+    test("Works for concurrency level 10", async () => {
+        let executed = 0;
+        const pump = new Pump(10, () => {
+            executed++;
+            return delay(1000);
+        });
+        pump.start();
+        await delay(1000);
+        pump.stop();
+        expect(executed).toBe(10);
+    });
+
+    test.only("handles promise failures without losing concurrency", async () => {
+        let executed = 0;
+        const pump = new Pump(1, () => {
+            executed++;
+            return delay(100).then(_ => Promise.reject("hi"));
+        });
+        pump.start();
+        await delay(500);
+        pump.stop();
+        expect(executed).toBe(5);
     });
 });

@@ -1,5 +1,7 @@
-import { Promisified } from "../src/cloudify";
 import * as cloudify from "../src/cloudify";
+import { Promisified } from "../src/cloudify";
+import { AutoFunnel } from "../src/funnel";
+import { log } from "../src/log";
 import * as funcs from "./functions";
 
 export function checkFunctions(
@@ -66,9 +68,6 @@ export function checkFunctions(
     });
 }
 
-import { log } from "../src/log";
-import { MonteCarloReturn } from "./functions";
-
 export function coldStartTest(
     description: string,
     cloudProvider: string,
@@ -110,12 +109,25 @@ export function coldStartTest(
             async () => {
                 const nParallelFunctions = 500;
                 const nSamplesPerFunction = 2000000;
-                const promises: Promise<MonteCarloReturn & { returned: number }>[] = [];
+                const promises: Promise<{
+                    inside: number;
+                    samples: number;
+                    startLatency: number;
+                    executionLatency: number;
+                    returnLatency: number;
+                }>[] = [];
                 for (let i = 0; i < nParallelFunctions; i++) {
+                    const requested = Date.now();
                     promises.push(
                         remote
-                            .monteCarloPI(nSamplesPerFunction, Date.now())
-                            .then(x => ({ ...x, returned: Date.now() }))
+                            .monteCarloPI(nSamplesPerFunction)
+                            .then(({ inside, samples, start, end }) => ({
+                                inside,
+                                samples,
+                                startLatency: requested - start,
+                                executionLatency: end - start,
+                                returnLatency: Date.now() - end
+                            }))
                     );
                 }
 
@@ -131,8 +143,8 @@ export function coldStartTest(
                     inside += m.inside;
                     samples += m.samples;
                     startLatencies.push(m.startLatency);
-                    executionLatencies.push(m.end - m.start);
-                    returnLatencies.push(m.returned - m.end);
+                    executionLatencies.push(m.executionLatency);
+                    returnLatencies.push(m.returnLatency);
                 });
 
                 startLatencies.sort((a, b) => a - b);
@@ -154,5 +166,45 @@ export function coldStartTest(
             },
             600 * 1000
         );
+    });
+}
+
+export function throughputTest(
+    description: string,
+    cloudProvider: string,
+    options?: cloudify.CreateFunctionOptions<any>
+) {
+    describe(description, () => {
+        let lambda: cloudify.CloudFunction<any>;
+        let remote: cloudify.Promisified<typeof funcs>;
+
+        beforeAll(async () => {
+            try {
+                const cloud = cloudify.create(cloudProvider);
+                lambda = await cloud.createFunction("./functions", options);
+                remote = lambda.cloudifyAll(funcs);
+            } catch (err) {
+                console.error(err);
+            }
+        }, 90 * 1000);
+
+        afterAll(() => lambda.cleanup());
+
+        test("sustained load test for 1 minute", async () => {
+            let completed = 0;
+            const nSamplesPerFunction = 2000000;
+            const start = Date.now();
+            const autoFunnel = new AutoFunnel(
+                () => remote.monteCarloPI(nSamplesPerFunction).then(_ => completed++),
+                500
+            );
+            await new Promise(resolved => {
+                autoFunnel.fill(500);
+                setTimeout(() => {
+                    autoFunnel.fill(500);
+                }, 0);
+            });
+            console.log(`Completed ${completed} calls in 1 minute`);
+        });
     });
 }

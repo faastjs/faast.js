@@ -57,7 +57,7 @@ export class Funnel {
         this.concurrency = 0;
     }
 
-    protected async doWork() {
+    protected doWork() {
         const { pendingQueue } = this;
         while (
             pendingQueue.size > 0 &&
@@ -65,7 +65,7 @@ export class Funnel {
         ) {
             const worker = popFirst(pendingQueue)!;
             this.concurrency++;
-            worker.promise.then(_ => {
+            worker.promise.catch(_ => {}).then(_ => {
                 this.concurrency--;
                 this.doWork();
             });
@@ -114,5 +114,34 @@ export class AutoFunnel<T> extends Funnel {
             promises.push(this.push(this.worker));
         }
         return promises;
+    }
+}
+
+export class Pump<T> extends Funnel {
+    stopped: boolean = false;
+    constructor(maxConcurrency: number, protected worker: () => Promise<T>) {
+        super(maxConcurrency);
+    }
+
+    start() {
+        let restart = () => {
+            if (this.stopped) {
+                return;
+            }
+            while (this.concurrency < this.maxConcurrency) {
+                this.push(() =>
+                    this.worker()
+                        .catch(_ => {})
+                        .then(_ => setTimeout(() => restart(), 0))
+                );
+            }
+        };
+        this.stopped = false;
+        restart();
+    }
+
+    stop() {
+        this.stopped = true;
+        this.clear();
     }
 }
