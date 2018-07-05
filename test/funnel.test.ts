@@ -91,7 +91,7 @@ describe("Funnel", () => {
                 count++;
             })
             .catch(_ => {});
-        funnel.clear();
+        funnel.rejectPending();
         await promise;
         expect(count).toBe(1);
     });

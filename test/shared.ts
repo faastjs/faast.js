@@ -202,7 +202,8 @@ export function throughputTest(
                 pump.start();
                 await funcs.delay(60 * 1000);
                 pump.stop();
-                await Promise.all(pump.pending());
+                pump.clearPending();
+                await Promise.all(pump.executing());
                 console.log(`Completed ${completed} calls in 1 minute`);
             },
             90 * 1000

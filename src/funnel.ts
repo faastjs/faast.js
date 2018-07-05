@@ -49,24 +49,21 @@ export async function retry<T>(n: number, fn: () => Promise<T>) {
 }
 
 export class Funnel<T> {
-    protected pendingQueue: Set<Future<T>>;
-    protected concurrency: number;
+    protected pendingQueue: Set<Future<T>> = new Set();
+    protected executingQueue: Set<Future<T>> = new Set();
 
-    constructor(public maxConcurrency: number = 0) {
-        this.pendingQueue = new Set();
-        this.concurrency = 0;
-    }
+    constructor(public maxConcurrency: number = 0) {}
 
     protected doWork() {
         const { pendingQueue } = this;
         while (
             pendingQueue.size > 0 &&
-            (!this.maxConcurrency || this.concurrency < this.maxConcurrency)
+            (!this.maxConcurrency || this.executingQueue.size < this.maxConcurrency)
         ) {
             const worker = popFirst(pendingQueue)!;
-            this.concurrency++;
+            this.executingQueue.add(worker);
             worker.promise.catch(_ => {}).then(_ => {
-                this.concurrency--;
+                this.executingQueue.delete(worker);
                 this.doWork();
             });
             worker.execute();
@@ -84,10 +81,14 @@ export class Funnel<T> {
         return this.push(() => retry(n, worker));
     }
 
-    clear() {
+    rejectPending() {
         this.pendingQueue.forEach(p =>
             p.reject(new Error("Funnel cleared while promise pending"))
         );
+        this.pendingQueue.clear();
+    }
+
+    clearPending() {
         this.pendingQueue.clear();
     }
 
@@ -95,12 +96,20 @@ export class Funnel<T> {
         return Array.from(this.pendingQueue.values()).map(p => p.promise);
     }
 
+    executing() {
+        return Array.from(this.executingQueue.values()).map(p => p.promise);
+    }
+
+    all() {
+        return [...this.pending(), ...this.executing()];
+    }
+
     setMaxConcurrency(maxConcurrency: number) {
         this.maxConcurrency = maxConcurrency;
     }
 
     getConcurrency() {
-        return this.concurrency;
+        return this.executingQueue.size;
     }
 }
 
@@ -115,7 +124,7 @@ export class Pump<T> extends Funnel<T | void> {
             if (this.stopped) {
                 return;
             }
-            while (this.concurrency < this.maxConcurrency) {
+            while (this.executingQueue.size < this.maxConcurrency) {
                 this.push(() =>
                     this.worker()
                         .catch(_ => {})
