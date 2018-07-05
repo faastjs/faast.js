@@ -48,11 +48,11 @@ export async function retry<T>(n: number, fn: () => Promise<T>) {
     return await fn();
 }
 
-export class Funnel {
-    protected pendingQueue: Set<Future<any>>;
+export class Funnel<T> {
+    protected pendingQueue: Set<Future<T>>;
     protected concurrency: number;
 
-    constructor(protected maxConcurrency: number = 0) {
+    constructor(public maxConcurrency: number = 0) {
         this.pendingQueue = new Set();
         this.concurrency = 0;
     }
@@ -73,14 +73,14 @@ export class Funnel {
         }
     }
 
-    push<T>(worker: () => Promise<T>) {
+    push(worker: () => Promise<T>) {
         const future = new Future(worker);
         this.pendingQueue.add(future);
         this.doWork();
         return future.promise;
     }
 
-    pushRetry<T>(n: number, worker: () => Promise<T>) {
+    pushRetry(n: number, worker: () => Promise<T>) {
         return this.push(() => retry(n, worker));
     }
 
@@ -89,6 +89,10 @@ export class Funnel {
             p.reject(new Error("Funnel cleared while promise pending"))
         );
         this.pendingQueue.clear();
+    }
+
+    pending() {
+        return Array.from(this.pendingQueue.values()).map(p => p.promise);
     }
 
     setMaxConcurrency(maxConcurrency: number) {
@@ -100,24 +104,7 @@ export class Funnel {
     }
 }
 
-export class AutoFunnel<T> extends Funnel {
-    constructor(protected worker: () => Promise<T>, maxConcurrency: number = 0) {
-        super(maxConcurrency);
-    }
-
-    fill(nWorkers: number) {
-        const promises: Promise<T>[] = [];
-        if (this.maxConcurrency > 0 && nWorkers > this.maxConcurrency) {
-            nWorkers = this.maxConcurrency;
-        }
-        while (this.concurrency < nWorkers) {
-            promises.push(this.push(this.worker));
-        }
-        return promises;
-    }
-}
-
-export class Pump<T> extends Funnel {
+export class Pump<T> extends Funnel<T | void> {
     stopped: boolean = false;
     constructor(maxConcurrency: number, protected worker: () => Promise<T>) {
         super(maxConcurrency);
@@ -132,7 +119,10 @@ export class Pump<T> extends Funnel {
                 this.push(() =>
                     this.worker()
                         .catch(_ => {})
-                        .then(_ => setTimeout(() => restart(), 0))
+                        .then(x => {
+                            setTimeout(() => restart(), 0);
+                            return x;
+                        })
                 );
             }
         };
@@ -142,6 +132,10 @@ export class Pump<T> extends Funnel {
 
     stop() {
         this.stopped = true;
-        this.clear();
+    }
+
+    setMaxConcurrency(concurrency: number) {
+        super.setMaxConcurrency(concurrency);
+        !this.stopped && this.start();
     }
 }

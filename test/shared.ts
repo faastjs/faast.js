@@ -1,6 +1,6 @@
 import * as cloudify from "../src/cloudify";
 import { Promisified } from "../src/cloudify";
-import { AutoFunnel, Pump } from "../src/funnel";
+import { Pump } from "../src/funnel";
 import { log } from "../src/log";
 import * as funcs from "./functions";
 
@@ -124,7 +124,7 @@ export function coldStartTest(
                             .then(({ inside, samples, start, end }) => ({
                                 inside,
                                 samples,
-                                startLatency: requested - start,
+                                startLatency: start - requested,
                                 executionLatency: end - start,
                                 returnLatency: Date.now() - end
                             }))
@@ -202,6 +202,7 @@ export function throughputTest(
                 pump.start();
                 await funcs.delay(60 * 1000);
                 pump.stop();
+                await Promise.all(pump.pending());
                 console.log(`Completed ${completed} calls in 1 minute`);
             },
             90 * 1000

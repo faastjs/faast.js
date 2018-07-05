@@ -1,4 +1,4 @@
-import Axios, { AxiosPromise } from "axios";
+import Axios, { AxiosPromise, AxiosResponse } from "axios";
 import * as sys from "child_process";
 import { cloudfunctions_v1beta2, google, GoogleApis, pubsub_v1 } from "googleapis";
 import humanStringify from "human-stringify";
@@ -48,12 +48,13 @@ type ReceivedMessage = PubSubApi.Schema$ReceivedMessage;
 
 type GoogleCloudQueueState = cloudqueue.StateWithMessageType<ReceivedMessage>;
 type GoogleCloudQueueImpl = cloudqueue.QueueImpl<ReceivedMessage>;
+type GoogleCloudFunctionResponse = AxiosResponse<FunctionReturn>;
 
 export type State = {
     resources: GoogleResources;
     services: GoogleServices;
     queueState?: GoogleCloudQueueState;
-    callFunnel: Funnel;
+    callFunnel: Funnel<GoogleCloudFunctionResponse>;
     url?: string;
 };
 
@@ -351,7 +352,11 @@ async function callFunctionWithQueue(
     return processResponse(undefined, returned, rawResponse);
 }
 
-async function callFunction(url: string, callArgs: FunctionCall, callFunnel: Funnel) {
+async function callFunction(
+    url: string,
+    callArgs: FunctionCall,
+    callFunnel: Funnel<GoogleCloudFunctionResponse>
+) {
     let error: Error | undefined;
     const rawResponse = await callFunnel.pushRetry(3, () =>
         Axios.put<FunctionReturn>(url!, callArgs).catch(err =>

@@ -16,6 +16,7 @@ import {
     sqsMessageAttribute,
     publishSQSControlMessage
 } from "./aws-queue";
+import { PromiseResult } from "aws-sdk/lib/request";
 
 export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
 
@@ -54,11 +55,12 @@ export const name: string = "aws";
 
 type AWSCloudQueueState = cloudqueue.StateWithMessageType<aws.SQS.Message>;
 type AWSCloudQueueImpl = cloudqueue.QueueImpl<aws.SQS.Message>;
+type AWSInvocationResponse = PromiseResult<aws.Lambda.InvocationResponse, aws.AWSError>;
 
 export interface State {
     resources: AWSResources;
     services: AWSServices;
-    callFunnel: Funnel;
+    callFunnel: Funnel<AWSInvocationResponse>;
     queueState?: AWSCloudQueueState;
 }
 
@@ -300,11 +302,11 @@ async function callFunction(
     lambda: aws.Lambda,
     FunctionName: string,
     callArgsStr: string,
-    callFunnel: Funnel
+    callFunnel: Funnel<AWSInvocationResponse>
 ) {
     let returned: FunctionReturn | undefined;
     let error: Error | undefined;
-    let rawResponse: any;
+    let rawResponse: AWSInvocationResponse;
     const request: aws.Lambda.Types.InvocationRequest = {
         FunctionName: FunctionName,
         LogType: "Tail",

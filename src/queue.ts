@@ -1,5 +1,5 @@
 import debug from "debug";
-import { AutoFunnel, Deferred } from "./funnel";
+import { Deferred, Pump } from "./funnel";
 import { log } from "./log";
 import { FunctionCall, FunctionReturn, sleep } from "./shared";
 
@@ -39,7 +39,7 @@ export class PendingRequest extends Deferred<QueuedResponse<any>> {
 
 export interface Vars {
     readonly callResultsPending: Map<string, PendingRequest>;
-    readonly collectorFunnel: AutoFunnel<void>;
+    readonly collectorPump: Pump<void>;
     readonly retryTimer: NodeJS.Timer;
 }
 
@@ -57,7 +57,7 @@ export function initializeCloudFunctionQueue<M>(
     let state: StateWithMessageType<M> = {
         ...impl,
         callResultsPending: new Map(),
-        collectorFunnel: new AutoFunnel<void>(() => resultCollector(state), 10),
+        collectorPump: new Pump<void>(2, () => resultCollector(state)),
         retryTimer: setInterval(() => retryQueue(state), 5 * 1000)
     };
     startResultCollectorIfNeeded(state);
@@ -77,12 +77,12 @@ export function enqueueCallRequest(
 }
 
 export async function stop(state: State) {
-    state.collectorFunnel.clear();
+    state.collectorPump.stop();
     clearInterval(state.retryTimer);
     rejectAll(state.callResultsPending);
     let count = 0;
     let tasks = [];
-    while (state.collectorFunnel.getConcurrency() > 0 && count++ < 100) {
+    while (state.collectorPump.getConcurrency() > 0 && count++ < 100) {
         tasks.push(state.publishControlMessage("stopqueue"));
         await sleep(100);
     }
@@ -119,7 +119,7 @@ async function resultCollector<MessageType>(state: StateWithMessageType<MessageT
         log(
             `Polling response queue (size ${
                 state.callResultsPending.size
-            }): ${state.description()}`
+            }: ${state.description()}`
         );
 
         const { Messages, isFullMessageBatch } = await state.receiveMessages();
@@ -182,13 +182,15 @@ function startResultCollectorIfNeeded(vars: Vars, full: boolean = false) {
     const nPending = vars.callResultsPending.size;
     if (nPending > 0) {
         let nCollectors = full ? Math.floor(nPending / 20) + 2 : 2;
-        const funnel = vars.collectorFunnel;
-        const newCollectors = funnel.fill(nCollectors);
-        if (newCollectors.length > 0) {
+        nCollectors = Math.min(nCollectors, 10);
+        const pump = vars.collectorPump;
+        const previous = pump.maxConcurrency;
+        pump.setMaxConcurrency(nCollectors);
+        if (previous !== pump.maxConcurrency) {
             log(
-                `Started ${
-                    newCollectors.length
-                } result collectors, total: ${funnel.getConcurrency()}`
+                `Result collectors running: ${pump.getConcurrency()}, new max: ${
+                    pump.maxConcurrency
+                }`
             );
         }
     }

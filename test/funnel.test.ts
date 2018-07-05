@@ -1,4 +1,5 @@
-import { Funnel, AutoFunnel, Pump } from "../src/funnel";
+import { Funnel, Pump } from "../src/funnel";
+import { sleep } from "../src/shared";
 
 function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -28,7 +29,7 @@ function measureConcurrency(timings: Timing[]) {
 
 describe("Funnel", () => {
     test("Defaults to infinite concurrency (tested with 200)", async () => {
-        const funnel = new Funnel(0);
+        const funnel = new Funnel<Timing>(0);
         const promises = [];
         const N = 200;
         for (let i = 0; i < N; i++) {
@@ -39,7 +40,7 @@ describe("Funnel", () => {
     });
 
     test("Single concurrency is mutually exclusive", async () => {
-        const funnel = new Funnel(1);
+        const funnel = new Funnel<Timing>(1);
         const promises = [];
         const N = 10;
         for (let i = 0; i < N; i++) {
@@ -49,7 +50,7 @@ describe("Funnel", () => {
         expect(measureConcurrency(times)).toBe(1);
     });
     test("Handles concurrency level 2", async () => {
-        const funnel = new Funnel(2);
+        const funnel = new Funnel<Timing>(2);
         const promises = [];
         const N = 10;
         for (let i = 0; i < N; i++) {
@@ -59,7 +60,7 @@ describe("Funnel", () => {
         expect(measureConcurrency(times)).toBe(2);
     });
     test("Handles concurrency level 10", async () => {
-        const funnel = new Funnel(10);
+        const funnel = new Funnel<Timing>(10);
         const promises = [];
         const N = 100;
         for (let i = 0; i < N; i++) {
@@ -69,13 +70,13 @@ describe("Funnel", () => {
         expect(measureConcurrency(times)).toBe(10);
     });
     test("Resumes after finishing funnel", async () => {
-        const funnel = new Funnel(1);
+        const funnel = new Funnel<Timing>(1);
         const time1 = await funnel.push(() => timer(10));
         const time2 = await funnel.push(() => timer(10));
         expect(measureConcurrency([time1, time2])).toBe(1);
     });
     test("clears funnel", async () => {
-        const funnel = new Funnel(1);
+        const funnel = new Funnel<void>(1);
         let count = 0;
         const promise = funnel.push(async () => {
             count++;
@@ -95,7 +96,7 @@ describe("Funnel", () => {
         expect(count).toBe(1);
     });
     test("handles promise rejections without losing concurrency", async () => {
-        const funnel = new Funnel(1);
+        const funnel = new Funnel<void>(1);
         let executed = false;
         expect(funnel.push(() => Promise.reject("message"))).rejects.toBe("message");
         await funnel.push(async () => {
@@ -103,21 +104,20 @@ describe("Funnel", () => {
         });
         expect(executed).toBe(true);
     });
-});
-
-describe("AutoFunnel", () => {
-    test("Fills workers", async () => {
-        const N = 10;
-        const funnel = new AutoFunnel(() => timer(10));
-        const times = await Promise.all(funnel.fill(N));
-        expect(measureConcurrency(times)).toBe(N);
-    });
-    test("respects maxConcurrency", async () => {
-        const N = 10;
-        const funnel = new AutoFunnel(() => timer(10));
-        funnel.setMaxConcurrency(3);
-        const times = await Promise.all(funnel.fill(N));
-        expect(measureConcurrency(times)).toBe(3);
+    test("pending waits for all pending requests to finish", async () => {
+        const funnel = new Funnel<string>(1);
+        let executed = false;
+        funnel.push(async () => {
+            await sleep(200);
+            executed = true;
+            return "first";
+        });
+        funnel.push(async () => "second");
+        expect(executed).toBe(false);
+        const result = await Promise.all(funnel.pending());
+        expect(result.length).toBe(1);
+        expect(result[0]).toBe("second");
+        expect(executed).toBe(true);
     });
 });
 
@@ -146,7 +146,7 @@ describe("Pump", () => {
         expect(executed).toBe(10);
     });
 
-    test.only("handles promise failures without losing concurrency", async () => {
+    test("handles promise rejections without losing concurrency", async () => {
         let executed = 0;
         const pump = new Pump(1, () => {
             executed++;
