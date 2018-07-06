@@ -69,20 +69,28 @@ export class Funnel<T> {
         this.pendingQueue.clear();
     }
 
-    pending() {
+    pendingFutures() {
         return Array.from(this.pendingQueue.values());
     }
 
-    pendingPromises() {
-        return this.pending().map(p => p.promise);
+    pending() {
+        return this.pendingFutures().map(p => p.promise);
+    }
+
+    executingFutures() {
+        return Array.from(this.executingQueue.values());
     }
 
     executing() {
-        return Array.from(this.executingQueue.values()).map(p => p.promise);
+        return this.executingFutures().map(p => p.promise);
+    }
+
+    allFutures() {
+        return [...this.pendingFutures(), ...this.executingFutures()];
     }
 
     all() {
-        return [...this.pending(), ...this.executing()];
+        return this.allFutures().map(p => p.promise);
     }
 
     setMaxConcurrency(maxConcurrency: number) {
