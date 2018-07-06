@@ -452,7 +452,9 @@ export function cleanupResources(resourceString: string) {
 export async function cancelWithoutCleanup(state: PartialState) {
     const { callFunnel } = state;
     callFunnel &&
-        callFunnel.pending().map(p => p.reject(new Error("Rejected pending request")));
+        callFunnel
+            .pendingFutures()
+            .map(p => p.reject(new Error("Rejected pending request")));
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
     }

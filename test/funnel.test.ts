@@ -1,13 +1,9 @@
 import { Funnel, Pump } from "../src/funnel";
 import { sleep } from "../src/shared";
 
-function delay(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 async function timer(ms: number) {
     const start = Date.now();
-    await delay(ms);
+    await sleep(ms);
     const end = Date.now();
     return {
         start,
@@ -121,24 +117,22 @@ describe("Pump", () => {
         let executing = false;
         const pump = new Pump(1, () => {
             executed++;
-            expect(executing).toBe(false);
-            executing = true;
-            return delay(100).then(_ => (executing = false));
+            return sleep(100).then(_ => (executing = false));
         });
         pump.start();
-        await delay(500);
-        pump.stop();
-        expect(executed).toBe(5);
+        expect(executed).toBe(1);
+        await sleep(300);
+        expect(executed).toBeGreaterThan(1);
     });
 
     test("Works for concurrency level 10", async () => {
         let executed = 0;
         const pump = new Pump(10, () => {
             executed++;
-            return delay(1000);
+            return sleep(100);
         });
         pump.start();
-        await delay(1000);
+        await sleep(100);
         pump.stop();
         expect(executed).toBe(10);
     });
@@ -147,11 +141,27 @@ describe("Pump", () => {
         let executed = 0;
         const pump = new Pump(1, () => {
             executed++;
-            return delay(100).then(_ => Promise.reject("hi"));
+            return sleep(100).then(_ => Promise.reject("hi"));
         });
         pump.start();
-        await delay(500);
+        await sleep(500);
         pump.stop();
         expect(executed).toBe(5);
+    });
+    test("drain", async () => {
+        let started = 0;
+        let finished = 0;
+        const N = 5;
+
+        const pump = new Pump(N, async () => {
+            started++;
+            await sleep(100);
+            finished++;
+        });
+
+        pump.start();
+        expect(started - finished).toBe(N);
+        await pump.drain();
+        expect(started - finished).toBe(0);
     });
 });

@@ -148,6 +148,11 @@ export class Pump<T> extends Funnel<T | void> {
         this.stopped = true;
     }
 
+    drain() {
+        this.stop();
+        return Promise.all(this.executing());
+    }
+
     setMaxConcurrency(concurrency: number) {
         super.setMaxConcurrency(concurrency);
         if (!this.stopped) {

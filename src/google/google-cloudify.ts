@@ -490,7 +490,7 @@ export async function cancelWithoutCleanup(state: Partial<State>) {
     const { callFunnel } = state;
     callFunnel &&
         callFunnel
-            .pending()
+            .pendingFutures()
             .forEach(p =>
                 p.reject(new Error("Rejected promise because of queue cancellation"))
             );

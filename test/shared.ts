@@ -2,6 +2,7 @@ import * as cloudify from "../src/cloudify";
 import { Pump } from "../src/funnel";
 import { log } from "../src/log";
 import * as funcs from "./functions";
+import { sleep } from "../src/shared";
 
 export function checkFunctions(
     description: string,
@@ -199,10 +200,8 @@ export function throughputTest(
                     remote.monteCarloPI(nSamplesPerFunction).then(_ => completed++)
                 );
                 pump.start();
-                await funcs.delay(60 * 1000);
-                pump.stop();
-                pump.clearPending();
-                await Promise.all(pump.executing());
+                await sleep(60 * 1000);
+                await pump.drain();
                 console.log(`Completed ${completed} calls in 1 minute`);
             },
             90 * 1000
