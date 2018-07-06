@@ -4,7 +4,7 @@ import { cloudfunctions_v1beta2, google, GoogleApis, pubsub_v1 } from "googleapi
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
-import { CreateFunctionOptions, ResponsifiedFunction } from "../cloudify";
+import { CreateFunctionOptions, ResponsifiedFunction, Response } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
@@ -46,7 +46,6 @@ type ReceivedMessage = PubSubApi.Schema$ReceivedMessage;
 
 type GoogleCloudQueueState = cloudqueue.StateWithMessageType<ReceivedMessage>;
 type GoogleCloudQueueImpl = cloudqueue.QueueImpl<ReceivedMessage>;
-type GoogleCloudFunctionResponse = AxiosResponse<FunctionReturn>;
 
 export const name = "google";
 
@@ -54,7 +53,7 @@ export interface State {
     resources: GoogleResources;
     services: GoogleServices;
     queueState?: GoogleCloudQueueState;
-    callFunnel: Funnel<GoogleCloudFunctionResponse>;
+    callFunnel: Funnel<Response<any>>;
     url?: string;
 }
 
@@ -332,7 +331,7 @@ export function exec(cmd: string) {
     return result;
 }
 
-async function callFunctionWithQueue(
+async function callFunctionQueue(
     queueState: GoogleCloudQueueState,
     callArgs: FunctionCall
 ) {
@@ -345,17 +344,8 @@ async function callFunctionWithQueue(
     return processResponse(undefined, returned, rawResponse);
 }
 
-async function callFunction(
-    url: string,
-    callArgs: FunctionCall,
-    callFunnel: Funnel<GoogleCloudFunctionResponse>
-) {
-    const rawResponse = await callFunnel.pushRetry(3, () =>
-        Axios.put<FunctionReturn>(url!, callArgs).catch(err =>
-            Promise.reject((err.response && err.response.data) || err)
-        )
-    );
-    log(`  returned: ${humanStringify(rawResponse.data)}`);
+async function callFunctionHttps(url: string, callArgs: FunctionCall) {
+    const rawResponse = await Axios.put<FunctionReturn>(url!, callArgs);
     return processResponse(undefined, rawResponse.data, rawResponse);
 }
 
@@ -364,19 +354,23 @@ export function cloudifyWithResponse<F extends AnyFunction>(
     fn: F
 ): ResponsifiedFunction<F> {
     const promisifedFunc = async (...args: any[]) => {
-        const CallId = uuidv4();
-        const callArgs: FunctionCall = {
+        const callRequest: FunctionCall = {
             name: fn.name,
             args,
-            CallId,
+            CallId: uuidv4(),
             ResponseQueueId: state.resources.responseQueueTopic
         };
-        const data = JSON.stringify(callArgs);
-        log(`Calling cloud function "${fn.name}" with args: ${data}`, "");
+        const { callFunnel } = state;
         if (state.queueState) {
-            return callFunctionWithQueue(state.queueState, callArgs);
+            return callFunnel.push(() =>
+                callFunctionQueue(state.queueState!, callRequest)
+            );
         } else {
-            return callFunction(state.url!, callArgs, state.callFunnel);
+            return callFunnel.pushRetry(3, () =>
+                callFunctionHttps(state.url!, callRequest).catch(err =>
+                    Promise.reject((err.response && err.response.data) || err)
+                )
+            );
         }
     };
     return promisifedFunc as any;

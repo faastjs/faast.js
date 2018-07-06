@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { google, pubsub_v1 } from "googleapis";
-import humanStringify from "human-stringify";
 import { FunctionCall, FunctionReturn } from "../shared";
 import { AnyFunction } from "../type-helpers";
 import { publish } from "./google-queue";
@@ -43,12 +42,14 @@ function parseFunc(body: object): ParsedFunc {
     if (!args) {
         throw new Error("Invalid arguments to function call");
     }
-
-    console.log(`func: ${name}, args: ${humanStringify(args)}`);
     return { func, args, CallId, ResponseQueueId };
 }
 
-function createErrorResponse(err: Error, CallId: string | undefined): FunctionReturn {
+function createErrorResponse(
+    err: Error,
+    CallId: string | undefined,
+    start: number
+): FunctionReturn {
     const errObj = {};
     Object.getOwnPropertyNames(err).forEach(name => {
         if (typeof err[name] === "string") {
@@ -58,30 +59,35 @@ function createErrorResponse(err: Error, CallId: string | undefined): FunctionRe
     return {
         type: "error",
         value: errObj,
-        CallId: CallId || ""
+        CallId: CallId || "",
+        start,
+        end: Date.now()
     };
 }
 
-async function callFunc(parsedFunc: ParsedFunc) {
+async function callFunc(parsedFunc: ParsedFunc, start: number) {
     const { func, args, CallId } = parsedFunc;
     const returned = await func.apply(undefined, args);
     const rv: FunctionReturn = {
         type: "returned",
         value: returned,
-        CallId
+        CallId,
+        start,
+        end: Date.now()
     };
     return rv;
 }
 
 export async function trampoline(request: Request, response: Response) {
     let CallId: string | undefined;
+    const start = Date.now();
     try {
         const parsedFunc = parseFunc(request.body);
         CallId = parsedFunc.CallId;
-        const returned = await callFunc(parsedFunc);
+        const returned = await callFunc(parsedFunc, start);
         response.send(returned);
     } catch (err) {
-        response.send(createErrorResponse(err, CallId));
+        response.send(createErrorResponse(err, CallId, start));
     }
 }
 
@@ -110,6 +116,7 @@ async function initialize() {
 }
 
 export async function pubsubTrampoline(event: CloudFunctionPubSubEvent): Promise<void> {
+    const start = Date.now();
     await initialize();
     let CallId: string = "";
     let ResponseQueueId: string | undefined;
@@ -117,13 +124,12 @@ export async function pubsubTrampoline(event: CloudFunctionPubSubEvent): Promise
         const str = Buffer.from(event.data.data!, "base64");
         const parsedFunc = parseFunc(JSON.parse(str.toString()));
         ({ CallId, ResponseQueueId } = parsedFunc);
-        const returned = await callFunc(parsedFunc);
-        console.log(`Returned: ${returned}, ${humanStringify(returned)}`);
+        const returned = await callFunc(parsedFunc, start);
         await publish(pubsub, ResponseQueueId!, JSON.stringify(returned), { CallId });
     } catch (err) {
         console.error(err);
         if (ResponseQueueId) {
-            const response = createErrorResponse(err, CallId);
+            const response = createErrorResponse(err, CallId, start);
             await publish(pubsub, ResponseQueueId!, JSON.stringify(response), { CallId });
         }
     }

@@ -27,6 +27,7 @@ export async function trampoline(
     _context: any,
     callback: (err: Error | null, obj: FunctionReturn) => void
 ) {
+    const start = Date.now();
     const { name, args, CallId } = event as FunctionCall;
     try {
         if (!name) {
@@ -47,7 +48,9 @@ export async function trampoline(
         callback(null, {
             type: "returned",
             value: rv,
-            CallId
+            CallId,
+            start,
+            end: Date.now()
         });
     } catch (err) {
         const errObj = {};
@@ -55,21 +58,30 @@ export async function trampoline(
         callback(null, {
             type: "error",
             value: errObj,
-            CallId
+            CallId,
+            start,
+            end: Date.now()
         });
     }
 }
 
-function sendError(err: any, ResponseQueueUrl: string, CallId: string) {
+function ignore(p: Promise<any>) {
+    return p.catch(_ => {});
+}
+
+function sendError(err: any, ResponseQueueUrl: string, CallId: string, start: number) {
     console.error(err);
-    sqs.sendMessage({
+    const errorResponse = {
         QueueUrl: ResponseQueueUrl,
         MessageBody: JSON.stringify({
             type: "error",
             value: err,
-            CallId
+            CallId,
+            start,
+            end: Date.now()
         })
-    }).send();
+    };
+    ignore(publishSQS(sqs, ResponseQueueUrl, JSON.stringify(errorResponse), { CallId }));
 }
 
 export async function snsTrampoline(
@@ -78,6 +90,7 @@ export async function snsTrampoline(
     _callback: (err: Error | null, obj: object) => void
 ) {
     console.log(`SNS event: ${snsEvent.Records.length} records`);
+    const start = Date.now();
     for (const record of snsEvent.Records) {
         const event = JSON.parse(record.Sns.Message) as FunctionCall;
         const { CallId, ResponseQueueId } = event;
@@ -91,17 +104,18 @@ export async function snsTrampoline(
         trampoline(event, context, (err, obj) => {
             clearTimeout(startedMessage);
             const result = obj;
+            result.start = start;
             if (err) {
-                sendError(err, ResponseQueueId!, CallId);
+                sendError(err, ResponseQueueId!, CallId, start);
                 return;
             }
-            console.log(`Result: ${JSON.stringify(result)}`);
+            result.end = Date.now();
             publishSQS(sqs, ResponseQueueId!, JSON.stringify(result), { CallId }).catch(
                 puberr => {
-                    sendError(puberr, ResponseQueueId!, CallId);
+                    sendError(puberr, ResponseQueueId!, CallId, start);
                 }
             );
-        }).catch(err => sendError(err, ResponseQueueId!, CallId));
+        }).catch(err => sendError(err, ResponseQueueId!, CallId, start));
     }
 }
 

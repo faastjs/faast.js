@@ -11,6 +11,16 @@ export interface FunctionReturn {
     type: "returned" | "error";
     value?: any;
     CallId: string;
+    start?: number;
+    end?: number;
+}
+
+export interface FunctionStats {
+    callsCompleted: number;
+    callsRequested: number;
+    startLatencies: number[];
+    executionLatencies: number[];
+    returnLatencies: number[];
 }
 
 export function sleep(ms: number) {

@@ -7,7 +7,13 @@ import { Funnel } from "../funnel";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { FunctionCall, FunctionReturn, processResponse, sleep } from "../shared";
+import {
+    FunctionCall,
+    FunctionReturn,
+    processResponse,
+    sleep,
+    FunctionStats
+} from "../shared";
 import { AnyFunction } from "../type-helpers";
 import {
     isControlMessage,
@@ -62,6 +68,7 @@ export interface State {
     services: AWSServices;
     callFunnel: Funnel<AWSInvocationResponse>;
     queueState?: AWSCloudQueueState;
+    stats?: FunctionStats;
 }
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
@@ -313,8 +320,6 @@ async function callFunction(
         Payload: callArgsStr
     };
     rawResponse = await callFunnel.push(() => lambda.invoke(request).promise());
-    log(`  returned: ${humanStringify(rawResponse)}`);
-    log(`  requestId: ${rawResponse.$response.requestId}`);
     if (rawResponse.FunctionError) {
         if (rawResponse.LogResult) {
             log(Buffer.from(rawResponse.LogResult!, "base64").toString());
@@ -339,7 +344,6 @@ export function cloudifyWithResponse<F extends AnyFunction>(
             ResponseQueueId: ResponseQueueUrl
         };
         const callArgsStr = JSON.stringify(callArgs);
-        log(`Calling cloud function "${callArgs.name}" with args: ${callArgsStr}`, "");
         if (state.queueState) {
             return callFunctionWithQueue(state.queueState, callArgsStr, CallId);
         } else {
