@@ -20,6 +20,10 @@ interface Timing {
     end: number;
 }
 
+function foo() {
+    return 0;
+}
+
 function measureConcurrency(timings: Timing[]) {
     const concurrencyAtStartTimes = timings
         .map(t => t.start)
@@ -76,22 +80,12 @@ describe("Funnel", () => {
         expect(measureConcurrency([time1, time2])).toBe(1);
     });
     test("clears funnel", async () => {
-        const funnel = new Funnel<void>(1);
+        const funnel = new Funnel<number>(1);
         let count = 0;
-        const promise = funnel.push(async () => {
-            count++;
-        });
-        funnel
-            .push(async () => {
-                count++;
-            })
-            .catch(_ => {});
-        funnel
-            .push(async () => {
-                count++;
-            })
-            .catch(_ => {});
-        funnel.rejectPending();
+        const promise = funnel.push(async () => count++);
+        funnel.push(async () => count++);
+        funnel.push(async () => count++);
+        funnel.clearPending();
         await promise;
         expect(count).toBe(1);
     });
@@ -124,14 +118,17 @@ describe("Funnel", () => {
 describe("Pump", () => {
     test("Works for concurrency level 1", async () => {
         let executed = 0;
+        let executing = false;
         const pump = new Pump(1, () => {
             executed++;
-            return delay(100);
+            expect(executing).toBe(false);
+            executing = true;
+            return delay(100).then(_ => (executing = false));
         });
         pump.start();
-        await delay(1000);
+        await delay(500);
         pump.stop();
-        expect(executed).toBe(10);
+        expect(executed).toBe(5);
     });
 
     test("Works for concurrency level 10", async () => {

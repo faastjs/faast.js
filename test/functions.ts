@@ -32,7 +32,7 @@ export async function async() {
 }
 
 export function path(): Promise<string> {
-    return delay(200).then(() => process.env["PATH"] || "no PATH variable");
+    return delay(200).then(() => process.env.PATH || "no PATH variable");
 }
 
 export function rejected(): Promise<string> {

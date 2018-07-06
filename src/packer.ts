@@ -29,14 +29,14 @@ function getUrlEncodedQueryParameters(options: CloudifyLoaderOptions) {
 
 export function packer({
     trampolineModule,
-    functionModule = undefined,
+    functionModule,
     webpackOptions = {},
     packageBundling = "bundleNodeModules"
 }: PackerOptions): Promise<PackerResult> {
     log(`Running webpack`);
     let { externals = [], ...rest } = webpackOptions;
     externals = Array.isArray(externals) ? externals : [externals];
-    let loaderOptions = {
+    const loaderOptions = {
         trampolineModule,
         functionModule
     };
@@ -59,30 +59,30 @@ export function packer({
     };
 
     function addToArchive(
-        fs: MemoryFileSystem,
+        mfs: MemoryFileSystem,
         entry: string,
         archive: Archiver,
         hasher: Hash
     ) {
-        const stat = fs.statSync(entry);
+        const stat = mfs.statSync(entry);
         if (stat.isDirectory()) {
-            for (const subEntry of fs.readdirSync(entry)) {
+            for (const subEntry of mfs.readdirSync(entry)) {
                 const subEntryPath = path.join(entry, subEntry);
-                addToArchive(fs, subEntryPath, archive, hasher);
+                addToArchive(mfs, subEntryPath, archive, hasher);
             }
         } else if (stat.isFile()) {
-            archive.append((fs as any).createReadStream(entry), {
+            archive.append((mfs as any).createReadStream(entry), {
                 name: entry
             });
             hasher.update(entry);
-            hasher.update(fs.readFileSync(entry));
+            hasher.update(mfs.readFileSync(entry));
         }
     }
 
     function addPackageJson(mfs: MemoryFileSystem) {
         if (packageBundling === "usePackageJson") {
             const packageJson = JSON.parse(fs.readFileSync("package.json").toString());
-            packageJson["main"] = "index.js";
+            packageJson.main = "index.js";
             mfs.writeFileSync("/package.json", JSON.stringify(packageJson, undefined, 2));
         }
     }

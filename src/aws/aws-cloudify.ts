@@ -192,7 +192,7 @@ export async function pollAWSRequest<T>(
             duration += 1000;
         }
     }
-    throw new Error("Polling failed for ${description}");
+    throw new Error(`Polling failed for ${description}`);
 }
 
 export async function initialize(fModule: string, options: Options = {}): Promise<State> {
@@ -222,7 +222,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     }
 
     async function createFunction() {
-        let roleResponse = await createLambdaRole(RoleName, PolicyArn, services);
+        const roleResponse = await createLambdaRole(RoleName, PolicyArn, services);
         await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
         const { archive } = await pack(fModule);
         const previous = await quietly(lambda.getFunction({ FunctionName }));
@@ -250,7 +250,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         return func;
     }
 
-    let state: State = {
+    const state: State = {
         resources: {
             FunctionName,
             RoleName,
@@ -308,7 +308,7 @@ async function callFunction(
     let error: Error | undefined;
     let rawResponse: AWSInvocationResponse;
     const request: aws.Lambda.Types.InvocationRequest = {
-        FunctionName: FunctionName,
+        FunctionName,
         LogType: "Tail",
         Payload: callArgsStr
     };
@@ -332,7 +332,7 @@ export function cloudifyWithResponse<F extends AnyFunction>(
     const responsifedFunc = async (...args: any[]) => {
         const CallId = uuidv4();
         const { ResponseQueueUrl } = state.resources;
-        let callArgs: FunctionCall = {
+        const callArgs: FunctionCall = {
             name: fn.name,
             args,
             CallId,
@@ -451,7 +451,8 @@ export function cleanupResources(resourceString: string) {
 
 export async function cancelWithoutCleanup(state: PartialState) {
     const { callFunnel } = state;
-    callFunnel && callFunnel.clear();
+    callFunnel &&
+        callFunnel.pending().map(p => p.reject(new Error("Rejected pending request")));
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
     }
@@ -553,7 +554,7 @@ async function createSNSTopic(sns: aws.SNS, Name: string, RoleArn?: string) {
     const TopicArn = topic.TopicArn!;
     log(`Created SNS TopicArn: ${TopicArn}`);
     if (RoleArn) {
-        let success = await pollAWSRequest(
+        const success = await pollAWSRequest(
             100,
             "role for SNS invocation of lambda function failure feedback",
             () =>

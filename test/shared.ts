@@ -1,5 +1,4 @@
 import * as cloudify from "../src/cloudify";
-import { Promisified } from "../src/cloudify";
 import { Pump } from "../src/funnel";
 import { log } from "../src/log";
 import * as funcs from "./functions";
@@ -10,7 +9,7 @@ export function checkFunctions(
     options?: cloudify.CreateFunctionOptions<any>
 ) {
     describe(description, () => {
-        let remote: Promisified<typeof funcs>;
+        let remote: cloudify.Promisified<typeof funcs>;
         let lambda: cloudify.CloudFunction<any>;
 
         beforeAll(async () => {
@@ -92,7 +91,7 @@ export function coldStartTest(
         afterAll(() => lambda.cleanup(), 60 * 1000);
         // afterAll(() => lambda.cancelAll(), 30 * 1000);
 
-        const sum = (a: number[]) => a.reduce((sum, n) => sum + n, 0);
+        const sum = (a: number[]) => a.reduce((total, n) => total + n, 0);
         const avg = (a: number[]) => sum(a) / a.length;
 
         function printLatencies(latencies: number[]) {
@@ -132,16 +131,16 @@ export function coldStartTest(
                 }
 
                 const results = await Promise.all(promises);
-                let inside = 0;
-                let samples = 0;
+                let insidePoints = 0;
+                let samplePoints = 0;
 
-                let startLatencies: number[] = [];
-                let executionLatencies: number[] = [];
-                let returnLatencies: number[] = [];
+                const startLatencies: number[] = [];
+                const executionLatencies: number[] = [];
+                const returnLatencies: number[] = [];
 
                 results.forEach(m => {
-                    inside += m.inside;
-                    samples += m.samples;
+                    insidePoints += m.inside;
+                    samplePoints += m.samples;
                     startLatencies.push(m.startLatency);
                     executionLatencies.push(m.executionLatency);
                     returnLatencies.push(m.returnLatency);
@@ -158,9 +157,9 @@ export function coldStartTest(
                 log(`Return latencies:`);
                 printLatencies(returnLatencies);
 
-                console.log(`inside: ${inside}, samples: ${samples}`);
-                expect(samples).toBe(nParallelFunctions * nSamplesPerFunction);
-                const estimatedPI = (inside / samples) * 4;
+                console.log(`inside: ${insidePoints}, samples: ${samplePoints}`);
+                expect(samplePoints).toBe(nParallelFunctions * nSamplesPerFunction);
+                const estimatedPI = (insidePoints / samplePoints) * 4;
                 console.log(`PI estimate: ${estimatedPI}`);
                 expect(Number(estimatedPI.toFixed(2))).toBe(3.14);
             },

@@ -43,4 +43,4 @@ test(
 );
 
 afterAll(() => func.cleanup(), 30 * 1000);
-//afterAll(() => lambda.cancelAll(), 30 * 1000);
+// afterAll(() => lambda.cancelAll(), 30 * 1000);

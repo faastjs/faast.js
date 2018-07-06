@@ -42,21 +42,21 @@ export interface GoogleServices {
     readonly google: GoogleApis;
 }
 
-export const name: string = "google";
-
 type ReceivedMessage = PubSubApi.Schema$ReceivedMessage;
 
 type GoogleCloudQueueState = cloudqueue.StateWithMessageType<ReceivedMessage>;
 type GoogleCloudQueueImpl = cloudqueue.QueueImpl<ReceivedMessage>;
 type GoogleCloudFunctionResponse = AxiosResponse<FunctionReturn>;
 
-export type State = {
+export const name = "google";
+
+export interface State {
     resources: GoogleResources;
     services: GoogleServices;
     queueState?: GoogleCloudQueueState;
     callFunnel: Funnel<GoogleCloudFunctionResponse>;
     url?: string;
-};
+}
 
 export async function initializeGoogleServices(
     useEmulator: boolean
@@ -116,7 +116,7 @@ async function poll<T>({
 
 async function carefully<T>(promise: AxiosPromise<T>) {
     try {
-        let result = await promise;
+        const result = await promise;
         return result.data;
     } catch (err) {
         log(err);
@@ -125,7 +125,7 @@ async function carefully<T>(promise: AxiosPromise<T>) {
 }
 
 async function quietly<T>(promise: AxiosPromise<T>) {
-    let result = await promise.catch(_ => {});
+    const result = await promise.catch(_ => {});
     return result && result.data;
 }
 
@@ -133,9 +133,9 @@ async function waitFor(
     api: CloudFunctions.Cloudfunctions,
     response: AxiosPromise<CloudFunctions.Schema$Operation>
 ) {
-    const name = (await response).data.name!;
+    const operationName = (await response).data.name!;
     return poll({
-        request: () => carefully(api.operations.get({ name })),
+        request: () => carefully(api.operations.get({ name: operationName })),
         checkDone: result => {
             if (result.error) {
                 throw result.error;
@@ -226,8 +226,8 @@ async function initializeWithApi(
     const functionName = "cloudify-" + nonce;
     const trampoline = `projects/${project}/locations/${region}/functions/${functionName}`;
 
-    let resources: Mutable<GoogleResources> = { trampoline, isEmulator };
-    let state: State = { resources, services, callFunnel: new Funnel() };
+    const resources: Mutable<GoogleResources> = { trampoline, isEmulator };
+    const state: State = { resources, services, callFunnel: new Funnel() };
     if (useQueue) {
         const googleQueueImpl = await initializeGoogleQueue(state, project, functionName);
         state.queueState = cloudqueue.initializeCloudFunctionQueue(googleQueueImpl);
@@ -251,13 +251,6 @@ async function initializeWithApi(
         requestBody.httpsTrigger = {};
     }
     validateGoogleLabels(requestBody.labels);
-    const existingFunc = await quietly(
-        cloudFunctions.projects.locations.functions.get({ name })
-    );
-
-    if (existingFunc) {
-        throw new Error(`Trampoline name hash collision`);
-    }
     log(`Create function at ${location}`);
     log(humanStringify(requestBody));
     try {
@@ -335,7 +328,7 @@ async function initializeGoogleQueue(
 
 export function exec(cmd: string) {
     const result = sys.execSync(cmd).toString();
-    console.log(result);
+    log(result);
     return result;
 }
 
@@ -357,14 +350,13 @@ async function callFunction(
     callArgs: FunctionCall,
     callFunnel: Funnel<GoogleCloudFunctionResponse>
 ) {
-    let error: Error | undefined;
     const rawResponse = await callFunnel.pushRetry(3, () =>
         Axios.put<FunctionReturn>(url!, callArgs).catch(err =>
             Promise.reject((err.response && err.response.data) || err)
         )
     );
     log(`  returned: ${humanStringify(rawResponse.data)}`);
-    return processResponse(error, rawResponse.data, rawResponse);
+    return processResponse(undefined, rawResponse.data, rawResponse);
 }
 
 export function cloudifyWithResponse<F extends AnyFunction>(
@@ -373,7 +365,7 @@ export function cloudifyWithResponse<F extends AnyFunction>(
 ): ResponsifiedFunction<F> {
     const promisifedFunc = async (...args: any[]) => {
         const CallId = uuidv4();
-        let callArgs: FunctionCall = {
+        const callArgs: FunctionCall = {
             name: fn.name,
             args,
             CallId,
@@ -467,7 +459,7 @@ function validateGoogleLabels(labels: object | undefined) {
 }
 
 async function uploadZip(url: string, zipStream: Readable) {
-    return await Axios.put(url, zipStream, {
+    return Axios.put(url, zipStream, {
         headers: {
             "content-type": "application/zip",
             "x-goog-content-length-range": "0,104857600"
@@ -496,7 +488,12 @@ export async function cleanupResources(resourcesString: string) {
 export async function cancelWithoutCleanup(state: Partial<State>) {
     log(`cancelWithoutCleanup`);
     const { callFunnel } = state;
-    callFunnel && callFunnel.clear();
+    callFunnel &&
+        callFunnel
+            .pending()
+            .forEach(p =>
+                p.reject(new Error("Rejected promise because of queue cancellation"))
+            );
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
     }

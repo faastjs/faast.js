@@ -25,7 +25,6 @@ test("package aws zip file", async () => {
     });
     const dir = "tmp/aws";
     unzipInDir(dir, "dist-aws.zip");
-    process.env;
     expect(exec(`cd ${dir} && node index.js`)).toMatch(
         "Successfully loaded cloudify trampoline function."
     );

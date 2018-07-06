@@ -149,7 +149,7 @@ export class Google extends Cloud<google.Options, google.State> {
 
 export class GoogleEmulator extends Cloud<google.Options, google.State> {
     constructor() {
-        let googleEmulator = {
+        const googleEmulator = {
             ...google,
             initialize: google.initializeEmulator
         };

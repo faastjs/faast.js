@@ -29,6 +29,6 @@ export function processResponse(
         error.stack = errValue.stack;
     }
     const value = !error && returned && returned.value;
-    let rv: Response<ReturnType<any>> = { value, error, rawResponse };
+    const rv: Response<ReturnType<any>> = { value, error, rawResponse };
     return rv;
 }

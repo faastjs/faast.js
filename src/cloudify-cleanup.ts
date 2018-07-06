@@ -28,10 +28,12 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
         extractElement: (arg: U) => string | undefined,
         remove: (arg: string) => Promise<any>
     ) {
-        let allResources: string[] = [];
+        const allResources: string[] = [];
         await new Promise((resolve, reject) => {
             getList().eachPage((err, page) => {
-                if (err) reject(err);
+                if (err) {
+                    reject(err);
+                }
                 const elems = (page && extractList(page)) || [];
                 allResources.push(...elems.map(elem => extractElement(elem) || ""));
                 if (page === null) {
@@ -150,9 +152,9 @@ async function main() {
 
     commander.parse(process.argv);
     if (commander.verbose) {
-        process.env["DEBUG"] = "cloudify:*";
+        process.env.DEBUG = "cloudify:*";
     }
-    let execute = commander.execute || false;
+    const execute = commander.execute || false;
     const region = commander.region || awsCloudify.defaults.region;
     const force = commander.force || false;
     const cleanAll = commander.all || false;
@@ -163,12 +165,12 @@ async function main() {
     }
     if (cloud === "aws") {
         if (execute && !force) {
-            const nResources = await cleanupAWS({
+            const n = await cleanupAWS({
                 region,
                 execute: false,
                 cleanAll
             });
-            if (nResources === 0) {
+            if (n === 0) {
                 log(`No resources to clean up.`);
                 process.exit(0);
             }

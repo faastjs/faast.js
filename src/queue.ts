@@ -3,7 +3,9 @@ import { Deferred, Pump } from "./funnel";
 import { log } from "./log";
 import { FunctionCall, FunctionReturn, sleep } from "./shared";
 
-export type Attributes = { [key: string]: string };
+export interface Attributes {
+    [key: string]: string;
+}
 
 export interface RequestQueueImpl {
     publishMessage(body: string, attributes?: Attributes): Promise<any>;
@@ -54,7 +56,7 @@ export interface QueuedResponse<T> {
 export function initializeCloudFunctionQueue<M>(
     impl: QueueImpl<M>
 ): StateWithMessageType<M> {
-    let state: StateWithMessageType<M> = {
+    const state: StateWithMessageType<M> = {
         ...impl,
         callResultsPending: new Map(),
         collectorPump: new Pump<void>(2, () => resultCollector(state)),
@@ -81,7 +83,7 @@ export async function stop(state: State) {
     clearInterval(state.retryTimer);
     rejectAll(state.callResultsPending);
     let count = 0;
-    let tasks = [];
+    const tasks = [];
     while (state.collectorPump.getConcurrency() > 0 && count++ < 100) {
         tasks.push(state.publishControlMessage("stopqueue"));
         await sleep(100);
@@ -96,8 +98,9 @@ interface CallResults<M> {
 }
 
 async function resultCollector<MessageType>(state: StateWithMessageType<MessageType>) {
+    // tslint:disable-next-line:no-shadowed-variable
     const log = debug("cloudify:collector");
-    let resolvePromises = (results: CallResults<MessageType>[]) => {
+    const resolvePromises = (results: Array<CallResults<MessageType>>) => {
         for (const { message, CallId, deferred } of results) {
             if (!CallId) {
                 // Can happen when a message is multiply delivered, such as retries. Ignore.
@@ -108,7 +111,7 @@ async function resultCollector<MessageType>(state: StateWithMessageType<MessageT
                 deferred.resolve({ returned, rawResponse: message });
             } else {
                 // Caused by retries: CallId returned more than once. Ignore.
-                //log(`Deferred promise not found for CallID: ${CallId}`);
+                // log(`Deferred promise not found for CallID: ${CallId}`);
             }
         }
     };
@@ -129,7 +132,7 @@ async function resultCollector<MessageType>(state: StateWithMessageType<MessageT
         }
 
         try {
-            const callResults: CallResults<MessageType>[] = [];
+            const callResults: Array<CallResults<MessageType>> = [];
             for (const m of Messages) {
                 if (state.isControlMessage(m, "stopqueue")) {
                     return;
@@ -167,7 +170,7 @@ function retryQueue(state: State) {
     const { size } = state.callResultsPending;
     const now = Date.now();
     if (size > 0 && size < 10) {
-        for (let [CallId, pending] of state.callResultsPending.entries()) {
+        for (const [CallId, pending] of state.callResultsPending.entries()) {
             if (!pending.executing) {
                 if (now - pending.created > 4 * 1000) {
                     log(`Lambda function not started for CallId ${CallId}, retrying...`);

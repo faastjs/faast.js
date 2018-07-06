@@ -9,7 +9,8 @@
         "watch": "yarn clean && tsc --watch",
         "test-local": "yarn build && jest build/test/*-local.test.js",
         "test": "yarn build && jest",
-        "clean": "rm -rf build"
+        "clean": "rm -rf build",
+        "tslint": "tslint -p tsconfig.json"
     },
     "author": "Andy Chou",
     "license": "ISC",
@@ -47,6 +48,8 @@
         "@types/webpack-node-externals": "^1.6.3",
         "jest": "^23.1.0",
         "nock": "^9.3.0",
+        "tslint": "^5.10.0",
+        "tslint-config-prettier": "^1.13.0",
         "typescript": "^2.9.1",
         "webpack-cli": "^2.1.3"
     },

@@ -25,7 +25,7 @@ export async function receiveMessages(
         pubsub.projects.subscriptions.acknowledge({
             subscription: responseSubscription,
             requestBody: {
-                ackIds: Messages.map(m => m.ackId || "").filter(m => m != "")
+                ackIds: Messages.map(m => m.ackId || "").filter(m => m !== "")
             }
         });
     }

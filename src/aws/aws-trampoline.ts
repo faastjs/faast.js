@@ -3,7 +3,7 @@ import * as aws from "aws-sdk";
 import { SNSEvent } from "aws-lambda";
 import { publishSQS, publishSQSControlMessage } from "./aws-queue";
 
-let sqs = new aws.SQS({ apiVersion: "2012-11-05" });
+const sqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
 type AnyFunction = (...args: any[]) => any;
 const funcs: { [func: string]: AnyFunction } = {};
@@ -51,7 +51,7 @@ export async function trampoline(
         });
     } catch (err) {
         const errObj = {};
-        Object.getOwnPropertyNames(err).forEach(name => (errObj[name] = err[name]));
+        Object.getOwnPropertyNames(err).forEach(prop => (errObj[prop] = err[prop]));
         callback(null, {
             type: "error",
             value: errObj,
@@ -90,15 +90,15 @@ export async function snsTrampoline(
         );
         trampoline(event, context, (err, obj) => {
             clearTimeout(startedMessage);
-            let result = obj;
+            const result = obj;
             if (err) {
                 sendError(err, ResponseQueueId!, CallId);
                 return;
             }
             console.log(`Result: ${JSON.stringify(result)}`);
             publishSQS(sqs, ResponseQueueId!, JSON.stringify(result), { CallId }).catch(
-                err => {
-                    sendError(err, ResponseQueueId!, CallId);
+                puberr => {
+                    sendError(puberr, ResponseQueueId!, CallId);
                 }
             );
         }).catch(err => sendError(err, ResponseQueueId!, CallId));

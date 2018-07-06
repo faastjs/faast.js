@@ -63,7 +63,7 @@ export function isControlMessage(
     type: cloudqueue.ControlMessageType
 ) {
     const attr = message.MessageAttributes;
-    const cloudify = attr && attr["cloudify"];
+    const cloudify = attr && attr.cloudify;
     const value = cloudify && cloudify.StringValue;
     return value === type;
 }
