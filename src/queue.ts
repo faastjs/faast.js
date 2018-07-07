@@ -62,7 +62,7 @@ export function initializeCloudFunctionQueue<M>(
         collectorPump: new Pump<void>(2, () => resultCollector(state)),
         retryTimer: setInterval(() => retryQueue(state), 5 * 1000)
     };
-    startResultCollectorIfNeeded(state);
+    state.collectorPump.start();
     return state;
 }
 
@@ -73,7 +73,6 @@ export function enqueueCallRequest(
 ): Promise<QueuedResponse<any>> {
     const deferred = new PendingRequest(callArgsStr);
     state.callResultsPending.set(CallId, deferred);
-    startResultCollectorIfNeeded(state);
     state.publishMessage(deferred.callArgsStr);
     return deferred.promise;
 }
@@ -116,8 +115,6 @@ async function resultCollector<MessageType>(state: StateWithMessageType<MessageT
         }
     };
 
-    let full = false;
-
     if (state.callResultsPending.size > 0) {
         log(
             `Polling response queue (size ${
@@ -127,9 +124,7 @@ async function resultCollector<MessageType>(state: StateWithMessageType<MessageT
 
         const { Messages, isFullMessageBatch } = await state.receiveMessages();
         log(`received ${Messages.length} messages.`);
-        if (isFullMessageBatch) {
-            full = true;
-        }
+        adjustConcurrencyLevel(state, isFullMessageBatch);
 
         try {
             const callResults: Array<CallResults<MessageType>> = [];
@@ -160,9 +155,6 @@ async function resultCollector<MessageType>(state: StateWithMessageType<MessageT
             log(err);
         }
     }
-    setTimeout(() => {
-        startResultCollectorIfNeeded(state, full);
-    }, 0);
 }
 
 // Only used when SNS fails to invoke lambda.
@@ -181,7 +173,7 @@ function retryQueue(state: State) {
     }
 }
 
-function startResultCollectorIfNeeded(vars: Vars, full: boolean = false) {
+function adjustConcurrencyLevel(vars: Vars, full: boolean) {
     const nPending = vars.callResultsPending.size;
     if (nPending > 0) {
         let nCollectors = full ? Math.floor(nPending / 20) + 2 : 2;

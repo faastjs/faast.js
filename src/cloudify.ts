@@ -9,6 +9,9 @@ export interface ResponseDetails<D> {
     value?: D;
     error?: Error;
     rawResponse: any;
+    startLatency?: number;
+    executionLatency?: number;
+    returnLatency?: number;
 }
 
 export type Response<D> = ResponseDetails<Unpacked<D>>;

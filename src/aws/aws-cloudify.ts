@@ -291,25 +291,27 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     }
 }
 
-async function callFunctionWithQueue(
+async function callFunctionQueue(
     queueState: AWSCloudQueueState,
-    callArgsStr: string,
-    CallId: string
+    callRequest: FunctionCall,
+    CallId: string,
+    stats?: FunctionStats
 ) {
     const responsePromise = await cloudqueue.enqueueCallRequest(
         queueState,
-        callArgsStr,
+        JSON.stringify(callRequest),
         CallId
     );
     const { returned, rawResponse } = await responsePromise;
-    return processResponse(undefined, returned, rawResponse);
+    return processResponse(undefined, returned, rawResponse, callRequest.start, stats);
 }
 
-async function callFunction(
+async function callFunctionHttps(
     lambda: aws.Lambda,
     FunctionName: string,
-    callArgsStr: string,
-    callFunnel: Funnel<AWSInvocationResponse>
+    callRequest: FunctionCall,
+    callFunnel: Funnel<AWSInvocationResponse>,
+    stats?: FunctionStats
 ) {
     let returned: FunctionReturn | undefined;
     let error: Error | undefined;
@@ -317,7 +319,7 @@ async function callFunction(
     const request: aws.Lambda.Types.InvocationRequest = {
         FunctionName,
         LogType: "Tail",
-        Payload: callArgsStr
+        Payload: JSON.stringify(callRequest)
     };
     rawResponse = await callFunnel.push(() => lambda.invoke(request).promise());
     if (rawResponse.FunctionError) {
@@ -327,7 +329,31 @@ async function callFunction(
         error = new Error(rawResponse.Payload as string);
     }
     returned = !error && rawResponse.Payload && JSON.parse(rawResponse.Payload as string);
-    return processResponse(error, returned, rawResponse);
+    return processResponse(error, returned, rawResponse, callRequest.start, stats);
+}
+
+async function callFunction(state: State, callRequest: FunctionCall) {
+    if (state.queueState) {
+        return callFunctionQueue(
+            state.queueState,
+            callRequest,
+            callRequest.CallId,
+            state.stats
+        );
+    } else {
+        const {
+            callFunnel,
+            services: { lambda },
+            resources: { FunctionName }
+        } = state;
+        return callFunctionHttps(
+            lambda,
+            FunctionName,
+            callRequest,
+            callFunnel,
+            state.stats
+        );
+    }
 }
 
 export function cloudifyWithResponse<F extends AnyFunction>(
@@ -337,23 +363,22 @@ export function cloudifyWithResponse<F extends AnyFunction>(
     const responsifedFunc = async (...args: any[]) => {
         const CallId = uuidv4();
         const { ResponseQueueUrl } = state.resources;
-        const callArgs: FunctionCall = {
+        const callRequest: FunctionCall = {
             name: fn.name,
             args,
             CallId,
-            ResponseQueueId: ResponseQueueUrl
+            ResponseQueueId: ResponseQueueUrl,
+            start: Date.now()
         };
-        const callArgsStr = JSON.stringify(callArgs);
-        if (state.queueState) {
-            return callFunctionWithQueue(state.queueState, callArgsStr, CallId);
-        } else {
-            const {
-                callFunnel,
-                services: { lambda },
-                resources: { FunctionName }
-            } = state;
-            return callFunction(lambda, FunctionName, callArgsStr, callFunnel);
+        const rv = await callFunction(state, callRequest);
+        const { stats } = state;
+        if (stats) {
+            stats.callsCompleted++;
+            if (rv.error) {
+                stats.errors++;
+            }
         }
+        return rv;
     };
     return responsifedFunc as any;
 }

@@ -9,7 +9,13 @@ import { Funnel } from "../funnel";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { FunctionCall, FunctionReturn, processResponse, sleep } from "../shared";
+import {
+    FunctionCall,
+    FunctionReturn,
+    processResponse,
+    sleep,
+    FunctionStats
+} from "../shared";
 import { AnyFunction, Mutable } from "../type-helpers";
 import {
     getMessageBody,
@@ -55,6 +61,7 @@ export interface State {
     queueState?: GoogleCloudQueueState;
     callFunnel: Funnel<Response<any>>;
     url?: string;
+    stats?: FunctionStats;
 }
 
 export async function initializeGoogleServices(
@@ -333,7 +340,8 @@ export function exec(cmd: string) {
 
 async function callFunctionQueue(
     queueState: GoogleCloudQueueState,
-    callArgs: FunctionCall
+    callArgs: FunctionCall,
+    stats?: FunctionStats
 ) {
     const responsePromise = await cloudqueue.enqueueCallRequest(
         queueState,
@@ -341,12 +349,22 @@ async function callFunctionQueue(
         callArgs.CallId
     );
     const { returned, rawResponse } = await responsePromise;
-    return processResponse(undefined, returned, rawResponse);
+    return processResponse(undefined, returned, rawResponse, callArgs.start, stats);
 }
 
-async function callFunctionHttps(url: string, callArgs: FunctionCall) {
+async function callFunctionHttps(
+    url: string,
+    callArgs: FunctionCall,
+    stats?: FunctionStats
+) {
     const rawResponse = await Axios.put<FunctionReturn>(url!, callArgs);
-    return processResponse(undefined, rawResponse.data, rawResponse);
+    return processResponse(
+        undefined,
+        rawResponse.data,
+        rawResponse,
+        callArgs.start,
+        stats
+    );
 }
 
 export function cloudifyWithResponse<F extends AnyFunction>(
@@ -358,16 +376,17 @@ export function cloudifyWithResponse<F extends AnyFunction>(
             name: fn.name,
             args,
             CallId: uuidv4(),
-            ResponseQueueId: state.resources.responseQueueTopic
+            ResponseQueueId: state.resources.responseQueueTopic,
+            start: Date.now()
         };
         const { callFunnel } = state;
         if (state.queueState) {
             return callFunnel.push(() =>
-                callFunctionQueue(state.queueState!, callRequest)
+                callFunctionQueue(state.queueState!, callRequest, state.stats)
             );
         } else {
             return callFunnel.pushRetry(3, () =>
-                callFunctionHttps(state.url!, callRequest).catch(err =>
+                callFunctionHttps(state.url!, callRequest, state.stats).catch(err =>
                     Promise.reject((err.response && err.response.data) || err)
                 )
             );
