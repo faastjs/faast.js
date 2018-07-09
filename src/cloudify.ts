@@ -138,7 +138,7 @@ export class CloudFunction<S> {
 
 export class AWS extends Cloud<aws.Options, aws.State> {
     constructor() {
-        super(aws);
+        super(aws.Impl);
     }
 }
 
@@ -146,17 +146,13 @@ export class AWSLambda extends CloudFunction<aws.State> {}
 
 export class Google extends Cloud<google.Options, google.State> {
     constructor() {
-        super(google);
+        super(google.Impl);
     }
 }
 
 export class GoogleEmulator extends Cloud<google.Options, google.State> {
     constructor() {
-        const googleEmulator = {
-            ...google,
-            initialize: google.initializeEmulator
-        };
-        super(googleEmulator);
+        super(google.EmulatorImpl);
     }
 }
 

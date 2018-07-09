@@ -4,7 +4,13 @@ import { cloudfunctions_v1beta2, google, GoogleApis, pubsub_v1 } from "googleapi
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
-import { CreateFunctionOptions, ResponsifiedFunction, Response } from "../cloudify";
+import {
+    CreateFunctionOptions,
+    ResponsifiedFunction,
+    Response,
+    CloudImpl,
+    CloudFunctionImpl
+} from "../cloudify";
 import { Funnel } from "../funnel";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
@@ -53,8 +59,6 @@ type ReceivedMessage = PubSubApi.Schema$ReceivedMessage;
 type GoogleCloudQueueState = cloudqueue.StateWithMessageType<ReceivedMessage>;
 type GoogleCloudQueueImpl = cloudqueue.QueueImpl<ReceivedMessage>;
 
-export const name = "google";
-
 export interface State {
     resources: GoogleResources;
     services: GoogleServices;
@@ -63,6 +67,29 @@ export interface State {
     url?: string;
     stats?: FunctionStats;
 }
+
+export const Impl: CloudImpl<Options, State> = {
+    name: "google",
+    initialize,
+    cleanupResources,
+    pack,
+    translateOptions,
+    getFunctionImpl
+};
+
+export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
+    name: "google",
+    cloudifyWithResponse,
+    cleanup,
+    cancelWithoutCleanup,
+    getResourceList,
+    setConcurrency
+};
+
+export const EmulatorImpl: CloudImpl<Options, State> = {
+    ...Impl,
+    initialize: initializeEmulator
+};
 
 export async function initializeGoogleServices(
     useEmulator: boolean
@@ -540,5 +567,5 @@ export function translateOptions({
     };
 }
 export function getFunctionImpl() {
-    return exports;
+    return GoogleFunctionImpl;
 }

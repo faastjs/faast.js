@@ -2,7 +2,12 @@ import * as aws from "aws-sdk";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
-import { CreateFunctionOptions, ResponsifiedFunction } from "../cloudify";
+import {
+    CreateFunctionOptions,
+    ResponsifiedFunction,
+    CloudImpl,
+    CloudFunctionImpl
+} from "../cloudify";
 import { Funnel } from "../funnel";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
@@ -57,8 +62,6 @@ export interface AWSServices {
     readonly sns: aws.SNS;
 }
 
-export const name: string = "aws";
-
 type AWSCloudQueueState = cloudqueue.StateWithMessageType<aws.SQS.Message>;
 type AWSCloudQueueImpl = cloudqueue.QueueImpl<aws.SQS.Message>;
 type AWSInvocationResponse = PromiseResult<aws.Lambda.InvocationResponse, aws.AWSError>;
@@ -70,6 +73,24 @@ export interface State {
     queueState?: AWSCloudQueueState;
     stats?: FunctionStats;
 }
+
+export const Impl: CloudImpl<Options, State> = {
+    name: "aws",
+    initialize,
+    cleanupResources,
+    pack,
+    translateOptions,
+    getFunctionImpl
+};
+
+export const LambdaImpl: CloudFunctionImpl<State> = {
+    name: "aws",
+    cloudifyWithResponse,
+    cleanup,
+    cancelWithoutCleanup,
+    getResourceList,
+    setConcurrency
+};
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
     return arg.promise().catch(err => log(err));
@@ -523,7 +544,7 @@ export function translateOptions({
 }
 
 export function getFunctionImpl() {
-    return exports;
+    return LambdaImpl;
 }
 
 export async function initializeQueue(
