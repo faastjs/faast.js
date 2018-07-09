@@ -233,7 +233,12 @@ async function initializeWithApi(
     const trampoline = `projects/${project}/locations/${region}/functions/${functionName}`;
 
     const resources: Mutable<GoogleResources> = { trampoline, isEmulator };
-    const state: State = { resources, services, callFunnel: new Funnel() };
+    const state: State = {
+        resources,
+        services,
+        callFunnel: new Funnel(),
+        stats: new FunctionStats()
+    };
     if (useQueue) {
         const googleQueueImpl = await initializeGoogleQueue(state, project, functionName);
         state.queueState = cloudqueue.initializeCloudFunctionQueue(googleQueueImpl);

@@ -266,7 +266,8 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             region
         },
         services: { lambda, cloudwatch, iam, sqs, sns },
-        callFunnel: new Funnel()
+        callFunnel: new Funnel(),
+        stats: new FunctionStats()
     };
 
     try {

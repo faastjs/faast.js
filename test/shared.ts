@@ -68,6 +68,14 @@ export function checkFunctions(
     });
 }
 
+export const sum = (a: number[]) => a.reduce((total, n) => total + n, 0);
+export const avg = (a: number[]) => sum(a) / a.length;
+
+export const stdev = (a: number[]) => {
+    const average = avg(a);
+    return Math.sqrt(avg(a.map(v => (v - average) ** 2)));
+};
+
 export function coldStartTest(
     description: string,
     cloudProvider: string,
@@ -92,16 +100,15 @@ export function coldStartTest(
         afterAll(() => lambda.cleanup(), 60 * 1000);
         // afterAll(() => lambda.cancelAll(), 30 * 1000);
 
-        const sum = (a: number[]) => a.reduce((total, n) => total + n, 0);
-        const avg = (a: number[]) => sum(a) / a.length;
-
         function printLatencies(latencies: number[]) {
             const count = latencies.length;
-            const median = latencies[Math.floor(count / 2)];
-            const [min, max] = [latencies[0], latencies[count - 1]];
-            const average = avg(latencies);
-            const stdev = Math.sqrt(avg(latencies.map(v => (v - average) ** 2)));
-            log(`%O`, { min, max, median, average, stdev });
+            log(`%O`, {
+                min: latencies[0],
+                max: latencies[count - 1],
+                median: latencies[Math.floor(count / 2)],
+                average: avg(latencies),
+                stdev: stdev(latencies)
+            });
         }
 
         test(
