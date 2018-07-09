@@ -14,7 +14,7 @@ import {
 } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log } from "../log";
-import { packer, PackerResult } from "../packer";
+import { packer, PackerResult, PackerOptions } from "../packer";
 import * as cloudqueue from "../queue";
 import { FunctionCall, FunctionReturn, sleep, FunctionStats } from "../shared";
 import { AnyFunction, Mutable } from "../type-helpers";
@@ -33,6 +33,7 @@ export interface Options {
     memorySize?: number;
     useQueue?: boolean;
     googleCloudFunctionOptions?: CloudFunctions.Schema$CloudFunction;
+    packerOptions?: Partial<PackerOptions>;
 }
 
 export interface GoogleResources {
@@ -208,7 +209,11 @@ export async function initializeEmulator(fmodule: string, options: Options = {})
     return initializeWithApi(
         services,
         fmodule,
-        { ...options, useQueue: false },
+        {
+            ...options,
+            useQueue: false,
+            packerOptions: { packageBundling: "bundleNodeModules" }
+        },
         project,
         true
     );
@@ -219,7 +224,8 @@ export const defaults: Required<Options> = {
     timeoutSec: 60,
     memorySize: 256,
     useQueue: true,
-    googleCloudFunctionOptions: {}
+    googleCloudFunctionOptions: {},
+    packerOptions: {}
 };
 
 async function initializeWithApi(
@@ -231,17 +237,18 @@ async function initializeWithApi(
 ): Promise<State> {
     log(`Create cloud function`);
     const { cloudFunctions, pubsub } = services;
-    const { archive } = await pack(serverModule);
-    const nonce = uuidv4();
-    log(`Nonce: ${nonce}`);
     const {
         region = defaults.region,
         timeoutSec = defaults.timeoutSec,
         memorySize = defaults.memorySize,
         useQueue = defaults.useQueue,
         googleCloudFunctionOptions,
+        packerOptions,
         ...rest
     } = options;
+    const nonce = uuidv4();
+    log(`Nonce: ${nonce}`);
+    const { archive } = await pack(serverModule, packerOptions);
     const location = `projects/${project}/locations/${region}`;
     const uploadUrlResponse = await carefully(
         cloudFunctions.projects.locations.functions.generateUploadUrl({
@@ -258,7 +265,7 @@ async function initializeWithApi(
         resources,
         services,
         callFunnel: new Funnel(),
-        stats: new FunctionStats()
+        statistics: new Map()
     };
     if (useQueue) {
         const googleQueueImpl = await initializeGoogleQueue(state, project, functionName);
@@ -475,11 +482,15 @@ async function uploadZip(url: string, zipStream: Readable) {
     });
 }
 
-export async function pack(functionModule: string): Promise<PackerResult> {
+export async function pack(
+    functionModule: string,
+    options?: Partial<PackerOptions>
+): Promise<PackerResult> {
     return packer({
         trampolineModule: require.resolve("./google-trampoline"),
         functionModule,
-        packageBundling: "usePackageJson"
+        packageBundling: "usePackageJson",
+        ...options
     });
 }
 

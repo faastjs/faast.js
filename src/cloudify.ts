@@ -62,7 +62,7 @@ export interface CreateFunctionOptions<CloudSpecificOptions> {
 }
 
 export interface BasicState {
-    stats: FunctionStats;
+    statistics: Map<string, FunctionStats>;
 }
 
 export class Cloud<O, S extends BasicState> {
@@ -140,6 +140,22 @@ export class CloudFunction<S extends BasicState> {
     setConcurrency(maxConcurrentExecutions: number): Promise<void> {
         return this.impl.setConcurrency(this.state, maxConcurrentExecutions);
     }
+    getStatistics() {
+        return this.state.statistics;
+    }
+    getOrCreateFunctionStatistics(fn: string | AnyFunction) {
+        if (typeof fn === "function") {
+            fn = fn.name;
+        }
+
+        const { statistics } = this.state;
+        let fnStatistics = statistics.get(fn);
+        if (!fnStatistics) {
+            fnStatistics = new FunctionStats();
+            statistics.set(fn, fnStatistics);
+        }
+        return fnStatistics;
+    }
 
     cloudifyWithResponse<F extends AnyFunction>(fn: F) {
         const responsifedFunc = async (...args: any[]) => {
@@ -158,7 +174,11 @@ export class CloudFunction<S extends BasicState> {
                     };
                     return err;
                 });
-            return processResponse(rv, callRequest, this.state.stats);
+            return processResponse(
+                rv,
+                callRequest,
+                this.getOrCreateFunctionStatistics(fn)
+            );
         };
         return responsifedFunc as any;
     }

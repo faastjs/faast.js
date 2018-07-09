@@ -11,7 +11,7 @@ import {
 } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log } from "../log";
-import { packer, PackerResult } from "../packer";
+import { packer, PackerResult, PackerOptions } from "../packer";
 import * as cloudqueue from "../queue";
 import { FunctionCall, FunctionReturn, sleep, FunctionStats } from "../shared";
 import { AnyFunction } from "../type-helpers";
@@ -35,6 +35,7 @@ export interface Options {
     memorySize?: number;
     useQueue?: boolean;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
+    packerOptions?: Partial<PackerOptions>;
 }
 
 export interface AWSResources {
@@ -111,7 +112,8 @@ export let defaults: Required<Options> = {
     timeout: 60,
     memorySize: 256,
     useQueue: true,
-    awsLambdaOptions: {}
+    awsLambdaOptions: {},
+    packerOptions: {}
 };
 
 export function createAWSApis(region: string): AWSServices {
@@ -230,6 +232,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         memorySize: MemorySize = defaults.memorySize,
         useQueue = defaults.useQueue,
         awsLambdaOptions = {},
+        packerOptions = {},
         ...rest
     } = options;
     log(`Creating AWS APIs`);
@@ -246,7 +249,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     async function createFunction() {
         const roleResponse = await createLambdaRole(RoleName, PolicyArn, services);
         await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
-        const { archive } = await pack(fModule);
+        const { archive } = await pack(fModule, packerOptions);
         const previous = await quietly(lambda.getFunction({ FunctionName }));
         if (previous) {
             throw new Error("Function name hash collision");
@@ -282,7 +285,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         },
         services: { lambda, cloudwatch, iam, sqs, sns },
         callFunnel: new Funnel(),
-        stats: new FunctionStats()
+        statistics: new Map()
     };
 
     try {
@@ -424,12 +427,16 @@ export async function cleanup(state: PartialState) {
     await cancelPromise;
 }
 
-export async function pack(functionModule: string): Promise<PackerResult> {
+export async function pack(
+    functionModule: string,
+    options?: Partial<PackerOptions>
+): Promise<PackerResult> {
     return packer({
         trampolineModule: require.resolve("./aws-trampoline"),
         functionModule,
         packageBundling: "bundleNodeModules",
-        webpackOptions: { externals: "aws-sdk" }
+        webpackOptions: { externals: "aws-sdk" },
+        ...options
     });
 }
 
