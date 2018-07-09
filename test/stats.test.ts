@@ -1,9 +1,9 @@
-import { IncrementalStatistics } from "../src/shared";
+import { Stats } from "../src/shared";
 import { avg, stdev } from "./shared";
 import { stat } from "fs";
 
 function check(values: number[]) {
-    const stat = new IncrementalStatistics();
+    const stat = new Stats();
     values.forEach(value => stat.update(value));
     expect(stat.mean).toBeCloseTo(avg(values), 10);
     expect(stat.stdev).toBeCloseTo(stdev(values), 10);
@@ -12,7 +12,7 @@ function check(values: number[]) {
 
 describe("statistics", () => {
     test("empty values", () => {
-        const emptyStat = new IncrementalStatistics();
+        const emptyStat = new Stats();
         expect(emptyStat.mean).toBeNaN();
         expect(emptyStat.stdev).toBeNaN();
         expect(emptyStat.samples).toBe(0);
