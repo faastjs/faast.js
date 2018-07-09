@@ -3,7 +3,7 @@ import { log } from "./log";
 
 export class Deferred<T> {
     promise: Promise<T>;
-    resolve!: (arg?: any) => void;
+    resolve!: (arg?: T) => void;
     reject!: (err?: any) => void;
     constructor() {
         this.promise = new Promise<T>((resolve, reject) => {

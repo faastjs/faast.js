@@ -1,6 +1,5 @@
 import { Stats } from "../src/shared";
-import { avg, stdev } from "./shared";
-import { stat } from "fs";
+import { avg, stdev } from "./tests";
 
 function check(values: number[]) {
     const stat = new Stats();

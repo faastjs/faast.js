@@ -1,80 +1,8 @@
 import * as cloudify from "../src/cloudify";
 import { Pump } from "../src/funnel";
 import { log } from "../src/log";
+import { sleep, Stats } from "../src/shared";
 import * as funcs from "./functions";
-import { sleep } from "../src/shared";
-
-export function checkFunctions(
-    description: string,
-    cloudProvider: string,
-    options?: cloudify.CreateFunctionOptions<any>
-) {
-    describe(description, () => {
-        let remote: cloudify.Promisified<typeof funcs>;
-        let lambda: cloudify.CloudFunction<any>;
-
-        beforeAll(async () => {
-            try {
-                const cloud = cloudify.create(cloudProvider);
-                lambda = await cloud.createFunction("./functions", options);
-                remote = lambda.cloudifyAll(funcs);
-            } catch (err) {
-                console.error(err);
-            }
-        }, 90 * 1000);
-
-        afterAll(async () => {
-            await lambda.cleanup();
-        }, 60 * 1000);
-
-        test("hello: string => string", async () => {
-            expect(await remote.hello("Andy")).toBe("Hello Andy!");
-        });
-
-        test("fact: number => number", async () => {
-            expect(await remote.fact(5)).toBe(120);
-        });
-
-        test("concat: (string, string) => string", async () => {
-            expect(await remote.concat("abc", "def")).toBe("abcdef");
-        });
-
-        test("error: string => raise exception", async () => {
-            expect(await remote.error("hey").catch(err => err.message)).toBe(
-                "Expected this error. Argument: hey"
-            );
-        });
-
-        test("noargs: () => string", async () => {
-            expect(await remote.noargs()).toBe(
-                "successfully called function with no args."
-            );
-        });
-
-        test("async: () => Promise<string>", async () => {
-            expect(await remote.async()).toBe(
-                "returned successfully from async function"
-            );
-        });
-
-        test("path: () => Promise<string>", async () => {
-            expect(typeof (await remote.path())).toBe("string");
-        });
-
-        test("rejected: () => rejected promise", async () => {
-            expect.assertions(1);
-            await expect(remote.rejected()).rejects.toThrowError();
-        });
-    });
-}
-
-export const sum = (a: number[]) => a.reduce((total, n) => total + n, 0);
-export const avg = (a: number[]) => sum(a) / a.length;
-
-export const stdev = (a: number[]) => {
-    const average = avg(a);
-    return Math.sqrt(avg(a.map(v => (v - average) ** 2)));
-};
 
 export function coldStartTest(
     description: string,
@@ -101,13 +29,15 @@ export function coldStartTest(
         // afterAll(() => lambda.cancelAll(), 30 * 1000);
 
         function printLatencies(latencies: number[]) {
-            const count = latencies.length;
+            const stats = new Stats();
+            latencies.forEach(l => stats.update(l));
+            const { samples, mean, stdev, min, max } = stats;
             log(`%O`, {
-                min: latencies[0],
-                max: latencies[count - 1],
-                median: latencies[Math.floor(count / 2)],
-                average: avg(latencies),
-                stdev: stdev(latencies)
+                samples,
+                mean,
+                stdev,
+                min,
+                max
             });
         }
 

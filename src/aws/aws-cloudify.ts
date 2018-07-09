@@ -6,19 +6,14 @@ import {
     CreateFunctionOptions,
     ResponsifiedFunction,
     CloudImpl,
-    CloudFunctionImpl
+    CloudFunctionImpl,
+    BasicState
 } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import {
-    FunctionCall,
-    FunctionReturn,
-    processResponse,
-    sleep,
-    FunctionStats
-} from "../shared";
+import { FunctionCall, FunctionReturn, sleep, FunctionStats } from "../shared";
 import { AnyFunction } from "../type-helpers";
 import {
     isControlMessage,
@@ -66,12 +61,11 @@ type AWSCloudQueueState = cloudqueue.StateWithMessageType<aws.SQS.Message>;
 type AWSCloudQueueImpl = cloudqueue.QueueImpl<aws.SQS.Message>;
 type AWSInvocationResponse = PromiseResult<aws.Lambda.InvocationResponse, aws.AWSError>;
 
-export interface State {
+export interface State extends BasicState {
     resources: AWSResources;
     services: AWSServices;
     callFunnel: Funnel<AWSInvocationResponse>;
     queueState?: AWSCloudQueueState;
-    stats?: FunctionStats;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -85,7 +79,7 @@ export const Impl: CloudImpl<Options, State> = {
 
 export const LambdaImpl: CloudFunctionImpl<State> = {
     name: "aws",
-    cloudifyWithResponse,
+    callFunction,
     cleanup,
     cancelWithoutCleanup,
     getResourceList,
@@ -313,30 +307,13 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     }
 }
 
-async function callFunctionQueue(
-    queueState: AWSCloudQueueState,
-    callRequest: FunctionCall,
-    CallId: string,
-    stats?: FunctionStats
-) {
-    const responsePromise = await cloudqueue.enqueueCallRequest(
-        queueState,
-        JSON.stringify(callRequest),
-        CallId
-    );
-    const { returned, rawResponse } = await responsePromise;
-    return processResponse(undefined, returned, rawResponse, callRequest.start, stats);
-}
-
 async function callFunctionHttps(
     lambda: aws.Lambda,
     FunctionName: string,
     callRequest: FunctionCall,
-    callFunnel: Funnel<AWSInvocationResponse>,
-    stats?: FunctionStats
+    callFunnel: Funnel<AWSInvocationResponse>
 ) {
-    let returned: FunctionReturn | undefined;
-    let error: Error | undefined;
+    let returned: FunctionReturn;
     let rawResponse: AWSInvocationResponse;
     const request: aws.Lambda.Types.InvocationRequest = {
         FunctionName,
@@ -348,19 +325,24 @@ async function callFunctionHttps(
         if (rawResponse.LogResult) {
             log(Buffer.from(rawResponse.LogResult!, "base64").toString());
         }
-        error = new Error(rawResponse.Payload as string);
+        returned = {
+            type: "error",
+            CallId: callRequest.CallId,
+            rawResponse,
+            value: new Error(rawResponse.Payload as string)
+        };
     }
-    returned = !error && rawResponse.Payload && JSON.parse(rawResponse.Payload as string);
-    return processResponse(error, returned, rawResponse, callRequest.start, stats);
+    returned = JSON.parse(rawResponse.Payload as string);
+    returned.rawResponse = rawResponse;
+    return returned;
 }
 
 async function callFunction(state: State, callRequest: FunctionCall) {
     if (state.queueState) {
-        return callFunctionQueue(
+        return cloudqueue.enqueueCallRequest(
             state.queueState,
             callRequest,
-            callRequest.CallId,
-            state.stats
+            state.resources.ResponseQueueUrl!
         );
     } else {
         const {
@@ -368,41 +350,8 @@ async function callFunction(state: State, callRequest: FunctionCall) {
             services: { lambda },
             resources: { FunctionName }
         } = state;
-        return callFunctionHttps(
-            lambda,
-            FunctionName,
-            callRequest,
-            callFunnel,
-            state.stats
-        );
+        return callFunctionHttps(lambda, FunctionName, callRequest, callFunnel);
     }
-}
-
-export function cloudifyWithResponse<F extends AnyFunction>(
-    state: State,
-    fn: F
-): ResponsifiedFunction<F> {
-    const responsifedFunc = async (...args: any[]) => {
-        const CallId = uuidv4();
-        const { ResponseQueueUrl } = state.resources;
-        const callRequest: FunctionCall = {
-            name: fn.name,
-            args,
-            CallId,
-            ResponseQueueId: ResponseQueueUrl,
-            start: Date.now()
-        };
-        const rv = await callFunction(state, callRequest);
-        const { stats } = state;
-        if (stats) {
-            stats.callsCompleted++;
-            if (rv.error) {
-                stats.errors++;
-            }
-        }
-        return rv;
-    };
-    return responsifedFunc as any;
 }
 
 export async function deleteRole(RoleName: string, iam: aws.IAM) {

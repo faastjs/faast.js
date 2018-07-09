@@ -31,7 +31,7 @@ export interface ResponseQueueImpl<M> {
 
 export type QueueImpl<M> = RequestQueueImpl & ResponseQueueImpl<M>;
 
-export class PendingRequest extends Deferred<QueuedResponse<any>> {
+export class PendingRequest extends Deferred<FunctionReturn> {
     created: number = Date.now();
     executing?: boolean;
     constructor(readonly callArgsStr: string) {
@@ -48,11 +48,6 @@ export interface Vars {
 export type StateWithMessageType<M> = Vars & QueueImpl<M>;
 export type State = StateWithMessageType<{}>;
 
-export interface QueuedResponse<T> {
-    returned: T;
-    rawResponse: any;
-}
-
 export function initializeCloudFunctionQueue<M>(
     impl: QueueImpl<M>
 ): StateWithMessageType<M> {
@@ -68,11 +63,15 @@ export function initializeCloudFunctionQueue<M>(
 
 export function enqueueCallRequest(
     state: State,
-    callArgsStr: string,
-    CallId: string
-): Promise<QueuedResponse<any>> {
-    const deferred = new PendingRequest(callArgsStr);
-    state.callResultsPending.set(CallId, deferred);
+    callRequest: FunctionCall,
+    ResponseQueueId: string
+) {
+    const request = {
+        ...callRequest,
+        ResponseQueueId
+    };
+    const deferred = new PendingRequest(JSON.stringify(request));
+    state.callResultsPending.set(callRequest.CallId, deferred);
     state.publishMessage(deferred.callArgsStr);
     return deferred.promise;
 }
@@ -93,7 +92,7 @@ export async function stop(state: State) {
 interface CallResults<M> {
     CallId?: string;
     message: M;
-    deferred?: Deferred<QueuedResponse<any>>;
+    deferred?: Deferred<FunctionReturn>;
 }
 
 async function resultCollector<MessageType>(state: StateWithMessageType<MessageType>) {
@@ -106,8 +105,9 @@ async function resultCollector<MessageType>(state: StateWithMessageType<MessageT
                 continue;
             }
             const returned: FunctionReturn = JSON.parse(state.getMessageBody(message));
+            returned.rawResponse = message;
             if (deferred) {
-                deferred.resolve({ returned, rawResponse: message });
+                deferred.resolve(returned);
             } else {
                 // Caused by retries: CallId returned more than once. Ignore.
                 // log(`Deferred promise not found for CallID: ${CallId}`);

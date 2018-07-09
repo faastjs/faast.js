@@ -8,7 +8,8 @@
         "build": "yarn clean && tsc",
         "watch": "yarn clean && tsc --watch",
         "test-local": "yarn build && jest build/test/*-local.test.js",
-        "test": "yarn build && jest",
+        "test": "yarn build && jest test",
+        "test-slow": "yarn build && jest test-slow",
         "clean": "rm -rf build",
         "tslint": "tslint -p tsconfig.json"
     },
@@ -62,7 +63,8 @@
             "node"
         ],
         "roots": [
-            "build/test"
+            "build/test",
+            "build/test-slow"
         ],
         "testPathIgnorePatterns": [
             "<rootDir>/node_modules"

@@ -48,7 +48,7 @@ function parseFunc(body: object): ParsedFunc {
 function createErrorResponse(
     err: Error,
     CallId: string | undefined,
-    start: number
+    executionStart: number
 ): FunctionReturn {
     const errObj = {};
     Object.getOwnPropertyNames(err).forEach(name => {
@@ -60,34 +60,34 @@ function createErrorResponse(
         type: "error",
         value: errObj,
         CallId: CallId || "",
-        start,
-        end: Date.now()
+        executionStart,
+        executionEnd: Date.now()
     };
 }
 
-async function callFunc(parsedFunc: ParsedFunc, start: number) {
+async function callFunc(parsedFunc: ParsedFunc, executionStart: number) {
     const { func, args, CallId } = parsedFunc;
     const returned = await func.apply(undefined, args);
     const rv: FunctionReturn = {
         type: "returned",
         value: returned,
         CallId,
-        start,
-        end: Date.now()
+        executionStart,
+        executionEnd: Date.now()
     };
     return rv;
 }
 
 export async function trampoline(request: Request, response: Response) {
     let CallId: string | undefined;
-    const start = Date.now();
+    const executionStart = Date.now();
     try {
         const parsedFunc = parseFunc(request.body);
         CallId = parsedFunc.CallId;
-        const returned = await callFunc(parsedFunc, start);
+        const returned = await callFunc(parsedFunc, executionStart);
         response.send(returned);
     } catch (err) {
-        response.send(createErrorResponse(err, CallId, start));
+        response.send(createErrorResponse(err, CallId, executionStart));
     }
 }
 

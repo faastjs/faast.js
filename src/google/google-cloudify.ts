@@ -9,19 +9,14 @@ import {
     ResponsifiedFunction,
     Response,
     CloudImpl,
-    CloudFunctionImpl
+    CloudFunctionImpl,
+    BasicState
 } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import {
-    FunctionCall,
-    FunctionReturn,
-    processResponse,
-    sleep,
-    FunctionStats
-} from "../shared";
+import { FunctionCall, FunctionReturn, sleep, FunctionStats } from "../shared";
 import { AnyFunction, Mutable } from "../type-helpers";
 import {
     getMessageBody,
@@ -59,13 +54,12 @@ type ReceivedMessage = PubSubApi.Schema$ReceivedMessage;
 type GoogleCloudQueueState = cloudqueue.StateWithMessageType<ReceivedMessage>;
 type GoogleCloudQueueImpl = cloudqueue.QueueImpl<ReceivedMessage>;
 
-export interface State {
+export interface State extends BasicState {
     resources: GoogleResources;
     services: GoogleServices;
     queueState?: GoogleCloudQueueState;
-    callFunnel: Funnel<Response<any>>;
+    callFunnel: Funnel<FunctionReturn>;
     url?: string;
-    stats?: FunctionStats;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -79,7 +73,7 @@ export const Impl: CloudImpl<Options, State> = {
 
 export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
     name: "google",
-    cloudifyWithResponse,
+    callFunction,
     cleanup,
     cancelWithoutCleanup,
     getResourceList,
@@ -370,61 +364,30 @@ export function exec(cmd: string) {
     return result;
 }
 
-async function callFunctionQueue(
-    queueState: GoogleCloudQueueState,
-    callArgs: FunctionCall,
-    stats?: FunctionStats
-) {
-    const responsePromise = await cloudqueue.enqueueCallRequest(
-        queueState,
-        JSON.stringify(callArgs),
-        callArgs.CallId
-    );
-    const { returned, rawResponse } = await responsePromise;
-    return processResponse(undefined, returned, rawResponse, callArgs.start, stats);
-}
-
-async function callFunctionHttps(
-    url: string,
-    callArgs: FunctionCall,
-    stats?: FunctionStats
-) {
+async function callFunctionHttps(url: string, callArgs: FunctionCall) {
     const rawResponse = await Axios.put<FunctionReturn>(url!, callArgs);
-    return processResponse(
-        undefined,
-        rawResponse.data,
-        rawResponse,
-        callArgs.start,
-        stats
-    );
+    const returned: FunctionReturn = rawResponse.data;
+    returned.rawResponse = rawResponse;
+    return returned;
 }
 
-export function cloudifyWithResponse<F extends AnyFunction>(
-    state: State,
-    fn: F
-): ResponsifiedFunction<F> {
-    const promisifedFunc = async (...args: any[]) => {
-        const callRequest: FunctionCall = {
-            name: fn.name,
-            args,
-            CallId: uuidv4(),
-            ResponseQueueId: state.resources.responseQueueTopic,
-            start: Date.now()
-        };
-        const { callFunnel } = state;
-        if (state.queueState) {
-            return callFunnel.push(() =>
-                callFunctionQueue(state.queueState!, callRequest, state.stats)
-            );
-        } else {
-            return callFunnel.pushRetry(3, () =>
-                callFunctionHttps(state.url!, callRequest, state.stats).catch(err =>
-                    Promise.reject((err.response && err.response.data) || err)
-                )
-            );
-        }
-    };
-    return promisifedFunc as any;
+async function callFunction(state: State, callRequest: FunctionCall) {
+    const { callFunnel } = state;
+    if (state.queueState) {
+        return callFunnel.push(() =>
+            cloudqueue.enqueueCallRequest(
+                state.queueState!,
+                callRequest,
+                state.resources.responseQueueTopic!
+            )
+        );
+    } else {
+        return callFunnel.pushRetry(3, () =>
+            callFunctionHttps(state.url!, callRequest).catch(err =>
+                Promise.reject((err.response && err.response.data) || err)
+            )
+        );
+    }
 }
 
 type PartialState = Partial<State> & Pick<State, "services" | "resources">;

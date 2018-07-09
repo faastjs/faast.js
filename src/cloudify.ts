@@ -4,6 +4,8 @@ import * as aws from "./aws/aws-cloudify";
 import * as google from "./google/google-cloudify";
 import { PackerResult } from "./packer";
 import { AnyFunction, Unpacked } from "./type-helpers";
+import { FunctionReturn, FunctionCall, FunctionStats } from "./shared";
+import * as uuidv4 from "uuid/v4";
 
 export interface ResponseDetails<D> {
     value?: D;
@@ -59,7 +61,11 @@ export interface CreateFunctionOptions<CloudSpecificOptions> {
     useQueue?: boolean;
 }
 
-export class Cloud<O, S> {
+export interface BasicState {
+    stats: FunctionStats;
+}
+
+export class Cloud<O, S extends BasicState> {
     name: string = this.impl.name;
     constructor(readonly impl: CloudImpl<O, S>) {}
     cleanupResources(resources: string): Promise<void> {
@@ -81,12 +87,44 @@ export class Cloud<O, S> {
     }
 }
 
-export class CloudFunction<S> {
+export function processResponse(
+    returned: FunctionReturn,
+    callRequest: FunctionCall,
+    stats: FunctionStats
+) {
+    let error: Error | undefined;
+    if (returned.type === "error") {
+        const errValue = returned.value;
+        error = new Error(errValue.message);
+        error.name = errValue.name;
+        error.stack = errValue.stack;
+    }
+    const value = !error && returned.value;
+    let rv: Response<ReturnType<any>> = {
+        value,
+        error,
+        rawResponse: returned.rawResponse
+    };
+    stats.callsCompleted++;
+    if (returned.executionStart && returned.executionEnd) {
+        const executionLatency = returned.executionEnd - returned.executionStart;
+        const startLatency = returned.executionStart - callRequest.start;
+        const returnLatency = Date.now() - returned.executionEnd;
+        const latencies = { executionLatency, startLatency, returnLatency };
+        rv = { ...rv, ...latencies };
+        stats.startLatency.update(startLatency);
+        stats.executionLatency.update(executionLatency);
+        stats.returnLatency.update(returnLatency);
+    }
+    if (error) {
+        stats.errors++;
+    }
+    return rv;
+}
+
+export class CloudFunction<S extends BasicState> {
     cloudName = this.impl.name;
     constructor(readonly impl: CloudFunctionImpl<S>, readonly state: S) {}
-    cloudifyWithResponse<F extends AnyFunction>(fn: F) {
-        return this.impl.cloudifyWithResponse(this.state, fn);
-    }
     cleanup() {
         return this.impl.cleanup(this.state);
     }
@@ -101,6 +139,28 @@ export class CloudFunction<S> {
     }
     setConcurrency(maxConcurrentExecutions: number): Promise<void> {
         return this.impl.setConcurrency(this.state, maxConcurrentExecutions);
+    }
+
+    cloudifyWithResponse<F extends AnyFunction>(fn: F) {
+        const responsifedFunc = async (...args: any[]) => {
+            const CallId = uuidv4();
+            const start = Date.now();
+            const callRequest: FunctionCall = { name: fn.name, args, CallId, start };
+            const rv = await this.impl
+                .callFunction(this.state, callRequest)
+                .catch(value => {
+                    const err: FunctionReturn = {
+                        type: "error",
+                        value,
+                        CallId,
+                        executionStart: start,
+                        executionEnd: Date.now()
+                    };
+                    return err;
+                });
+            return processResponse(rv, callRequest, this.state.stats);
+        };
+        return responsifedFunc as any;
     }
 
     cloudify<F extends AnyFunction>(fn: F): PromisifiedFunction<F> {
@@ -186,10 +246,7 @@ export interface CloudImpl<O, S> {
 
 export interface CloudFunctionImpl<State> {
     name: string;
-    cloudifyWithResponse<F extends AnyFunction>(
-        state: State,
-        fn: F
-    ): ResponsifiedFunction<F>;
+    callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>;
     cleanup(state: State): Promise<void>;
     cancelWithoutCleanup(state: State): Promise<void>;
     getResourceList(state: State): string;

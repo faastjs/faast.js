@@ -27,7 +27,7 @@ export async function trampoline(
     _context: any,
     callback: (err: Error | null, obj: FunctionReturn) => void
 ) {
-    const start = Date.now();
+    const executionStart = Date.now();
     const { name, args, CallId } = event as FunctionCall;
     try {
         if (!name) {
@@ -49,8 +49,8 @@ export async function trampoline(
             type: "returned",
             value: rv,
             CallId,
-            start,
-            end: Date.now()
+            executionStart,
+            executionEnd: Date.now()
         });
     } catch (err) {
         const errObj = {};
@@ -59,8 +59,8 @@ export async function trampoline(
             type: "error",
             value: errObj,
             CallId,
-            start,
-            end: Date.now()
+            executionStart,
+            executionEnd: Date.now()
         });
     }
 }
@@ -104,12 +104,12 @@ export async function snsTrampoline(
         trampoline(event, context, (err, obj) => {
             clearTimeout(startedMessage);
             const result = obj;
-            result.start = start;
+            result.executionStart = start;
             if (err) {
                 sendError(err, ResponseQueueId!, CallId, start);
                 return;
             }
-            result.end = Date.now();
+            result.executionEnd = Date.now();
             publishSQS(sqs, ResponseQueueId!, JSON.stringify(result), { CallId }).catch(
                 puberr => {
                     sendError(puberr, ResponseQueueId!, CallId, start);
