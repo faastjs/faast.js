@@ -192,13 +192,11 @@ function adjustConcurrencyLevel(vars: Vars, full: boolean) {
 
 function rejectAll(callResultsPending: Map<string, PendingRequest>) {
     log(`Rejecting ${callResultsPending.size} result promises`);
-    for (const [key, promise] of callResultsPending) {
+    for (const [key, pending] of callResultsPending) {
         log(`Rejecting call result: ${key}`);
-        promise.reject(
+        pending.reject(
             new Error(
-                `Call to cloud function cancelled in cleanup: ${
-                    callResultsPending[key].callArgsStr
-                }`
+                `Call to cloud function cancelled in cleanup: ${pending.callArgsStr}`
             )
         );
     }
