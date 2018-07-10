@@ -160,10 +160,12 @@ async function main() {
     const cleanAll = commander.all || false;
 
     if (!execute) {
-        log(`=== Dry run mode ===`);
-        log(`No resources will be deleted. Specify -x to execute cleanup.`);
+        log(`Mode: dryrun (no resources will be deleted, specify -x to execute cleanup)`);
+    } else {
+        log(`Mode: execute`);
     }
     if (cloud === "aws") {
+        log(`Region: ${region}`);
         if (execute && !force) {
             const n = await cleanupAWS({
                 region,
