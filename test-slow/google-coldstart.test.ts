@@ -1,4 +1,4 @@
-import { coldStartTest } from "./shared";
+import { coldStartTest } from "./tests";
 
 coldStartTest("Google Https load test", "google", 200, {
     useQueue: false,

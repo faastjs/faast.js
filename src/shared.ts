@@ -54,7 +54,6 @@ export class FunctionStats {
     startLatency = new Stats();
     executionLatency = new Stats();
     returnLatency = new Stats();
-    lastStatOutputTime = 0;
 }
 
 export function sleep(ms: number) {

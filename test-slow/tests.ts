@@ -19,6 +19,7 @@ export function coldStartTest(
                 const cloud = cloudify.create(cloudProvider);
                 lambda = await cloud.createFunction("./functions", options);
                 lambda.setConcurrency(maxConcurrency);
+                lambda.printStatisticsInterval(1000);
                 remote = lambda.cloudifyAll(funcs);
             } catch (err) {
                 console.error(err);
@@ -109,6 +110,7 @@ export function coldStartTest(
 export function throughputTest(
     description: string,
     cloudProvider: string,
+    duration: number,
     options?: cloudify.CreateFunctionOptions<any>
 ) {
     describe(description, () => {
@@ -119,6 +121,7 @@ export function throughputTest(
             try {
                 const cloud = cloudify.create(cloudProvider);
                 lambda = await cloud.createFunction("./functions", options);
+                lambda.printStatisticsInterval(1000);
                 remote = lambda.cloudifyAll(funcs);
             } catch (err) {
                 console.error(err);
@@ -126,9 +129,10 @@ export function throughputTest(
         }, 90 * 1000);
 
         afterAll(() => lambda.cleanup(), 30 * 1000);
+        // afterAll(() => lambda.cancelAll(), 30 * 1000);
 
         test(
-            "sustained load test for 1 minute",
+            "sustained load test",
             async () => {
                 let completed = 0;
                 const nSamplesPerFunction = 2000000;
@@ -137,11 +141,13 @@ export function throughputTest(
                     remote.monteCarloPI(nSamplesPerFunction).then(_ => completed++)
                 );
                 pump.start();
-                await sleep(60 * 1000);
+                await sleep(duration);
                 await pump.drain();
-                console.log(`Completed ${completed} calls in 1 minute`);
+                console.log(
+                    `Completed ${completed} calls in ${duration / (60 * 1000)} minute(s)`
+                );
             },
-            90 * 1000
+            duration * 2
         );
     });
 }

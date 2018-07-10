@@ -32,6 +32,15 @@ export async function receiveMessages(
     return { Messages, isFullMessageBatch: Messages.length === maxMessages };
 }
 
+export function publishControlMessage(
+    type: cloudqueue.ControlMessageType,
+    pubsub: PubSubApi.Pubsub,
+    topic: string,
+    attr?: cloudqueue.Attributes
+) {
+    return publish(pubsub, topic, "empty", { cloudify: type, ...attr });
+}
+
 export function getMessageBody(received: PubSubApi.Schema$ReceivedMessage) {
     const data = (received.message && received.message.data) || "";
     return Buffer.from(data, "base64").toString();

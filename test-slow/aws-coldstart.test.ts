@@ -1,4 +1,4 @@
-import { coldStartTest } from "./shared";
+import { coldStartTest } from "./tests";
 
 coldStartTest("AWS Https test", "aws", 500, {
     memorySize: 1024,

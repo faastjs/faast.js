@@ -9,8 +9,7 @@ import {
     ResponsifiedFunction,
     Response,
     CloudImpl,
-    CloudFunctionImpl,
-    BasicState
+    CloudFunctionImpl
 } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log } from "../log";
@@ -22,7 +21,8 @@ import {
     getMessageBody,
     publish,
     pubsubMessageAttribute,
-    receiveMessages
+    receiveMessages,
+    publishControlMessage
 } from "./google-queue";
 import CloudFunctions = cloudfunctions_v1beta2;
 import PubSubApi = pubsub_v1;
@@ -55,7 +55,7 @@ type ReceivedMessage = PubSubApi.Schema$ReceivedMessage;
 type GoogleCloudQueueState = cloudqueue.StateWithMessageType<ReceivedMessage>;
 type GoogleCloudQueueImpl = cloudqueue.QueueImpl<ReceivedMessage>;
 
-export interface State extends BasicState {
+export interface State {
     resources: GoogleResources;
     services: GoogleServices;
     queueState?: GoogleCloudQueueState;
@@ -264,8 +264,7 @@ async function initializeWithApi(
     const state: State = {
         resources,
         services,
-        callFunnel: new Funnel(),
-        statistics: new Map()
+        callFunnel: new Funnel()
     };
     if (useQueue) {
         const googleQueueImpl = await initializeGoogleQueue(state, project, functionName);
@@ -356,10 +355,7 @@ async function initializeGoogleQueue(
         publishMessage: (body, attributes) =>
             publish(pubsub, resources.requestQueueTopic!, body, attributes),
         publishControlMessage: (type, attr) =>
-            publish(pubsub, resources.responseQueueTopic!, "empty", {
-                ...attr,
-                cloudify: type
-            }),
+            publishControlMessage(type, pubsub, resources.responseQueueTopic!, attr),
         isControlMessage: (message, type) =>
             pubsubMessageAttribute(message, "cloudify") === type
     };

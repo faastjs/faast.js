@@ -6,8 +6,7 @@ import {
     CreateFunctionOptions,
     ResponsifiedFunction,
     CloudImpl,
-    CloudFunctionImpl,
-    BasicState
+    CloudFunctionImpl
 } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log } from "../log";
@@ -62,7 +61,7 @@ type AWSCloudQueueState = cloudqueue.StateWithMessageType<aws.SQS.Message>;
 type AWSCloudQueueImpl = cloudqueue.QueueImpl<aws.SQS.Message>;
 type AWSInvocationResponse = PromiseResult<aws.Lambda.InvocationResponse, aws.AWSError>;
 
-export interface State extends BasicState {
+export interface State {
     resources: AWSResources;
     services: AWSServices;
     callFunnel: Funnel<AWSInvocationResponse>;
@@ -284,8 +283,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             region
         },
         services: { lambda, cloudwatch, iam, sqs, sns },
-        callFunnel: new Funnel(),
-        statistics: new Map()
+        callFunnel: new Funnel()
     };
 
     try {

@@ -55,7 +55,7 @@ export function publishSQSControlMessage(
     QueueUrl: string,
     attr?: cloudqueue.Attributes
 ) {
-    return publishSQS(sqs, QueueUrl, "empty", { cloudify: type, ...(attr || {}) });
+    return publishSQS(sqs, QueueUrl, "empty", { cloudify: type, ...attr });
 }
 
 export function isControlMessage(

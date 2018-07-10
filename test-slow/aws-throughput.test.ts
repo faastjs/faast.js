@@ -1,5 +1,6 @@
-import { throughputTest } from "./shared";
+import { throughputTest } from "./tests";
 
-throughputTest("AWS throughput test", "aws", {
-    memorySize: 1024
+throughputTest("AWS throughput test", "aws", 600 * 1000, {
+    memorySize: 1024,
+    useQueue: false
 });

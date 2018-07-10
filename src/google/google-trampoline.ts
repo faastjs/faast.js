@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { google, pubsub_v1 } from "googleapis";
 import { FunctionCall, FunctionReturn } from "../shared";
 import { AnyFunction } from "../type-helpers";
-import { publish } from "./google-queue";
+import { publish, publishControlMessage } from "./google-queue";
 import PubSubApi = pubsub_v1;
 
 const funcs: { [func: string]: AnyFunction } = {};
@@ -121,10 +121,18 @@ export async function pubsubTrampoline(event: CloudFunctionPubSubEvent): Promise
     let CallId: string = "";
     let ResponseQueueId: string | undefined;
     try {
+        const startedMessageTimer = setTimeout(
+            () =>
+                publishControlMessage("functionstarted", pubsub, ResponseQueueId!, {
+                    CallId
+                }),
+            2 * 1000
+        );
         const str = Buffer.from(event.data.data!, "base64");
         const parsedFunc = parseFunc(JSON.parse(str.toString()));
         ({ CallId, ResponseQueueId } = parsedFunc);
         const returned = await callFunc(parsedFunc, start);
+        clearTimeout(startedMessageTimer);
         await publish(pubsub, ResponseQueueId!, JSON.stringify(returned), { CallId });
     } catch (err) {
         console.error(err);

@@ -6,6 +6,7 @@ import { PackerResult } from "./packer";
 import { AnyFunction, Unpacked } from "./type-helpers";
 import { FunctionReturn, FunctionCall, FunctionStats } from "./shared";
 import * as uuidv4 from "uuid/v4";
+import { log } from "./log";
 
 export interface ResponseDetails<D> {
     value?: D;
@@ -61,11 +62,7 @@ export interface CreateFunctionOptions<CloudSpecificOptions> {
     useQueue?: boolean;
 }
 
-export interface BasicState {
-    statistics: Map<string, FunctionStats>;
-}
-
-export class Cloud<O, S extends BasicState> {
+export class Cloud<O, S> {
     name: string = this.impl.name;
     constructor(readonly impl: CloudImpl<O, S>) {}
     cleanupResources(resources: string): Promise<void> {
@@ -122,10 +119,14 @@ export function processResponse(
     return rv;
 }
 
-export class CloudFunction<S extends BasicState> {
+export class CloudFunction<S> {
     cloudName = this.impl.name;
+    timer?: NodeJS.Timer;
+    statistics: Map<string, FunctionStats> = new Map();
+
     constructor(readonly impl: CloudFunctionImpl<S>, readonly state: S) {}
     cleanup() {
+        this.stopStatisticsInterval();
         return this.impl.cleanup(this.state);
     }
     cancelAll() {
@@ -141,20 +142,57 @@ export class CloudFunction<S extends BasicState> {
         return this.impl.setConcurrency(this.state, maxConcurrentExecutions);
     }
     getStatistics() {
-        return this.state.statistics;
+        return this.statistics;
     }
     getOrCreateFunctionStatistics(fn: string | AnyFunction) {
         if (typeof fn === "function") {
             fn = fn.name;
         }
 
-        const { statistics } = this.state;
-        let fnStatistics = statistics.get(fn);
+        let fnStatistics = this.statistics.get(fn);
         if (!fnStatistics) {
             fnStatistics = new FunctionStats();
-            statistics.set(fn, fnStatistics);
+            this.statistics.set(fn, fnStatistics);
         }
         return fnStatistics;
+    }
+
+    printStatistics() {
+        for (const [fn, stats] of this.statistics) {
+            const {
+                callsCompleted,
+                errors,
+                retries,
+                startLatency,
+                executionLatency,
+                returnLatency
+            } = stats;
+            const errString = errors ? `errors: ${errors} ` : ``;
+            const retryString = retries ? `retries: ${retries} ` : ``;
+            const p = (n: number) => n.toFixed(1);
+            console.log(
+                `${fn} calls: ${callsCompleted} start: ${p(
+                    startLatency.mean
+                )} execution: ${p(executionLatency.mean)} return: ${p(
+                    returnLatency.mean
+                )} ${errString}${retryString}`
+            );
+        }
+    }
+
+    printStatisticsInterval(interval: number) {
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        this.timer = setInterval(() => {
+            this.printStatistics();
+            this.statistics.clear();
+        }, interval);
+    }
+
+    stopStatisticsInterval() {
+        this.timer && clearInterval(this.timer);
+        this.timer = undefined;
     }
 
     cloudifyWithResponse<F extends AnyFunction>(fn: F) {

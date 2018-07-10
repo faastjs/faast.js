@@ -1,0 +1,1887 @@
+Andys-iMac:cloudify achou$ npx jest build/test-slow/aws-throughput.test.js
+  cloudify:info Nonce: 8264794f-613a-4652-bd21-a97f49e2b74d +0ms
+  cloudify:info Creating AWS APIs +1ms
+  cloudify:info Creating log group: /aws/lambda/cloudify-8264794f-613a-4652-bd21-a97f49e2b74d +14ms
+  cloudify:info Creating function +610ms
+  cloudify:info Adding inline policy to not allow log group creation to role "cloudify-cached-lambda-role" +416ms
+  cloudify:info Running webpack +405ms
+  cloudify:info Hash: b66018b28de9cd0d87c2
+  cloudify:info Version: webpack 4.11.1
+  cloudify:info Time: 142ms
+  cloudify:info Built at: 07/09/2018 4:27:42 PM
+  cloudify:info    Asset      Size  Chunks             Chunk Names
+  cloudify:info index.js  25.5 KiB    main  [emitted]  main
+  cloudify:info Entrypoint main = index.js
+  cloudify:info [./build/src/aws/aws-queue.js] 2.46 KiB {main} [built]
+  cloudify:info [./build/src/aws/aws-trampoline.js] 3.71 KiB {main} [built]
+  cloudify:info [./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest-slow%2Ffunctions.js!./] ./build/src/cloudify-loader.js?trampolineModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Fsrc%2Faws%2Faws-trampoline.js&functionModule=%2FUsers%2Fachou%2FCode%2Fcloudify%2Fbuild%2Ftest-slow%2Ffunctions.js 333 bytes {main} [built]
+  cloudify:info [./build/test-slow/functions.js] 529 bytes {main} [built]
+  cloudify:info [./node_modules/tslib/tslib.es6.js] 8.66 KiB {main} [built]
+  cloudify:info [aws-sdk] external "aws-sdk" 42 bytes {main} [built] +244ms
+  cloudify:info Memory filesystem: {
+  cloudify:info   "index.js": {...large object}
+  cloudify:info } +1ms
+  cloudify:info createFunctionRequest: {
+  cloudify:info   "FunctionName": "cloudify-8264794f-613a-4652-bd21-a97f49e2b74d",
+  cloudify:info   "Role": "arn:aws:iam::343675226624:role/cloudify-cached-lambda-role",
+  cloudify:info   "Runtime": "nodejs6.10",
+  cloudify:info   "Handler": "index.trampoline",
+  cloudify:info   "Code": {
+  cloudify:info     "ZipFile": {...large object}
+  cloudify:info   },
+  cloudify:info   "Description": "cloudify trampoline function",
+  cloudify:info   "Timeout": 60,
+  cloudify:info   "MemorySize": 1024
+  cloudify:info } +180ms
+  cloudify:info Polling creating function... +0ms
+  cloudify:info Created function cloudify-8264794f-613a-4652-bd21-a97f49e2b74d, FunctionArn: arn:aws:lambda:us-west-2
+:343675226624:function:cloudify-8264794f-613a-4652-bd21-a97f49e2b74d +252ms
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 11 start: 1337.3 execution: 1007.3 return: 32.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 47 start: 1811.1 execution: 1672.0 return: 22.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 19 start: 3085.4 execution: 1349.1 return: 18.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 41 start: 3818.7 execution: 1592.3 return: 21.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 4986.2 execution: 1506.4 return: 22.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 5912.8 execution: 1574.8 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 6815.9 execution: 1535.8 return: 17.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 7974.9 execution: 1497.8 return: 23.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 8656.3 execution: 1573.8 return: 19.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 9944.9 execution: 1513.9 return: 20.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 10622.6 execution: 1559.9 return: 18.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 39 start: 11907.9 execution: 1536.3 return: 18.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 24 start: 12777.9 execution: 1546.8 return: 19.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 37 start: 13778.0 execution: 1553.4 return: 20.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 24 start: 14833.9 execution: 1500.4 return: 18.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 15565.6 execution: 1624.2 return: 18.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14876.4 execution: 1512.6 return: 22.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 37 start: 14374.9 execution: 1546.9 return: 17.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14370.3 execution: 1541.8 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 26 start: 14337.5 execution: 1564.7 return: 17.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14374.4 execution: 1568.2 return: 20.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14357.3 execution: 1549.4 return: 17.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14375.4 execution: 1532.7 return: 20.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14363.6 execution: 1571.9 return: 18.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 26 start: 14334.7 execution: 1499.8 return: 19.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 38 start: 14381.3 execution: 1579.3 return: 17.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14379.7 execution: 1508.6 return: 22.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14362.8 execution: 1546.1 return: 17.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14374.2 execution: 1535.4 return: 22.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14360.7 execution: 1582.5 return: 17.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14377.1 execution: 1547.6 return: 28.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14319.4 execution: 1523.4 return: 19.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 39 start: 14358.0 execution: 1628.6 return: 17.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14381.5 execution: 1472.6 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14356.5 execution: 1578.8 return: 18.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14396.7 execution: 1515.3 return: 31.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14349.5 execution: 1569.2 return: 18.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14417.9 execution: 1556.2 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14371.3 execution: 1547.1 return: 17.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14382.5 execution: 1566.5 return: 51.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14424.9 execution: 1570.7 return: 63.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14407.9 execution: 1511.3 return: 53.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14505.9 execution: 1545.4 return: 63.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14502.2 execution: 1590.4 return: 17.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14529.3 execution: 1589.4 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14527.6 execution: 1562.7 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14492.6 execution: 1580.0 return: 19.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14551.9 execution: 1509.5 return: 20.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14482.8 execution: 1585.8 return: 19.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14544.4 execution: 1470.3 return: 19.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14492.0 execution: 1595.0 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14514.6 execution: 1528.9 return: 18.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14512.0 execution: 1540.2 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14507.6 execution: 1562.8 return: 28.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14524.7 execution: 1547.3 return: 20.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14471.6 execution: 1535.7 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14477.7 execution: 1595.2 return: 28.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14445.8 execution: 1537.8 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14428.2 execution: 1545.0 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14422.3 execution: 1586.7 return: 19.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14403.4 execution: 1534.3 return: 18.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14397.3 execution: 1566.8 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14402.4 execution: 1544.9 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14418.8 execution: 1543.7 return: 21.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14411.8 execution: 1564.8 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14431.1 execution: 1553.3 return: 22.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14427.5 execution: 1579.6 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14432.0 execution: 1534.9 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14422.1 execution: 1564.4 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14445.8 execution: 1538.0 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14426.2 execution: 1547.9 return: 19.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14408.5 execution: 1557.5 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14423.8 execution: 1536.8 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14403.7 execution: 1578.6 return: 22.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14414.5 execution: 1477.2 return: 21.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14405.6 execution: 1608.1 return: 19.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14434.0 execution: 1535.2 return: 19.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14408.0 execution: 1554.2 return: 19.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14430.7 execution: 1610.8 return: 21.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14416.0 execution: 1545.5 return: 19.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 37 start: 14417.6 execution: 1569.2 return: 19.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14429.2 execution: 1509.6 return: 19.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14398.9 execution: 1651.4 return: 29.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 26 start: 14481.8 execution: 1466.9 return: 79.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 37 start: 14439.6 execution: 1602.6 return: 47.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 26 start: 14569.5 execution: 1505.5 return: 63.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14500.7 execution: 1611.6 return: 20.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14562.9 execution: 1487.1 return: 20.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14531.4 execution: 1607.5 return: 20.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14573.7 execution: 1502.5 return: 22.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14534.2 execution: 1588.3 return: 22.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14554.8 execution: 1531.1 return: 19.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14557.9 execution: 1581.2 return: 23.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14560.9 execution: 1553.5 return: 19.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14564.8 execution: 1525.7 return: 22.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14550.5 execution: 1601.9 return: 19.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14559.0 execution: 1516.3 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14558.3 execution: 1606.6 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14538.0 execution: 1526.3 return: 20.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14483.2 execution: 1568.1 return: 17.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14465.7 execution: 1479.2 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14445.7 execution: 1583.1 return: 19.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14442.5 execution: 1592.1 return: 19.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14446.0 execution: 1580.6 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14447.6 execution: 1548.5 return: 22.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14456.0 execution: 1568.0 return: 20.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14435.5 execution: 1542.3 return: 21.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14468.8 execution: 1591.7 return: 21.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14465.2 execution: 1541.9 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14461.1 execution: 1516.9 return: 19.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14461.4 execution: 1579.6 return: 19.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14447.5 execution: 1504.4 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14417.6 execution: 1588.9 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14444.0 execution: 1489.3 return: 21.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14419.9 execution: 1567.6 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14430.2 execution: 1542.1 return: 20.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14418.0 execution: 1560.4 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14409.1 execution: 1536.9 return: 22.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14389.1 execution: 1535.9 return: 19.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14369.8 execution: 1540.2 return: 19.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14374.0 execution: 1537.5 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14321.5 execution: 1532.2 return: 18.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14340.6 execution: 1583.5 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14300.4 execution: 1501.1 return: 19.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 38 start: 14307.1 execution: 1585.1 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14319.6 execution: 1496.4 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14307.2 execution: 1580.4 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14321.4 execution: 1485.5 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14325.6 execution: 1587.1 return: 19.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14322.8 execution: 1511.2 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14296.1 execution: 1566.5 return: 21.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14306.0 execution: 1535.9 return: 18.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14313.0 execution: 1585.3 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14324.5 execution: 1499.8 return: 19.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14299.8 execution: 1581.1 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14334.3 execution: 1502.0 return: 18.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14317.8 execution: 1578.5 return: 19.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14334.7 execution: 1544.3 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14333.9 execution: 1569.8 return: 19.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14356.0 execution: 1541.6 return: 17.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14340.6 execution: 1570.1 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14371.1 execution: 1540.3 return: 19.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14343.6 execution: 1571.7 return: 28.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14341.5 execution: 1567.5 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14389.3 execution: 1521.7 return: 22.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14374.8 execution: 1518.6 return: 38.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14368.2 execution: 1569.3 return: 62.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14427.9 execution: 1526.3 return: 48.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14424.8 execution: 1617.8 return: 56.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 26 start: 14516.8 execution: 1478.8 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 38 start: 14435.0 execution: 1597.3 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14513.4 execution: 1447.5 return: 23.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14461.1 execution: 1574.9 return: 19.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14490.4 execution: 1524.4 return: 21.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14455.9 execution: 1554.4 return: 19.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14472.3 execution: 1555.4 return: 20.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14472.9 execution: 1559.6 return: 23.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14461.3 execution: 1536.3 return: 21.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14470.4 execution: 1544.5 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14476.0 execution: 1564.4 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14473.3 execution: 1507.8 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14447.8 execution: 1564.0 return: 25.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14424.5 execution: 1566.6 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14402.9 execution: 1524.0 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14385.2 execution: 1572.3 return: 20.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14401.4 execution: 1529.5 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14361.8 execution: 1575.3 return: 19.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14387.7 execution: 1529.4 return: 17.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14370.3 execution: 1547.5 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14383.2 execution: 1570.7 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14354.1 execution: 1551.5 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14409.3 execution: 1562.1 return: 19.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14381.8 execution: 1532.7 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14400.6 execution: 1583.6 return: 19.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14365.1 execution: 1516.1 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14402.1 execution: 1580.4 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14364.6 execution: 1535.6 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14410.5 execution: 1579.4 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14377.0 execution: 1542.7 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14411.3 execution: 1543.2 return: 31.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14388.4 execution: 1588.8 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14400.2 execution: 1524.8 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14394.6 execution: 1568.6 return: 20.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14404.6 execution: 1532.1 return: 20.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14401.7 execution: 1570.5 return: 27.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14405.0 execution: 1566.7 return: 26.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14428.0 execution: 1542.9 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 37 start: 14422.9 execution: 1619.1 return: 19.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14450.1 execution: 1505.6 return: 21.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14413.3 execution: 1580.4 return: 20.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14434.9 execution: 1516.9 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14405.3 execution: 1556.4 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14426.2 execution: 1583.1 return: 21.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14414.1 execution: 1528.0 return: 18.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14438.9 execution: 1578.9 return: 23.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14416.9 execution: 1527.1 return: 19.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14430.1 execution: 1577.9 return: 19.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14431.4 execution: 1521.8 return: 19.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14429.4 execution: 1570.5 return: 19.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14425.3 execution: 1558.1 return: 21.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14427.3 execution: 1541.4 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14426.2 execution: 1565.8 return: 21.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14413.1 execution: 1533.3 return: 19.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14420.9 execution: 1557.5 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14431.9 execution: 1559.9 return: 19.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14410.7 execution: 1541.5 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14446.8 execution: 1533.9 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14411.5 execution: 1604.5 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14431.0 execution: 1534.6 return: 30.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14405.0 execution: 1553.2 return: 59.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14450.2 execution: 1574.8 return: 55.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14483.4 execution: 1541.3 return: 59.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14490.9 execution: 1564.8 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14506.5 execution: 1567.3 return: 23.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14504.0 execution: 1564.3 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14512.1 execution: 1545.6 return: 21.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14516.7 execution: 1559.2 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14510.2 execution: 1544.5 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14500.9 execution: 1519.5 return: 19.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14518.1 execution: 1591.5 return: 22.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14506.6 execution: 1506.7 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14488.1 execution: 1573.4 return: 21.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14498.1 execution: 1522.4 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14508.5 execution: 1604.2 return: 20.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14464.1 execution: 1501.3 return: 19.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14447.8 execution: 1563.7 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14399.7 execution: 1568.5 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14386.3 execution: 1516.5 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14357.5 execution: 1552.5 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14357.5 execution: 1545.2 return: 21.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14329.5 execution: 1487.8 return: 20.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14343.3 execution: 1625.6 return: 21.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14341.0 execution: 1515.4 return: 21.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14337.7 execution: 1553.6 return: 21.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14328.7 execution: 1540.6 return: 20.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14336.3 execution: 1568.0 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14306.4 execution: 1506.6 return: 22.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14330.3 execution: 1582.2 return: 19.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14300.2 execution: 1518.1 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14335.0 execution: 1583.0 return: 20.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14334.9 execution: 1533.2 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14322.1 execution: 1566.7 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14357.5 execution: 1509.2 return: 22.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 37 start: 14328.3 execution: 1576.2 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14352.6 execution: 1459.1 return: 22.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14347.8 execution: 1610.5 return: 18.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14372.8 execution: 1493.1 return: 26.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14355.2 execution: 1563.0 return: 18.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14350.3 execution: 1568.0 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14363.2 execution: 1517.8 return: 19.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14354.4 execution: 1589.0 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14367.5 execution: 1501.5 return: 17.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14340.9 execution: 1553.7 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14347.8 execution: 1546.4 return: 18.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14336.1 execution: 1523.2 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14343.8 execution: 1612.2 return: 20.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14349.1 execution: 1475.7 return: 21.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14327.8 execution: 1597.8 return: 22.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14354.4 execution: 1502.7 return: 23.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14325.0 execution: 1567.8 return: 20.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14364.9 execution: 1535.8 return: 21.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14333.2 execution: 1606.3 return: 20.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14362.1 execution: 1537.5 return: 29.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14349.6 execution: 1518.0 return: 19.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14367.5 execution: 1578.2 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14367.0 execution: 1536.9 return: 19.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14387.2 execution: 1568.4 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14385.3 execution: 1526.4 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14383.4 execution: 1561.7 return: 21.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14375.1 execution: 1535.5 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14391.0 execution: 1539.8 return: 22.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14392.0 execution: 1562.2 return: 34.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14399.3 execution: 1558.5 return: 58.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14418.7 execution: 1584.4 return: 61.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14481.9 execution: 1474.9 return: 83.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14474.9 execution: 1622.6 return: 19.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14534.1 execution: 1493.9 return: 21.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14496.4 execution: 1601.3 return: 20.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14526.0 execution: 1498.2 return: 22.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14517.5 execution: 1606.4 return: 28.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14540.3 execution: 1495.5 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14525.5 execution: 1600.9 return: 18.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14536.7 execution: 1477.4 return: 22.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14538.9 execution: 1585.0 return: 19.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14519.6 execution: 1500.4 return: 22.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14545.8 execution: 1625.8 return: 19.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14519.1 execution: 1522.1 return: 21.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14511.2 execution: 1579.6 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14466.7 execution: 1529.7 return: 19.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14467.1 execution: 1562.7 return: 19.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14388.1 execution: 1532.1 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14412.8 execution: 1561.6 return: 19.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14349.7 execution: 1537.7 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14392.5 execution: 1562.2 return: 21.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14361.9 execution: 1550.1 return: 21.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14379.7 execution: 1592.6 return: 28.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14379.7 execution: 1539.7 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14373.7 execution: 1559.4 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14382.9 execution: 1532.3 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14399.8 execution: 1513.3 return: 18.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14373.7 execution: 1594.7 return: 19.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14393.6 execution: 1479.5 return: 22.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14379.7 execution: 1620.9 return: 18.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14394.6 execution: 1498.3 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14410.7 execution: 1610.7 return: 21.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 26 start: 14407.8 execution: 1480.8 return: 20.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 38 start: 14408.1 execution: 1600.8 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14423.6 execution: 1483.2 return: 19.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14381.5 execution: 1577.6 return: 19.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14395.2 execution: 1532.1 return: 20.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14393.6 execution: 1545.6 return: 18.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14392.4 execution: 1552.4 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14413.9 execution: 1599.0 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14369.4 execution: 1508.2 return: 19.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14401.9 execution: 1586.6 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14385.4 execution: 1475.7 return: 21.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 38 start: 14402.4 execution: 1608.3 return: 18.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14385.9 execution: 1507.6 return: 22.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14407.9 execution: 1575.8 return: 18.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14399.7 execution: 1595.1 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14386.9 execution: 1557.3 return: 18.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14421.0 execution: 1518.4 return: 20.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14388.9 execution: 1554.2 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14404.0 execution: 1629.6 return: 23.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14413.0 execution: 1492.2 return: 23.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14424.8 execution: 1583.6 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14407.4 execution: 1522.0 return: 25.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14432.3 execution: 1595.8 return: 23.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14430.4 execution: 1502.2 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14428.8 execution: 1596.8 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14437.4 execution: 1521.3 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14444.6 execution: 1552.2 return: 21.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14423.1 execution: 1543.9 return: 22.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14448.0 execution: 1554.2 return: 27.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14415.6 execution: 1568.4 return: 33.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14458.2 execution: 1560.7 return: 67.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14450.1 execution: 1543.1 return: 59.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 37 start: 14522.7 execution: 1598.9 return: 55.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14519.4 execution: 1504.6 return: 21.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14576.1 execution: 1611.9 return: 19.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 26 start: 14580.8 execution: 1499.1 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14565.3 execution: 1576.5 return: 18.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14554.9 execution: 1534.6 return: 22.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14548.7 execution: 1575.6 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14559.5 execution: 1541.9 return: 20.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14541.3 execution: 1554.3 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14562.5 execution: 1554.7 return: 21.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14564.2 execution: 1578.5 return: 19.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14557.8 execution: 1537.1 return: 20.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14567.7 execution: 1586.5 return: 23.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14536.4 execution: 1535.0 return: 21.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14531.0 execution: 1613.6 return: 18.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14515.2 execution: 1551.6 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14433.8 execution: 1561.7 return: 19.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 26 start: 14470.7 execution: 1521.7 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 37 start: 14439.0 execution: 1593.7 return: 23.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14473.9 execution: 1467.0 return: 25.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14441.1 execution: 1611.7 return: 22.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14479.7 execution: 1489.1 return: 21.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 37 start: 14445.8 execution: 1599.9 return: 21.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14460.7 execution: 1505.1 return: 19.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14443.0 execution: 1603.2 return: 22.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14464.0 execution: 1492.8 return: 25.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14441.6 execution: 1588.5 return: 22.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14466.9 execution: 1561.7 return: 23.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14430.3 execution: 1558.8 return: 19.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14471.8 execution: 1559.1 return: 22.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14418.7 execution: 1569.7 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14463.7 execution: 1556.4 return: 21.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14435.3 execution: 1555.1 return: 18.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14461.1 execution: 1542.7 return: 19.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14443.8 execution: 1570.6 return: 33.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14448.6 execution: 1484.7 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14450.5 execution: 1621.5 return: 20.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14465.0 execution: 1487.1 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14439.6 execution: 1609.5 return: 23.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14476.7 execution: 1501.5 return: 25.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14464.8 execution: 1596.0 return: 18.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14475.8 execution: 1528.7 return: 22.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14460.3 execution: 1591.9 return: 19.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14480.5 execution: 1540.6 return: 21.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14466.1 execution: 1599.2 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14468.8 execution: 1491.9 return: 22.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14454.1 execution: 1589.5 return: 22.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14451.5 execution: 1562.1 return: 20.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14470.1 execution: 1585.5 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14457.8 execution: 1537.1 return: 19.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14466.4 execution: 1590.8 return: 21.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14443.5 execution: 1527.7 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14460.0 execution: 1581.1 return: 23.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14465.6 execution: 1538.1 return: 22.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14445.6 execution: 1559.0 return: 20.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14448.7 execution: 1575.0 return: 20.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14453.1 execution: 1563.0 return: 19.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14446.9 execution: 1524.1 return: 18.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14456.2 execution: 1559.8 return: 21.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14449.6 execution: 1550.8 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14442.3 execution: 1549.2 return: 38.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14432.9 execution: 1570.5 return: 67.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14505.0 execution: 1577.0 return: 41.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14484.3 execution: 1541.8 return: 68.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14536.6 execution: 1549.9 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14545.7 execution: 1554.3 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14533.7 execution: 1590.0 return: 23.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14559.5 execution: 1514.0 return: 19.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14537.3 execution: 1557.0 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14533.7 execution: 1568.0 return: 22.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14521.9 execution: 1556.6 return: 26.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14529.5 execution: 1577.4 return: 24.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14538.2 execution: 1542.9 return: 23.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14535.5 execution: 1576.1 return: 22.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14532.5 execution: 1509.4 return: 19.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14528.7 execution: 1605.6 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14512.9 execution: 1552.3 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14477.9 execution: 1548.3 return: 19.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14471.9 execution: 1543.5 return: 26.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14433.6 execution: 1565.4 return: 19.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14452.3 execution: 1552.6 return: 22.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14400.3 execution: 1552.1 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14437.7 execution: 1566.6 return: 19.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14413.9 execution: 1560.9 return: 20.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14469.3 execution: 1556.3 return: 22.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14440.5 execution: 1525.1 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14440.4 execution: 1582.2 return: 21.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14438.1 execution: 1520.8 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14443.0 execution: 1570.6 return: 19.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14447.9 execution: 1549.7 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14460.5 execution: 1567.0 return: 22.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14431.4 execution: 1565.6 return: 19.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14448.4 execution: 1541.7 return: 19.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14424.5 execution: 1540.0 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14420.8 execution: 1561.9 return: 21.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14435.6 execution: 1568.9 return: 23.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14440.8 execution: 1525.4 return: 21.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 37 start: 14418.0 execution: 1572.7 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14436.8 execution: 1520.1 return: 22.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 37 start: 14427.9 execution: 1577.5 return: 23.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14430.7 execution: 1567.6 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14409.4 execution: 1508.1 return: 18.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14439.2 execution: 1615.4 return: 30.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14447.2 execution: 1532.3 return: 19.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14443.6 execution: 1560.1 return: 43.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 24 start: 14452.3 execution: 1518.7 return: 57.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14470.2 execution: 1611.3 return: 64.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14500.9 execution: 1519.3 return: 40.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14536.2 execution: 1551.2 return: 22.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14543.6 execution: 1579.0 return: 23.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14547.0 execution: 1557.1 return: 22.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14548.1 execution: 1577.5 return: 22.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14541.1 execution: 1562.7 return: 18.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14546.5 execution: 1566.3 return: 19.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14531.9 execution: 1540.6 return: 20.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14536.7 execution: 1545.6 return: 24.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14545.0 execution: 1578.3 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14570.7 execution: 1532.4 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14536.8 execution: 1572.2 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14530.0 execution: 1541.2 return: 23.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14523.0 execution: 1567.1 return: 21.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14518.9 execution: 1534.1 return: 22.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14455.1 execution: 1565.7 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14469.7 execution: 1575.5 return: 21.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14466.6 execution: 1522.4 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14458.4 execution: 1603.0 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 26 start: 14477.5 execution: 1603.2 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14467.5 execution: 1577.9 return: 23.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14481.9 execution: 1524.2 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14469.9 execution: 1571.9 return: 22.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14474.4 execution: 1558.4 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14478.3 execution: 1554.9 return: 25.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14463.0 execution: 1555.4 return: 21.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14483.9 execution: 1550.1 return: 21.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14477.0 execution: 1578.6 return: 22.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14496.7 execution: 1553.3 return: 20.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14471.6 execution: 1580.2 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14481.8 execution: 1548.9 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14494.1 execution: 1548.4 return: 21.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14466.4 execution: 1572.4 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14505.9 execution: 1522.7 return: 19.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14479.2 execution: 1613.3 return: 23.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14499.2 execution: 1536.9 return: 20.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14497.7 execution: 1571.6 return: 24.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14489.6 execution: 1525.3 return: 23.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14462.1 execution: 1608.4 return: 23.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14477.8 execution: 1546.8 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14460.7 execution: 1570.1 return: 20.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14478.4 execution: 1562.5 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14475.4 execution: 1568.9 return: 23.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14471.6 execution: 1529.6 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14488.7 execution: 1570.7 return: 20.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14469.8 execution: 1536.5 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14475.7 execution: 1587.9 return: 21.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14460.9 execution: 1531.4 return: 20.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14487.7 execution: 1587.1 return: 22.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14472.0 execution: 1527.0 return: 19.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14495.9 execution: 1663.5 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14484.5 execution: 1520.5 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14496.2 execution: 1588.0 return: 23.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14495.1 execution: 1552.3 return: 22.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14502.8 execution: 1555.1 return: 22.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14502.0 execution: 1543.2 return: 26.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14516.4 execution: 1577.3 return: 21.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14494.1 execution: 1513.2 return: 28.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14494.3 execution: 1589.6 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 26 start: 14525.6 execution: 1502.2 return: 28.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14514.6 execution: 1599.3 return: 43.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 26 start: 14522.4 execution: 1582.5 return: 53.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14529.1 execution: 1537.5 return: 75.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14583.2 execution: 1597.0 return: 48.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14595.1 execution: 1572.8 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14635.1 execution: 1541.0 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14582.8 execution: 1562.1 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14607.9 execution: 1564.7 return: 22.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14590.4 execution: 1530.0 return: 18.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14586.8 execution: 1579.0 return: 22.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14574.1 execution: 1543.5 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14578.9 execution: 1570.1 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14582.2 execution: 1571.5 return: 20.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14563.2 execution: 1522.4 return: 23.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14564.9 execution: 1583.3 return: 21.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14576.4 execution: 1513.8 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14539.4 execution: 1591.4 return: 20.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14521.1 execution: 1523.5 return: 22.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14488.6 execution: 1588.9 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14448.3 execution: 1535.2 return: 23.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14455.5 execution: 1558.3 return: 21.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14443.8 execution: 1594.1 return: 21.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14462.9 execution: 1503.8 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14438.3 execution: 1602.2 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14465.5 execution: 1505.5 return: 24.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14429.8 execution: 1599.0 return: 19.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14452.9 execution: 1520.2 return: 21.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14443.7 execution: 1564.2 return: 21.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14459.9 execution: 1540.6 return: 21.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14481.5 execution: 1540.9 return: 23.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14458.3 execution: 1533.9 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14454.7 execution: 1556.0 return: 21.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14410.3 execution: 1512.9 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14420.3 execution: 1567.9 return: 21.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14395.4 execution: 1470.3 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14389.7 execution: 1600.6 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 26 start: 14380.5 execution: 1433.2 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 38 start: 14364.1 execution: 1633.3 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14350.3 execution: 1438.5 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14353.4 execution: 1587.6 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14333.3 execution: 1457.6 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14313.1 execution: 1595.1 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14302.0 execution: 1479.8 return: 23.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14292.3 execution: 1619.4 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14275.1 execution: 1492.9 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14273.7 execution: 1600.9 return: 23.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14271.3 execution: 1440.1 return: 22.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 37 start: 14259.7 execution: 1598.0 return: 20.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14281.0 execution: 1442.9 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 38 start: 14263.1 execution: 1606.7 return: 22.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14269.4 execution: 1465.6 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14268.0 execution: 1592.6 return: 20.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 26 start: 14260.6 execution: 1492.1 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14288.3 execution: 1579.3 return: 22.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14262.2 execution: 1493.4 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14276.6 execution: 1532.7 return: 21.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14277.3 execution: 1542.6 return: 19.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14277.5 execution: 1518.9 return: 24.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14280.2 execution: 1529.1 return: 21.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14283.0 execution: 1548.5 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14265.8 execution: 1542.2 return: 19.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14292.7 execution: 1535.9 return: 19.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14257.6 execution: 1588.2 return: 22.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 22 start: 14287.8 execution: 1391.8 return: 62.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 42 start: 14304.6 execution: 1609.0 return: 63.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 20 start: 14337.6 execution: 1478.1 return: 64.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 39 start: 14362.4 execution: 1625.1 return: 56.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 24 start: 14383.1 execution: 1407.5 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 39 start: 14395.0 execution: 1630.2 return: 20.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 28 start: 14414.6 execution: 1440.0 return: 22.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14392.9 execution: 1597.8 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14404.2 execution: 1494.6 return: 22.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14400.7 execution: 1566.9 return: 20.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14399.2 execution: 1517.2 return: 19.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14408.1 execution: 1580.7 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14369.8 execution: 1460.7 return: 21.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14413.8 execution: 1594.9 return: 21.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14369.9 execution: 1436.7 return: 29.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 38 start: 14386.7 execution: 1602.8 return: 20.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 24 start: 14326.7 execution: 1446.2 return: 22.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 38 start: 14346.5 execution: 1597.6 return: 20.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14270.0 execution: 1480.1 return: 22.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 30 start: 14269.5 execution: 1552.6 return: 21.5
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 37 start: 14259.8 execution: 1521.1 return: 20.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14229.2 execution: 1491.7 return: 22.3
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 38 start: 14271.4 execution: 1607.6 return: 21.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14266.9 execution: 1462.9 return: 19.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 38 start: 14242.7 execution: 1606.7 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14296.0 execution: 1445.2 return: 22.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14245.4 execution: 1604.2 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14316.0 execution: 1476.1 return: 35.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14250.1 execution: 1577.5 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14308.1 execution: 1521.1 return: 22.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 31 start: 14273.3 execution: 1552.0 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14290.8 execution: 1522.9 return: 19.8
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14289.6 execution: 1571.5 return: 20.7
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 32 start: 14302.4 execution: 1497.5 return: 20.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 36 start: 14293.9 execution: 1585.6 return: 21.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 25 start: 14305.0 execution: 1474.8 return: 21.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 38 start: 14290.8 execution: 1583.9 return: 19.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 26 start: 14312.7 execution: 1499.3 return: 20.6
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 37 start: 14298.6 execution: 1568.8 return: 21.0
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 27 start: 14288.4 execution: 1507.1 return: 21.2
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 34 start: 14303.7 execution: 1581.3 return: 20.1
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 33 start: 14270.5 execution: 1511.3 return: 22.4
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 29 start: 14298.4 execution: 1531.1 return: 20.9
+
+  console.log build/src/cloudify.js:102
+    monteCarloPI calls: 35 start: 14283.5 execution: 1523.9 return: 20.5
+
+  cloudify:info Cleaning up cloudify state +10m
+  cloudify:info Deleting function: cloudify-8264794f-613a-4652-bd21-a97f49e2b74d +0ms
+  console.log build/test-slow/tests.js:111
+    Completed 19176 calls in 10 minute(s)
+
+  cloudify:info Deleting log group: /aws/lambda/cloudify-8264794f-613a-4652-bd21-a97f49e2b74d +316ms
+ PASS  build/test-slow/aws-throughput.test.js (620.934s)
+  AWS throughput test
+    ✓ sustained load test (616446ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        621.49s
+Ran all test suites matching /build\/test-slow\/aws-throughput.test.js/i.
+Andys-iMac:cloudify achou$

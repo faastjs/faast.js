@@ -1,7 +1,7 @@
 import debug from "debug";
 import { Deferred, Pump } from "./funnel";
-import { log } from "./log";
 import { FunctionCall, FunctionReturn, sleep } from "./shared";
+const log = debug("cloudify:collector");
 
 export interface Attributes {
     [key: string]: string;
@@ -97,7 +97,6 @@ interface CallResults<M> {
 
 async function resultCollector<MessageType>(state: StateWithMessageType<MessageType>) {
     // tslint:disable-next-line:no-shadowed-variable
-    const log = debug("cloudify:collector");
     const resolvePromises = (results: Array<CallResults<MessageType>>) => {
         for (const { message, CallId, deferred } of results) {
             if (!CallId) {
