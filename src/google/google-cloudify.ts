@@ -223,7 +223,7 @@ export const defaults: Required<Options> = {
     region: "us-central1",
     timeoutSec: 60,
     memorySize: 256,
-    useQueue: true,
+    useQueue: false,
     googleCloudFunctionOptions: {},
     packerOptions: {}
 };
@@ -385,11 +385,15 @@ async function callFunction(state: State, callRequest: FunctionCall) {
             )
         );
     } else {
-        return callFunnel.pushRetry(3, () =>
-            callFunctionHttps(state.url!, callRequest).catch(err =>
+        return callFunnel.pushRetry(3, async n => {
+            const rv = await callFunctionHttps(state.url!, callRequest).catch(err =>
                 Promise.reject((err.response && err.response.data) || err)
-            )
-        );
+            );
+            if (n > 0) {
+                rv.retries = n;
+            }
+            return rv;
+        });
     }
 }
 

@@ -36,16 +36,15 @@ function popFirst<T>(set: Set<T>): T | undefined {
     return firstElem;
 }
 
-export async function retry<T>(n: number, fn: () => Promise<T>) {
+export async function retry<T>(n: number, fn: (retries: number) => Promise<T>) {
     for (let i = 1; i < n; i++) {
         try {
-            return await fn();
+            return await fn(i - 1);
         } catch (err) {
-            log(`Retrying ${i}`);
             await sleep((i + Math.random()) * 1000);
         }
     }
-    return fn();
+    return fn(n - 1);
 }
 
 export class Funnel<T> {
@@ -61,7 +60,7 @@ export class Funnel<T> {
         return future.promise;
     }
 
-    pushRetry(n: number, worker: () => Promise<T>) {
+    pushRetry(n: number, worker: (retries: number) => Promise<T>) {
         return this.push(() => retry(n, worker));
     }
 
