@@ -45,3 +45,9 @@ export async function timer(delayMs: number) {
     const end = Date.now();
     return { start, end };
 }
+
+export function allocate(bytes: number) {
+    const array = new Array(bytes);
+    array.fill(0);
+    return array.length;
+}

@@ -204,7 +204,7 @@ export async function pollAWSRequest<T>(
     fn: () => aws.Request<T, aws.AWSError>
 ) {
     let duration = 1000;
-    for (let i = 0; i < n; i++) {
+    for (let i = 1; i < n; i++) {
         log(`Polling ${description}...`);
         const result = await quietly(fn());
         if (result) {
@@ -215,7 +215,12 @@ export async function pollAWSRequest<T>(
             duration += 1000;
         }
     }
-    throw new Error(`Polling failed for ${description}`);
+    try {
+        return await fn().promise();
+    } catch (err) {
+        log(err);
+        throw err;
+    }
 }
 
 export async function initialize(fModule: string, options: Options = {}): Promise<State> {
@@ -266,7 +271,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             ...awsLambdaOptions
         };
         log(`createFunctionRequest: ${humanStringify(createFunctionRequest)}`);
-        const nRetries = rolePolicy === "createTemporaryRole" ? 100 : 1;
+        const nRetries = rolePolicy === "createTemporaryRole" ? 100 : 3;
         const func = await pollAWSRequest(nRetries, "creating function", () =>
             lambda.createFunction(createFunctionRequest)
         );
@@ -332,9 +337,10 @@ async function callFunctionHttps(
             rawResponse,
             value: new Error(rawResponse.Payload as string)
         };
+    } else {
+        returned = JSON.parse(rawResponse.Payload as string);
+        returned.rawResponse = rawResponse;
     }
-    returned = JSON.parse(rawResponse.Payload as string);
-    returned.rawResponse = rawResponse;
     return returned;
 }
 
