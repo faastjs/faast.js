@@ -14,6 +14,7 @@ export interface FunctionReturn {
     CallId: string;
     executionStart?: number;
     executionEnd?: number;
+    retries?: number;
     rawResponse?: any;
 }
 
@@ -21,15 +22,19 @@ export class Stats {
     samples: number = 0;
     max: number = Number.NEGATIVE_INFINITY;
     min: number = Number.POSITIVE_INFINITY;
+    variance: number = NaN;
     protected _mean: number = 0;
-    protected _sumOfSquares: number = 0;
 
+    // https://math.stackexchange.com/questions/374881/recursive-formula-for-variance
     update(value: number) {
         this.samples++;
         const previousMean = this._mean;
         this._mean = previousMean + (value - previousMean) / this.samples;
-        this._sumOfSquares =
-            this._sumOfSquares + (value - this._mean) * (value - previousMean);
+        const previousVariance = Number.isNaN(this.variance) ? 0 : this.variance;
+        this.variance =
+            ((previousVariance + (previousMean - value) ** 2 / this.samples) *
+                (this.samples - 1)) /
+            this.samples;
         if (value > this.max) {
             this.max = value;
         }
@@ -39,7 +44,7 @@ export class Stats {
     }
 
     get stdev() {
-        return Math.sqrt(this._sumOfSquares / this.samples);
+        return Math.sqrt(this.variance);
     }
 
     get mean() {
