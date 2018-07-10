@@ -11,9 +11,9 @@ export interface RequestQueueImpl {
     publishMessage(body: string, attributes?: Attributes): Promise<any>;
 }
 
-export type ControlMessageType = "stopqueue" | "functionstarted";
+const CallIdAttribute: keyof Pick<FunctionReturn, "CallId"> = "CallId";
 
-const CallIdAttribute = "CallId";
+export type ControlMessageType = "stopqueue" | "functionstarted";
 
 export interface ReceivedMessages<M> {
     Messages: M[];
@@ -47,6 +47,12 @@ export interface Vars {
 
 export type StateWithMessageType<M> = Vars & QueueImpl<M>;
 export type State = StateWithMessageType<{}>;
+
+interface CallResults<M> {
+    CallId?: string;
+    message: M;
+    deferred?: Deferred<FunctionReturn>;
+}
 
 export function initializeCloudFunctionQueue<M>(
     impl: QueueImpl<M>
@@ -87,12 +93,6 @@ export async function stop(state: State) {
         await sleep(100);
     }
     await Promise.all(tasks);
-}
-
-interface CallResults<M> {
-    CallId?: string;
-    message: M;
-    deferred?: Deferred<FunctionReturn>;
 }
 
 async function resultCollector<MessageType>(state: StateWithMessageType<MessageType>) {

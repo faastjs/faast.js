@@ -129,7 +129,7 @@ export class CloudFunction<S> {
         this.stopStatisticsInterval();
         return this.impl.cleanup(this.state);
     }
-    cancelAll() {
+    stop() {
         return this.impl.cancelWithoutCleanup(this.state);
     }
     getResourceList() {

@@ -20,6 +20,11 @@ function convertMapToAWSMessageAttributes(
     return attr;
 }
 
+export async function createSNSTopic(sns: aws.SNS, Name: string) {
+    const topic = await sns.createTopic({ Name }).promise();
+    return topic.TopicArn!;
+}
+
 export function publishSNS(
     sns: aws.SNS,
     TopicArn: string,
@@ -33,6 +38,28 @@ export function publishSNS(
             MessageAttributes: convertMapToAWSMessageAttributes(attributes)
         })
         .promise();
+}
+
+export async function createSQSQueue(
+    QueueName: string,
+    VTimeout: number,
+    sqs: aws.SQS,
+    deadLetterTargetArn?: string
+) {
+    const createQueueRequest: aws.SQS.CreateQueueRequest = {
+        QueueName,
+        Attributes: {
+            VisibilityTimeout: `${VTimeout}`
+        }
+    };
+    if (deadLetterTargetArn) {
+        createQueueRequest.Attributes!.RedrivePolicy = JSON.stringify({
+            maxReceiveCount: "5",
+            deadLetterTargetArn
+        });
+    }
+    const response = await sqs.createQueue(createQueueRequest).promise();
+    return response.QueueUrl!;
 }
 
 export function publishSQS(

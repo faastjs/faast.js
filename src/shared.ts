@@ -1,17 +1,17 @@
-import { Response } from "./cloudify";
+export interface CallId {
+    CallId: string;
+}
 
-export interface FunctionCall {
+export interface FunctionCall extends CallId {
     name: string;
     args: any[];
-    CallId: string;
     ResponseQueueId?: string;
     start: number;
 }
 
-export interface FunctionReturn {
+export interface FunctionReturn extends CallId {
     type: "returned" | "error";
     value?: any;
-    CallId: string;
     executionStart?: number;
     executionEnd?: number;
     retries?: number;

@@ -19,7 +19,9 @@ import {
     publishSNS,
     receiveMessages,
     sqsMessageAttribute,
-    publishSQSControlMessage
+    publishSQSControlMessage,
+    createSQSQueue,
+    createSNSTopic
 } from "./aws-queue";
 import { PromiseResult } from "aws-sdk/lib/request";
 
@@ -45,8 +47,8 @@ export interface AWSResources {
     region: string;
     ResponseQueueUrl?: string;
     RequestTopicArn?: string;
-    SNSFeedbackRole?: string;
     SNSLambdaSubscriptionArn?: string;
+    DLQUrl?: string;
 }
 
 export interface AWSServices {
@@ -250,7 +252,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         RoleName = `cloudify-role-${nonce}`;
     }
 
-    async function createFunction() {
+    async function createFunction(DLQArn?: string) {
         const roleResponse = await createLambdaRole(RoleName, PolicyArn, services);
         await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
         const { archive } = await pack(fModule, packerOptions);
@@ -258,6 +260,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         if (previous) {
             throw new Error("Function name hash collision");
         }
+
         const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
             FunctionName,
             Role: roleResponse.Role.Arn,
@@ -267,6 +270,9 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             Description: "cloudify trampoline function",
             Timeout,
             MemorySize,
+            DeadLetterConfig: {
+                TargetArn: DLQArn
+            },
             ...rest,
             ...awsLambdaOptions
         };
@@ -292,16 +298,17 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     };
 
     try {
+        log(`Creating DLQ`);
+        const { DLQArn, DLQUrl } = await createDLQ(FunctionName, sqs);
+        state.resources.DLQUrl = DLQUrl;
         await createLogGroup(logGroupName, services);
-        const { resources } = state;
         log(`Creating function`);
-        const func = await createFunction();
+        const func = await createFunction(DLQArn);
         if (useQueue) {
-            const awsQueueImpl = await initializeQueue(
+            const awsQueueImpl = await createQueueImpl(
                 state,
                 FunctionName,
-                func.FunctionArn!,
-                rolePolicy
+                func.FunctionArn!
             );
             state.queueState = cloudqueue.initializeCloudFunctionQueue(awsQueueImpl);
         }
@@ -396,7 +403,7 @@ export async function cleanup(state: PartialState) {
         RequestTopicArn,
         ResponseQueueUrl,
         SNSLambdaSubscriptionArn,
-        SNSFeedbackRole,
+        DLQUrl,
         ...rest
     } = state.resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
@@ -420,10 +427,6 @@ export async function cleanup(state: PartialState) {
         log(`Deleting temporary role: ${RoleName}`);
         await deleteRole(RoleName, iam);
     }
-    if (SNSFeedbackRole && rolePolicy === "createTemporaryRole") {
-        log(`Deleting SNS feedback role: ${SNSFeedbackRole}`);
-        await deleteRole(SNSFeedbackRole, iam);
-    }
     if (RequestTopicArn) {
         log(`Deleting request queue topic: ${RequestTopicArn}`);
         await quietly(sns.deleteTopic({ TopicArn: RequestTopicArn }));
@@ -431,6 +434,10 @@ export async function cleanup(state: PartialState) {
     if (ResponseQueueUrl) {
         log(`Deleting response queue: ${ResponseQueueUrl}`);
         await quietly(sqs.deleteQueue({ QueueUrl: ResponseQueueUrl }));
+    }
+    if (DLQUrl) {
+        log(`Deleting DLQ: ${DLQUrl}`);
+        await quietly(sqs.deleteQueue({ QueueUrl: DLQUrl }));
     }
     await cancelPromise;
 }
@@ -511,33 +518,21 @@ export function getFunctionImpl() {
     return LambdaImpl;
 }
 
-export async function initializeQueue(
+export async function createQueueImpl(
     state: State,
     FunctionName: string,
-    FunctionArn: string,
-    rolePolicy: RoleHandling
+    FunctionArn: string
 ): Promise<AWSCloudQueueImpl> {
     const { iam, sqs, sns, lambda } = state.services;
     const resources = state.resources;
-    resources.SNSFeedbackRole = "cloudify-cached-SNSFeedbackRole";
-    if (rolePolicy === "createTemporaryRole") {
-        resources.SNSFeedbackRole = `${FunctionName}-SNSRole`;
-    }
-    log(`Creating SNS feedback role`);
-    const snsRole = await createSNSFeedbackRole(resources.SNSFeedbackRole, iam);
-    resources.SNSFeedbackRole = snsRole.Role.RoleName;
-    resources.RequestTopicArn = await createSNSTopic(
-        sns,
-        `${FunctionName}-Requests`,
-        snsRole.Role.Arn
-    );
+    log(`Creating SNS request topic`);
+    resources.RequestTopicArn = await createSNSTopic(sns, `${FunctionName}-Requests`);
     log(`Creating SQS response queue`);
     resources.ResponseQueueUrl = await createSQSQueue(
         `${FunctionName}-Responses`,
         60,
         sqs
     );
-
     log(`Adding SNS invoke permissions to function`);
     addSnsInvokePermissionsToFunction(FunctionName, resources.RequestTopicArn!, lambda);
     log(`Subscribing SNS to invoke lambda function`);
@@ -548,7 +543,6 @@ export async function initializeQueue(
             Endpoint: FunctionArn
         })
         .promise();
-    log(`Created SNS subscription: ${snsResponse.SubscriptionArn}`);
     resources.SNSLambdaSubscriptionArn = snsResponse.SubscriptionArn!;
 
     return {
@@ -561,62 +555,6 @@ export async function initializeQueue(
             publishSQSControlMessage(type, sqs, resources.ResponseQueueUrl!, attr),
         isControlMessage: (message, type) => isControlMessage(message, type)
     };
-}
-
-// XXX The log group created by SNS doesn't have a programmatic API to get the name. Skip?
-// Try testing with limited function concurrency to see what errors are generated.
-async function createSNSTopic(sns: aws.SNS, Name: string, RoleArn?: string) {
-    log(`Creating SNS topic`);
-    const topic = await sns.createTopic({ Name }).promise();
-    const TopicArn = topic.TopicArn!;
-    log(`Created SNS TopicArn: ${TopicArn}`);
-    if (RoleArn) {
-        const success = await pollAWSRequest(
-            100,
-            "role for SNS invocation of lambda function failure feedback",
-            () =>
-                sns.setTopicAttributes({
-                    TopicArn,
-                    AttributeName: "LambdaFailureFeedbackRoleArn",
-                    AttributeValue: RoleArn
-                })
-        );
-
-        if (!success) {
-            throw new Error("Could not initialize lambda execution role");
-        }
-    }
-
-    return TopicArn!;
-}
-
-async function createSNSFeedbackRole(RoleName: string, iam: aws.IAM) {
-    const previousRole = await quietly(iam.getRole({ RoleName }));
-    if (previousRole) {
-        return previousRole;
-    }
-    log(`Creating role "${RoleName}" for SNS failure feedback`);
-    const AssumeRolePolicyDocument = JSON.stringify({
-        Version: "2012-10-17",
-        Statement: [
-            {
-                Principal: { Service: "sns.amazonaws.com" },
-                Action: "sts:AssumeRole",
-                Effect: "Allow"
-            }
-        ]
-    });
-    const roleParams: aws.IAM.CreateRoleRequest = {
-        AssumeRolePolicyDocument,
-        RoleName,
-        Description: "role for SNS failures created by cloudify",
-        MaxSessionDuration: 36000
-    };
-    const roleResponse = await iam.createRole(roleParams).promise();
-    log(`Putting SNS role policy`);
-    const PolicyArn = "arn:aws:iam::aws:policy/service-role/AmazonSNSRole";
-    await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
-    return roleResponse;
 }
 
 function addSnsInvokePermissionsToFunction(
@@ -635,24 +573,14 @@ function addSnsInvokePermissionsToFunction(
         .promise();
 }
 
-async function createSQSQueue(
-    QueueName: string,
-    VTimeout: number,
-    sqs: aws.SQS,
-    deadLetterTargetArn?: string
-) {
-    const createQueueRequest: aws.SQS.CreateQueueRequest = {
-        QueueName,
-        Attributes: {
-            VisibilityTimeout: `${VTimeout}`
-        }
-    };
-    if (deadLetterTargetArn) {
-        createQueueRequest.Attributes!.RedrivePolicy = JSON.stringify({
-            maxReceiveCount: "5",
-            deadLetterTargetArn
-        });
-    }
-    const response = await sqs.createQueue(createQueueRequest).promise();
-    return response.QueueUrl!;
+async function createDLQ(FunctionName: string, sqs: aws.SQS) {
+    const DLQUrl = await createSQSQueue(`${FunctionName}-DLQ`, 60, sqs);
+    const DLQResponse = await quietly(
+        sqs.getQueueAttributes({ QueueUrl: DLQUrl, AttributeNames: ["QueueArn"] })
+    );
+    const DLQArn =
+        (DLQResponse && DLQResponse.Attributes && DLQResponse.Attributes.QueueArn) ||
+        undefined;
+
+    return { DLQUrl, DLQArn };
 }
