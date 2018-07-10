@@ -331,11 +331,15 @@ async function callFunctionHttps(
         if (rawResponse.LogResult) {
             log(Buffer.from(rawResponse.LogResult!, "base64").toString());
         }
+        let message = rawResponse.Payload as string;
+        if (message && message.match(/Process exited before completing/)) {
+            message += " (cloudify: possibly out of memory)";
+        }
         returned = {
             type: "error",
             CallId: callRequest.CallId,
             rawResponse,
-            value: new Error(rawResponse.Payload as string)
+            value: new Error(message)
         };
     } else {
         returned = JSON.parse(rawResponse.Payload as string);

@@ -93,13 +93,14 @@ export function checkResourceLimits(
         }, 90 * 1000);
 
         afterAll(async () => {
-            await lambda.cleanup();
+            // await lambda.cleanup();
+            await lambda.cancelAll();
         }, 60 * 1000);
 
         test(
             "timeout error",
             async () => {
-                await expect(remote.delay(20 * 1000)).rejects.toThrowError();
+                await expect(remote.delay(12 * 1000)).rejects.toThrowError(/time/i);
             },
             30 * 1000
         );
@@ -108,7 +109,7 @@ export function checkResourceLimits(
             "out of memory error",
             async () => {
                 const bytes = 512 * 1024 * 1024;
-                await expect(remote.allocate(bytes)).rejects.toThrowError();
+                await expect(remote.allocate(bytes)).rejects.toThrowError(/memory/i);
             },
             30 * 1000
         );

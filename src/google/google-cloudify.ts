@@ -371,6 +371,7 @@ async function callFunctionHttps(url: string, callArgs: FunctionCall) {
     const rawResponse = await Axios.put<FunctionReturn>(url!, callArgs);
     const returned: FunctionReturn = rawResponse.data;
     returned.rawResponse = rawResponse;
+    log(`returned: %O`, rawResponse);
     return returned;
 }
 
@@ -386,9 +387,21 @@ async function callFunction(state: State, callRequest: FunctionCall) {
         );
     } else {
         return callFunnel.pushRetry(3, async n => {
-            const rv = await callFunctionHttps(state.url!, callRequest).catch(err =>
-                Promise.reject((err.response && err.response.data) || err)
-            );
+            const rv = await callFunctionHttps(state.url!, callRequest).catch(err => {
+                const { response } = err;
+                if (response) {
+                    let interpretation = "";
+                    if (response.statusText === "Internal Server Error") {
+                        interpretation = `(cloudify: possibly out of memory)`;
+                    }
+                    return Promise.reject(
+                        new Error(
+                            `${response.data} (${response.statusText}) ${interpretation}`
+                        )
+                    );
+                }
+                return Promise.reject(new Error(err));
+            });
             if (n > 0) {
                 rv.retries = n;
             }
