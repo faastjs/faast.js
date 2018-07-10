@@ -17,7 +17,6 @@
         "allowUnreachableCode": false,
         "allowUnusedLabels": false,
         "noUnusedParameters": true,
-        //"noUnusedLocals": true,
         "strict": true,
         "noEmitHelpers": true,
         "importHelpers": true,

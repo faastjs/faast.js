@@ -1,5 +1,8 @@
 import * as aws from "aws-sdk";
 import * as cloudqueue from "../queue";
+import { log } from "../log";
+import { SNSEvent } from "aws-lambda";
+import { FunctionCall } from "../shared";
 
 export function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
     const a = message.MessageAttributes;
@@ -22,6 +25,27 @@ function convertMapToAWSMessageAttributes(
 
 export async function createSNSTopic(sns: aws.SNS, Name: string) {
     const topic = await sns.createTopic({ Name }).promise();
+    // const deliveryPolicy = {
+    //     http: {
+    //         defaultHealthyRetryPolicy: {
+    //             minDelayTarget: 1,
+    //             maxDelayTarget: 1,
+    //             numRetries: 0,
+    //             numMaxDelayRetries: 0,
+    //             numNoDelayRetries: 0,
+    //             numMinDelayRetries: 0,
+    //             backoffFunction: "exponential"
+    //         },
+    //         disableSubscriptionOverrides: true
+    //     }
+    // };
+    // await sns
+    //     .setTopicAttributes({
+    //         TopicArn: topic.TopicArn!,
+    //         AttributeName: "DeliveryPolicy",
+    //         AttributeValue: JSON.stringify(deliveryPolicy)
+    //     })
+    //     .promise();
     return topic.TopicArn!;
 }
 
@@ -119,4 +143,44 @@ export async function receiveMessages(
         }).promise();
     }
     return { Messages, isFullMessageBatch: Messages.length === MaxNumberOfMessages };
+}
+
+export async function createDLQ(FunctionName: string, sqs: aws.SQS) {
+    let DLQUrl: string | undefined;
+    let DLQArn: string | undefined;
+    try {
+        DLQUrl = await createSQSQueue(`${FunctionName}-DLQ`, 60, sqs);
+        const DLQResponse = await sqs
+            .getQueueAttributes({
+                QueueUrl: DLQUrl,
+                AttributeNames: ["QueueArn"]
+            })
+            .promise();
+        DLQArn =
+            (DLQResponse && DLQResponse.Attributes && DLQResponse.Attributes.QueueArn) ||
+            undefined;
+    } catch (err) {
+        log(err);
+    }
+    return { DLQUrl, DLQArn };
+}
+
+export async function receiveDLQMessages(
+    sqs: aws.SQS,
+    DLQUrl: string
+): Promise<cloudqueue.QueueError[]> {
+    const { Messages } = await receiveMessages(sqs, DLQUrl);
+    const rv = [];
+    for (const m of Messages) {
+        try {
+            const errorMessage = sqsMessageAttribute(m, "ErrorMessage");
+            const body = m.Body && JSON.parse(m.Body);
+            const snsMessage: SNSEvent = body;
+            for (const record of snsMessage.Records) {
+                const callRequest: FunctionCall = JSON.parse(record.Sns.Message);
+                rv.push({ callRequest, message: errorMessage! });
+            }
+        } catch (_) {}
+    }
+    return rv;
 }

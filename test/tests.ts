@@ -83,7 +83,7 @@ export function checkResourceLimits(
                 const cloud = cloudify.create(cloudProvider);
                 lambda = await cloud.createFunction("./functions", {
                     ...options,
-                    timeout: 10,
+                    timeout: 3,
                     memorySize: 512
                 });
                 remote = lambda.cloudifyAll(funcs);
@@ -94,15 +94,15 @@ export function checkResourceLimits(
 
         afterAll(async () => {
             // await lambda.cleanup();
-            await lambda.cancelAll();
+            await lambda.stop();
         }, 60 * 1000);
 
-        test(
+        test.only(
             "timeout error",
             async () => {
-                await expect(remote.delay(12 * 1000)).rejects.toThrowError(/time/i);
+                await expect(remote.delay(4 * 1000)).rejects.toThrowError(/time/i);
             },
-            30 * 1000
+            600 * 1000
         );
 
         test(

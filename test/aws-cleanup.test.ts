@@ -10,10 +10,10 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
             RoleName,
             rolePolicy,
             region,
-            SNSFeedbackRole,
             SNSLambdaSubscriptionArn,
             RequestTopicArn,
             ResponseQueueUrl,
+            DLQUrl,
             ...rest
         }
     } = func.getState();
@@ -31,13 +31,10 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
     expect(logResult && logResult.logGroups).toEqual([]);
 
     const roleResult = await quietly(iam.getRole({ RoleName }));
-    const snsRoleResult = await quietly(iam.getRole({ RoleName: SNSFeedbackRole! }));
     if (rolePolicy === "createTemporaryRole") {
         expect(roleResult).toBeUndefined();
-        expect(snsRoleResult).toBeUndefined();
     } else {
         expect(roleResult && roleResult.Role.RoleName).toBe(RoleName);
-        expect(snsRoleResult && snsRoleResult.Role.RoleName).toBe(SNSFeedbackRole);
     }
 
     if (RequestTopicArn) {
@@ -60,9 +57,14 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
         );
         expect(snsResult).toBeUndefined();
     }
+
+    if (DLQUrl) {
+        const dlqResult = await quietly(sqs.getQueueAttributes({ QueueUrl: DLQUrl }));
+        expect(dlqResult).toBeUndefined();
+    }
 }
 
-test.only(
+test(
     "removes ephemeral resources",
     async () => {
         const cloud = cloudify.create("aws");

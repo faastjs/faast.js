@@ -6,7 +6,6 @@ import { PackerResult } from "./packer";
 import { AnyFunction, Unpacked } from "./type-helpers";
 import { FunctionReturn, FunctionCall, FunctionStats } from "./shared";
 import * as uuidv4 from "uuid/v4";
-import { log } from "./log";
 
 export interface ResponseDetails<D> {
     value?: D;

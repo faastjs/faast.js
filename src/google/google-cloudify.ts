@@ -1,28 +1,22 @@
-import Axios, { AxiosPromise, AxiosResponse } from "axios";
+import Axios, { AxiosPromise } from "axios";
 import * as sys from "child_process";
 import { cloudfunctions_v1beta2, google, GoogleApis, pubsub_v1 } from "googleapis";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
-import {
-    CreateFunctionOptions,
-    ResponsifiedFunction,
-    Response,
-    CloudImpl,
-    CloudFunctionImpl
-} from "../cloudify";
+import { CloudFunctionImpl, CloudImpl, CreateFunctionOptions } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log } from "../log";
-import { packer, PackerResult, PackerOptions } from "../packer";
+import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { FunctionCall, FunctionReturn, sleep, FunctionStats } from "../shared";
-import { AnyFunction, Mutable } from "../type-helpers";
+import { FunctionCall, FunctionReturn, sleep } from "../shared";
+import { Mutable } from "../type-helpers";
 import {
     getMessageBody,
     publish,
+    publishControlMessage,
     pubsubMessageAttribute,
-    receiveMessages,
-    publishControlMessage
+    receiveMessages
 } from "./google-queue";
 import CloudFunctions = cloudfunctions_v1beta2;
 import PubSubApi = pubsub_v1;
@@ -152,11 +146,6 @@ async function carefully<T>(promise: AxiosPromise<T>) {
     }
 }
 
-async function quietly<T>(promise: AxiosPromise<T>) {
-    const result = await promise.catch(_ => {});
-    return result && result.data;
-}
-
 async function waitFor(
     api: CloudFunctions.Cloudfunctions,
     response: AxiosPromise<CloudFunctions.Schema$Operation>
@@ -175,7 +164,7 @@ async function waitFor(
 
 async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) {
     log(`delete function ${path}`);
-    const response = await waitFor(
+    return waitFor(
         api,
         api.projects.locations.functions.delete({
             name: path
@@ -236,7 +225,7 @@ async function initializeWithApi(
     isEmulator: boolean
 ): Promise<State> {
     log(`Create cloud function`);
-    const { cloudFunctions, pubsub } = services;
+    const { cloudFunctions } = services;
     const {
         region = defaults.region,
         timeoutSec = defaults.timeoutSec,
@@ -357,7 +346,8 @@ async function initializeGoogleQueue(
         publishControlMessage: (type, attr) =>
             publishControlMessage(type, pubsub, resources.responseQueueTopic!, attr),
         isControlMessage: (message, type) =>
-            pubsubMessageAttribute(message, "cloudify") === type
+            pubsubMessageAttribute(message, "cloudify") === type,
+        receiveQueueErrors: () => Promise.resolve([])
     };
 }
 
@@ -461,7 +451,7 @@ export async function cleanup(state: PartialState) {
  * VMs, each with a distinct label, the service reports metrics are preserved
  * for only the first 1,000 labels that exist within the one-hour window.
  */
-function validateGoogleLabels(labels: object | undefined) {
+function validateGoogleLabels(labels: { [key: string]: string } | undefined) {
     if (!labels) {
         return;
     }

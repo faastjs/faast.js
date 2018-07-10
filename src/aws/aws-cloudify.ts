@@ -1,29 +1,25 @@
 import * as aws from "aws-sdk";
+import { PromiseResult } from "aws-sdk/lib/request";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
-import {
-    CreateFunctionOptions,
-    ResponsifiedFunction,
-    CloudImpl,
-    CloudFunctionImpl
-} from "../cloudify";
+import { CloudFunctionImpl, CloudImpl, CreateFunctionOptions } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log } from "../log";
-import { packer, PackerResult, PackerOptions } from "../packer";
+import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { FunctionCall, FunctionReturn, sleep, FunctionStats } from "../shared";
-import { AnyFunction } from "../type-helpers";
+import { FunctionCall, FunctionReturn, sleep } from "../shared";
 import {
+    createSNSTopic,
+    createSQSQueue,
     isControlMessage,
     publishSNS,
+    publishSQSControlMessage,
+    receiveDLQMessages,
     receiveMessages,
     sqsMessageAttribute,
-    publishSQSControlMessage,
-    createSQSQueue,
-    createSNSTopic
+    createDLQ
 } from "./aws-queue";
-import { PromiseResult } from "aws-sdk/lib/request";
 
 export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
 
@@ -523,7 +519,7 @@ export async function createQueueImpl(
     FunctionName: string,
     FunctionArn: string
 ): Promise<AWSCloudQueueImpl> {
-    const { iam, sqs, sns, lambda } = state.services;
+    const { sqs, sns, lambda } = state.services;
     const resources = state.resources;
     log(`Creating SNS request topic`);
     resources.RequestTopicArn = await createSNSTopic(sns, `${FunctionName}-Requests`);
@@ -536,11 +532,22 @@ export async function createQueueImpl(
     log(`Adding SNS invoke permissions to function`);
     addSnsInvokePermissionsToFunction(FunctionName, resources.RequestTopicArn!, lambda);
     log(`Subscribing SNS to invoke lambda function`);
+    // XXX
+    // const deliveryPolicy = {
+    // lambda: {
+    // numRetries: 0,
+    // numMaxDelayRetries: 0,
+    // numNoDelayRetries: 0,
+    // numMinDelayRetries: 0,
+    // backoffFunction: "exponential"
+    // }
+    // };
     const snsResponse = await sns
         .subscribe({
             TopicArn: resources.RequestTopicArn,
             Protocol: "lambda",
             Endpoint: FunctionArn
+            //  Attributes: { DeliveryPolicy: JSON.stringify(deliveryPolicy) }
         })
         .promise();
     resources.SNSLambdaSubscriptionArn = snsResponse.SubscriptionArn!;
@@ -553,7 +560,8 @@ export async function createQueueImpl(
         publishMessage: call => publishSNS(sns, resources.RequestTopicArn!, call),
         publishControlMessage: (type, attr) =>
             publishSQSControlMessage(type, sqs, resources.ResponseQueueUrl!, attr),
-        isControlMessage: (message, type) => isControlMessage(message, type)
+        isControlMessage: (message, type) => isControlMessage(message, type),
+        receiveQueueErrors: () => receiveDLQMessages(sqs, resources.DLQUrl!)
     };
 }
 
@@ -571,16 +579,4 @@ function addSnsInvokePermissionsToFunction(
             SourceArn: RequestTopicArn
         })
         .promise();
-}
-
-async function createDLQ(FunctionName: string, sqs: aws.SQS) {
-    const DLQUrl = await createSQSQueue(`${FunctionName}-DLQ`, 60, sqs);
-    const DLQResponse = await quietly(
-        sqs.getQueueAttributes({ QueueUrl: DLQUrl, AttributeNames: ["QueueArn"] })
-    );
-    const DLQArn =
-        (DLQResponse && DLQResponse.Attributes && DLQResponse.Attributes.QueueArn) ||
-        undefined;
-
-    return { DLQUrl, DLQArn };
 }

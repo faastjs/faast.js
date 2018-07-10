@@ -8,11 +8,6 @@
             "script": "watch",
             "problemMatcher": ["$tsc-watch"],
             "isBackground": true
-        },
-        {
-            "type": "npm",
-            "script": "lint",
-            "problemMatcher": ["$tslint5"]
         }
     ]
 }
