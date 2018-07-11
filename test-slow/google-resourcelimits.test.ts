@@ -1,6 +1,6 @@
-import { checkResourceLimits } from "./tests";
+import { checkTimeout } from "./tests";
 
-checkResourceLimits("google function resource limits with https", "google", {
+checkTimeout("google function resource limits with https", "google", {
     useQueue: false
 });
 // checkResourceLimits("google function resource limits with queue", "google", {

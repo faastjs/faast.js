@@ -22,3 +22,13 @@ export function monteCarloPI(samples: number): MonteCarloReturn {
         end
     };
 }
+
+export function allocate(bytes: number) {
+    const array = new Array(bytes);
+    array.fill(0);
+    return array.length;
+}
+
+export function delay(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}

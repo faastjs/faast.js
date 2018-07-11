@@ -151,3 +151,79 @@ export function throughputTest(
         );
     });
 }
+
+export function checkTimeout(
+    description: string,
+    cloudProvider: string,
+    options?: cloudify.CreateFunctionOptions<any>
+) {
+    describe(description, () => {
+        let remote: cloudify.Promisified<typeof funcs>;
+        let lambda: cloudify.CloudFunction<any>;
+
+        beforeAll(async () => {
+            try {
+                const cloud = cloudify.create(cloudProvider);
+                lambda = await cloud.createFunction("./functions", {
+                    ...options,
+                    timeout: 3
+                });
+                remote = lambda.cloudifyAll(funcs);
+            } catch (err) {
+                console.error(err);
+            }
+        }, 90 * 1000);
+
+        afterAll(async () => {
+            await lambda.cleanup();
+            // await lambda.stop();
+        }, 60 * 1000);
+
+        test(
+            "timeout error",
+            async () => {
+                await expect(remote.delay(4 * 1000)).rejects.toThrowError(/time/i);
+            },
+            600 * 1000
+        );
+    });
+}
+
+export function checkMemoryLimit(
+    description: string,
+    cloudProvider: string,
+    options?: cloudify.CreateFunctionOptions<any>
+) {
+    describe(description, () => {
+        let remote: cloudify.Promisified<typeof funcs>;
+        let lambda: cloudify.CloudFunction<any>;
+
+        beforeAll(async () => {
+            try {
+                const cloud = cloudify.create(cloudProvider);
+                lambda = await cloud.createFunction("./functions", {
+                    ...options,
+                    timeout: 200,
+                    memorySize: 512
+                });
+                remote = lambda.cloudifyAll(funcs);
+            } catch (err) {
+                console.error(err);
+            }
+        }, 90 * 1000);
+
+        afterAll(async () => {
+            await lambda.cleanup();
+            // await lambda.stop();
+        }, 60 * 1000);
+
+        test(
+            "out of memory error",
+            async () => {
+                const bytes = 512 * 1024 * 1024;
+                await expect(remote.allocate(bytes)).rejects.toThrowError(/memory/i);
+            },
+            600 * 1000
+        );
+    });
+}
