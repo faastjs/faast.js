@@ -204,7 +204,7 @@ export function checkMemoryLimit(
                 lambda = await cloud.createFunction("./functions", {
                     ...options,
                     timeout: 200,
-                    memorySize: 512
+                    memorySize: 256
                 });
                 remote = lambda.cloudifyAll(funcs);
             } catch (err) {
@@ -220,7 +220,7 @@ export function checkMemoryLimit(
         test(
             "out of memory error",
             async () => {
-                const bytes = 512 * 1024 * 1024;
+                const bytes = 256 * 1024 * 1024;
                 await expect(remote.allocate(bytes)).rejects.toThrowError(/memory/i);
             },
             600 * 1000
