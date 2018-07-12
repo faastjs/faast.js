@@ -1,8 +1,8 @@
-import { Stats } from "../src/shared";
+import { Statistics } from "../src/shared";
 import { avg, stdev } from "./stats";
 
 function check(values: number[]) {
-    const stat = new Stats();
+    const stat = new Statistics();
     values.forEach(value => stat.update(value));
     expect(stat.mean).toBeCloseTo(avg(values), 10);
     expect(stat.stdev).toBeCloseTo(stdev(values), 10);
@@ -11,7 +11,7 @@ function check(values: number[]) {
 
 describe("statistics", () => {
     test("empty values", () => {
-        const emptyStat = new Stats();
+        const emptyStat = new Statistics();
         expect(emptyStat.mean).toBeNaN();
         expect(emptyStat.stdev).toBeNaN();
         expect(emptyStat.samples).toBe(0);
