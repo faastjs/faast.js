@@ -89,20 +89,26 @@ export function checkCodeBundle(
     zipFile: string
 ) {
     describe(description, () => {
-        test("package zip file", async () => {
-            const { archive } = await cloudify.create(cloudProvider).pack("./functions");
+        test(
+            "package zip file",
+            async () => {
+                const { archive } = await cloudify
+                    .create(cloudProvider)
+                    .pack("./functions");
 
-            await new Promise((resolve, reject) => {
-                const output = fs.createWriteStream(zipFile);
-                output.on("finish", resolve);
-                output.on("error", reject);
-                archive.pipe(output);
-            });
-            const dir = `tmp/${cloudProvider}`;
-            unzipInDir(dir, zipFile);
-            expect(exec(`cd ${dir} && node index.js`)).toMatch(
-                "Successfully loaded cloudify trampoline function."
-            );
-        });
+                await new Promise((resolve, reject) => {
+                    const output = fs.createWriteStream(zipFile);
+                    output.on("finish", resolve);
+                    output.on("error", reject);
+                    archive.pipe(output);
+                });
+                const dir = `tmp/${cloudProvider}`;
+                unzipInDir(dir, zipFile);
+                expect(exec(`cd ${dir} && node index.js`)).toMatch(
+                    "Successfully loaded cloudify trampoline function."
+                );
+            },
+            30 * 1000
+        );
     });
 }
