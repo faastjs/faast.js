@@ -6,5 +6,6 @@ coldStartTest("AWS Https test", "aws", 500, {
 });
 
 coldStartTest("AWS queue test", "aws", 500, {
-    memorySize: 1024
+    memorySize: 1024,
+    useQueue: true
 });

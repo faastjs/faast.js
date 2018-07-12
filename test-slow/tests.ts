@@ -1,7 +1,6 @@
 import * as cloudify from "../src/cloudify";
 import { Pump } from "../src/funnel";
-import { log } from "../src/log";
-import { sleep, Stats } from "../src/shared";
+import { sleep } from "../src/shared";
 import * as funcs from "./functions";
 
 export function coldStartTest(
@@ -29,72 +28,26 @@ export function coldStartTest(
         afterAll(() => lambda.cleanup(), 60 * 1000);
         // afterAll(() => lambda.cancelAll(), 30 * 1000);
 
-        function printLatencies(latencies: number[]) {
-            const stats = new Stats();
-            latencies.forEach(l => stats.update(l));
-            const { samples, mean, stdev, min, max } = stats;
-            log(`%O`, {
-                samples,
-                mean,
-                stdev,
-                min,
-                max
-            });
-        }
-
         test(
             "Monte Carlo estimate of PI using 1B samples and 500 invocations",
             async () => {
                 const nParallelFunctions = 500;
                 const nSamplesPerFunction = 2000000;
-                const promises: Promise<{
-                    inside: number;
-                    samples: number;
-                    startLatency: number;
-                    executionLatency: number;
-                    returnLatency: number;
-                }>[] = [];
+                const promises: Promise<funcs.MonteCarloReturn>[] = [];
                 for (let i = 0; i < nParallelFunctions; i++) {
-                    const requested = Date.now();
-                    promises.push(
-                        remote
-                            .monteCarloPI(nSamplesPerFunction)
-                            .then(({ inside, samples, start, end }) => ({
-                                inside,
-                                samples,
-                                startLatency: start - requested,
-                                executionLatency: end - start,
-                                returnLatency: Date.now() - end
-                            }))
-                    );
+                    promises.push(remote.monteCarloPI(nSamplesPerFunction));
                 }
 
                 const results = await Promise.all(promises);
                 let insidePoints = 0;
                 let samplePoints = 0;
 
-                const startLatencies: number[] = [];
-                const executionLatencies: number[] = [];
-                const returnLatencies: number[] = [];
-
                 results.forEach(m => {
                     insidePoints += m.inside;
                     samplePoints += m.samples;
-                    startLatencies.push(m.startLatency);
-                    executionLatencies.push(m.executionLatency);
-                    returnLatencies.push(m.returnLatency);
                 });
 
-                startLatencies.sort((a, b) => a - b);
-                executionLatencies.sort((a, b) => a - b);
-                returnLatencies.sort((a, b) => a - b);
-
-                log(`Start latencies:`);
-                printLatencies(startLatencies);
-                log(`Execution latencies: `);
-                printLatencies(executionLatencies);
-                log(`Return latencies:`);
-                printLatencies(returnLatencies);
+                lambda.functionMetrics.log("", { detailed: true });
 
                 console.log(`inside: ${insidePoints}, samples: ${samplePoints}`);
                 expect(samplePoints).toBe(nParallelFunctions * nSamplesPerFunction);
@@ -136,7 +89,6 @@ export function throughputTest(
             async () => {
                 let completed = 0;
                 const nSamplesPerFunction = 2000000;
-                const start = Date.now();
                 const pump = new Pump(500, () =>
                     remote.monteCarloPI(nSamplesPerFunction).then(_ => completed++)
                 );
