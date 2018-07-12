@@ -1,4 +1,6 @@
-import { log } from "./log";
+import debug from "debug";
+
+const log = debug("cloudify:stats");
 
 export interface CallId {
     CallId: string;

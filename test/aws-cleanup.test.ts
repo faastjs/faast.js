@@ -68,7 +68,7 @@ test(
     "removes ephemeral resources",
     async () => {
         const cloud = cloudify.create("aws");
-        const func = await cloud.createFunction("./functions");
+        const func = await cloud.createFunction("./functions", { useQueue: true });
         await func.cleanup();
         await checkResourcesCleanedUp(func);
     },
@@ -79,7 +79,7 @@ test(
     "removes ephemeral resources from a resource list",
     async () => {
         const cloud = cloudify.create("aws");
-        const func = await cloud.createFunction("./functions");
+        const func = await cloud.createFunction("./functions", { useQueue: true });
         const resourceList = func.getResourceList();
         await cloud.cleanupResources(resourceList);
         await checkResourcesCleanedUp(func);
@@ -92,6 +92,7 @@ test(
     async () => {
         const cloud = cloudify.create("aws");
         const func = await cloud.createFunction("./functions", {
+            useQueue: true,
             cloudSpecific: {
                 rolePolicy: "createTemporaryRole"
             }
