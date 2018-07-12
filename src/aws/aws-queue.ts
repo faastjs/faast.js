@@ -106,13 +106,10 @@ export function publishSQSControlMessage(
     QueueUrl: string,
     attr?: cloudqueue.Attributes
 ) {
-    return publishSQS(sqs, QueueUrl, "empty", { cloudify: type, ...attr });
+    return publishSQS(sqs, QueueUrl, "control message", { cloudify: type, ...attr });
 }
 
-export function isControlMessage(
-    message: aws.SQS.Message,
-    type: cloudqueue.ControlMessageType
-) {
+export function isControlMessage(message: aws.SQS.Message, type: cloudqueue.ControlMessageType) {
     const attr = message.MessageAttributes;
     const cloudify = attr && attr.cloudify;
     const value = cloudify && cloudify.StringValue;

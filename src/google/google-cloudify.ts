@@ -338,16 +338,17 @@ async function initializeGoogleQueue(
 
     return {
         getMessageAttribute: (message, attr) => pubsubMessageAttribute(message, attr),
-        receiveMessages: () => receiveMessages(pubsub, resources.responseSubscription!),
+        pollResponseQueueMessages: () =>
+            receiveMessages(pubsub, resources.responseSubscription!),
         getMessageBody: received => getMessageBody(received),
         description: () => state.resources.responseQueueTopic!,
-        publishMessage: (body, attributes) =>
+        publishRequestMessage: (body, attributes) =>
             publish(pubsub, resources.requestQueueTopic!, body, attributes),
-        publishControlMessage: (type, attr) =>
-            publishControlMessage(type, pubsub, resources.responseQueueTopic!, attr),
-        isControlMessage: (message, type) =>
-            pubsubMessageAttribute(message, "cloudify") === type,
-        receiveQueueErrors: () => Promise.resolve([])
+        publishReceiveQueueControlMessage: type =>
+            publishControlMessage(type, pubsub, resources.responseQueueTopic!),
+        publishDLQControlMessage: async _type => {},
+        isControlMessage: (m, value) => pubsubMessageAttribute(m, "cloudify") === value,
+        pollErrorQueue: () => Promise.resolve([])
     };
 }
 
@@ -361,7 +362,6 @@ async function callFunctionHttps(url: string, callArgs: FunctionCall) {
     const rawResponse = await Axios.put<FunctionReturn>(url!, callArgs);
     const returned: FunctionReturn = rawResponse.data;
     returned.rawResponse = rawResponse;
-    log(`returned: %O`, rawResponse);
     return returned;
 }
 

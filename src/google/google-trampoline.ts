@@ -142,3 +142,5 @@ export async function pubsubTrampoline(event: CloudFunctionPubSubEvent): Promise
         }
     }
 }
+
+console.log(`Successfully loaded cloudify trampoline function.`);

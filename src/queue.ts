@@ -9,8 +9,6 @@ export interface Attributes {
 
 const CallIdAttribute: keyof Pick<FunctionReturn, "CallId"> = "CallId";
 
-export type ControlMessageType = "stopqueue" | "functionstarted";
-
 export interface ReceivedMessages<M> {
     Messages: M[];
     isFullMessageBatch: boolean;
@@ -39,15 +37,20 @@ export interface QueueError {
     callRequest?: FunctionCall;
 }
 
+export type CommandMessageType = "stopqueue";
+export type StatusMessageType = "functionstarted";
+export type ControlMessageType = CommandMessageType | StatusMessageType;
+
 export interface QueueImpl<M> {
-    publishMessage(body: string, attributes?: Attributes): Promise<any>;
-    receiveMessages(): Promise<ReceivedMessages<M>>;
+    publishRequestMessage(body: string, attributes?: Attributes): Promise<any>;
+    pollResponseQueueMessages(): Promise<ReceivedMessages<M>>;
     getMessageAttribute(message: M, attribute: string): string | undefined;
     getMessageBody(message: M): string;
     description(): string;
-    publishControlMessage(type: ControlMessageType, attr?: Attributes): Promise<any>;
+    publishReceiveQueueControlMessage(type: CommandMessageType): Promise<any>;
+    publishDLQControlMessage(type: CommandMessageType): Promise<any>;
     isControlMessage(message: M, type: ControlMessageType): boolean;
-    receiveQueueErrors(): Promise<QueueError[]>;
+    pollErrorQueue(): Promise<QueueError[]>;
 }
 
 export function initializeCloudFunctionQueue<M>(
@@ -76,7 +79,7 @@ export function enqueueCallRequest(
     };
     const deferred = new PendingRequest(JSON.stringify(request));
     state.callResultsPending.set(callRequest.CallId, deferred);
-    state.publishMessage(deferred.callArgsStr);
+    state.publishRequestMessage(deferred.callArgsStr);
     return deferred.promise;
 }
 
@@ -91,13 +94,16 @@ export async function stop(state: State) {
     const tasks = [];
     log(`Sending stopqueue messages to collectors`);
     while (state.collectorPump.getConcurrency() > 0 && count++ < 100) {
-        tasks.push(state.publishControlMessage("stopqueue"));
+        tasks.push(state.publishReceiveQueueControlMessage("stopqueue"));
         await sleep(100);
+    }
+    if (state.errorPump.getConcurrency() > 0) {
+        tasks.push(state.publishDLQControlMessage("stopqueue"));
     }
     await Promise.all(tasks);
 }
 
-async function resultCollector<MessageType>(state: StateWithMessageType<MessageType>) {
+async function resultCollector<M>(state: StateWithMessageType<M>) {
     const { callResultsPending } = state;
     if (!callResultsPending.size) {
         return;
@@ -106,7 +112,7 @@ async function resultCollector<MessageType>(state: StateWithMessageType<MessageT
         `Polling response queue (size ${callResultsPending.size}: ${state.description()}`
     );
 
-    const { Messages, isFullMessageBatch } = await state.receiveMessages();
+    const { Messages, isFullMessageBatch } = await state.pollResponseQueueMessages();
     log(`Result collector received ${Messages.length} messages.`);
     adjustConcurrencyLevel(state, isFullMessageBatch);
 
@@ -142,10 +148,10 @@ async function resultCollector<MessageType>(state: StateWithMessageType<MessageT
     }
 }
 
-async function errorCollector<MessageType>(state: StateWithMessageType<MessageType>) {
+async function errorCollector<M>(state: StateWithMessageType<M>) {
     const { callResultsPending } = state;
     log(`Error Collector polling for queue errors`);
-    const queueErrors = await state.receiveQueueErrors();
+    const queueErrors = await state.pollErrorQueue();
     log(`Error Collector returned ${queueErrors.length} errors`);
     for (const queueError of queueErrors) {
         try {
@@ -175,7 +181,7 @@ function retryQueue(state: State) {
             if (!pending.executing) {
                 if (now - pending.created > 4 * 1000) {
                     log(`Lambda function not started for CallId ${CallId}, retrying...`);
-                    state.publishMessage(pending.callArgsStr);
+                    state.publishRequestMessage(pending.callArgsStr);
                 }
             }
         }

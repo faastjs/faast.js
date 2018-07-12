@@ -532,36 +532,28 @@ export async function createQueueImpl(
     log(`Adding SNS invoke permissions to function`);
     addSnsInvokePermissionsToFunction(FunctionName, resources.RequestTopicArn!, lambda);
     log(`Subscribing SNS to invoke lambda function`);
-    // XXX
-    // const deliveryPolicy = {
-    // lambda: {
-    // numRetries: 0,
-    // numMaxDelayRetries: 0,
-    // numNoDelayRetries: 0,
-    // numMinDelayRetries: 0,
-    // backoffFunction: "exponential"
-    // }
-    // };
     const snsResponse = await sns
         .subscribe({
             TopicArn: resources.RequestTopicArn,
             Protocol: "lambda",
             Endpoint: FunctionArn
-            //  Attributes: { DeliveryPolicy: JSON.stringify(deliveryPolicy) }
         })
         .promise();
     resources.SNSLambdaSubscriptionArn = snsResponse.SubscriptionArn!;
 
     return {
         getMessageAttribute: (message, attr) => sqsMessageAttribute(message, attr),
-        receiveMessages: () => receiveMessages(sqs, resources.ResponseQueueUrl!),
+        pollResponseQueueMessages: () =>
+            receiveMessages(sqs, resources.ResponseQueueUrl!),
         getMessageBody: message => message.Body || "",
         description: () => resources.ResponseQueueUrl!,
-        publishMessage: call => publishSNS(sns, resources.RequestTopicArn!, call),
-        publishControlMessage: (type, attr) =>
-            publishSQSControlMessage(type, sqs, resources.ResponseQueueUrl!, attr),
+        publishRequestMessage: call => publishSNS(sns, resources.RequestTopicArn!, call),
+        publishReceiveQueueControlMessage: type =>
+            publishSQSControlMessage(type, sqs, resources.ResponseQueueUrl!),
+        publishDLQControlMessage: type =>
+            publishSQSControlMessage(type, sqs, resources.DLQUrl!),
         isControlMessage: (message, type) => isControlMessage(message, type),
-        receiveQueueErrors: () => receiveDLQMessages(sqs, resources.DLQUrl!)
+        pollErrorQueue: () => receiveDLQMessages(sqs, resources.DLQUrl!)
     };
 }
 

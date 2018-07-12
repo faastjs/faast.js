@@ -1,5 +1,7 @@
 import * as cloudify from "../src/cloudify";
 import * as funcs from "./functions";
+import * as sys from "child_process";
+import * as fs from "fs";
 
 export function checkFunctions(
     description: string,
@@ -15,7 +17,7 @@ export function checkFunctions(
                 const cloud = cloudify.create(cloudProvider);
                 lambda = await cloud.createFunction("./functions", {
                     ...options,
-                    timeout: 2,
+                    timeout: 30,
                     memorySize: 512
                 });
                 remote = lambda.cloudifyAll(funcs);
@@ -65,6 +67,42 @@ export function checkFunctions(
         test("rejected: () => rejected promise", async () => {
             expect.assertions(1);
             await expect(remote.rejected()).rejects.toThrowError();
+        });
+    });
+}
+
+function exec(cmd: string) {
+    const result = sys.execSync(cmd).toString();
+    console.log(result);
+    return result;
+}
+
+function unzipInDir(dir: string, zipFile: string) {
+    exec(
+        `rm -rf ${dir} && mkdir -p ${dir} && cp ${zipFile} ${dir} && cd ${dir} && unzip -o ${zipFile}`
+    );
+}
+
+export function checkCodeBundle(
+    description: string,
+    cloudProvider: string,
+    zipFile: string
+) {
+    describe(description, () => {
+        test("package zip file", async () => {
+            const { archive } = await cloudify.create(cloudProvider).pack("./functions");
+
+            await new Promise((resolve, reject) => {
+                const output = fs.createWriteStream(zipFile);
+                output.on("finish", resolve);
+                output.on("error", reject);
+                archive.pipe(output);
+            });
+            const dir = `tmp/${cloudProvider}`;
+            unzipInDir(dir, zipFile);
+            expect(exec(`cd ${dir} && node index.js`)).toMatch(
+                "Successfully loaded cloudify trampoline function."
+            );
         });
     });
 }
