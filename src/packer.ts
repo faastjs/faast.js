@@ -13,6 +13,7 @@ import nodeExternals = require("webpack-node-externals");
 export interface PackerOptions extends CloudifyLoaderOptions {
     webpackOptions?: webpack.Configuration;
     packageBundling?: "usePackageJson" | "bundleNodeModules";
+    packageJson?: string;
 }
 
 export interface PackerResult {
@@ -31,8 +32,11 @@ export function packer({
     trampolineModule,
     functionModule,
     webpackOptions = {},
-    packageBundling = "bundleNodeModules"
+    packageBundling = "bundleNodeModules",
+    packageJson,
+    ...otherPackerOptions
 }: PackerOptions): Promise<PackerResult> {
+    const _exhaustiveCheck: Required<typeof otherPackerOptions> = {};
     log(`Running webpack`);
     let { externals = [], ...rest } = webpackOptions;
     externals = Array.isArray(externals) ? externals : [externals];
@@ -79,11 +83,16 @@ export function packer({
         }
     }
 
-    function addPackageJson(mfs: MemoryFileSystem) {
+    function addPackageJson(mfs: MemoryFileSystem, packageJsonFile: string) {
         if (packageBundling === "usePackageJson") {
-            const packageJson = JSON.parse(fs.readFileSync("package.json").toString());
-            packageJson.main = "index.js";
-            mfs.writeFileSync("/package.json", JSON.stringify(packageJson, undefined, 2));
+            const parsedPackageJson = JSON.parse(
+                fs.readFileSync(packageJsonFile).toString()
+            );
+            parsedPackageJson.main = "index.js";
+            mfs.writeFileSync(
+                "/package.json",
+                JSON.stringify(parsedPackageJson, undefined, 2)
+            );
         }
     }
 
@@ -98,7 +107,7 @@ export function packer({
 
     return new Promise<PackerResult>((resolve, reject) => {
         const mfs = new MemoryFileSystem();
-        addPackageJson(mfs);
+        packageJson && addPackageJson(mfs, packageJson);
         const compiler = webpack(config);
 
         compiler.outputFileSystem = mfs;

@@ -1,7 +1,4 @@
-import humanStringify from "human-stringify";
 import { getOptions } from "loader-utils";
-import * as path from "path";
-import { log } from "./log";
 
 export interface CloudifyLoaderOptions {
     trampolineModule: string;
