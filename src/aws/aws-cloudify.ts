@@ -440,15 +440,18 @@ export async function cleanup(state: PartialState) {
 
 export async function pack(
     functionModule: string,
-    options?: Partial<PackerOptions>
+    options?: PackerOptions
 ): Promise<PackerResult> {
-    return packer({
-        trampolineModule: require.resolve("./aws-trampoline"),
-        functionModule,
-        packageBundling: "bundleNodeModules",
-        webpackOptions: { externals: "aws-sdk" },
-        ...options
-    });
+    return packer(
+        {
+            trampolineModule: require.resolve("./aws-trampoline"),
+            functionModule
+        },
+        {
+            webpackOptions: { externals: "aws-sdk" },
+            ...options
+        }
+    );
 }
 
 export function getResourceList(state: State) {

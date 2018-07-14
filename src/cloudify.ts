@@ -2,7 +2,7 @@ require("source-map-support").install();
 
 import * as aws from "./aws/aws-cloudify";
 import * as google from "./google/google-cloudify";
-import { PackerResult } from "./packer";
+import { PackerResult, PackerOptions } from "./packer";
 import { AnyFunction, Unpacked } from "./type-helpers";
 import { FunctionReturn, FunctionCall, FunctionMetricsMap } from "./shared";
 import * as uuidv4 from "uuid/v4";
@@ -67,8 +67,8 @@ export class Cloud<O, S> {
     cleanupResources(resources: string): Promise<void> {
         return this.impl.cleanupResources(resources);
     }
-    pack(fmodule: string): Promise<PackerResult> {
-        return this.impl.pack(resolve(fmodule));
+    pack(fmodule: string, options?: PackerOptions): Promise<PackerResult> {
+        return this.impl.pack(resolve(fmodule), options);
     }
 
     async createFunction(
@@ -252,7 +252,7 @@ export interface CloudImpl<O, S> {
     name: string;
     initialize(serverModule: string, options?: O): Promise<S>;
     cleanupResources(resources: string): Promise<void>;
-    pack(functionModule: string): Promise<PackerResult>;
+    pack(functionModule: string, options?: PackerOptions): Promise<PackerResult>;
     translateOptions(options?: CreateFunctionOptions<O>): O;
     getFunctionImpl(): CloudFunctionImpl<S>;
 }

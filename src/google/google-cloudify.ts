@@ -200,8 +200,7 @@ export async function initializeEmulator(fmodule: string, options: Options = {})
         fmodule,
         {
             ...options,
-            useQueue: false,
-            packerOptions: { packageBundling: "bundleNodeModules" }
+            useQueue: false
         },
         project,
         true
@@ -487,14 +486,18 @@ async function uploadZip(url: string, zipStream: Readable) {
 
 export async function pack(
     functionModule: string,
-    options?: Partial<PackerOptions>
+    options?: PackerOptions
 ): Promise<PackerResult> {
-    return packer({
-        trampolineModule: require.resolve("./google-trampoline"),
-        functionModule,
-        packageBundling: "usePackageJson",
-        ...options
-    });
+    return packer(
+        {
+            trampolineModule: require.resolve("./google-trampoline"),
+            functionModule
+        },
+        {
+            // packageJson: "package.json",
+            ...options
+        }
+    );
 }
 
 export function getResourceList(state: State) {

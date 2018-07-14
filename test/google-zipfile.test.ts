@@ -1,9 +1,13 @@
 import { checkCodeBundle } from "./tests";
+import * as path from "path";
 
-checkCodeBundle("Google code bundle", "google", "dist-google.zip");
+checkCodeBundle("Google code bundle", "google");
 
 checkCodeBundle(
-    "Google emulator code bundle",
-    "google-emulator",
-    "dist-google-emulator.zip"
+    "Google code bundle with package.json",
+    "google",
+    "package",
+    "test/package-server.json"
 );
+
+checkCodeBundle("Google emulator code bundle", "google-emulator");

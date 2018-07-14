@@ -10,9 +10,8 @@ import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
 import nodeExternals = require("webpack-node-externals");
 
-export interface PackerOptions extends CloudifyLoaderOptions {
+export interface PackerOptions {
     webpackOptions?: webpack.Configuration;
-    packageBundling?: "usePackageJson" | "bundleNodeModules";
     packageJson?: string;
 }
 
@@ -28,23 +27,16 @@ function getUrlEncodedQueryParameters(options: CloudifyLoaderOptions) {
         .join(`&`);
 }
 
-export function packer({
-    trampolineModule,
-    functionModule,
-    webpackOptions = {},
-    packageBundling = "bundleNodeModules",
-    packageJson,
-    ...otherPackerOptions
-}: PackerOptions): Promise<PackerResult> {
+export function packer(
+    loaderOptions: CloudifyLoaderOptions,
+    { webpackOptions = {}, packageJson, ...otherPackerOptions }: PackerOptions
+): Promise<PackerResult> {
     const _exhaustiveCheck: Required<typeof otherPackerOptions> = {};
     log(`Running webpack`);
-    let { externals = [], ...rest } = webpackOptions;
-    externals = Array.isArray(externals) ? externals : [externals];
-    const loaderOptions = {
-        trampolineModule,
-        functionModule
-    };
+    const { externals = [], ...rest } = webpackOptions;
+    const externalsArray = Array.isArray(externals) ? externals : [externals];
     const loader = `cloudify-loader?${getUrlEncodedQueryParameters(loaderOptions)}!`;
+
     const config: webpack.Configuration = {
         entry: loader,
         mode: "development",
@@ -53,10 +45,6 @@ export function packer({
             filename: "index.js",
             libraryTarget: "commonjs2"
         },
-        externals: [
-            packageBundling === "usePackageJson" ? nodeExternals() : {},
-            ...externals
-        ],
         target: "node",
         resolveLoader: { modules: [__dirname, `${__dirname}/build}`] },
         ...rest
@@ -84,16 +72,16 @@ export function packer({
     }
 
     function addPackageJson(mfs: MemoryFileSystem, packageJsonFile: string) {
-        if (packageBundling === "usePackageJson") {
-            const parsedPackageJson = JSON.parse(
-                fs.readFileSync(packageJsonFile).toString()
-            );
-            parsedPackageJson.main = "index.js";
-            mfs.writeFileSync(
-                "/package.json",
-                JSON.stringify(parsedPackageJson, undefined, 2)
-            );
-        }
+        const parsedPackageJson = JSON.parse(fs.readFileSync(packageJsonFile).toString());
+        config.externals = [
+            ...Object.keys(parsedPackageJson.dependencies),
+            ...externalsArray
+        ];
+        parsedPackageJson.main = "index.js";
+        mfs.writeFileSync(
+            "/package.json",
+            JSON.stringify(parsedPackageJson, undefined, 2)
+        );
     }
 
     function zipAndHash(mfs: MemoryFileSystem): PackerResult {

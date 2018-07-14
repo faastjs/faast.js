@@ -86,15 +86,18 @@ function unzipInDir(dir: string, zipFile: string) {
 export function checkCodeBundle(
     description: string,
     cloudProvider: string,
-    zipFile: string
+    packageType: string = "bundle",
+    packageJson?: string
 ) {
     describe(description, () => {
         test(
             "package zip file",
             async () => {
+                const identifier = `dist-${cloudProvider}-${packageType}`;
+                const zipFile = `${identifier}.zip`;
                 const { archive } = await cloudify
                     .create(cloudProvider)
-                    .pack("./functions");
+                    .pack("./functions", { packageJson });
 
                 await new Promise((resolve, reject) => {
                     const output = fs.createWriteStream(zipFile);
@@ -102,7 +105,7 @@ export function checkCodeBundle(
                     output.on("error", reject);
                     archive.pipe(output);
                 });
-                const dir = `tmp/${cloudProvider}`;
+                const dir = `tmp/${identifier}`;
                 unzipInDir(dir, zipFile);
                 expect(exec(`cd ${dir} && node index.js`)).toMatch(
                     "Successfully loaded cloudify trampoline function."
