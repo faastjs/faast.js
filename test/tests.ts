@@ -29,8 +29,8 @@ export function checkFunctions(
         }, 90 * 1000);
 
         afterAll(async () => {
-            // await lambda.cleanup();
-            await lambda.stop();
+            await lambda.cleanup();
+            // await lambda.stop();
         }, 60 * 1000);
 
         test("hello: string => string", async () => {
