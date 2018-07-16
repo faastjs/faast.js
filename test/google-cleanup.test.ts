@@ -70,7 +70,7 @@ test.only(
         await func.cleanup();
         checkResourcesCleanedUp(await getResources(func));
     },
-    90 * 1000
+    120 * 1000
 );
 
 test(
@@ -83,5 +83,5 @@ test(
         await cloud.cleanupResources(resourceList);
         checkResourcesCleanedUp(await getResources(func));
     },
-    90 * 1000
+    120 * 1000
 );
