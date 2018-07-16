@@ -27,7 +27,7 @@ export interface Options {
     memorySize?: number;
     useQueue?: boolean;
     googleCloudFunctionOptions?: CloudFunctions.Schema$CloudFunction;
-    packerOptions?: Partial<PackerOptions>;
+    packerOptions?: PackerOptions;
 }
 
 export interface GoogleResources {
@@ -70,7 +70,7 @@ export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
     name: "google",
     callFunction,
     cleanup,
-    cancelWithoutCleanup,
+    stop,
     getResourceList,
     setConcurrency
 };
@@ -236,7 +236,7 @@ async function initializeWithApi(
     } = options;
     const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
-    const { archive } = await pack(serverModule, packerOptions);
+    const { archive } = await pack(serverModule, options, packerOptions);
     const location = `projects/${project}/locations/${region}`;
     const uploadUrlResponse = await carefully(
         cloudFunctions.projects.locations.functions.generateUploadUrl({
@@ -261,7 +261,7 @@ async function initializeWithApi(
 
     const requestBody: CloudFunctions.Schema$CloudFunction = {
         name: trampoline,
-        entryPoint: useQueue ? "pubsubTrampoline" : "trampoline",
+        entryPoint: "trampoline",
         timeout: `${timeoutSec}s`,
         availableMemoryMb: memorySize,
         sourceUploadUrl: uploadUrlResponse.uploadUrl,
@@ -413,7 +413,7 @@ export async function cleanup(state: PartialState) {
     const _exhaustiveCheck: Required<typeof rest> = {};
     log(`cleanup`);
     const { cloudFunctions, pubsub } = state.services;
-    const cancelPromise = cancelWithoutCleanup(state);
+    const cancelPromise = stop(state);
     if (trampoline) {
         await deleteFunction(cloudFunctions, trampoline).catch(_ => {});
     }
@@ -486,15 +486,20 @@ async function uploadZip(url: string, zipStream: Readable) {
 
 export async function pack(
     functionModule: string,
+    cloudifyOptions: Options = {},
     options?: PackerOptions
 ): Promise<PackerResult> {
+    const { useQueue = false } = cloudifyOptions;
+    const trampolineModule = useQueue
+        ? "./google-trampoline-queue"
+        : "./google-trampoline-https";
     return packer(
         {
-            trampolineModule: require.resolve("./google-trampoline"),
+            trampolineModule: require.resolve(trampolineModule),
             functionModule
         },
         {
-            // packageJson: "package.json",
+            packageJson: useQueue ? "package.json" : undefined,
             ...options
         }
     );
@@ -510,8 +515,7 @@ export async function cleanupResources(resourcesString: string) {
     return cleanup({ resources, services });
 }
 
-export async function cancelWithoutCleanup(state: Partial<State>) {
-    log(`cancelWithoutCleanup`);
+export async function stop(state: Partial<State>) {
     const { callFunnel } = state;
     callFunnel &&
         callFunnel

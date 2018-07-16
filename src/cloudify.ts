@@ -67,8 +67,12 @@ export class Cloud<O, S> {
     cleanupResources(resources: string): Promise<void> {
         return this.impl.cleanupResources(resources);
     }
-    pack(fmodule: string, options?: PackerOptions): Promise<PackerResult> {
-        return this.impl.pack(resolve(fmodule), options);
+    pack(
+        fmodule: string,
+        cloudifyOptions?: O,
+        options?: PackerOptions
+    ): Promise<PackerResult> {
+        return this.impl.pack(resolve(fmodule), cloudifyOptions, options);
     }
 
     async createFunction(
@@ -131,7 +135,7 @@ export class CloudFunction<S> {
     }
 
     stop() {
-        return this.impl.cancelWithoutCleanup(this.state);
+        return this.impl.stop(this.state);
     }
 
     getResourceList() {
@@ -252,7 +256,11 @@ export interface CloudImpl<O, S> {
     name: string;
     initialize(serverModule: string, options?: O): Promise<S>;
     cleanupResources(resources: string): Promise<void>;
-    pack(functionModule: string, options?: PackerOptions): Promise<PackerResult>;
+    pack(
+        functionModule: string,
+        cloudifyOptions?: O,
+        options?: PackerOptions
+    ): Promise<PackerResult>;
     translateOptions(options?: CreateFunctionOptions<O>): O;
     getFunctionImpl(): CloudFunctionImpl<S>;
 }
@@ -261,7 +269,7 @@ export interface CloudFunctionImpl<State> {
     name: string;
     callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>;
     cleanup(state: State): Promise<void>;
-    cancelWithoutCleanup(state: State): Promise<void>;
+    stop(state: State): Promise<void>;
     getResourceList(state: State): string;
     setConcurrency(state: State, maxConcurrentExecutions: number): Promise<void>;
 }

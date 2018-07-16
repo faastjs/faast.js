@@ -79,7 +79,7 @@ export const LambdaImpl: CloudFunctionImpl<State> = {
     name: "aws",
     callFunction,
     cleanup,
-    cancelWithoutCleanup,
+    stop,
     getResourceList,
     setConcurrency
 };
@@ -251,7 +251,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     async function createFunction(DLQArn?: string) {
         const roleResponse = await createLambdaRole(RoleName, PolicyArn, services);
         await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
-        const { archive } = await pack(fModule, packerOptions);
+        const { archive } = await pack(fModule, options, packerOptions);
         const previous = await quietly(lambda.getFunction({ FunctionName }));
         if (previous) {
             throw new Error("Function name hash collision");
@@ -410,7 +410,7 @@ export async function cleanup(state: PartialState) {
         log(`Deleting request queue subscription to lambda`);
         await quietly(sns.unsubscribe({ SubscriptionArn: SNSLambdaSubscriptionArn }));
     }
-    const cancelPromise = cancelWithoutCleanup(state);
+    const stopPromise = stop(state);
     if (FunctionName) {
         log(`Deleting function: ${FunctionName}`);
         await quietly(lambda.deleteFunction({ FunctionName }));
@@ -435,11 +435,12 @@ export async function cleanup(state: PartialState) {
         log(`Deleting DLQ: ${DLQUrl}`);
         await quietly(sqs.deleteQueue({ QueueUrl: DLQUrl }));
     }
-    await cancelPromise;
+    await stopPromise;
 }
 
 export async function pack(
     functionModule: string,
+    _cloudifyOptions?: Options,
     options?: PackerOptions
 ): Promise<PackerResult> {
     return packer(
@@ -470,7 +471,7 @@ export function cleanupResources(resourceString: string) {
     });
 }
 
-export async function cancelWithoutCleanup(state: PartialState) {
+export async function stop(state: PartialState) {
     const { callFunnel } = state;
     callFunnel &&
         callFunnel

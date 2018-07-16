@@ -2,6 +2,8 @@ import * as cloudify from "../src/cloudify";
 import * as funcs from "./functions";
 import * as sys from "child_process";
 import * as fs from "fs";
+import * as aws from "../src/aws/aws-cloudify";
+import * as google from "../src/google/google-cloudify";
 
 export function checkFunctions(
     description: string,
@@ -27,7 +29,8 @@ export function checkFunctions(
         }, 90 * 1000);
 
         afterAll(async () => {
-            await lambda.cleanup();
+            // await lambda.cleanup();
+            await lambda.stop();
         }, 60 * 1000);
 
         test("hello: string => string", async () => {
@@ -85,8 +88,23 @@ function unzipInDir(dir: string, zipFile: string) {
 
 export function checkCodeBundle(
     description: string,
+    cloudProvider: "aws",
+    packageType: string,
+    options?: aws.Options,
+    packageJson?: string
+): void;
+export function checkCodeBundle(
+    description: string,
+    cloudProvider: "google" | "google-emulator",
+    packageType: string,
+    options?: google.Options,
+    packageJson?: string
+): void;
+export function checkCodeBundle(
+    description: string,
     cloudProvider: string,
-    packageType: string = "bundle",
+    packageType: string,
+    options?: any,
     packageJson?: string
 ) {
     describe(description, () => {
@@ -97,7 +115,7 @@ export function checkCodeBundle(
                 const zipFile = `${identifier}.zip`;
                 const { archive } = await cloudify
                     .create(cloudProvider)
-                    .pack("./functions", { packageJson });
+                    .pack("./functions", options, { packageJson });
 
                 await new Promise((resolve, reject) => {
                     const output = fs.createWriteStream(zipFile);
