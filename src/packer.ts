@@ -9,6 +9,7 @@ import { log } from "./log";
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
 import nodeExternals = require("webpack-node-externals");
+import { back } from "nock";
 
 export interface PackerOptions {
     webpackOptions?: webpack.Configuration;
@@ -33,8 +34,6 @@ export function packer(
 ): Promise<PackerResult> {
     const _exhaustiveCheck: Required<typeof otherPackerOptions> = {};
     log(`Running webpack`);
-    const { externals = [], ...rest } = webpackOptions;
-    const externalsArray = Array.isArray(externals) ? externals : [externals];
     const loader = `cloudify-loader?${getUrlEncodedQueryParameters(loaderOptions)}!`;
 
     const config: webpack.Configuration = {
@@ -47,7 +46,7 @@ export function packer(
         },
         target: "node",
         resolveLoader: { modules: [__dirname, `${__dirname}/build}`] },
-        ...rest
+        ...webpackOptions
     };
 
     function addToArchive(
@@ -73,15 +72,12 @@ export function packer(
 
     function addPackageJson(mfs: MemoryFileSystem, packageJsonFile: string) {
         const parsedPackageJson = JSON.parse(fs.readFileSync(packageJsonFile).toString());
-        config.externals = [
-            ...Object.keys(parsedPackageJson.dependencies),
-            ...externalsArray
-        ];
         parsedPackageJson.main = "index.js";
         mfs.writeFileSync(
             "/package.json",
             JSON.stringify(parsedPackageJson, undefined, 2)
         );
+        return Object.keys(parsedPackageJson.dependencies);
     }
 
     function zipAndHash(mfs: MemoryFileSystem): PackerResult {
@@ -95,7 +91,12 @@ export function packer(
 
     return new Promise<PackerResult>((resolve, reject) => {
         const mfs = new MemoryFileSystem();
-        packageJson && addPackageJson(mfs, packageJson);
+        const dependencies = (packageJson && addPackageJson(mfs, packageJson)) || [];
+        const { externals = [] } = webpackOptions;
+        const externalsArray = Array.isArray(externals) ? externals : [externals];
+        config.externals = [...externalsArray, ...dependencies];
+
+        log(`webpack config: %O`, config);
         const compiler = webpack(config);
 
         compiler.outputFileSystem = mfs;

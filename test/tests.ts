@@ -90,6 +90,7 @@ export function checkCodeBundle(
     description: string,
     cloudProvider: "aws",
     packageType: string,
+    maxZipFileSize?: number,
     options?: aws.Options,
     packageJson?: string
 ): void;
@@ -97,6 +98,7 @@ export function checkCodeBundle(
     description: string,
     cloudProvider: "google" | "google-emulator",
     packageType: string,
+    maxZipFileSize?: number,
     options?: google.Options,
     packageJson?: string
 ): void;
@@ -104,6 +106,7 @@ export function checkCodeBundle(
     description: string,
     cloudProvider: string,
     packageType: string,
+    maxZipFileSize?: number,
     options?: any,
     packageJson?: string
 ) {
@@ -123,6 +126,8 @@ export function checkCodeBundle(
                     output.on("error", reject);
                     archive.pipe(output);
                 });
+                maxZipFileSize &&
+                    expect(fs.statSync(zipFile).size).toBeLessThan(maxZipFileSize);
                 const dir = `tmp/${identifier}`;
                 unzipInDir(dir, zipFile);
                 expect(exec(`cd ${dir} && node index.js`)).toMatch(

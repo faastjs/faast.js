@@ -1,6 +1,11 @@
 import { checkCodeBundle } from "./tests";
-checkCodeBundle("Package AWS queue bundle", "aws", "aws-queue-bundle");
 
-checkCodeBundle("Package AWS https bundle", "aws", "aws-queue-bundle", {
+const kb = 1024;
+
+checkCodeBundle("Package AWS queue bundle", "aws", "https-bundle", 50 * kb, {
+    useQueue: false
+});
+
+checkCodeBundle("Package AWS https bundle", "aws", "queue-bundle", 50 * kb, {
     useQueue: true
 });
