@@ -5,7 +5,7 @@ import * as funcs from "./functions";
 
 export function coldStartTest(
     description: string,
-    cloudProvider: string,
+    cloudProvider: cloudify.CloudProvider,
     maxConcurrency: number,
     options?: cloudify.CreateFunctionOptions<any>
 ) {
@@ -62,7 +62,7 @@ export function coldStartTest(
 
 export function throughputTest(
     description: string,
-    cloudProvider: string,
+    cloudProvider: cloudify.CloudProvider,
     duration: number,
     options?: cloudify.CreateFunctionOptions<any>
 ) {
@@ -106,7 +106,7 @@ export function throughputTest(
 
 export function checkTimeout(
     description: string,
-    cloudProvider: string,
+    cloudProvider: cloudify.CloudProvider,
     options?: cloudify.CreateFunctionOptions<any>
 ) {
     describe(description, () => {
@@ -143,7 +143,7 @@ export function checkTimeout(
 
 export function checkMemoryLimit(
     description: string,
-    cloudProvider: string,
+    cloudProvider: cloudify.CloudProvider,
     options?: cloudify.CreateFunctionOptions<any>
 ) {
     describe(description, () => {

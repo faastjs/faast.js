@@ -7,7 +7,7 @@ import * as google from "../src/google/google-cloudify";
 
 export function checkFunctions(
     description: string,
-    cloudProvider: string,
+    cloudProvider: cloudify.CloudProvider,
     options?: cloudify.CreateFunctionOptions<any>
 ) {
     describe(description, () => {
@@ -104,7 +104,7 @@ export function checkCodeBundle(
 ): void;
 export function checkCodeBundle(
     description: string,
-    cloudProvider: string,
+    cloudProvider: cloudify.CloudProvider,
     packageType: string,
     maxZipFileSize?: number,
     options?: any,

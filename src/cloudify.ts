@@ -61,9 +61,11 @@ export interface CreateFunctionOptions<CloudSpecificOptions> {
     useQueue?: boolean;
 }
 
+const resolve = (module.parent!.require as NodeRequire).resolve || require.resolve;
+
 export class Cloud<O, S> {
     name: string = this.impl.name;
-    constructor(readonly impl: CloudImpl<O, S>) {}
+    constructor(protected impl: CloudImpl<O, S>) {}
     cleanupResources(resources: string): Promise<void> {
         return this.impl.cleanupResources(resources);
     }
@@ -127,7 +129,7 @@ export class CloudFunction<S> {
     timer?: NodeJS.Timer;
     functionMetrics = new FunctionMetricsMap();
 
-    constructor(readonly impl: CloudFunctionImpl<S>, readonly state: S) {}
+    constructor(protected impl: CloudFunctionImpl<S>, readonly state: S) {}
 
     cleanup() {
         this.stopPrintStatisticsInterval();
@@ -235,13 +237,13 @@ export class GoogleEmulator extends Cloud<google.Options, google.State> {
 
 export class GoogleCloudFunction extends CloudFunction<google.State> {}
 
-const resolve = (module.parent!.require as NodeRequire).resolve;
+export type CloudProvider = "aws" | "google" | "google-emulator";
 
 export function create(cloudName: "aws"): AWS;
 export function create(cloudName: "google"): Google;
 export function create(cloudName: "google-emulator"): GoogleEmulator;
-export function create(cloudName: string): Cloud<any, any>;
-export function create(cloudName: string): Cloud<any, any> {
+export function create(cloudName: CloudProvider): Cloud<any, any>;
+export function create(cloudName: CloudProvider): Cloud<any, any> {
     if (cloudName === "aws") {
         return new AWS();
     } else if (cloudName === "google") {
