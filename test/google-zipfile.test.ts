@@ -16,7 +16,7 @@ checkCodeBundle(
     "https-package",
     20 * kb,
     {},
-    "test/package-server.json"
+    "test/package.json"
 );
 
 checkCodeBundle(
@@ -37,7 +37,7 @@ checkCodeBundle(
     {
         useQueue: true
     },
-    "test/package-server.json"
+    "test/package.json"
 );
 
 checkCodeBundle(

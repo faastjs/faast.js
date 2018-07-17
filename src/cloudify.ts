@@ -59,6 +59,7 @@ export interface CreateFunctionOptions<CloudSpecificOptions> {
     memorySize?: number;
     cloudSpecific?: CloudSpecificOptions;
     useQueue?: boolean;
+    packageJson?: string;
 }
 
 const resolve = (module.parent!.require as NodeRequire).resolve || require.resolve;

@@ -1,4 +1,7 @@
 {
+    "name": "test",
+    "version": "0.0.2",
+    "description": "Test project.",
     "dependencies": {
         "axios": "^0.18.0",
         "debug": "^3.1.0",

@@ -503,14 +503,17 @@ export function translateOptions({
     memorySize,
     cloudSpecific,
     useQueue,
+    packageJson,
     ...rest
 }: CreateFunctionOptions<Options>): Options {
     const _exhaustiveCheck: Required<typeof rest> = {};
+    const { packerOptions = {}, ...cloudSpecificOther } = cloudSpecific || {};
     return {
         timeout,
         memorySize,
         useQueue,
-        ...cloudSpecific
+        packerOptions: { packageJson, ...packerOptions },
+        ...cloudSpecificOther
     };
 }
 
