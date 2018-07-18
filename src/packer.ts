@@ -1,5 +1,5 @@
 import { Archiver } from "archiver";
-import { Hash, createHash } from "crypto";
+import { createHash, Hash } from "crypto";
 import * as fs from "fs";
 import humanStringify from "human-stringify";
 import * as path from "path";
@@ -8,8 +8,6 @@ import { CloudifyLoaderOptions } from "./cloudify-loader";
 import { log } from "./log";
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
-import nodeExternals = require("webpack-node-externals");
-import { back } from "nock";
 
 export interface PackerOptions {
     webpackOptions?: webpack.Configuration;

@@ -18,7 +18,8 @@ import {
     receiveDLQMessages,
     receiveMessages,
     sqsMessageAttribute,
-    createDLQ
+    createDLQ,
+    processAWSErrorMessage
 } from "./aws-queue";
 
 export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
@@ -152,6 +153,8 @@ async function createLambdaRole(
     };
     const roleResponse = await iam.createRole(roleParams).promise();
     await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
+    const noCreateLogGroupPolicy = `cloudify-deny-create-log-group-policy`;
+    await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
     return roleResponse;
 }
 
@@ -242,20 +245,16 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     const { lambda, iam, cloudwatch, sqs, sns } = services;
     const FunctionName = `cloudify-${nonce}`;
     const logGroupName = `/aws/lambda/${FunctionName}`;
-    const noCreateLogGroupPolicy = `cloudify-deny-create-log-group-policy`;
 
     if (rolePolicy === "createTemporaryRole") {
         RoleName = `cloudify-role-${nonce}`;
     }
 
-    async function createFunction(DLQArn?: string) {
-        const roleResponse = await createLambdaRole(RoleName, PolicyArn, services);
-        await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
-        const { archive } = await pack(fModule, options, packerOptions);
-        const previous = await quietly(lambda.getFunction({ FunctionName }));
-        if (previous) {
-            throw new Error("Function name hash collision");
-        }
+    async function createFunction() {
+        const [roleResponse, { archive }] = await Promise.all([
+            createLambdaRole(RoleName, PolicyArn, services),
+            pack(fModule, options, packerOptions)
+        ]);
 
         const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
             FunctionName,
@@ -266,9 +265,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             Description: "cloudify trampoline function",
             Timeout,
             MemorySize,
-            DeadLetterConfig: {
-                TargetArn: DLQArn
-            },
             ...rest,
             ...awsLambdaOptions
         };
@@ -294,20 +290,43 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     };
 
     try {
-        log(`Creating DLQ`);
-        const { DLQArn, DLQUrl } = await createDLQ(FunctionName, sqs);
-        state.resources.DLQUrl = DLQUrl;
-        await createLogGroup(logGroupName, services);
+        const logGroupPromise = createLogGroup(logGroupName, services);
         log(`Creating function`);
-        const func = await createFunction(DLQArn);
+        const createFunctionPromise = createFunction();
+        const promises: Promise<any>[] = [logGroupPromise, createFunctionPromise];
+
         if (useQueue) {
-            const awsQueueImpl = await createQueueImpl(
-                state,
-                FunctionName,
-                func.FunctionArn!
+            log(`Creating DLQ`);
+            promises.push(
+                createDLQ(FunctionName, sqs).then(async ({ DLQArn, DLQUrl }) => {
+                    state.resources.DLQUrl = DLQUrl;
+                    await createFunctionPromise;
+                    log(`Adding DLQ to function`);
+                    return lambda
+                        .updateFunctionConfiguration({
+                            FunctionName,
+                            DeadLetterConfig: { TargetArn: DLQArn }
+                        })
+                        .promise();
+                })
             );
-            state.queueState = cloudqueue.initializeCloudFunctionQueue(awsQueueImpl);
+            promises.push(
+                createFunctionPromise.then(async func => {
+                    if (useQueue) {
+                        log(`Adding queue implementation`);
+                        const awsQueueImpl = await createQueueImpl(
+                            state,
+                            FunctionName,
+                            func.FunctionArn!
+                        );
+                        state.queueState = cloudqueue.initializeCloudFunctionQueue(
+                            awsQueueImpl
+                        );
+                    }
+                })
+            );
         }
+        await Promise.all(promises);
         return state;
     } catch (err) {
         log(`ERROR: ${err}`);
@@ -334,10 +353,7 @@ async function callFunctionHttps(
         if (rawResponse.LogResult) {
             log(Buffer.from(rawResponse.LogResult!, "base64").toString());
         }
-        let message = rawResponse.Payload as string;
-        if (message && message.match(/Process exited before completing/)) {
-            message += " (cloudify: possibly out of memory)";
-        }
+        const message = processAWSErrorMessage(rawResponse.Payload as string);
         returned = {
             type: "error",
             CallId: callRequest.CallId,
@@ -529,25 +545,43 @@ export async function createQueueImpl(
     const { sqs, sns, lambda } = state.services;
     const resources = state.resources;
     log(`Creating SNS request topic`);
-    resources.RequestTopicArn = await createSNSTopic(sns, `${FunctionName}-Requests`);
-    log(`Creating SQS response queue`);
-    resources.ResponseQueueUrl = await createSQSQueue(
-        `${FunctionName}-Responses`,
-        60,
-        sqs
-    );
-    log(`Adding SNS invoke permissions to function`);
-    addSnsInvokePermissionsToFunction(FunctionName, resources.RequestTopicArn!, lambda);
-    log(`Subscribing SNS to invoke lambda function`);
-    const snsResponse = await sns
-        .subscribe({
-            TopicArn: resources.RequestTopicArn,
-            Protocol: "lambda",
-            Endpoint: FunctionArn
-        })
-        .promise();
-    resources.SNSLambdaSubscriptionArn = snsResponse.SubscriptionArn!;
+    const createTopicPromise = createSNSTopic(sns, `${FunctionName}-Requests`);
 
+    const assignRequestTopicArnPromise = createTopicPromise.then(
+        topic => (resources.RequestTopicArn = topic)
+    );
+
+    const addPermissionsPromise = createTopicPromise.then(topic => {
+        log(`Adding SNS invoke permissions to function`);
+        return addSnsInvokePermissionsToFunction(FunctionName, topic, lambda);
+    });
+
+    const subscribePromise = createTopicPromise.then(topic => {
+        log(`Subscribing SNS to invoke lambda function`);
+        return sns
+            .subscribe({
+                TopicArn: topic,
+                Protocol: "lambda",
+                Endpoint: FunctionArn
+            })
+            .promise();
+    });
+    const assignSNSResponsePromise = subscribePromise.then(
+        snsResponse => (resources.SNSLambdaSubscriptionArn = snsResponse.SubscriptionArn!)
+    );
+    log(`Creating SQS response queue`);
+    const createQueuePromise = createSQSQueue(`${FunctionName}-Responses`, 60, sqs).then(
+        queueUrl => (resources.ResponseQueueUrl = queueUrl)
+    );
+    await Promise.all([
+        createTopicPromise,
+        createQueuePromise,
+        assignRequestTopicArnPromise,
+        addPermissionsPromise,
+        subscribePromise,
+        assignSNSResponsePromise
+    ]);
+    log(`Created queue function`);
     return {
         getMessageAttribute: (message, attr) => sqsMessageAttribute(message, attr),
         pollResponseQueueMessages: () =>

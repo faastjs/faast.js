@@ -25,27 +25,6 @@ function convertMapToAWSMessageAttributes(
 
 export async function createSNSTopic(sns: aws.SNS, Name: string) {
     const topic = await sns.createTopic({ Name }).promise();
-    // const deliveryPolicy = {
-    //     http: {
-    //         defaultHealthyRetryPolicy: {
-    //             minDelayTarget: 1,
-    //             maxDelayTarget: 1,
-    //             numRetries: 0,
-    //             numMaxDelayRetries: 0,
-    //             numNoDelayRetries: 0,
-    //             numMinDelayRetries: 0,
-    //             backoffFunction: "exponential"
-    //         },
-    //         disableSubscriptionOverrides: true
-    //     }
-    // };
-    // await sns
-    //     .setTopicAttributes({
-    //         TopicArn: topic.TopicArn!,
-    //         AttributeName: "DeliveryPolicy",
-    //         AttributeValue: JSON.stringify(deliveryPolicy)
-    //     })
-    //     .promise();
     return topic.TopicArn!;
 }
 
@@ -109,7 +88,10 @@ export function publishSQSControlMessage(
     return publishSQS(sqs, QueueUrl, "control message", { cloudify: type, ...attr });
 }
 
-export function isControlMessage(message: aws.SQS.Message, type: cloudqueue.ControlMessageType) {
+export function isControlMessage(
+    message: aws.SQS.Message,
+    type: cloudqueue.ControlMessageType
+) {
     const attr = message.MessageAttributes;
     const cloudify = attr && attr.cloudify;
     const value = cloudify && cloudify.StringValue;
@@ -162,6 +144,13 @@ export async function createDLQ(FunctionName: string, sqs: aws.SQS) {
     return { DLQUrl, DLQArn };
 }
 
+export function processAWSErrorMessage(message: string) {
+    if (message && message.match(/Process exited before completing/)) {
+        message += " (cloudify: possibly out of memory)";
+    }
+    return message;
+}
+
 export async function receiveDLQMessages(
     sqs: aws.SQS,
     DLQUrl: string
@@ -170,12 +159,13 @@ export async function receiveDLQMessages(
     const rv = [];
     for (const m of Messages) {
         try {
+            // https://docs.aws.amazon.com/lambda/latest/dg/dlq.html
             const errorMessage = sqsMessageAttribute(m, "ErrorMessage");
             const body = m.Body && JSON.parse(m.Body);
             const snsMessage: SNSEvent = body;
             for (const record of snsMessage.Records) {
                 const callRequest: FunctionCall = JSON.parse(record.Sns.Message);
-                rv.push({ callRequest, message: errorMessage! });
+                rv.push({ callRequest, message: processAWSErrorMessage(errorMessage!) });
             }
         } catch (_) {}
     }
