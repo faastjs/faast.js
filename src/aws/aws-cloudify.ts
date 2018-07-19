@@ -33,7 +33,7 @@ export interface Options {
     memorySize?: number;
     useQueue?: boolean;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
-    packerOptions?: Partial<PackerOptions>;
+    packerOptions?: PackerOptions;
 }
 
 export interface AWSResources {
@@ -232,7 +232,7 @@ import { readFileSync } from "fs";
 
 export async function buildModulesOnLambda(
     s3: aws.S3,
-    packageJson: string,
+    packageJson: string | object,
     indexContents: string,
     FunctionName: string
 ) {
@@ -248,14 +248,17 @@ export async function buildModulesOnLambda(
         const npmVersion = await remote.exec(["npm -v"]);
         log(npmVersion);
 
-        const packageJsonContents = readFileSync(packageJson);
-        log(`package.json contents:`, packageJsonContents.toString());
+        const packageJsonContents =
+            typeof packageJson === "string"
+                ? readFileSync(packageJson).toString()
+                : JSON.stringify(packageJson);
+        log(`package.json contents:`, packageJsonContents);
         const Bucket = FunctionName;
         await s3.createBucket({ Bucket }).promise();
         const Key = "node_modules.zip";
 
         const installLog = await remote.npmInstall(
-            packageJsonContents.toString(),
+            packageJsonContents,
             indexContents,
             Bucket,
             Key

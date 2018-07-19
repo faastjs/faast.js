@@ -11,7 +11,7 @@ import archiver = require("archiver");
 
 export interface PackerOptions {
     webpackOptions?: webpack.Configuration;
-    packageJson?: string;
+    packageJson?: string | object;
 }
 
 export interface PackerResult {
@@ -69,8 +69,11 @@ export function packer(
         }
     }
 
-    function addPackageJson(mfs: MemoryFileSystem, packageJsonFile: string) {
-        const parsedPackageJson = JSON.parse(fs.readFileSync(packageJsonFile).toString());
+    function addPackageJson(mfs: MemoryFileSystem, packageJsonFile: string | object) {
+        const parsedPackageJson =
+            typeof packageJsonFile === "string"
+                ? JSON.parse(fs.readFileSync(packageJsonFile).toString())
+                : packageJsonFile;
         parsedPackageJson.main = "index.js";
         mfs.writeFileSync(
             "/package.json",

@@ -26,3 +26,7 @@ export function allocate(bytes: number) {
 export function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+export function hello(str: string) {
+    return "hello " + str;
+}

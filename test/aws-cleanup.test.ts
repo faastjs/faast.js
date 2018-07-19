@@ -1,5 +1,11 @@
+import * as aws from "aws-sdk";
 import * as cloudify from "../src/cloudify";
-import { quietly } from "../src/aws/aws-cloudify";
+
+// Avoid dependency on aws-cloudify module, which can cause a circular
+// dependency on cloudify, and from there, problems with module resolution.
+function quietly<D, E>(request: aws.Request<D, E>) {
+    return request.promise().catch(_ => {});
+}
 
 async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
     const {

@@ -1,5 +1,4 @@
 require("source-map-support").install();
-import * as path from "path";
 import * as uuidv4 from "uuid/v4";
 import * as aws from "./aws/aws-cloudify";
 import * as google from "./google/google-cloudify";
@@ -60,7 +59,7 @@ export interface CreateFunctionOptions<CloudSpecificOptions> {
     memorySize?: number;
     cloudSpecific?: CloudSpecificOptions;
     useQueue?: boolean;
-    packageJson?: string;
+    packageJson?: string | object;
 }
 
 const resolve = (() => {
