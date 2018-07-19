@@ -3,7 +3,7 @@ import { PromiseResult } from "aws-sdk/lib/request";
 import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
-import { CloudFunctionImpl, CloudImpl, CreateFunctionOptions } from "../cloudify";
+import { CloudFunctionImpl, CloudImpl, CreateFunctionOptions, AWS } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
@@ -46,6 +46,7 @@ export interface AWSResources {
     RequestTopicArn?: string;
     SNSLambdaSubscriptionArn?: string;
     DLQUrl?: string;
+    s3Bucket?: string;
 }
 
 export interface AWSServices {
@@ -54,6 +55,7 @@ export interface AWSServices {
     readonly iam: aws.IAM;
     readonly sqs: aws.SQS;
     readonly sns: aws.SNS;
+    readonly s3: aws.S3;
 }
 
 type AWSCloudQueueState = cloudqueue.StateWithMessageType<aws.SQS.Message>;
@@ -120,7 +122,8 @@ export function createAWSApis(region: string): AWSServices {
         lambda: new aws.Lambda({ apiVersion: "2015-03-31", region }),
         cloudwatch: new aws.CloudWatchLogs({ apiVersion: "2014-03-28", region }),
         sqs: new aws.SQS({ apiVersion: "2012-11-05", region }),
-        sns: new aws.SNS({ apiVersion: "2010-03-31", region })
+        sns: new aws.SNS({ apiVersion: "2010-03-31", region }),
+        s3: new aws.S3({ apiVersion: "2006-03-01", region })
     };
 }
 
@@ -224,6 +227,49 @@ export async function pollAWSRequest<T>(
     }
 }
 
+import * as awsNpm from "./aws-npm";
+import { readFileSync } from "fs";
+
+export async function buildModulesOnLambda(
+    s3: aws.S3,
+    packageJson: string,
+    indexContents: string,
+    FunctionName: string
+) {
+    const cloud = new AWS();
+    const lambda = await cloud.createFunction(require.resolve("./aws-npm"), {
+        timeout: 300,
+        memorySize: 1024,
+        useQueue: false
+    });
+    try {
+        const remote = lambda.cloudifyAll(awsNpm);
+
+        const npmVersion = await remote.exec(["npm -v"]);
+        log(npmVersion);
+
+        const packageJsonContents = readFileSync(packageJson);
+        log(`package.json contents:`, packageJsonContents.toString());
+        const Bucket = FunctionName;
+        await s3.createBucket({ Bucket }).promise();
+        const Key = "node_modules.zip";
+
+        const installLog = await remote.npmInstall(
+            packageJsonContents.toString(),
+            indexContents,
+            Bucket,
+            Key
+        );
+        log(installLog);
+        return { Bucket, Key };
+    } catch (err) {
+        log(err);
+        throw err;
+    } finally {
+        await lambda.cleanup();
+    }
+}
+
 export async function initialize(fModule: string, options: Options = {}): Promise<State> {
     const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
@@ -242,7 +288,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     } = options;
     log(`Creating AWS APIs`);
     const services = createAWSApis(region);
-    const { lambda, iam, cloudwatch, sqs, sns } = services;
+    const { lambda, sqs, s3 } = services;
     const FunctionName = `cloudify-${nonce}`;
     const logGroupName = `/aws/lambda/${FunctionName}`;
 
@@ -250,18 +296,14 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         RoleName = `cloudify-role-${nonce}`;
     }
 
-    async function createFunction() {
-        const [roleResponse, { archive }] = await Promise.all([
-            createLambdaRole(RoleName, PolicyArn, services),
-            pack(fModule, options, packerOptions)
-        ]);
-
+    async function createFunction(Code: aws.Lambda.FunctionCode, Role: string) {
         const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
             FunctionName,
-            Role: roleResponse.Role.Arn,
+            // Role: roleResponse.Role.Arn,
+            Role,
             Runtime: "nodejs6.10",
             Handler: useQueue ? "index.snsTrampoline" : "index.trampoline",
-            Code: { ZipFile: await zipStreamToBuffer(archive) },
+            Code,
             Description: "cloudify trampoline function",
             Timeout,
             MemorySize,
@@ -277,6 +319,24 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         return func;
     }
 
+    async function createCodeBundle() {
+        const bundle = await pack(fModule, options, packerOptions);
+
+        let Code: aws.Lambda.FunctionCode;
+        if (packerOptions.packageJson) {
+            const { Bucket, Key } = await buildModulesOnLambda(
+                s3,
+                packerOptions.packageJson,
+                bundle.indexContents,
+                FunctionName
+            );
+            Code = { S3Bucket: Bucket, S3Key: Key };
+        } else {
+            Code = { ZipFile: await zipStreamToBuffer(bundle.archive) };
+        }
+        return Code;
+    }
+
     const state: State = {
         resources: {
             FunctionName,
@@ -285,14 +345,22 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             logGroupName,
             region
         },
-        services: { lambda, cloudwatch, iam, sqs, sns },
+        services,
         callFunnel: new Funnel()
     };
 
     try {
         const logGroupPromise = createLogGroup(logGroupName, services);
         log(`Creating function`);
-        const createFunctionPromise = createFunction();
+        const createFunctionPromise = Promise.all([
+            createCodeBundle(),
+            createLambdaRole(RoleName, PolicyArn, services)
+        ]).then(([codeBundle, roleResponse]) => {
+            if (codeBundle.S3Bucket) {
+                state.resources.s3Bucket = codeBundle.S3Bucket;
+            }
+            return createFunction(codeBundle, roleResponse.Role.Arn);
+        });
         const promises: Promise<any>[] = [logGroupPromise, createFunctionPromise];
 
         if (useQueue) {
@@ -416,11 +484,12 @@ export async function cleanup(state: PartialState) {
         ResponseQueueUrl,
         SNSLambdaSubscriptionArn,
         DLQUrl,
+        s3Bucket,
         ...rest
     } = state.resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
 
-    const { cloudwatch, iam, lambda, sqs, sns } = state.services;
+    const { cloudwatch, iam, lambda, sqs, sns, s3 } = state.services;
     log(`Cleaning up cloudify state`);
     if (SNSLambdaSubscriptionArn) {
         log(`Deleting request queue subscription to lambda`);
@@ -450,6 +519,19 @@ export async function cleanup(state: PartialState) {
     if (DLQUrl) {
         log(`Deleting DLQ: ${DLQUrl}`);
         await quietly(sqs.deleteQueue({ QueueUrl: DLQUrl }));
+    }
+    if (s3Bucket) {
+        log(`Deleting S3 bucket: ${s3Bucket}`);
+        const objects = await quietly(s3.listObjectsV2({ Bucket: s3Bucket }));
+        if (objects) {
+            await quietly(
+                s3.deleteObjects({
+                    Bucket: s3Bucket,
+                    Delete: { Objects: objects.Contents!.map(c => ({ Key: c.Key! })) }
+                })
+            );
+        }
+        await quietly(s3.deleteBucket({ Bucket: s3Bucket }));
     }
     await stopPromise;
 }

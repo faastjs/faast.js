@@ -5,7 +5,6 @@ import * as awsCloudify from "./aws/aws-cloudify";
 import * as googleCloudify from "./google/google-cloudify";
 import * as aws from "aws-sdk";
 import * as inquirer from "inquirer";
-import { match } from "minimatch";
 
 const warn = console.warn;
 const log = console.log;
@@ -20,7 +19,8 @@ interface CleanupAWSOptions {
 async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
     let nResources = 0;
     const output = (msg: string) => !execute && log(msg);
-    const { cloudwatch, iam, lambda, sns, sqs } = awsCloudify.createAWSApis(region);
+    const { cloudwatch, iam, lambda, sns, sqs, s3 } = awsCloudify.createAWSApis(region);
+
     async function deleteAWSResource<T, U>(
         pattern: RegExp,
         getList: () => aws.Request<T, aws.AWSError>,
@@ -102,6 +102,24 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
         page => page.Roles,
         role => role.RoleName,
         RoleName => awsCloudify.deleteRole(RoleName, iam)
+    );
+
+    output(`S3 buckets`);
+    await deleteAWSResource(
+        /^cloudify-/,
+        () => s3.listBuckets(),
+        page => page.Buckets,
+        bucket => bucket.Name,
+        async Bucket => {
+            await deleteAWSResource(
+                /./,
+                () => s3.listObjectsV2({ Bucket }),
+                object => object.Contents,
+                content => content.Key,
+                Key => s3.deleteObject({ Key, Bucket }).promise()
+            );
+            return s3.deleteBucket({ Bucket }).promise();
+        }
     );
     return nResources;
 }

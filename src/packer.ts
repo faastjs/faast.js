@@ -16,6 +16,7 @@ export interface PackerOptions {
 
 export interface PackerResult {
     archive: Archiver;
+    indexContents: string;
     hash: string;
 }
 
@@ -84,7 +85,8 @@ export function packer(
         addToArchive(mfs, "/", archive, hasher);
         const hash = hasher.digest("hex");
         archive.finalize();
-        return { archive, hash };
+        const indexContents = mfs.readFileSync("/index.js").toString();
+        return { archive, hash, indexContents };
     }
 
     return new Promise<PackerResult>((resolve, reject) => {

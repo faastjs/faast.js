@@ -4,6 +4,7 @@ import * as sys from "child_process";
 import * as fs from "fs";
 import * as aws from "../src/aws/aws-cloudify";
 import * as google from "../src/google/google-cloudify";
+import * as path from "path";
 
 export function checkFunctions(
     description: string,
@@ -81,9 +82,7 @@ function exec(cmd: string) {
 }
 
 function unzipInDir(dir: string, zipFile: string) {
-    exec(
-        `rm -rf ${dir} && mkdir -p ${dir} && cp ${zipFile} ${dir} && cd ${dir} && unzip -o ${zipFile}`
-    );
+    exec(`rm -rf ${dir} && mkdir -p ${dir} && unzip ${zipFile} -d ${dir}`);
 }
 
 export function checkCodeBundle(
@@ -114,8 +113,10 @@ export function checkCodeBundle(
         test(
             "package zip file",
             async () => {
-                const identifier = `dist-${cloudProvider}-${packageType}`;
-                const zipFile = `${identifier}.zip`;
+                const identifier = `func-${cloudProvider}-${packageType}`;
+                const tmpDir = path.join("tmp", identifier);
+                exec(`mkdir -p ${tmpDir}`);
+                const zipFile = path.join("tmp", identifier) + ".zip";
                 const { archive } = await cloudify
                     .create(cloudProvider)
                     .pack("./functions", options, { packageJson });
@@ -128,9 +129,8 @@ export function checkCodeBundle(
                 });
                 maxZipFileSize &&
                     expect(fs.statSync(zipFile).size).toBeLessThan(maxZipFileSize);
-                const dir = `tmp/${identifier}`;
-                unzipInDir(dir, zipFile);
-                expect(exec(`cd ${dir} && node index.js`)).toMatch(
+                unzipInDir(tmpDir, zipFile);
+                expect(exec(`cd ${tmpDir} && node index.js`)).toMatch(
                     "Successfully loaded cloudify trampoline function."
                 );
             },

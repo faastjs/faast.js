@@ -1,12 +1,11 @@
-import { buildModulesOnLambda } from "../src/aws/aws-package";
-import * as uuidv4 from "uuid/v4";
+import { checkFunctions } from "./tests";
 
-test(
-    "Build node_modules on AWS lambda",
-    async () => {
-        const result = await buildModulesOnLambda("./test/package.json");
-        console.log(result);
-        expect(result).toMatch(/tslib/);
-    },
-    100 * 1000
-);
+checkFunctions("Https trigger with package.json", "aws", {
+    useQueue: false,
+    packageJson: "test/package.json"
+});
+
+checkFunctions("Queue trigger with package.json", "aws", {
+    useQueue: true,
+    packageJson: "test/package.json"
+});

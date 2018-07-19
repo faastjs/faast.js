@@ -1,11 +1,12 @@
 require("source-map-support").install();
-
+import * as path from "path";
+import * as uuidv4 from "uuid/v4";
 import * as aws from "./aws/aws-cloudify";
 import * as google from "./google/google-cloudify";
-import { PackerResult, PackerOptions } from "./packer";
+import { log } from "./log";
+import { PackerOptions, PackerResult } from "./packer";
+import { FunctionCall, FunctionMetricsMap, FunctionReturn } from "./shared";
 import { AnyFunction, Unpacked } from "./type-helpers";
-import { FunctionReturn, FunctionCall, FunctionMetricsMap } from "./shared";
-import * as uuidv4 from "uuid/v4";
 
 export interface ResponseDetails<D> {
     value?: D;
@@ -62,7 +63,15 @@ export interface CreateFunctionOptions<CloudSpecificOptions> {
     packageJson?: string;
 }
 
-const resolve = (module.parent!.require as NodeRequire).resolve || require.resolve;
+const resolve = (() => {
+    if (module.parent!.filename.match(/aws-cloudify/)) {
+        log(
+            `WARNING: import cloudify before aws-cloudify to avoid problems with module resolution`
+        );
+    }
+    log(`Cloudify module parent: %O`, (module.parent as any).filename);
+    return (module.parent!.require as NodeRequire).resolve || require.resolve;
+})();
 
 export class Cloud<O, S> {
     name: string = this.impl.name;

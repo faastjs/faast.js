@@ -1,9 +1,9 @@
-import { quietly } from "../src/aws/aws-cloudify";
 import * as cloudify from "../src/cloudify";
+import { quietly } from "../src/aws/aws-cloudify";
 
 async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
     const {
-        services: { lambda, iam, cloudwatch, sns, sqs },
+        services: { lambda, iam, cloudwatch, sns, sqs, s3 },
         resources: {
             FunctionName,
             logGroupName,
@@ -14,6 +14,7 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
             RequestTopicArn,
             ResponseQueueUrl,
             DLQUrl,
+            s3Bucket,
             ...rest
         }
     } = func.getState();
@@ -62,6 +63,11 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
         const dlqResult = await quietly(sqs.getQueueAttributes({ QueueUrl: DLQUrl }));
         expect(dlqResult).toBeUndefined();
     }
+
+    if (s3Bucket) {
+        const s3Result = await quietly(s3.getBucketLocation({ Bucket: s3Bucket }));
+        expect(s3Result).toBeUndefined();
+    }
 }
 
 test(
@@ -101,4 +107,17 @@ test(
         await checkResourcesCleanedUp(func);
     },
     60 * 1000
+);
+
+test(
+    "removes s3 buckets",
+    async () => {
+        const cloud = cloudify.create("aws");
+        const func = await cloud.createFunction("./functions", {
+            packageJson: "test/package.json"
+        });
+        await func.cleanup();
+        await checkResourcesCleanedUp(func);
+    },
+    90 * 1000
 );

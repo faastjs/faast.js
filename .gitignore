@@ -62,7 +62,7 @@ build/
 
 out
 out.*
-dist-*.zip
+func-*.zip
 dist/
 main.js
 tmp/
