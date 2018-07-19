@@ -28,7 +28,6 @@ export async function nmap(opts: any) {
     rv += exec("ls -al /tmp");
     rv += exec("file /tmp/nmap");
     rv += exec("cksum /tmp/nmap");
-
     rv += exec("/tmp/nmap");
 
     process.env.PATH += process.env.PATH + ":/tmp";

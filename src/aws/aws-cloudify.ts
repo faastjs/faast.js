@@ -21,6 +21,7 @@ import {
     createDLQ,
     processAWSErrorMessage
 } from "./aws-queue";
+import { createHash } from "crypto";
 
 export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
 
@@ -252,6 +253,7 @@ export async function buildModulesOnLambda(
             typeof packageJson === "string"
                 ? readFileSync(packageJson).toString()
                 : JSON.stringify(packageJson);
+
         log(`package.json contents:`, packageJsonContents);
         const Bucket = FunctionName;
         await s3.createBucket({ Bucket }).promise();
@@ -261,7 +263,8 @@ export async function buildModulesOnLambda(
             packageJsonContents,
             indexContents,
             Bucket,
-            Key
+            Key,
+            true
         );
         log(installLog);
         return { Bucket, Key };
