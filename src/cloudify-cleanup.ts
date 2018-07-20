@@ -1,5 +1,6 @@
 require("source-map-support").install();
 
+import * as cloudify from "../src/cloudify";
 import * as commander from "commander";
 import * as awsCloudify from "./aws/aws-cloudify";
 import * as googleCloudify from "./google/google-cloudify";

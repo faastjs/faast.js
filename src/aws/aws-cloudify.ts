@@ -240,15 +240,16 @@ export async function buildModulesOnLambda(
     const cloud = new AWS();
     const lambda = await cloud.createFunction(require.resolve("./aws-npm"), {
         timeout: 300,
-        memorySize: 1024,
+        // memorySize: 1600, // 1400ms
+        // memorySize: 1728, // 1200ms
+        // memorySize: 1792, // 1000ms
+        // memorySize: 1856, // 1000ms
+        memorySize: 2048, // 1100ms
+        // memorySize: 3008, // 1100ms
         useQueue: false
     });
     try {
         const remote = lambda.cloudifyAll(awsNpm);
-
-        const npmVersion = await remote.exec(["npm -v"]);
-        log(npmVersion);
-
         const packageJsonContents =
             typeof packageJson === "string"
                 ? readFileSync(packageJson).toString()
@@ -265,6 +266,7 @@ export async function buildModulesOnLambda(
             Bucket,
             Key,
             true
+            // false
         );
         log(installLog);
         return { Bucket, Key };
@@ -272,7 +274,8 @@ export async function buildModulesOnLambda(
         log(err);
         throw err;
     } finally {
-        await lambda.cleanup();
+        // await lambda.cleanup();
+        await lambda.stop();
     }
 }
 
