@@ -5,6 +5,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { createHash } from "crypto";
 import * as JSZip from "jszip";
+import * as stream from "stream";
 
 export function exec(cmds: string[]) {
     let rv = "";
@@ -17,6 +18,15 @@ export function exec(cmds: string[]) {
 
 const buildDir = "/tmp/build";
 const s3 = new S3();
+
+function streamToBuffer(s: stream.Readable) {
+    return new Promise((resolve, reject) => {
+        const buffers: Buffer[] = [];
+        s.on("error", reject);
+        s.on("data", (data: Buffer) => buffers.push(data));
+        s.on("end", () => resolve(Buffer.concat(buffers)));
+    });
+}
 
 export async function npmInstall(
     packageJsonContents: string,
@@ -55,15 +65,16 @@ export async function npmInstall(
             const cacheArchive = archiver("zip", { zlib: { level: 8 } });
             cacheArchive.directory(buildDir, false).finalize();
             console.log(`Creating cache bucket`);
-            s3.createBucket({ Bucket: "cloudify-cache" })
+            await s3
+                .createBucket({ Bucket: "cloudify-cache" })
                 .promise()
                 .catch(_ => {});
-            console.log(`Uploading to cache`);
+            const cacheBucket = "cloudify-cache";
+            console.log(`Uploading to cache, Bucket: ${cacheBucket}, Key: ${hash}`);
+            zipData = await streamToBuffer(cacheArchive);
             cacheUploadPromise = s3
-                .upload({ Bucket: "cloudify-cache", Key: hash, Body: cacheArchive })
-                .promise()
-                .catch(err => console.error(err));
-            zipData = cacheArchive;
+                .upload({ Bucket: cacheBucket, Key: hash, Body: zipData })
+                .promise();
         }
 
         console.log("Reading cached zip file");
@@ -71,7 +82,7 @@ export async function npmInstall(
         zip = await zip.loadAsync(zipData);
         console.log(`Adding index.js to zip file`);
         zip.file("index.js", indexContents);
-        console.log(`Uploading zip file`);
+        console.log(`Uploading zip file to Bucket: ${Bucket}, Key: ${Key}`);
         const packageUploadPromise = s3
             .upload({
                 Bucket,
