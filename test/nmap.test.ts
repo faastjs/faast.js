@@ -1,6 +1,6 @@
 import * as cloudify from "../src/cloudify";
 import * as nmap from "./nmap";
-// hi
+
 test(
     "nmap",
     async () => {
