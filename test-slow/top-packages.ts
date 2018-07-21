@@ -1,11 +1,11 @@
 export const topPackages = [
-    `lodash`
-    // `request`,
-    // `chalk`,
-    // `commander`,
-    // `express`,
-    // `async`,
-    // `react`,
+    `lodash`,
+    `request`,
+    `chalk`,
+    `commander`,
+    `express`,
+    `async`,
+    `react`
     // `debug`,
     // `underscore`,
     // `bluebird`,

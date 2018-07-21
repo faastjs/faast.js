@@ -152,3 +152,21 @@ $ node build/src/cloudify-cleanup.js aws -x
 # Concurrency
 
 Response queue funnel: create a request listener for every 20 outstanding requests. With a minimum of 2.
+
+# Limitations
+
+Functions with optional arguments aren't supported well. All optional arguments
+will be removed in the type of the remote call. This is a limitation of
+TypeScript's type system at the moment. As an alternative, consider using the
+object-as-named-parameter pattern and define optional object keys. For example:
+
+```typescript
+interface FunctionArgs {
+ arg: string;
+ optionalArg?: string;
+}
+
+function foo({ arg, optionalArg }: FunctionArgs) {
+ // optionalArg has type string | undefined
+}
+```

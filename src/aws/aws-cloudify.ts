@@ -21,6 +21,7 @@ import {
     createDLQ,
     processAWSErrorMessage
 } from "./aws-queue";
+import { createHash } from "crypto";
 
 export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
 
@@ -47,6 +48,7 @@ export interface AWSResources {
     SNSLambdaSubscriptionArn?: string;
     DLQUrl?: string;
     s3Bucket?: string;
+    s3Key?: string;
 }
 
 export interface AWSServices {
@@ -232,44 +234,57 @@ import { readFileSync } from "fs";
 
 export async function buildModulesOnLambda(
     s3: aws.S3,
+    iam: aws.IAM,
+    region: string,
     packageJson: string | object,
     indexContents: string,
     FunctionName: string
 ) {
+    const getUserResponse = await iam.getUser().promise();
+    const userId = getUserResponse.User.UserId.toLowerCase();
+    const Bucket = `cloudify-cache-${region}-${userId}`;
+
+    log(`Cloudify cache bucket on S3: ${Bucket}`);
+    await s3
+        .createBucket({
+            Bucket,
+            CreateBucketConfiguration: { LocationConstraint: region }
+        })
+        .promise()
+        .catch(_ => {});
+
     const cloud = new AWS();
     const lambda = await cloud.createFunction(require.resolve("./aws-npm"), {
         timeout: 300,
-        memorySize: 1024,
+        memorySize: 2048,
         useQueue: false
     });
     try {
         const remote = lambda.cloudifyAll(awsNpm);
-
-        const npmVersion = await remote.exec(["npm -v"]);
-        log(npmVersion);
-
         const packageJsonContents =
             typeof packageJson === "string"
                 ? readFileSync(packageJson).toString()
                 : JSON.stringify(packageJson);
-        log(`package.json contents:`, packageJsonContents);
-        const Bucket = FunctionName;
-        await s3.createBucket({ Bucket }).promise();
-        const Key = "node_modules.zip";
 
-        const installLog = await remote.npmInstall(
+        log(`package.json contents:`, packageJsonContents);
+        const Key = FunctionName;
+
+        const installArgs: awsNpm.NpmInstallArgs = {
             packageJsonContents,
             indexContents,
             Bucket,
-            Key
-        );
+            Key,
+            caching: true
+        };
+        const installLog = await remote.npmInstall(installArgs);
         log(installLog);
         return { Bucket, Key };
     } catch (err) {
         log(err);
         throw err;
     } finally {
-        await lambda.cleanup();
+        // await lambda.cleanup();
+        await lambda.stop();
     }
 }
 
@@ -291,7 +306,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     } = options;
     log(`Creating AWS APIs`);
     const services = createAWSApis(region);
-    const { lambda, sqs, s3 } = services;
+    const { lambda, sqs, s3, iam } = services;
     const FunctionName = `cloudify-${nonce}`;
     const logGroupName = `/aws/lambda/${FunctionName}`;
 
@@ -329,6 +344,8 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         if (packerOptions.packageJson) {
             const { Bucket, Key } = await buildModulesOnLambda(
                 s3,
+                iam,
+                region,
                 packerOptions.packageJson,
                 bundle.indexContents,
                 FunctionName
@@ -361,6 +378,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         ]).then(([codeBundle, roleResponse]) => {
             if (codeBundle.S3Bucket) {
                 state.resources.s3Bucket = codeBundle.S3Bucket;
+                state.resources.s3Key = codeBundle.S3Key;
             }
             return createFunction(codeBundle, roleResponse.Role.Arn);
         });
@@ -488,6 +506,7 @@ export async function cleanup(state: PartialState) {
         SNSLambdaSubscriptionArn,
         DLQUrl,
         s3Bucket,
+        s3Key,
         ...rest
     } = state.resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
@@ -523,18 +542,14 @@ export async function cleanup(state: PartialState) {
         log(`Deleting DLQ: ${DLQUrl}`);
         await quietly(sqs.deleteQueue({ QueueUrl: DLQUrl }));
     }
-    if (s3Bucket) {
-        log(`Deleting S3 bucket: ${s3Bucket}`);
-        const objects = await quietly(s3.listObjectsV2({ Bucket: s3Bucket }));
-        if (objects) {
-            await quietly(
-                s3.deleteObjects({
-                    Bucket: s3Bucket,
-                    Delete: { Objects: objects.Contents!.map(c => ({ Key: c.Key! })) }
-                })
-            );
-        }
-        await quietly(s3.deleteBucket({ Bucket: s3Bucket }));
+    if (s3Bucket && s3Key) {
+        log(`Deleting S3 Bucket: ${s3Bucket}, Key: ${s3Key}`);
+        await quietly(
+            s3.deleteObject({
+                Bucket: s3Bucket,
+                Key: s3Key
+            })
+        );
     }
     await stopPromise;
 }

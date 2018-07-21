@@ -33,7 +33,6 @@ export async function nmap(opts: any) {
     rv += exec("ls -al /bin");
     rv += exec("/tmp/nmap -p 80 www.google.com");
 
-
     rv += "\n";
     rv += `PATH: ${process.env.PATH}`;
 
