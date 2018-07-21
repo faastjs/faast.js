@@ -1,6 +1,5 @@
 require("source-map-support").install();
 
-import * as cloudify from "../src/cloudify";
 import * as commander from "commander";
 import * as awsCloudify from "./aws/aws-cloudify";
 import * as googleCloudify from "./google/google-cloudify";
@@ -112,7 +111,6 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
         page => page.Buckets,
         bucket => bucket.Name,
         async Bucket => {
-            log(`Deleting bucket ${Bucket} objects`);
             await deleteAWSResource(
                 /./,
                 () => s3.listObjectsV2({ Bucket }),

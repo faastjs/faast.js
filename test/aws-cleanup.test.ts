@@ -21,6 +21,7 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
             ResponseQueueUrl,
             DLQUrl,
             s3Bucket,
+            s3Key,
             ...rest
         }
     } = func.getState();
@@ -70,8 +71,8 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
         expect(dlqResult).toBeUndefined();
     }
 
-    if (s3Bucket) {
-        const s3Result = await quietly(s3.getBucketLocation({ Bucket: s3Bucket }));
+    if (s3Bucket && s3Key) {
+        const s3Result = await quietly(s3.getObject({ Bucket: s3Bucket, Key: s3Key }));
         expect(s3Result).toBeUndefined();
     }
 }

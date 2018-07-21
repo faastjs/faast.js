@@ -62,15 +62,17 @@ export interface CreateFunctionOptions<CloudSpecificOptions> {
     packageJson?: string | object;
 }
 
-const resolve = (() => {
-    if (module.parent!.filename.match(/aws-cloudify/)) {
+function resolve(fmodule: string) {
+    const parent = module.parent!;
+    if (parent.filename.match(/aws-cloudify/)) {
         log(
             `WARNING: import cloudify before aws-cloudify to avoid problems with module resolution`
         );
     }
-    log(`Cloudify module parent: %O`, (module.parent as any).filename);
-    return (module.parent!.require as NodeRequire).resolve || require.resolve;
-})();
+    log(`Cloudify module parent: %O`, (parent as any).filename);
+    const moduleParentResolve = (parent.require as NodeRequire).resolve;
+    return moduleParentResolve(fmodule);
+}
 
 export class Cloud<O, S> {
     name: string = this.impl.name;

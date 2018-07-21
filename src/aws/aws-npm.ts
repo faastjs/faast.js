@@ -1,10 +1,10 @@
 import * as archiver from "archiver";
 import { S3 } from "aws-sdk";
 import * as sys from "child_process";
-import * as fs from "fs";
-import * as path from "path";
 import { createHash } from "crypto";
+import * as fs from "fs";
 import * as JSZip from "jszip";
+import * as path from "path";
 import * as stream from "stream";
 
 export function exec(cmds: string[]) {
@@ -20,7 +20,7 @@ const buildDir = "/tmp/build";
 const s3 = new S3();
 
 function streamToBuffer(s: stream.Readable) {
-    return new Promise((resolve, reject) => {
+    return new Promise<Buffer>((resolve, reject) => {
         const buffers: Buffer[] = [];
         s.on("error", reject);
         s.on("data", (data: Buffer) => buffers.push(data));
@@ -28,13 +28,15 @@ function streamToBuffer(s: stream.Readable) {
     });
 }
 
-export async function npmInstall(
-    packageJsonContents: string,
-    indexContents: string,
-    Bucket: string,
-    Key: string,
-    caching: boolean
-) {
+export interface NpmInstallArgs {
+    packageJsonContents: string;
+    indexContents: string;
+    Bucket: string;
+    Key: string;
+    caching?: boolean;
+}
+
+export async function npmInstall({ Bucket, Key, ...args }: NpmInstallArgs) {
     console.log(
         `*** This cloudify invocation is an internal lambda call used when the packageJson option is specified to createFunction(). ***`
     );
@@ -42,16 +44,20 @@ export async function npmInstall(
         `*** Its purpose is to create a node_modules package and cache it, then combine with user code to form an AWS Lambda code package and upload it to S3 ***`
     );
     fs.mkdirSync(buildDir);
-    fs.writeFileSync(path.join(buildDir, "package.json"), packageJsonContents);
+    fs.writeFileSync(path.join(buildDir, "package.json"), args.packageJsonContents);
 
     let rv = "";
     console.log("Checking cache");
-    if (caching) {
+    if (args.caching) {
         const hasher = createHash("sha256");
-        hasher.update(packageJsonContents);
+        hasher.update(args.packageJsonContents);
         const hash = hasher.digest("hex");
+        const cacheKey = `npm-cache-${hash}`;
+
+        console.log(`Checking cloudify cache S3 bucket: ${Bucket}, key: ${cacheKey}`);
+
         const cached = await s3
-            .getObject({ Bucket: "cloudify-cache", Key: hash })
+            .getObject({ Bucket, Key: cacheKey })
             .promise()
             .catch(_ => {});
 
@@ -64,16 +70,10 @@ export async function npmInstall(
             console.log(`Running archiver`);
             const cacheArchive = archiver("zip", { zlib: { level: 8 } });
             cacheArchive.directory(buildDir, false).finalize();
-            console.log(`Creating cache bucket`);
-            await s3
-                .createBucket({ Bucket: "cloudify-cache" })
-                .promise()
-                .catch(_ => {});
-            const cacheBucket = "cloudify-cache";
-            console.log(`Uploading to cache, Bucket: ${cacheBucket}, Key: ${hash}`);
+            console.log(`Uploading to cache, Bucket: ${Bucket}, Key: ${cacheKey}`);
             zipData = await streamToBuffer(cacheArchive);
             cacheUploadPromise = s3
-                .upload({ Bucket: cacheBucket, Key: hash, Body: zipData })
+                .upload({ Bucket, Key: cacheKey, Body: zipData })
                 .promise();
         }
 
@@ -81,7 +81,7 @@ export async function npmInstall(
         let zip = new JSZip();
         zip = await zip.loadAsync(zipData);
         console.log(`Adding index.js to zip file`);
-        zip.file("index.js", indexContents);
+        zip.file("index.js", args.indexContents);
         console.log(`Uploading zip file to Bucket: ${Bucket}, Key: ${Key}`);
         const packageUploadPromise = s3
             .upload({
@@ -98,7 +98,7 @@ export async function npmInstall(
         console.log(`No caching; running npm install`);
         rv += exec([`export HOME=/tmp && npm install --prefix=${buildDir}`]);
         console.log(`Writing index file`);
-        fs.writeFileSync(path.join(buildDir, "index.js"), indexContents);
+        fs.writeFileSync(path.join(buildDir, "index.js"), args.indexContents);
         console.log(`Archiving zip file`);
 
         const archive = archiver("zip", { zlib: { level: 8 } });
