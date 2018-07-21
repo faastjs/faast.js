@@ -2,6 +2,12 @@
 
 Ad-hoc serverless batch processing for nodejs.
 
+## Install
+Yarn: https://yarnpkg.com/en/docs/install
+```
+npm install -g yarn
+```
+
 ## Building
 
 ```
