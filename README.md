@@ -11,6 +11,10 @@ npm install -g yarn
 ```
 pip install awscli --upgrade --user
 ```
+npx
+```
+npm install -g npx
+```
 
 ## Building
 
