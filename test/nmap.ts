@@ -3,7 +3,7 @@ import * as fs from "fs";
 import Axios from "axios";
 import * as sys from "child_process";
 
-const libnmap = require("libnmap");
+//const libnmap = require("libnmap");
 
 function exec(cmd: string) {
     try {
@@ -18,6 +18,7 @@ function exec(cmd: string) {
 
 export async function nmap(opts: any) {
     let rv = "";
+    console.log(opts);
     process.env.PATH = process.env.PATH + ":" + process.env.LAMBDA_TASK_ROOT + ":/tmp"
     process.env['LD_LIBRARY_PATH'] = process.env['LAMBDA_TASK_ROOT'] + '/tmp';
 
@@ -37,7 +38,7 @@ export async function nmap(opts: any) {
     rv += `PATH: ${process.env.PATH}`;
 
     return rv;
-
+/*
     await new Promise((resolve, reject) => {
         libnmap.scan(opts, (err: any, report: any) => {
             if (err) {
@@ -52,5 +53,5 @@ export async function nmap(opts: any) {
         });
     });
 
-    return rv;
+    return rv;*/
 }
