@@ -7,6 +7,10 @@ Yarn: https://yarnpkg.com/en/docs/install
 ```
 npm install -g yarn
 ```
+AWS CLI: https://docs.aws.amazon.com/cli/latest/userguide/installing.html
+```
+pip install awscli --upgrade --user
+```
 
 ## Building
 
