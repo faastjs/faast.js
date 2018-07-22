@@ -11,7 +11,7 @@ function exec(cmd: string) {
     return result + "\n";
 }
 
-export async function nmap(opts: any) {
+export async function nmap(_opts: any) {
     let rv = "";
 
     const result = await Axios.request({
@@ -37,19 +37,19 @@ export async function nmap(opts: any) {
 
     return rv;
 
-    await new Promise((resolve, reject) => {
-        libnmap.scan(opts, (err: any, report: any) => {
-            if (err) {
-                throw new Error(err);
-            }
+    // await new Promise((resolve, reject) => {
+    //     libnmap.scan(opts, (err: any, report: any) => {
+    //         if (err) {
+    //             throw new Error(err);
+    //         }
 
-            for (let item in report) {
-                rv += JSON.stringify(report[item]);
-            }
+    //         for (let item in report) {
+    //             rv += JSON.stringify(report[item]);
+    //         }
 
-            resolve();
-        });
-    });
+    //         resolve();
+    //     });
+    // });
 
-    return rv;
+    // return rv;
 }
