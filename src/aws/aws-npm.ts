@@ -7,6 +7,11 @@ import * as JSZip from "jszip";
 import * as path from "path";
 import * as stream from "stream";
 
+// Make tsc ok with JSZip declarations.
+declare global {
+    interface Blob {}
+}
+
 export function exec(cmds: string[]) {
     let rv = "";
     for (const cmd of cmds) {

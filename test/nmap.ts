@@ -3,24 +3,23 @@ import * as fs from "fs";
 import Axios from "axios";
 import * as sys from "child_process";
 
-//const libnmap = require("libnmap");
+// const libnmap = require("libnmap");
 
 function exec(cmd: string) {
     try {
         const result = sys.execSync(cmd).toString();
         console.log(result);
         return result + "\n";
-    }
-    catch(e) {
+    } catch (e) {
         return "MY ERROR: " + e;
     }
 }
 
 export async function nmap(_opts: any) {
     let rv = "";
-    console.log(opts);
-    process.env.PATH = process.env.PATH + ":" + process.env.LAMBDA_TASK_ROOT + ":/tmp"
-    process.env['LD_LIBRARY_PATH'] = process.env['LAMBDA_TASK_ROOT'] + '/tmp';
+    console.log(_opts);
+    process.env.PATH = process.env.PATH + ":" + process.env.LAMBDA_TASK_ROOT + ":/tmp";
+    process.env["LD_LIBRARY_PATH"] = process.env["LAMBDA_TASK_ROOT"] + "/tmp";
 
     const result = await Axios.request({
         method: "get",
@@ -29,7 +28,9 @@ export async function nmap(_opts: any) {
             "https://github.com/andrew-d/static-binaries/raw/master/binaries/linux/x86_64/nmap"
     });
 
-    fs.writeFileSync("/tmp/bin/nmap", result.data, { /*encoding: "binary",*/ mode: "777" });
+    fs.writeFileSync("/tmp/bin/nmap", result.data, {
+        /*encoding: "binary",*/ mode: "777"
+    });
     rv += exec("ls -al /bin");
     rv += exec("/tmp/nmap -p 80 www.google.com");
 

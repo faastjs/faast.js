@@ -2,16 +2,22 @@
 
 Ad-hoc serverless batch processing for nodejs.
 
-## Install
+## Prerequisites for building:
+
 [Yarn](https://yarnpkg.com/en/docs/install)
+
 ```
 npm install -g yarn
 ```
+
 [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
+
 ```
 pip install awscli --upgrade --user
 ```
+
 npx
+
 ```
 npm install -g npx
 ```
@@ -26,26 +32,38 @@ $ yarn build
 ## Testing live cloud services
 
 ### GCP
+
 Setup credentials for [GCP](https://cloud.google.com/sdk/docs/authorizing)
-* Create a project
-* Create a google [service account](https://console.cloud.google.com/iam-admin/serviceaccounts)
-* Assign Owner permissions for the service account
-* Enable Cloud functions API
-* Run basic Google test
+
+- Create a project
+- Create a google [service account](https://console.cloud.google.com/iam-admin/serviceaccounts)
+- Assign Owner permissions for the service account
+- Enable Cloud functions API
+- Run basic Google test
+
 ```
 npx jest build/test/google-https.test.js
 ```
+
 ### AWS
+
 Setup credentials for [AWS](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html).
-* Add credentials to system using aws cli (aws configure)
-* Ensure AWS user has AdministratorAccess role and Administrator group
-* Run basic AWS test
+
+- Add credentials to system using aws cli (`aws configure`)
+- Ensure AWS user has AdministratorAccess role and Administrator group
+- Run basic AWS test
+
 ```
 npx jest build/test/aws-basic.test.js
 ```
 
-The test target also runs the test-local test cases, so installation of the
-Google cloud functions emulator is required.
+### All "fast" live cloud tests
+
+```
+$ yarn test
+```
+
+This excludes the larger tests `test-slow/*`. These should be executed individually using `npx`.
 
 ## Local Testing
 
@@ -60,20 +78,6 @@ Then run the test script:
 
 ```
 $ DEBUG=cloudify yarn test-local
-```
-
-
-
-```
-$ yarn test
-```
-
-To just run remote tests for a specific service provider:
-
-```
-yarn build
-DEBUG=cloudify npx jest build/test/aws.test.js
-DEBUG=cloudify npx jest build/test/google.test.js
 ```
 
 # Principles
