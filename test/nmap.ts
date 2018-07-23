@@ -16,7 +16,7 @@ function exec(cmd: string) {
     }
 }
 
-export async function nmap(opts: any) {
+export async function nmap(_opts: any) {
     let rv = "";
     console.log(opts);
     process.env.PATH = process.env.PATH + ":" + process.env.LAMBDA_TASK_ROOT + ":/tmp"
@@ -37,20 +37,16 @@ export async function nmap(opts: any) {
     rv += `PATH: ${process.env.PATH}`;
 
     return rv;
-/*
-    await new Promise((resolve, reject) => {
-        libnmap.scan(opts, (err: any, report: any) => {
-            if (err) {
-                throw new Error(err);
-            }
-
-            for (let item in report) {
-                rv += JSON.stringify(report[item]);
-            }
-
-            resolve();
-        });
-    });
-
-    return rv;*/
+    // await new Promise((resolve, reject) => {
+    //     libnmap.scan(opts, (err: any, report: any) => {
+    //         if (err) {
+    //             throw new Error(err);
+    //         }
+    //         for (let item in report) {
+    //             rv += JSON.stringify(report[item]);
+    //         }
+    //         resolve();
+    //     });
+    // });
+    // return rv;
 }
