@@ -2,8 +2,18 @@
 
 Ad-hoc serverless batch processing for nodejs.
 
+## Install
+[Yarn](https://yarnpkg.com/en/docs/install)
 ```
-
+npm install -g yarn
+```
+[AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
+```
+pip install awscli --upgrade --user
+```
+npx
+```
+npm install -g npx
 ```
 
 ## Building
@@ -12,6 +22,30 @@ Ad-hoc serverless batch processing for nodejs.
 $ yarn install
 $ yarn build
 ```
+
+## Testing live cloud services
+
+### GCP
+Setup credentials for [GCP](https://cloud.google.com/sdk/docs/authorizing)
+* Create a project
+* Create a google [service account](https://console.cloud.google.com/iam-admin/serviceaccounts)
+* Assign Owner permissions for the service account
+* Enable Cloud functions API
+* Run basic Google test
+```
+npx jest build/test/google-https.test.js
+```
+### AWS
+Setup credentials for [AWS](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html).
+* Add credentials to system using aws cli (aws configure)
+* Ensure AWS user has AdministratorAccess role and Administrator group
+* Run basic AWS test
+```
+npx jest build/test/aws-basic.test.js
+```
+
+The test target also runs the test-local test cases, so installation of the
+Google cloud functions emulator is required.
 
 ## Local Testing
 
@@ -28,12 +62,7 @@ Then run the test script:
 $ DEBUG=cloudify yarn test-local
 ```
 
-## Testing live cloud services
 
-Setup credentials for [GCP](https://cloud.google.com/sdk/docs/authorizing) and [AWS](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html).
-
-The test target also runs the test-local test cases, so installation of the
-Google cloud functions emulator is required.
 
 ```
 $ yarn test
