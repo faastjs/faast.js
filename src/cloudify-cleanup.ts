@@ -1,10 +1,10 @@
 require("source-map-support").install();
 
-import * as commander from "commander";
-import * as awsCloudify from "./aws/aws-cloudify";
-import * as googleCloudify from "./google/google-cloudify";
 import * as aws from "aws-sdk";
+import * as commander from "commander";
 import * as inquirer from "inquirer";
+import * as awsCloudify from "./aws/aws-cloudify";
+import { LocalCache } from "./cache";
 
 const warn = console.warn;
 const log = console.log;
@@ -117,13 +117,13 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
                 object => object.Contents,
                 content => content.Key,
                 Key => {
-                    log(`Deleting bucket ${Bucket}, Key: ${Key}`);
+                    log(`Deleting bucket object ${Bucket}, Key: ${Key}`);
                     return s3
                         .deleteObject({ Key, Bucket })
                         .promise()
                         .catch(err =>
                             log(
-                                `Error deleting Bucket ${Bucket}, Key: ${Key}: ${
+                                `Error deleting Bucket object ${Bucket}, Key: ${Key}: ${
                                     err.message
                                 }`
                             )
@@ -139,6 +139,16 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
                 .catch(err => log(`Error deleting Bucket: ${Bucket}: ${err.message}`));
         }
     );
+
+    const cache = new LocalCache("aws");
+    output(`Local cache: ${cache.dir}`);
+    const entries = cache.entries();
+    entries.forEach(entry => output(`  ${entry}`));
+    nResources += entries.length;
+    if (execute) {
+        cache.clear();
+    }
+
     return nResources;
 }
 

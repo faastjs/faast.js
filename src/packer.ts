@@ -1,7 +1,6 @@
 import { Archiver } from "archiver";
 import { createHash, Hash } from "crypto";
 import * as fs from "fs";
-import humanStringify from "human-stringify";
 import * as path from "path";
 import * as webpack from "webpack";
 import { CloudifyLoaderOptions } from "./cloudify-loader";
@@ -108,7 +107,7 @@ export function packer(
                 reject(err);
             } else {
                 log(stats.toString());
-                log(`Memory filesystem: ${humanStringify(mfs.data)}`);
+                log(`Memory filesystem: %O`, mfs.data);
                 resolve(zipAndHash(mfs));
             }
         });

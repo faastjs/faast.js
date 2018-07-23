@@ -1,7 +1,6 @@
 import * as archiver from "archiver";
 import { S3 } from "aws-sdk";
 import * as sys from "child_process";
-import { createHash } from "crypto";
 import * as fs from "fs";
 import * as JSZip from "jszip";
 import * as path from "path";
@@ -24,7 +23,7 @@ export function exec(cmds: string[]) {
 const buildDir = "/tmp/build";
 const s3 = new S3();
 
-function streamToBuffer(s: stream.Readable) {
+export function streamToBuffer(s: stream.Readable) {
     return new Promise<Buffer>((resolve, reject) => {
         const buffers: Buffer[] = [];
         s.on("error", reject);
@@ -38,10 +37,10 @@ export interface NpmInstallArgs {
     indexContents: string;
     Bucket: string;
     Key: string;
-    caching?: boolean;
+    cacheKey?: string;
 }
 
-export async function npmInstall({ Bucket, Key, ...args }: NpmInstallArgs) {
+export async function npmInstall({ Bucket, Key, cacheKey, ...args }: NpmInstallArgs) {
     console.log(
         `*** This cloudify invocation is an internal lambda call used when the packageJson option is specified to createFunction(). ***`
     );
@@ -53,12 +52,7 @@ export async function npmInstall({ Bucket, Key, ...args }: NpmInstallArgs) {
 
     let rv = "";
     console.log("Checking cache");
-    if (args.caching) {
-        const hasher = createHash("sha256");
-        hasher.update(args.packageJsonContents);
-        const hash = hasher.digest("hex");
-        const cacheKey = `npm-cache-${hash}`;
-
+    if (cacheKey) {
         console.log(`Checking cloudify cache S3 bucket: ${Bucket}, key: ${cacheKey}`);
 
         const cached = await s3
@@ -66,7 +60,7 @@ export async function npmInstall({ Bucket, Key, ...args }: NpmInstallArgs) {
             .promise()
             .catch(_ => {});
 
-        let zipData = cached && cached.Body;
+        let zipData = cached && (cached.Body as Buffer);
         let cacheUploadPromise: Promise<any> = Promise.resolve();
 
         if (!zipData) {
@@ -82,20 +76,15 @@ export async function npmInstall({ Bucket, Key, ...args }: NpmInstallArgs) {
                 .promise();
         }
 
-        console.log("Reading cached zip file");
-        let zip = new JSZip();
-        zip = await zip.loadAsync(zipData);
-        console.log(`Adding index.js to zip file`);
-        zip.file("index.js", args.indexContents);
+        console.log(`Adding index.js to package`);
+        const zipStream = await addIndexToPackage(zipData, args.indexContents);
+
         console.log(`Uploading zip file to Bucket: ${Bucket}, Key: ${Key}`);
         const packageUploadPromise = s3
             .upload({
                 Bucket,
                 Key,
-                Body: zip.generateNodeStream({
-                    compression: "DEFLATE",
-                    compressionOptions: { level: 8 }
-                })
+                Body: zipStream
             })
             .promise();
         await Promise.all([cacheUploadPromise, packageUploadPromise]);
@@ -115,4 +104,17 @@ export async function npmInstall({ Bucket, Key, ...args }: NpmInstallArgs) {
     console.log(`DONE`);
 
     return rv;
+}
+
+export async function addIndexToPackage(
+    zipData: Buffer,
+    indexContents: string | Promise<string>
+) {
+    let zip = new JSZip();
+    zip = await zip.loadAsync(zipData);
+    zip.file("index.js", indexContents);
+    return zip.generateNodeStream({
+        compression: "DEFLATE",
+        compressionOptions: { level: 8 }
+    });
 }

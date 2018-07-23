@@ -1,7 +1,6 @@
 import Axios, { AxiosPromise } from "axios";
 import * as sys from "child_process";
 import { cloudfunctions_v1beta2, google, GoogleApis, pubsub_v1 } from "googleapis";
-import humanStringify from "human-stringify";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
 import { CloudFunctionImpl, CloudImpl, CreateFunctionOptions } from "../cloudify";
@@ -278,7 +277,7 @@ async function initializeWithApi(
     }
     validateGoogleLabels(requestBody.labels);
     log(`Create function at ${location}`);
-    log(humanStringify(requestBody));
+    log(`Request body: %O`, requestBody);
     try {
         log(`create function ${requestBody.name}`);
         await waitFor(

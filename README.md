@@ -124,13 +124,7 @@ If you want to have dynamically created role with custom permissions, specify th
 
 ## Node version
 
-Google Cloud Functions only supports node 6.11.5 at the moment (as of 6/2016).
-If your code uses any Node APIs that were introduced after this version, it will
-fail when run on Google Cloud. This can happen, for example, if your TypeScript
-target uses features introduced in later node/V8 versions than 6.11.5. Though
-not strictly required, it can be helpful to synchronize the node version on your
-local machine with the remote cloud, which can be accomplished by adding the
-following to your `package.json`:
+Google Cloud Functions only supports node 6.11.5 at the moment (as of 6/2016). If your code uses any Node APIs that were introduced after this version, it will fail when run on Google Cloud. This can happen, for example, if your TypeScript target uses features introduced in later node/V8 versions than 6.11.5. Though not strictly required, it can be helpful to synchronize the node version on your local machine with the remote cloud, which can be accomplished by adding the following to your `package.json`:
 
 ```json
 "engines": {
@@ -153,16 +147,23 @@ perform. To actually execute the cleanup, specify the `-x` option:
 $ node build/src/cloudify-cleanup.js aws -x
 ```
 
+## Local caching in ~/.cloudify
+
+Cloudify will create some local cache files in `~/.cloudify`, with a subdirectory for each provider used. `cloudify-cleanup` will delete these files for you. Or, you can clear the local cache by deleting `~/.cloudify` manually. No configuration is stored there, only caching files.
+
+## Cache anomalies
+
+Cloudify will only cache packages when `packageJson` is specified. The key to the hash is the sha256 hash of the contents of your `package.json`.
+
+Cloudify cache entries expire 24 hours after they are created (they may not be deleted immediately, but they are not used). this helps ensure that cached packages do not get too out of date.
+
 # Concurrency
 
 Response queue funnel: create a request listener for every 20 outstanding requests. With a minimum of 2.
 
 # Limitations
 
-Functions with optional arguments aren't supported well. All optional arguments
-will be removed in the type of the remote call. This is a limitation of
-TypeScript's type system at the moment. As an alternative, consider using the
-object-as-named-parameter pattern and define optional object keys. For example:
+Functions with optional arguments aren't supported well. All optional arguments will be removed in the type of the remote call. This is a limitation of TypeScript's type system at the moment. As an alternative, consider using the object-as-named-parameter pattern and define optional object keys. For example:
 
 ```typescript
 interface FunctionArgs {

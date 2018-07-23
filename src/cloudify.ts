@@ -6,6 +6,8 @@ import { log } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import { FunctionCall, FunctionMetricsMap, FunctionReturn } from "./shared";
 import { AnyFunction, Unpacked } from "./type-helpers";
+import { homedir } from "os";
+import { join } from "path";
 
 export interface ResponseDetails<D> {
     value?: D;
@@ -76,10 +78,13 @@ function resolve(fmodule: string) {
 
 export class Cloud<O, S> {
     name: string = this.impl.name;
+
     constructor(protected impl: CloudImpl<O, S>) {}
+
     cleanupResources(resources: string): Promise<void> {
         return this.impl.cleanupResources(resources);
     }
+
     pack(
         fmodule: string,
         cloudifyOptions?: O,

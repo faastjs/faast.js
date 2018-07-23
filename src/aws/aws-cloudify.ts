@@ -1,27 +1,28 @@
 import * as aws from "aws-sdk";
 import { PromiseResult } from "aws-sdk/lib/request";
-import humanStringify from "human-stringify";
-import { Readable } from "stream";
+import { createHash } from "crypto";
+import * as fs from "fs";
 import * as uuidv4 from "uuid/v4";
-import { CloudFunctionImpl, CloudImpl, CreateFunctionOptions, AWS } from "../cloudify";
+import { LocalCache } from "../cache";
+import { AWS, CloudFunctionImpl, CloudImpl, CreateFunctionOptions } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import { FunctionCall, FunctionReturn, sleep } from "../shared";
+import * as awsNpm from "./aws-npm";
 import {
+    createDLQ,
     createSNSTopic,
     createSQSQueue,
     isControlMessage,
+    processAWSErrorMessage,
     publishSNS,
     publishSQSControlMessage,
     receiveDLQMessages,
     receiveMessages,
-    sqsMessageAttribute,
-    createDLQ,
-    processAWSErrorMessage
+    sqsMessageAttribute
 } from "./aws-queue";
-import { createHash } from "crypto";
 
 export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
 
@@ -97,7 +98,7 @@ export function quietly<U>(arg: aws.Request<U, aws.AWSError>) {
     return arg.promise().catch(_ => {});
 }
 
-function zipStreamToBuffer(zipStream: Readable): Promise<Buffer> {
+function zipStreamToBuffer(zipStream: NodeJS.ReadableStream): Promise<Buffer> {
     const buffers: Buffer[] = [];
     return new Promise((resolve, reject) => {
         zipStream.on("data", data => buffers.push(data as Buffer));
@@ -135,6 +136,7 @@ async function createLambdaRole(
     services: AWSServices
 ) {
     const { iam } = services;
+    log(`Checking for cached lambda role`);
     const previousRole = await quietly(iam.getRole({ RoleName }));
     if (previousRole) {
         return previousRole;
@@ -229,29 +231,58 @@ export async function pollAWSRequest<T>(
     }
 }
 
-import * as awsNpm from "./aws-npm";
-import { readFileSync } from "fs";
-
 export async function buildModulesOnLambda(
     s3: aws.S3,
     iam: aws.IAM,
     region: string,
     packageJson: string | object,
-    indexContents: string,
+    indexContents: Promise<string>,
     FunctionName: string
-) {
+): Promise<aws.Lambda.FunctionCode> {
+    log(`Building node_modules`);
     const getUserResponse = await iam.getUser().promise();
     const userId = getUserResponse.User.UserId.toLowerCase();
     const Bucket = `cloudify-cache-${region}-${userId}`;
 
+    const packageJsonContents =
+        typeof packageJson === "string"
+            ? fs.readFileSync(packageJson).toString()
+            : JSON.stringify(packageJson);
+
+    const hasher = createHash("sha256");
+    hasher.update(packageJsonContents);
+    const cacheKey = hasher.digest("hex");
+
+    const localCache = new LocalCache("aws");
+    const localCacheEntry = await localCache.get(cacheKey);
+    if (localCacheEntry) {
+        log(`Using local cache entry ${localCache.dir}/${cacheKey}`);
+
+        const stream = await awsNpm.addIndexToPackage(localCacheEntry, indexContents);
+        const buf = await zipStreamToBuffer(stream);
+        return { ZipFile: buf };
+    }
+
     log(`Cloudify cache bucket on S3: ${Bucket}`);
-    await s3
+    const createdBucket = await s3
         .createBucket({
             Bucket,
             CreateBucketConfiguration: { LocationConstraint: region }
         })
         .promise()
         .catch(_ => {});
+
+    if (createdBucket) {
+        log(`Setting lifecycle expiration to 1 day for cached objects`);
+        await s3
+            .putBucketLifecycleConfiguration({
+                Bucket,
+                LifecycleConfiguration: {
+                    Rules: [{ Expiration: { Days: 1 }, Status: "Enabled", Prefix: "" }]
+                }
+            })
+            .promise();
+    }
 
     const cloud = new AWS();
     const lambda = await cloud.createFunction(require.resolve("./aws-npm"), {
@@ -261,24 +292,23 @@ export async function buildModulesOnLambda(
     });
     try {
         const remote = lambda.cloudifyAll(awsNpm);
-        const packageJsonContents =
-            typeof packageJson === "string"
-                ? readFileSync(packageJson).toString()
-                : JSON.stringify(packageJson);
-
         log(`package.json contents:`, packageJsonContents);
         const Key = FunctionName;
 
         const installArgs: awsNpm.NpmInstallArgs = {
             packageJsonContents,
-            indexContents,
+            indexContents: await indexContents,
             Bucket,
             Key,
-            caching: true
+            cacheKey
         };
         const installLog = await remote.npmInstall(installArgs);
         log(installLog);
-        return { Bucket, Key };
+
+        const cachedPackage = await s3.getObject({ Bucket, Key: cacheKey }).promise();
+        log(`Writing local cache entry: ${localCache.dir}/${cacheKey}`);
+        await localCache.set(cacheKey, cachedPackage.Body!);
+        return { S3Bucket: Bucket, S3Key: Key };
     } catch (err) {
         log(err);
         throw err;
@@ -328,7 +358,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             ...rest,
             ...awsLambdaOptions
         };
-        log(`createFunctionRequest: ${humanStringify(createFunctionRequest)}`);
+        log(`createFunctionRequest: %O`, createFunctionRequest);
         const nRetries = rolePolicy === "createTemporaryRole" ? 100 : 3;
         const func = await pollAWSRequest(nRetries, "creating function", () =>
             lambda.createFunction(createFunctionRequest)
@@ -338,21 +368,20 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     }
 
     async function createCodeBundle() {
-        const bundle = await pack(fModule, options, packerOptions);
+        const bundle = pack(fModule, options, packerOptions);
 
         let Code: aws.Lambda.FunctionCode;
         if (packerOptions.packageJson) {
-            const { Bucket, Key } = await buildModulesOnLambda(
+            Code = await buildModulesOnLambda(
                 s3,
                 iam,
                 region,
                 packerOptions.packageJson,
-                bundle.indexContents,
+                bundle.then(b => b.indexContents),
                 FunctionName
             );
-            Code = { S3Bucket: Bucket, S3Key: Key };
         } else {
-            Code = { ZipFile: await zipStreamToBuffer(bundle.archive) };
+            Code = { ZipFile: await zipStreamToBuffer((await bundle).archive) };
         }
         return Code;
     }
@@ -370,6 +399,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     };
 
     try {
+        log(`Creating log group`);
         const logGroupPromise = createLogGroup(logGroupName, services);
         log(`Creating function`);
         const createFunctionPromise = Promise.all([
