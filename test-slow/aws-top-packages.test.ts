@@ -5,29 +5,33 @@ import { Funnel } from "../src/funnel";
 
 describe("Install top 1000 npm packages with the most dependencies", async () => {
     const aws = new AWS();
-    const funnel = new Funnel<string>(100);
-    const promises: Promise<string>[] = [];
-    let results: string[] = [];
+    const funnel = new Funnel<void>(100);
+    const promises: Promise<void>[] = [];
+    const results: { [key in string]: string | Error } = {};
 
     beforeAll(async () => {
         for (const topPackage of topPackages) {
             promises.push(
                 funnel.push(async () => {
-                    const lambda = await aws.createFunction("./functions", {
-                        useQueue: false,
-                        packageJson: { dependencies: { [topPackage]: "*" } }
-                    });
-                    const remoteHello = lambda.cloudify(functions.hello);
-                    const result = await remoteHello(topPackage);
-                    expect(result).toBe(functions.hello(topPackage));
-                    return topPackage;
+                    try {
+                        const lambda = await aws.createFunction("./functions", {
+                            useQueue: false,
+                            cloudSpecific: { useDependencyCaching: false },
+                            packageJson: { dependencies: { [topPackage]: "*" } }
+                        });
+                        results[topPackage] = topPackage;
+                    } catch (err) {
+                        results[topPackage] = err;
+                    }
                 })
             );
         }
-        results = await Promise.all(promises);
-    });
+        await Promise.all(promises);
+    }, 600 * 1000);
 
-    for (const result of results) {
-        test(`Package '${result}'`, () => {});
+    for (const pkg of topPackages) {
+        test(`Package '${pkg}'`, () => {
+            expect(results[pkg]).toBe(pkg);
+        });
     }
 });
