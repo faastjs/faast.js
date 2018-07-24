@@ -1,6 +1,6 @@
 import * as aws from "aws-sdk";
 import * as cloudqueue from "../queue";
-import { log } from "../log";
+import { log, warn } from "../log";
 import { SNSEvent } from "aws-lambda";
 import { FunctionCall } from "../shared";
 
