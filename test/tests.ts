@@ -5,7 +5,7 @@ import * as fs from "fs";
 import * as aws from "../src/aws/aws-cloudify";
 import * as google from "../src/google/google-cloudify";
 import * as path from "path";
-import { warn } from "../src/log";
+import { warn, log } from "../src/log";
 
 export function checkFunctions(
     description: string,
@@ -85,7 +85,7 @@ export function checkFunctions(
 
 function exec(cmd: string) {
     const result = sys.execSync(cmd).toString();
-    console.log(result);
+    log(result);
     return result;
 }
 
