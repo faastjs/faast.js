@@ -254,6 +254,7 @@ async function initializeWithApi(
         callFunnel: new Funnel()
     };
     if (useQueue) {
+        log(`Initializing queue`);
         const googleQueueImpl = await initializeGoogleQueue(state, project, functionName);
         state.queueState = cloudqueue.initializeCloudFunctionQueue(googleQueueImpl);
     }
@@ -322,17 +323,24 @@ async function initializeGoogleQueue(
     const { resources } = state;
     const { pubsub } = state.services;
     resources.requestQueueTopic = `projects/${project}/topics/${functionName}-Requests`;
-    await pubsub.projects.topics.create({ name: resources.requestQueueTopic });
-    resources.responseQueueTopic = `projects/${project}/topics/${functionName}-Responses`;
-    await pubsub.projects.topics.create({ name: resources.responseQueueTopic });
-
-    resources.responseSubscription = `projects/${project}/subscriptions/${functionName}-Responses`;
-    await pubsub.projects.subscriptions.create({
-        name: resources.responseSubscription,
-        requestBody: {
-            topic: resources.responseQueueTopic
-        }
+    const requestPromise = pubsub.projects.topics.create({
+        name: resources.requestQueueTopic
     });
+    resources.responseQueueTopic = `projects/${project}/topics/${functionName}-Responses`;
+    const responsePromise = pubsub.projects.topics
+        .create({ name: resources.responseQueueTopic })
+        .then(_ => {
+            resources.responseSubscription = `projects/${project}/subscriptions/${functionName}-Responses`;
+            log(`Creating response queue subscription`);
+            return pubsub.projects.subscriptions.create({
+                name: resources.responseSubscription,
+                requestBody: {
+                    topic: resources.responseQueueTopic
+                }
+            });
+        });
+
+    await Promise.all([requestPromise, responsePromise]);
 
     return {
         getMessageAttribute: (message, attr) => pubsubMessageAttribute(message, attr),

@@ -1,5 +1,5 @@
 import { LocalCache } from "../src/cache";
-import { delay } from "../test/functions";
+import { delay } from "./functions";
 import { createHash } from "crypto";
 
 let cache: LocalCache;
