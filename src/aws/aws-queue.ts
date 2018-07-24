@@ -139,7 +139,7 @@ export async function createDLQ(FunctionName: string, sqs: aws.SQS) {
             (DLQResponse && DLQResponse.Attributes && DLQResponse.Attributes.QueueArn) ||
             undefined;
     } catch (err) {
-        log(err);
+        warn(err);
     }
     return { DLQUrl, DLQArn };
 }

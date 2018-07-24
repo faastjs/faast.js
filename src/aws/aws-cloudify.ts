@@ -6,7 +6,7 @@ import * as uuidv4 from "uuid/v4";
 import { LocalCache } from "../cache";
 import { AWS, CloudFunctionImpl, CloudImpl, CreateFunctionOptions } from "../cloudify";
 import { Funnel } from "../funnel";
-import { log } from "../log";
+import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import { FunctionCall, FunctionReturn, sleep, serializeCall } from "../shared";
@@ -92,7 +92,7 @@ export const LambdaImpl: CloudFunctionImpl<State> = {
 };
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
-    return arg.promise().catch(err => log(err));
+    return arg.promise().catch(err => warn(err));
 }
 
 export function quietly<U>(arg: aws.Request<U, aws.AWSError>) {
@@ -228,7 +228,7 @@ export async function pollAWSRequest<T>(
     try {
         return await fn().promise();
     } catch (err) {
-        log(err);
+        warn(err);
         throw err;
     }
 }
@@ -319,7 +319,7 @@ export async function buildModulesOnLambda(
         }
         return { S3Bucket: Bucket, S3Key: Key };
     } catch (err) {
-        log(err);
+        warn(err);
         throw err;
     } finally {
         await lambda.cleanup();
@@ -459,7 +459,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         await Promise.all(promises);
         return state;
     } catch (err) {
-        log(`ERROR: ${err}`);
+        warn(`ERROR: ${err}`);
         await cleanup(state);
         throw err;
     }

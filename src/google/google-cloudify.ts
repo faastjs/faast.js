@@ -5,7 +5,7 @@ import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
 import { CloudFunctionImpl, CloudImpl, CreateFunctionOptions } from "../cloudify";
 import { Funnel } from "../funnel";
-import { log } from "../log";
+import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import { FunctionCall, FunctionReturn, sleep, serializeCall } from "../shared";
@@ -140,7 +140,7 @@ async function carefully<T>(promise: AxiosPromise<T>) {
         const result = await promise;
         return result.data;
     } catch (err) {
-        log(err);
+        warn(err);
         throw err;
     }
 }

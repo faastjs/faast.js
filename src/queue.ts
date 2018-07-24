@@ -1,6 +1,7 @@
 import debug from "debug";
 import { Deferred, Pump } from "./funnel";
 import { FunctionCall, FunctionReturn, sleep, serializeCall } from "./shared";
+import { warn } from "./log";
 const log = debug("cloudify:collector");
 
 export interface Attributes {
@@ -141,7 +142,7 @@ async function resultCollector<M>(state: StateWithMessageType<M>) {
                         log(`Deferred promise not found for CallId: ${CallId}`);
                     }
                 } catch (err) {
-                    log(err);
+                    warn(err);
                 }
             }
         }
@@ -167,7 +168,7 @@ async function errorCollector<M>(state: StateWithMessageType<M>) {
                 deferred.reject(new Error(queueError.message));
             }
         } catch (err) {
-            log(err);
+            warn(err);
         }
     }
 }
