@@ -122,7 +122,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
                         .deleteObject({ Key, Bucket })
                         .promise()
                         .catch(err =>
-                            log(
+                            warn(
                                 `Error deleting Bucket object ${Bucket}, Key: ${Key}: ${
                                     err.message
                                 }`
@@ -130,13 +130,13 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
                         );
                 }
             ).catch(err =>
-                log(`Error deleting objects for Bucket ${Bucket}: ${err.message}`)
+                warn(`Error deleting objects for Bucket ${Bucket}: ${err.message}`)
             );
             log(`Deleting bucket ${Bucket}`);
             return s3
                 .deleteBucket({ Bucket })
                 .promise()
-                .catch(err => log(`Error deleting Bucket: ${Bucket}: ${err.message}`));
+                .catch(err => warn(`Error deleting Bucket: ${Bucket}: ${err.message}`));
         }
     );
 

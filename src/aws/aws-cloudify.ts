@@ -522,7 +522,7 @@ export async function deleteRole(RoleName: string, iam: aws.IAM) {
         AttachedPolicies.map(p => p.PolicyArn!).map(PolicyArn =>
             carefully(iam.detachRolePolicy({ RoleName, PolicyArn }))
         )
-    ).catch(log);
+    ).catch(warn);
     const rolePolicyListResponse = await carefully(iam.listRolePolicies({ RoleName }));
     const RolePolicies =
         (rolePolicyListResponse && rolePolicyListResponse.PolicyNames) || [];
@@ -530,7 +530,7 @@ export async function deleteRole(RoleName: string, iam: aws.IAM) {
         RolePolicies.map(PolicyName =>
             carefully(iam.deleteRolePolicy({ RoleName, PolicyName }))
         )
-    ).catch(log);
+    ).catch(warn);
     await carefully(iam.deleteRole({ RoleName }));
 }
 

@@ -1,5 +1,5 @@
 import * as cloudify from "../src/cloudify";
-import { log } from "../src/log";
+import { log, warn } from "../src/log";
 import * as funcs from "./functions";
 
 let cloud: cloudify.AWS;
@@ -17,7 +17,7 @@ beforeAll(async () => {
         await func.setConcurrency(1);
         remote = func.cloudifyAll(funcs);
     } catch (err) {
-        console.error(err);
+        warn(err);
     }
 }, 90 * 1000);
 

@@ -26,7 +26,7 @@ export function checkFunctions(
                 });
                 remote = lambda.cloudifyAll(funcs);
             } catch (err) {
-                console.error(err);
+                warn(err);
             }
         }, 90 * 1000);
 

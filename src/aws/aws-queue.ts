@@ -167,7 +167,9 @@ export async function receiveDLQMessages(
                 const callRequest: FunctionCall = JSON.parse(record.Sns.Message);
                 rv.push({ callRequest, message: processAWSErrorMessage(errorMessage!) });
             }
-        } catch (_) {}
+        } catch (err) {
+            warn(err);
+        }
     }
     return rv;
 }

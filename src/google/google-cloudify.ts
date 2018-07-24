@@ -288,12 +288,12 @@ async function initializeWithApi(
             })
         );
     } catch (err) {
-        log(`createFunction error: ${err.stack}`);
+        warn(`createFunction error: ${err.stack}`);
         try {
             await deleteFunction(cloudFunctions, trampoline);
         } catch (deleteErr) {
-            log(`Could not clean up after failed create function. Possible leak.`);
-            log(deleteErr);
+            warn(`Could not clean up after failed create function. Possible leak.`);
+            warn(deleteErr);
         }
         throw err;
     }
@@ -416,18 +416,20 @@ export async function cleanup(state: PartialState) {
     const { cloudFunctions, pubsub } = state.services;
     const cancelPromise = stop(state);
     if (trampoline) {
-        await deleteFunction(cloudFunctions, trampoline).catch(_ => {});
+        await deleteFunction(cloudFunctions, trampoline).catch(warn);
     }
     if (responseSubscription) {
-        await pubsub.projects.subscriptions.delete({
-            subscription: responseSubscription
-        });
+        await pubsub.projects.subscriptions
+            .delete({
+                subscription: responseSubscription
+            })
+            .catch(warn);
     }
     if (responseQueueTopic) {
-        await pubsub.projects.topics.delete({ topic: responseQueueTopic });
+        await pubsub.projects.topics.delete({ topic: responseQueueTopic }).catch(warn);
     }
     if (requestQueueTopic) {
-        await pubsub.projects.topics.delete({ topic: requestQueueTopic });
+        await pubsub.projects.topics.delete({ topic: requestQueueTopic }).catch(warn);
     }
     await cancelPromise;
 }

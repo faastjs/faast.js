@@ -2,6 +2,7 @@ import * as cloudify from "../src/cloudify";
 import { Pump } from "../src/funnel";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
+import { warn } from "../src/log";
 
 export function coldStartTest(
     description: string,
@@ -21,7 +22,7 @@ export function coldStartTest(
                 lambda.printStatisticsInterval(1000);
                 remote = lambda.cloudifyAll(funcs);
             } catch (err) {
-                console.error(err);
+                warn(err);
             }
         }, 90 * 1000);
 
@@ -77,7 +78,7 @@ export function throughputTest(
                 lambda.printStatisticsInterval(1000);
                 remote = lambda.cloudifyAll(funcs);
             } catch (err) {
-                console.error(err);
+                warn(err);
             }
         }, 90 * 1000);
 
@@ -122,7 +123,7 @@ export function checkTimeout(
                 });
                 remote = lambda.cloudifyAll(funcs);
             } catch (err) {
-                console.error(err);
+                warn(err);
             }
         }, 90 * 1000);
 
@@ -160,7 +161,7 @@ export function checkMemoryLimit(
                 });
                 remote = lambda.cloudifyAll(funcs);
             } catch (err) {
-                console.error(err);
+                warn(err);
             }
         }, 90 * 1000);
 
