@@ -10,6 +10,7 @@
         "test-local": "yarn build && jest build/test/*-local.test.js",
         "test": "yarn build && jest test/",
         "test-slow": "yarn build && jest test-slow/",
+        "test-other": "yarn build && jest test-other/",
         "clean": "rm -rf build",
         "tslint": "tslint -p tsconfig.json"
     },

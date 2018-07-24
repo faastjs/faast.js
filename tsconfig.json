@@ -22,6 +22,6 @@
         "importHelpers": true,
         "allowSyntheticDefaultImports": true
     },
-    "include": ["src", "types", "test", "test-slow"],
+    "include": ["src", "types", "test", "test-slow", "test-other"],
     "exclude": ["node_modules", "build"]
 }

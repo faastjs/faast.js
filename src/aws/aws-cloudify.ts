@@ -34,6 +34,7 @@ export interface Options {
     timeout?: number;
     memorySize?: number;
     useQueue?: boolean;
+    useDependencyCaching?: boolean;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
     packerOptions?: PackerOptions;
 }
@@ -115,6 +116,7 @@ export let defaults: Required<Options> = {
     timeout: 60,
     memorySize: 256,
     useQueue: true,
+    useDependencyCaching: true,
     awsLambdaOptions: {},
     packerOptions: {}
 };
@@ -237,7 +239,8 @@ export async function buildModulesOnLambda(
     region: string,
     packageJson: string | object,
     indexContents: Promise<string>,
-    FunctionName: string
+    FunctionName: string,
+    useDependencyCaching: boolean
 ): Promise<aws.Lambda.FunctionCode> {
     log(`Building node_modules`);
     const getUserResponse = await iam.getUser().promise();
@@ -249,18 +252,22 @@ export async function buildModulesOnLambda(
             ? fs.readFileSync(packageJson).toString()
             : JSON.stringify(packageJson);
 
-    const hasher = createHash("sha256");
-    hasher.update(packageJsonContents);
-    const cacheKey = hasher.digest("hex");
-
     const localCache = new LocalCache("aws");
-    const localCacheEntry = await localCache.get(cacheKey);
-    if (localCacheEntry) {
-        log(`Using local cache entry ${localCache.dir}/${cacheKey}`);
 
-        const stream = await awsNpm.addIndexToPackage(localCacheEntry, indexContents);
-        const buf = await zipStreamToBuffer(stream);
-        return { ZipFile: buf };
+    let cacheKey: string | undefined;
+    if (useDependencyCaching) {
+        const hasher = createHash("sha256");
+        hasher.update(packageJsonContents);
+        cacheKey = hasher.digest("hex");
+
+        const localCacheEntry = await localCache.get(cacheKey);
+        if (localCacheEntry) {
+            log(`Using local cache entry ${localCache.dir}/${cacheKey}`);
+
+            const stream = await awsNpm.addIndexToPackage(localCacheEntry, indexContents);
+            const buf = await zipStreamToBuffer(stream);
+            return { ZipFile: buf };
+        }
     }
 
     log(`Cloudify cache bucket on S3: ${Bucket}`);
@@ -305,9 +312,11 @@ export async function buildModulesOnLambda(
         const installLog = await remote.npmInstall(installArgs);
         log(installLog);
 
-        const cachedPackage = await s3.getObject({ Bucket, Key: cacheKey }).promise();
-        log(`Writing local cache entry: ${localCache.dir}/${cacheKey}`);
-        await localCache.set(cacheKey, cachedPackage.Body!);
+        if (cacheKey) {
+            const cachedPackage = await s3.getObject({ Bucket, Key: cacheKey }).promise();
+            log(`Writing local cache entry: ${localCache.dir}/${cacheKey}`);
+            await localCache.set(cacheKey, cachedPackage.Body!);
+        }
         return { S3Bucket: Bucket, S3Key: Key };
     } catch (err) {
         log(err);
@@ -330,8 +339,9 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         timeout: Timeout = defaults.timeout,
         memorySize: MemorySize = defaults.memorySize,
         useQueue = defaults.useQueue,
-        awsLambdaOptions = {},
-        packerOptions = {},
+        awsLambdaOptions = defaults.awsLambdaOptions,
+        packerOptions = defaults.packerOptions,
+        useDependencyCaching = defaults.useDependencyCaching,
         ...rest
     } = options;
     log(`Creating AWS APIs`);
@@ -378,7 +388,8 @@ export async function initialize(fModule: string, options: Options = {}): Promis
                 region,
                 packerOptions.packageJson,
                 bundle.then(b => b.indexContents),
-                FunctionName
+                FunctionName,
+                useDependencyCaching
             );
         } else {
             Code = { ZipFile: await zipStreamToBuffer((await bundle).archive) };

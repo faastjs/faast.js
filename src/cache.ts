@@ -50,6 +50,6 @@ export class LocalCache {
     }
 
     clear() {
-        return rmdir(this.dir);
+        return rmdir(`${this.dir}/*`);
     }
 }
