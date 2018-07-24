@@ -61,7 +61,7 @@ function checkResourcesExist(resources: object) {
     }
 }
 
-test.only(
+test(
     "removes ephemeral resources",
     async () => {
         const cloud = cloudify.create("google");
