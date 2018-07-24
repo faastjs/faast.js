@@ -5,7 +5,7 @@ import * as fs from "fs";
 import * as aws from "../src/aws/aws-cloudify";
 import * as google from "../src/google/google-cloudify";
 import * as path from "path";
-import { warn, log } from "../src/log";
+import { warn, log, disableWarnings, enableWarnings } from "../src/log";
 
 export function checkFunctions(
     description: string,
@@ -75,10 +75,9 @@ export function checkFunctions(
         });
 
         test("promise args not supported", async () => {
-            const saved = warn.enabled;
-            warn.enabled = false;
+            const saved = disableWarnings();
             expect(await remote.promiseArg(Promise.resolve("hello"))).toEqual({});
-            warn.enabled = saved;
+            saved && enableWarnings();
         });
     });
 }

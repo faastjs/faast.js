@@ -5,6 +5,8 @@ import * as commander from "commander";
 import * as inquirer from "inquirer";
 import * as awsCloudify from "./aws/aws-cloudify";
 import { LocalCache } from "./cache";
+import { delay } from "../test/functions";
+import { retry, Funnel } from "./funnel";
 
 const warn = console.warn;
 const log = console.log;
@@ -26,7 +28,8 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
         getList: () => aws.Request<T, aws.AWSError>,
         extractList: (arg: T) => U[] | undefined,
         extractElement: (arg: U) => string | undefined,
-        remove: (arg: string) => Promise<any>
+        remove: (arg: string) => Promise<any>,
+        printOutput: boolean = true
     ) {
         const allResources: string[] = [];
         await new Promise((resolve, reject) => {
@@ -43,10 +46,15 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
             });
         });
         const matchingResources = allResources.filter(t => t.match(pattern));
-        matchingResources.forEach(resource => output(`  ${resource}`));
+        matchingResources.forEach(resource => printOutput && output(`  ${resource}`));
         nResources += matchingResources.length;
         if (execute) {
-            await Promise.all(matchingResources.map(remove));
+            const funnel = new Funnel(10);
+            await Promise.all(
+                matchingResources.map(resource =>
+                    funnel.pushRetry(3, () => remove(resource))
+                )
+            );
         }
     }
 
@@ -110,40 +118,41 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
         () => s3.listBuckets(),
         page => page.Buckets,
         bucket => bucket.Name,
-        async Bucket => {
-            await deleteAWSResource(
-                /./,
-                () => s3.listObjectsV2({ Bucket }),
-                object => object.Contents,
-                content => content.Key,
-                Key => {
-                    log(`Deleting bucket object ${Bucket}, Key: ${Key}`);
-                    return s3
-                        .deleteObject({ Key, Bucket })
-                        .promise()
-                        .catch(err =>
-                            warn(
-                                `Error deleting Bucket object ${Bucket}, Key: ${Key}: ${
-                                    err.message
-                                }`
-                            )
-                        );
-                }
-            ).catch(err =>
-                warn(`Error deleting objects for Bucket ${Bucket}: ${err.message}`)
-            );
-            log(`Deleting bucket ${Bucket}`);
-            return s3
+        async Bucket =>
+            retry(3, () =>
+                deleteAWSResource(
+                    /./,
+                    () => s3.listObjectsV2({ Bucket }),
+                    object => object.Contents,
+                    content => content.Key,
+                    Key => s3.deleteObject({ Key, Bucket }).promise()
+                )
+            ),
+        false
+    );
+
+    if (execute) {
+        await delay(500);
+    }
+
+    await deleteAWSResource(
+        /^cloudify-/,
+        () => s3.listBuckets(),
+        page => page.Buckets,
+        bucket => bucket.Name,
+        async Bucket =>
+            s3
                 .deleteBucket({ Bucket })
                 .promise()
-                .catch(err => warn(`Error deleting Bucket: ${Bucket}: ${err.message}`));
-        }
+                .catch(err => warn(`Error deleting Bucket: ${Bucket}: ${err.message}`))
     );
 
     const cache = new LocalCache("aws");
     output(`Local cache: ${cache.dir}`);
     const entries = cache.entries();
-    entries.forEach(entry => output(`  ${entry}`));
+    if (!execute) {
+        output(`  cache entries: ${entries.length}`);
+    }
     nResources += entries.length;
     if (execute) {
         cache.clear();
@@ -205,11 +214,6 @@ async function main() {
     const force = commander.force || false;
     const cleanAll = commander.all || false;
 
-    if (!execute) {
-        log(`Mode: dryrun (no resources will be deleted, specify -x to execute cleanup)`);
-    } else {
-        log(`Mode: execute`);
-    }
     if (cloud === "aws") {
         log(`Region: ${region}`);
         if (execute && !force) {
@@ -227,6 +231,10 @@ async function main() {
         const nResources = await cleanupAWS({ region, execute, cleanAll });
         if (execute) {
             log(`Cleaned up ${nResources} resources.`);
+        } else {
+            log(
+                `(dryrun mode, no resources will be deleted, specify -x to execute cleanup)`
+            );
         }
         return;
     }

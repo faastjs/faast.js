@@ -19,6 +19,7 @@ describe("Install top 1000 npm packages with the most dependencies", async () =>
                             cloudSpecific: { useDependencyCaching: false },
                             packageJson: { dependencies: { [topPackage]: "*" } }
                         });
+                        await lambda.cleanup();
                         results[topPackage] = topPackage;
                     } catch (err) {
                         results[topPackage] = err;

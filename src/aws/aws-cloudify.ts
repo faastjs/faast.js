@@ -5,7 +5,7 @@ import * as fs from "fs";
 import * as uuidv4 from "uuid/v4";
 import { LocalCache } from "../cache";
 import { AWS, CloudFunctionImpl, CloudImpl, CreateFunctionOptions } from "../cloudify";
-import { Funnel } from "../funnel";
+import { Funnel, retry } from "../funnel";
 import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
@@ -162,8 +162,8 @@ async function createLambdaRole(
     };
     const roleResponse = await iam.createRole(roleParams).promise();
     await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
-    const noCreateLogGroupPolicy = `cloudify-deny-create-log-group-policy`;
-    await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
+    // const noCreateLogGroupPolicy = `cloudify-deny-create-log-group-policy`;
+    // await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
     return roleResponse;
 }
 
@@ -197,13 +197,14 @@ async function addNoCreateLogPolicyToRole(
 async function createLogGroup(logGroupName: string, services: AWSServices) {
     const { cloudwatch } = services;
     log(`Creating log group: ${logGroupName}`);
-    const response = await carefully(cloudwatch.createLogGroup({ logGroupName }));
+    const response = await quietly(cloudwatch.createLogGroup({ logGroupName }));
     if (response) {
+        log(`Adding retention policy to log group`);
         await carefully(
             cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 })
         );
     } else {
-        log(`Log group could not be created, proceeding without logs.`);
+        warn(`Log group could not be created, proceeding without logs.`);
     }
     return response;
 }
@@ -231,6 +232,36 @@ export async function pollAWSRequest<T>(
         warn(err);
         throw err;
     }
+}
+
+async function ensureCacheBucket(s3: aws.S3, Bucket: string, region: string) {
+    async function createBucket() {
+        const bucket = await quietly(s3.getBucketLocation({ Bucket }));
+        if (bucket) {
+            return;
+        }
+        const createdBucket = await s3
+            .createBucket({
+                Bucket,
+                CreateBucketConfiguration: { LocationConstraint: region }
+            })
+            .promise();
+        if (createdBucket) {
+            log(`Setting lifecycle expiration to 1 day for cached objects`);
+            await carefully(
+                s3.putBucketLifecycleConfiguration({
+                    Bucket,
+                    LifecycleConfiguration: {
+                        Rules: [
+                            { Expiration: { Days: 1 }, Status: "Enabled", Prefix: "" }
+                        ]
+                    }
+                })
+            );
+        }
+    }
+
+    retry(3, () => createBucket());
 }
 
 export async function buildModulesOnLambda(
@@ -271,25 +302,7 @@ export async function buildModulesOnLambda(
     }
 
     log(`Cloudify cache bucket on S3: ${Bucket}`);
-    const createdBucket = await s3
-        .createBucket({
-            Bucket,
-            CreateBucketConfiguration: { LocationConstraint: region }
-        })
-        .promise()
-        .catch(_ => {});
-
-    if (createdBucket) {
-        log(`Setting lifecycle expiration to 1 day for cached objects`);
-        await s3
-            .putBucketLifecycleConfiguration({
-                Bucket,
-                LifecycleConfiguration: {
-                    Rules: [{ Expiration: { Days: 1 }, Status: "Enabled", Prefix: "" }]
-                }
-            })
-            .promise();
-    }
+    await ensureCacheBucket(s3, Bucket, region);
 
     const cloud = new AWS();
     const lambda = await cloud.createFunction(require.resolve("./aws-npm"), {
@@ -410,12 +423,12 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     };
 
     try {
-        log(`Creating log group`);
-        const logGroupPromise = createLogGroup(logGroupName, services);
+        // log(`Creating log group`);
+        // await createLogGroup(logGroupName, services);
         log(`Creating function`);
         const createFunctionPromise = Promise.all([
             createCodeBundle(),
-            createLambdaRole(RoleName, PolicyArn, services)
+            retry(3, () => createLambdaRole(RoleName, PolicyArn, services))
         ]).then(([codeBundle, roleResponse]) => {
             if (codeBundle.S3Bucket) {
                 state.resources.s3Bucket = codeBundle.S3Bucket;
@@ -423,7 +436,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             }
             return createFunction(codeBundle, roleResponse.Role.Arn);
         });
-        const promises: Promise<any>[] = [logGroupPromise, createFunctionPromise];
+        const promises: Promise<any>[] = [/*logGroupPromise,*/ createFunctionPromise];
 
         if (useQueue) {
             log(`Creating DLQ`);
@@ -585,7 +598,7 @@ export async function cleanup(state: PartialState) {
         await quietly(sqs.deleteQueue({ QueueUrl: DLQUrl }));
     }
     if (s3Bucket && s3Key) {
-        log(`Deleting S3 Bucket: ${s3Bucket}, Key: ${s3Key}`);
+        log(`Deleting S3 Key: ${s3Key} in Bucket: ${s3Bucket}`);
         await quietly(
             s3.deleteObject({
                 Bucket: s3Bucket,
