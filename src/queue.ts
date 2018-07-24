@@ -1,6 +1,6 @@
 import debug from "debug";
 import { Deferred, Pump } from "./funnel";
-import { FunctionCall, FunctionReturn, sleep } from "./shared";
+import { FunctionCall, FunctionReturn, sleep, serializeCall } from "./shared";
 const log = debug("cloudify:collector");
 
 export interface Attributes {
@@ -77,7 +77,7 @@ export function enqueueCallRequest(
         ...callRequest,
         ResponseQueueId
     };
-    const deferred = new PendingRequest(JSON.stringify(request));
+    const deferred = new PendingRequest(serializeCall(request));
     state.callResultsPending.set(callRequest.CallId, deferred);
     state.publishRequestMessage(deferred.callArgsStr);
     return deferred.promise;

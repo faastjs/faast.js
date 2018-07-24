@@ -8,7 +8,7 @@ import { Funnel } from "../funnel";
 import { log } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { FunctionCall, FunctionReturn, sleep } from "../shared";
+import { FunctionCall, FunctionReturn, sleep, serializeCall } from "../shared";
 import { Mutable } from "../type-helpers";
 import {
     getMessageBody,
@@ -357,6 +357,8 @@ export function exec(cmd: string) {
 }
 
 async function callFunctionHttps(url: string, callArgs: FunctionCall) {
+    // only for validation
+    serializeCall(callArgs);
     const rawResponse = await Axios.put<FunctionReturn>(url!, callArgs);
     const returned: FunctionReturn = rawResponse.data;
     returned.rawResponse = rawResponse;

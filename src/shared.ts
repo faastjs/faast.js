@@ -1,6 +1,5 @@
-import debug from "debug";
-
-const log = debug("cloudify:stats");
+import { isDeepStrictEqual } from "util";
+import { warn, stats } from "./log";
 
 export interface CallId {
     CallId: string;
@@ -20,6 +19,50 @@ export interface FunctionReturn extends CallId {
     executionEnd?: number;
     retries?: number;
     rawResponse?: any;
+}
+
+export function deepCopyUndefined(dest: object, source: object) {
+    const stack: object[] = [];
+    function isBackReference(o: object) {
+        for (const elem of stack) {
+            if (elem === o) {
+                return true;
+            }
+        }
+        return false;
+    }
+    function recurse(d: object, s: object) {
+        if (isBackReference(s) || d === undefined) {
+            return;
+        }
+        stack.push(s);
+        Object.keys(s).forEach(key => {
+            if (s[key] && typeof s[key] === "object") {
+                recurse(d[key], s[key]);
+            } else if (s[key] === undefined) {
+                d[key] = undefined;
+            }
+        });
+        stack.pop();
+    }
+    typeof source === "object" && recurse(dest, source);
+}
+
+export function serializeCall(call: FunctionCall) {
+    const callStr = JSON.stringify(call);
+    const deserialized = JSON.parse(callStr);
+    deepCopyUndefined(deserialized, call);
+    if (!isDeepStrictEqual(deserialized, call)) {
+        warn(`WARNING: problem serializing arguments to JSON`);
+        warn(`deserialized arguments: %O`, deserialized);
+        warn(`original arguments: %O`, call);
+        warn(
+            `Detected function '${
+                call.name
+            }' argument loses information when serialized by JSON.stringify()`
+        );
+    }
+    return callStr;
 }
 
 export class Statistics {
@@ -61,10 +104,10 @@ export class Statistics {
         const p = (n: number) => n.toFixed(1);
         if (detailedOpt && detailedOpt.detailed) {
             const { samples, mean, stdev, min, max } = this;
-            log(`${prefix}`);
-            log(`%O`, { samples, mean, stdev, min, max });
+            stats(`${prefix}`);
+            stats(`%O`, { samples, mean, stdev, min, max });
         } else {
-            log(`${prefix}: ${this.mean}`);
+            stats(`${prefix}: ${this.mean}`);
         }
     }
 }
@@ -102,7 +145,7 @@ export class CountersMap<K> extends FactoryMap<K, number> {
 
     log(prefix: string = "", _detailedOpt?: { detailed: boolean }) {
         for (const [key, value] of this) {
-            log(`${prefix} ${key}: ${value}`);
+            stats(`${prefix} ${key}: ${value}`);
         }
     }
 }
@@ -123,7 +166,7 @@ export class StatisticsMap<K extends string> extends FactoryMap<K, Statistics> {
     }
 
     log(prefix: string = "", detailedOpt?: { detailed: boolean }) {
-        log(`${prefix} statistics:`);
+        stats(`${prefix} statistics:`);
         for (const [metric, statistics] of this) {
             statistics.log(metric, detailedOpt);
         }
@@ -157,7 +200,7 @@ export class Metrics<C, M extends string> {
             this.counters.log(prefix, detailedOpt);
             this.statistics.log(prefix, detailedOpt);
         } else {
-            log(`${prefix} ${this.toString()}`);
+            stats(`${prefix} ${this.toString()}`);
         }
     }
 }

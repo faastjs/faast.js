@@ -45,3 +45,7 @@ export async function timer(delayMs: number) {
     const end = Date.now();
     return { start, end };
 }
+
+export function promiseArg(promise: Promise<any>) {
+    return promise;
+}

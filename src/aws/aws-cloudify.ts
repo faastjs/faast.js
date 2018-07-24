@@ -9,7 +9,7 @@ import { Funnel } from "../funnel";
 import { log } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { FunctionCall, FunctionReturn, sleep } from "../shared";
+import { FunctionCall, FunctionReturn, sleep, serializeCall } from "../shared";
 import * as awsNpm from "./aws-npm";
 import {
     createDLQ,
@@ -322,8 +322,8 @@ export async function buildModulesOnLambda(
         log(err);
         throw err;
     } finally {
-        // await lambda.cleanup();
-        await lambda.stop();
+        await lambda.cleanup();
+        // await lambda.stop();
     }
 }
 
@@ -473,10 +473,11 @@ async function callFunctionHttps(
 ) {
     let returned: FunctionReturn;
     let rawResponse: AWSInvocationResponse;
+
     const request: aws.Lambda.Types.InvocationRequest = {
         FunctionName,
         LogType: "Tail",
-        Payload: JSON.stringify(callRequest)
+        Payload: serializeCall(callRequest)
     };
     rawResponse = await callFunnel.push(() => lambda.invoke(request).promise());
     if (rawResponse.FunctionError) {
