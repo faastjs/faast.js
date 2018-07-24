@@ -5,7 +5,7 @@ import * as fs from "fs";
 import * as uuidv4 from "uuid/v4";
 import { LocalCache } from "../cache";
 import { AWS, CloudFunctionImpl, CloudImpl, CreateFunctionOptions } from "../cloudify";
-import { Funnel, retry } from "../funnel";
+import { Funnel, retry, Lock } from "../funnel";
 import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
@@ -132,6 +132,8 @@ export function createAWSApis(region: string): AWSServices {
     };
 }
 
+const createRoleLock = new Lock();
+
 async function createLambdaRole(
     RoleName: string,
     PolicyArn: string,
@@ -139,32 +141,42 @@ async function createLambdaRole(
 ) {
     const { iam } = services;
     log(`Checking for cached lambda role`);
-    const previousRole = await quietly(iam.getRole({ RoleName }));
+    let previousRole = await quietly(iam.getRole({ RoleName }));
     if (previousRole) {
         return previousRole;
     }
-    log(`Creating role "${RoleName}" for cloudify trampoline function`);
-    const AssumeRolePolicyDocument = JSON.stringify({
-        Version: "2012-10-17",
-        Statement: [
-            {
-                Principal: { Service: "lambda.amazonaws.com" },
-                Action: "sts:AssumeRole",
-                Effect: "Allow"
-            }
-        ]
-    });
-    const roleParams: aws.IAM.CreateRoleRequest = {
-        AssumeRolePolicyDocument,
-        RoleName,
-        Description: "role for lambda functions created by cloudify",
-        MaxSessionDuration: 3600
-    };
-    const roleResponse = await iam.createRole(roleParams).promise();
-    await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
-    // const noCreateLogGroupPolicy = `cloudify-deny-create-log-group-policy`;
-    // await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
-    return roleResponse;
+    await createRoleLock.acquire();
+    try {
+        previousRole = await quietly(iam.getRole({ RoleName }));
+        if (previousRole) {
+            return previousRole;
+        }
+
+        log(`Creating role "${RoleName}" for cloudify trampoline function`);
+        const AssumeRolePolicyDocument = JSON.stringify({
+            Version: "2012-10-17",
+            Statement: [
+                {
+                    Principal: { Service: "lambda.amazonaws.com" },
+                    Action: "sts:AssumeRole",
+                    Effect: "Allow"
+                }
+            ]
+        });
+        const roleParams: aws.IAM.CreateRoleRequest = {
+            AssumeRolePolicyDocument,
+            RoleName,
+            Description: "role for lambda functions created by cloudify",
+            MaxSessionDuration: 3600
+        };
+        const roleResponse = await iam.createRole(roleParams).promise();
+        await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
+        // const noCreateLogGroupPolicy = `cloudify-deny-create-log-group-policy`;
+        // await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
+        return roleResponse;
+    } finally {
+        createRoleLock.release();
+    }
 }
 
 async function addNoCreateLogPolicyToRole(
@@ -234,12 +246,16 @@ export async function pollAWSRequest<T>(
     }
 }
 
+const createBucketLock = new Lock();
+
 async function ensureCacheBucket(s3: aws.S3, Bucket: string, region: string) {
     async function createBucket() {
+        log(`Checking for cache bucket`);
         const bucket = await quietly(s3.getBucketLocation({ Bucket }));
         if (bucket) {
             return;
         }
+        log(`Creating cache bucket`);
         const createdBucket = await s3
             .createBucket({
                 Bucket,
@@ -248,20 +264,27 @@ async function ensureCacheBucket(s3: aws.S3, Bucket: string, region: string) {
             .promise();
         if (createdBucket) {
             log(`Setting lifecycle expiration to 1 day for cached objects`);
-            await carefully(
-                s3.putBucketLifecycleConfiguration({
-                    Bucket,
-                    LifecycleConfiguration: {
-                        Rules: [
-                            { Expiration: { Days: 1 }, Status: "Enabled", Prefix: "" }
-                        ]
-                    }
-                })
+            await retry(3, () =>
+                s3
+                    .putBucketLifecycleConfiguration({
+                        Bucket,
+                        LifecycleConfiguration: {
+                            Rules: [
+                                { Expiration: { Days: 1 }, Status: "Enabled", Prefix: "" }
+                            ]
+                        }
+                    })
+                    .promise()
             );
         }
     }
 
-    retry(3, () => createBucket());
+    await createBucketLock.acquire();
+    try {
+        await retry(3, () => createBucket());
+    } finally {
+        createBucketLock.release();
+    }
 }
 
 export async function buildModulesOnLambda(

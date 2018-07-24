@@ -47,6 +47,22 @@ export async function retry<T>(n: number, fn: (retries: number) => Promise<T>) {
     return fn(n - 1);
 }
 
+export class Lock {
+    deferred: Deferred<void>[] = [];
+
+    async acquire() {
+        const prev = this.deferred[this.deferred.length - 1];
+        const next = new Deferred<void>();
+        this.deferred.push(next);
+        return prev && prev.promise;
+    }
+
+    release() {
+        const first = this.deferred.shift();
+        first && first.resolve();
+    }
+}
+
 export class Funnel<T> {
     protected pendingQueue: Set<Future<T>> = new Set();
     protected executingQueue: Set<Future<T>> = new Set();
