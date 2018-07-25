@@ -5,7 +5,7 @@ import { Funnel } from "../src/funnel";
 
 describe("Install top 1000 npm packages with the most dependencies", async () => {
     const aws = new AWS();
-    const funnel = new Funnel<void>(100);
+    const funnel = new Funnel<void>(500);
     const promises: Promise<void>[] = [];
     const results: { [key in string]: string | Error } = {};
 
