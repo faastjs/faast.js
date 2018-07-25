@@ -1,6 +1,6 @@
 import Axios, { AxiosPromise } from "axios";
 import * as sys from "child_process";
-import { cloudfunctions_v1beta2, google, GoogleApis, pubsub_v1 } from "googleapis";
+import { cloudfunctions_v1, google, GoogleApis, pubsub_v1 } from "googleapis";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
 import { CloudFunctionImpl, CloudImpl, CreateFunctionOptions } from "../cloudify";
@@ -17,7 +17,7 @@ import {
     pubsubMessageAttribute,
     receiveMessages
 } from "./google-queue";
-import CloudFunctions = cloudfunctions_v1beta2;
+import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 
 export interface Options {
@@ -87,9 +87,7 @@ export async function initializeGoogleServices(
     });
     google.options({ auth });
     return {
-        cloudFunctions: useEmulator
-            ? await getEmulator()
-            : google.cloudfunctions("v1beta2"),
+        cloudFunctions: useEmulator ? await getEmulator() : google.cloudfunctions("v1"),
         pubsub: google.pubsub("v1"),
         google
     };
@@ -185,7 +183,7 @@ async function getEmulator(): Promise<CloudFunctions.Cloudfunctions> {
         throw new Error("Could not find cloud functions service REST url");
     }
     const url = rest[1];
-    const DISCOVERY_URL = `${url}$discovery/rest?version=v1beta2`;
+    const DISCOVERY_URL = `${url}$discovery/rest?version=v1`;
     log(`DISCOVERY_URL: ${DISCOVERY_URL}`);
     const emulator = await google.discoverAPI(DISCOVERY_URL);
     return emulator as any;

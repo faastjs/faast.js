@@ -2467,7 +2467,11 @@ extend-shallow@^3.0.0, extend-shallow@^3.0.2:
     assign-symbols "^1.0.0"
     is-extendable "^1.0.1"
 
-extend@^3.0.1, extend@~3.0.1:
+extend@^3.0.1:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/extend/-/extend-3.0.2.tgz#f8b1136b4071fbd8eb140aff858b1019ec2915fa"
+
+extend@~3.0.1:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/extend/-/extend-3.0.1.tgz#a755ea7bc1adfcc5a31ce7e762dbaadc5e636444"
 
@@ -2860,15 +2864,15 @@ globby@^8.0.0, globby@^8.0.1:
     slash "^1.0.0"
 
 google-auth-library@^1.4.0:
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/google-auth-library/-/google-auth-library-1.5.0.tgz#d9068f8bad9017224a4c41abcdcb6cf6a704e83b"
+  version "1.6.1"
+  resolved "https://registry.yarnpkg.com/google-auth-library/-/google-auth-library-1.6.1.tgz#9c73d831ad720c0c3048ab89d0ffdec714d07dd2"
   dependencies:
     axios "^0.18.0"
     gcp-metadata "^0.6.3"
     gtoken "^2.3.0"
-    jws "^3.1.4"
+    jws "^3.1.5"
     lodash.isstring "^4.0.1"
-    lru-cache "^4.1.2"
+    lru-cache "^4.1.3"
     retry-axios "^0.3.2"
 
 google-p12-pem@^1.0.0:
@@ -4060,7 +4064,7 @@ jwa@^1.1.5:
     ecdsa-sig-formatter "1.0.10"
     safe-buffer "^5.0.1"
 
-jws@^3.1.4:
+jws@^3.1.4, jws@^3.1.5:
   version "3.1.5"
   resolved "https://registry.yarnpkg.com/jws/-/jws-3.1.5.tgz#80d12d05b293d1e841e7cb8b4e69e561adcf834f"
   dependencies:
@@ -4313,7 +4317,7 @@ lru-cache@2:
   version "2.7.3"
   resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-2.7.3.tgz#6d4524e8b955f95d4f5b58851ce21dd72fb4e952"
 
-lru-cache@^4.0.1, lru-cache@^4.1.1, lru-cache@^4.1.2:
+lru-cache@^4.0.1, lru-cache@^4.1.1, lru-cache@^4.1.3:
   version "4.1.3"
   resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-4.1.3.tgz#a1175cf3496dfc8436c156c334b4955992bce69c"
   dependencies:
