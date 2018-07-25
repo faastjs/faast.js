@@ -1,4 +1,4 @@
-import { Funnel, Pump } from "../src/funnel";
+import { Funnel, Pump, MemoFunnel } from "../src/funnel";
 import { sleep } from "../src/shared";
 
 async function timer(ms: number) {
@@ -163,5 +163,28 @@ describe("Pump", () => {
         expect(started - finished).toBe(N);
         await pump.drain();
         expect(started - finished).toBe(0);
+    });
+});
+
+describe("MemoFunnel", () => {
+    test("Returns cached results for the same key", async () => {
+        const funnel = new MemoFunnel<string, Timing>(1);
+        const promises = [];
+        const N = 10;
+        for (let i = 0; i < N; i++) {
+            promises.push(funnel.pushMemoized("key", () => timer(10)));
+        }
+        const times = await Promise.all(promises);
+        expect(measureConcurrency(times)).toBe(N);
+    });
+    test("Runs the worker for different keys", async () => {
+        const funnel = new MemoFunnel<number, Timing>(1);
+        const promises = [];
+        const N = 10;
+        for (let i = 0; i < N; i++) {
+            promises.push(funnel.pushMemoized(i, () => timer(10)));
+        }
+        const times = await Promise.all(promises);
+        expect(measureConcurrency(times)).toBe(1);
     });
 });
