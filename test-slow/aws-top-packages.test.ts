@@ -3,6 +3,8 @@ import { topPackages } from "./top-packages";
 import * as functions from "./functions";
 import { Funnel } from "../src/funnel";
 
+describe("Sanity checks for top packages", () => {});
+
 describe("Install top 1000 npm packages with the most dependencies", async () => {
     const aws = new AWS();
     const funnel = new Funnel<void>(500);
