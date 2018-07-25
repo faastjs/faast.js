@@ -47,22 +47,6 @@ export async function retry<T>(n: number, fn: (retries: number) => Promise<T>) {
     return fn(n - 1);
 }
 
-export class Lock {
-    deferred: Deferred<void>[] = [];
-
-    async acquire() {
-        const prev = this.deferred[this.deferred.length - 1];
-        const next = new Deferred<void>();
-        this.deferred.push(next);
-        return prev && prev.promise;
-    }
-
-    release() {
-        const first = this.deferred.shift();
-        first && first.resolve();
-    }
-}
-
 export class Funnel<T> {
     protected pendingQueue: Set<Future<T>> = new Set();
     protected executingQueue: Set<Future<T>> = new Set();
@@ -173,5 +157,40 @@ export class Pump<T> extends Funnel<T | void> {
         if (!this.stopped) {
             this.start();
         }
+    }
+}
+
+export class MemoFunnel<A, T> extends Funnel<T> {
+    memoized: Map<A, T> = new Map();
+    constructor(public maxConcurrency: number) {
+        super(maxConcurrency);
+    }
+
+    async pushMemoized(key: A, worker: () => Promise<T>) {
+        const prev = this.memoized.get(key);
+        if (prev) {
+            return prev;
+        }
+        return super.push(this.memoizeWorker(key, worker));
+    }
+
+    async pushMemoizedRetry(n: number, key: A, worker: () => Promise<T>) {
+        const prev = this.memoized.get(key);
+        if (prev) {
+            return prev;
+        }
+        return super.push(() => retry(n, this.memoizeWorker(key, worker)));
+    }
+
+    protected memoizeWorker(key: A, worker: () => Promise<T>) {
+        return async () => {
+            const prev = this.memoized.get(key);
+            if (prev) {
+                return prev;
+            }
+            const value = await worker();
+            this.memoized.set(key, value);
+            return value;
+        };
     }
 }
