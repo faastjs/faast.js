@@ -159,8 +159,12 @@ export async function receiveDLQMessages(
     const rv = [];
     for (const m of Messages) {
         try {
+            if (isControlMessage(m, "stopqueue")) {
+                return [];
+            }
             // https://docs.aws.amazon.com/lambda/latest/dg/dlq.html
             const errorMessage = sqsMessageAttribute(m, "ErrorMessage");
+            log(`Received DLQ message: %O`, m);
             const body = m.Body && JSON.parse(m.Body);
             const snsMessage: SNSEvent = body;
             for (const record of snsMessage.Records) {

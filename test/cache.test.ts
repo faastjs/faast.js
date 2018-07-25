@@ -43,7 +43,7 @@ test("keys can be sha256 hashes", async () => {
 });
 
 test("cache value can be a Buffer", async () => {
-    await cache.set("key", new Buffer("value"));
+    await cache.set("key", Buffer.from("value"));
     const result = await cache.get("key");
     expect(result && result.toString()).toBe("value");
 });

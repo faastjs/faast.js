@@ -14,7 +14,6 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
             FunctionName,
             logGroupName,
             RoleName,
-            rolePolicy,
             region,
             SNSLambdaSubscriptionArn,
             RequestTopicArn,
@@ -39,11 +38,7 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
     expect(logResult && logResult.logGroups).toEqual([]);
 
     const roleResult = await quietly(iam.getRole({ RoleName }));
-    if (rolePolicy === "createTemporaryRole") {
-        expect(roleResult).toBeUndefined();
-    } else {
-        expect(roleResult && roleResult.Role.RoleName).toBe(RoleName);
-    }
+    expect(roleResult && roleResult.Role.RoleName).toBe(RoleName);
 
     if (RequestTopicArn) {
         const snsResult = await quietly(
@@ -98,22 +93,6 @@ test(
         await checkResourcesCleanedUp(func);
     },
     30 * 1000
-);
-
-test(
-    "removes temporary roles",
-    async () => {
-        const cloud = cloudify.create("aws");
-        const func = await cloud.createFunction("./functions", {
-            useQueue: true,
-            cloudSpecific: {
-                rolePolicy: "createTemporaryRole"
-            }
-        });
-        await func.cleanup();
-        await checkResourcesCleanedUp(func);
-    },
-    60 * 1000
 );
 
 test(

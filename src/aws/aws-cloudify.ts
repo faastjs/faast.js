@@ -24,12 +24,9 @@ import {
     sqsMessageAttribute
 } from "./aws-queue";
 
-export type RoleHandling = "createTemporaryRole" | "createOrReuseCachedRole";
-
 export interface Options {
     region?: string;
     PolicyArn?: string;
-    rolePolicy?: RoleHandling;
     RoleName?: string;
     timeout?: number;
     memorySize?: number;
@@ -42,7 +39,6 @@ export interface Options {
 export interface AWSResources {
     FunctionName: string;
     RoleName: string;
-    rolePolicy: RoleHandling;
     logGroupName: string;
     region: string;
     ResponseQueueUrl?: string;
@@ -111,7 +107,6 @@ function zipStreamToBuffer(zipStream: NodeJS.ReadableStream): Promise<Buffer> {
 export let defaults: Required<Options> = {
     region: "us-west-2",
     PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
-    rolePolicy: "createOrReuseCachedRole",
     RoleName: "cloudify-cached-lambda-role",
     timeout: 60,
     memorySize: 256,
@@ -162,7 +157,9 @@ async function createLambdaRole(
         Description: "role for lambda functions created by cloudify",
         MaxSessionDuration: 3600
     };
+    log(`Calling createRole`);
     const roleResponse = await iam.createRole(roleParams).promise();
+    log(`Attaching role policy`);
     await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
     // const noCreateLogGroupPolicy = `cloudify-deny-create-log-group-policy`;
     // await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
@@ -350,10 +347,9 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
 
-    let {
+    const {
         region = defaults.region,
         PolicyArn = defaults.PolicyArn,
-        rolePolicy = defaults.rolePolicy,
         RoleName = defaults.RoleName,
         timeout: Timeout = defaults.timeout,
         memorySize: MemorySize = defaults.memorySize,
@@ -368,10 +364,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     const { lambda, sqs, s3, iam } = services;
     const FunctionName = `cloudify-${nonce}`;
     const logGroupName = `/aws/lambda/${FunctionName}`;
-
-    if (rolePolicy === "createTemporaryRole") {
-        RoleName = `cloudify-role-${nonce}`;
-    }
 
     async function createFunction(Code: aws.Lambda.FunctionCode, Role: string) {
         const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
@@ -388,8 +380,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             ...awsLambdaOptions
         };
         log(`createFunctionRequest: %O`, createFunctionRequest);
-        const nRetries = rolePolicy === "createTemporaryRole" ? 100 : 3;
-        const func = await pollAWSRequest(nRetries, "creating function", () =>
+        const func = await pollAWSRequest(3, "creating function", () =>
             lambda.createFunction(createFunctionRequest)
         );
         log(`Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`);
@@ -420,7 +411,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         resources: {
             FunctionName,
             RoleName,
-            rolePolicy,
             logGroupName,
             region
         },
@@ -433,14 +423,9 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         // await createLogGroup(logGroupName, services);
         log(`Creating function`);
 
-        let rolePromise: Promise<string>;
-        if (rolePolicy === "createTemporaryRole") {
-            rolePromise = createLambdaRole(RoleName, PolicyArn, services);
-        } else {
-            rolePromise = createRoleFunnel.pushMemoizedRetry(3, RoleName, () =>
-                createLambdaRole(RoleName, PolicyArn, services)
-            );
-        }
+        const rolePromise = createRoleFunnel.pushMemoizedRetry(3, RoleName, () =>
+            createLambdaRole(RoleName, PolicyArn, services)
+        );
 
         const createFunctionPromise = Promise.all([createCodeBundle(), rolePromise]).then(
             ([codeBundle, roleArn]) => {
@@ -569,7 +554,6 @@ export async function cleanup(state: PartialState) {
         FunctionName,
         RoleName,
         logGroupName,
-        rolePolicy,
         region,
         RequestTopicArn,
         ResponseQueueUrl,
@@ -596,9 +580,9 @@ export async function cleanup(state: PartialState) {
         log(`Deleting log group: ${logGroupName}`);
         await quietly(cloudwatch.deleteLogGroup({ logGroupName }));
     }
-    if (RoleName && rolePolicy === "createTemporaryRole") {
-        log(`Deleting temporary role: ${RoleName}`);
-        await deleteRole(RoleName, iam);
+    if (RoleName) {
+        // Don't delete cached role. It may be in use by other instances of cloudify.
+        // await deleteRole(RoleName, iam);
     }
     if (RequestTopicArn) {
         log(`Deleting request queue topic: ${RequestTopicArn}`);

@@ -54,7 +54,7 @@ Setup credentials for [AWS](https://docs.aws.amazon.com/cli/latest/userguide/cli
 - Run basic AWS test
 
 ```
-npx jest build/test/aws-basic.test.js
+npx jest build/test/aws-https.test.js
 ```
 
 ### All "fast" live cloud tests
@@ -64,6 +64,12 @@ $ yarn test
 ```
 
 This excludes the larger tests `test-slow/*`. These should be executed individually using `npx`.
+
+Jest sometimes overwrites output during the test (this shows up as garbled Jest test status output). Redirect stdout to get clean output:
+
+```
+$ yarn test > out
+```
 
 ## Local Testing
 
