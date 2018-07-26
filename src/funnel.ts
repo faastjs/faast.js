@@ -1,5 +1,6 @@
 import { sleep } from "./shared";
 import { log } from "./log";
+import * as assert from "assert";
 
 export class Deferred<T> {
     promise: Promise<T>;
@@ -192,5 +193,169 @@ export class MemoFunnel<A, T> extends Funnel<T> {
             this.memoized.set(key, value);
             return value;
         };
+    }
+}
+
+export class RateLimiter2<T> {
+    protected lastTick = 0;
+    protected requestsSinceLastTick = 0;
+    protected tickParity = false;
+    protected queue: Future<T>[] = [];
+
+    constructor(protected maxRequestsPerSecond: number) {
+        assert(maxRequestsPerSecond >= 0);
+    }
+
+    push(worker: () => Promise<T>) {
+        if (
+            this.queue.length === 0 &&
+            this.requestsSinceLastTick < this.maxTickRequests()
+        ) {
+            this.incrementRequests();
+            return worker();
+        }
+        const future = new Future(worker);
+        this.queue.push(future);
+        if (this.queue.length === 1) {
+            this.doWorkOnNextTick();
+        }
+        return future.promise;
+    }
+
+    setRateLimit(maxRequestsPerSecond: number) {
+        assert(maxRequestsPerSecond >= 0);
+        this.maxRequestsPerSecond = maxRequestsPerSecond;
+    }
+
+    protected maxTickRequests() {
+        return this.tickParity
+            ? Math.ceil(this.maxRequestsPerSecond / 2)
+            : Math.floor(this.maxRequestsPerSecond / 2);
+    }
+
+    protected tick() {
+        const now = Date.now();
+        if (now - this.lastTick >= 500) {
+            this.lastTick = now;
+            this.requestsSinceLastTick = 0;
+            this.tickParity = !this.tickParity;
+        }
+    }
+
+    protected incrementRequests() {
+        this.tick();
+        return ++this.requestsSinceLastTick;
+    }
+
+    protected async doWorkOnNextTick() {
+        const now = Date.now();
+        // Tick every 0.5s and allow 1/2 of the max request rate.
+        const msUntilNextTick = 500 - (now - this.lastTick);
+        if (msUntilNextTick > 0) {
+            await sleep(msUntilNextTick);
+        }
+        this.tick();
+        while (this.requestsSinceLastTick < this.maxTickRequests()) {
+            const next = this.queue.shift();
+            if (!next) {
+                break;
+            }
+            this.incrementRequests();
+            next.execute();
+        }
+        if (this.queue.length > 0) {
+            this.doWorkOnNextTick();
+        }
+    }
+}
+
+export class RateLimiter<T> {
+    protected lastSend = 0;
+    protected bucket = 0;
+    protected queue: Future<T>[] = [];
+
+    constructor(protected maxRequestsPerSecond: number) {
+        assert(maxRequestsPerSecond >= 0);
+        this.bucket = 0;
+    }
+
+    push(worker: () => Promise<T>) {
+        this.tick();
+        if (this.queue.length === 0 && this.bucket >= 1) {
+            this.recordExecute();
+            return worker();
+        }
+
+        const future = new Future(worker);
+        this.queue.push(future);
+        if (this.queue.length === 1) {
+            this.doWorkOnNextTick();
+        }
+        return future.promise;
+    }
+
+    setRateLimit(maxRequestsPerSecond: number) {
+        assert(maxRequestsPerSecond >= 0);
+        this.maxRequestsPerSecond = maxRequestsPerSecond;
+    }
+
+    protected recordExecute() {
+        this.bucket--;
+        this.lastSend = Date.now();
+    }
+
+    protected tick() {
+        const now = Date.now();
+        this.bucket += ((now - this.lastSend) / 1000) * this.maxRequestsPerSecond;
+        log(`Bucket: ${this.bucket}`);
+        this.bucket = Math.min(this.bucket, this.maxRequestsPerSecond);
+        log(`Bucket: ${this.bucket}`);
+    }
+
+    protected async doWorkOnNextTick() {
+        const msUntilNextTick = Math.floor(1000 / this.maxRequestsPerSecond);
+        if (msUntilNextTick > 0) {
+            await sleep(msUntilNextTick);
+        }
+        this.tick();
+        while (this.bucket >= 1) {
+            const next = this.queue.shift();
+            if (!next) {
+                break;
+            }
+            this.recordExecute();
+            next.execute();
+        }
+        if (this.queue.length > 0) {
+            this.doWorkOnNextTick();
+        }
+    }
+}
+
+export class RateLimitedFunnel<T> {
+    protected funnel: Funnel<T>;
+    protected rateLimiter: RateLimiter<T>;
+
+    constructor({
+        maxConcurrency,
+        maxRequestsPerSecond
+    }: {
+        maxConcurrency: number;
+        maxRequestsPerSecond: number;
+    }) {
+        this.funnel = new Funnel<T>(maxConcurrency);
+        this.rateLimiter = new RateLimiter<T>(maxRequestsPerSecond);
+    }
+
+    setMaxConcurrency(maxConcurrency: number) {
+        this.funnel.setMaxConcurrency(maxConcurrency);
+    }
+
+    setRateLimit(maxRequestsPerSecond: number) {
+        this.rateLimiter.setRateLimit(maxRequestsPerSecond);
+    }
+
+    push(worker: () => Promise<T>) {
+        return this.funnel.push(() => this.rateLimiter.push(worker));
     }
 }

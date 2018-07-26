@@ -1,40 +1,52 @@
 import { AWS } from "../src/cloudify";
-import { topPackages } from "./top-packages";
+import { topPackages, topPackagesAll, topPackagesFailures } from "./top-packages";
 import * as functions from "./functions";
 import { Funnel } from "../src/funnel";
 
-describe("Sanity checks for top packages", () => {});
+type Results = { [key in string]: string | Error };
 
-describe("Install top 1000 npm packages with the most dependencies", async () => {
-    const aws = new AWS();
-    const funnel = new Funnel<void>(500);
-    const promises: Promise<void>[] = [];
-    const results: { [key in string]: string | Error } = {};
+function testPackages(packages: string[]) {
+    async function installPackages() {
+        const aws = new AWS();
+        const funnel = new Funnel<void>(500);
+        const promises: Promise<void>[] = [];
+        const results: Results = {};
 
-    beforeAll(async () => {
-        for (const topPackage of topPackages) {
+        for (const pkg of packages) {
             promises.push(
                 funnel.push(async () => {
                     try {
                         const lambda = await aws.createFunction("./functions", {
                             useQueue: false,
                             cloudSpecific: { useDependencyCaching: false },
-                            packageJson: { dependencies: { [topPackage]: "*" } }
+                            packageJson: { dependencies: { [pkg]: "*" } }
                         });
                         await lambda.cleanup();
-                        results[topPackage] = topPackage;
+                        results[pkg] = pkg;
                     } catch (err) {
-                        results[topPackage] = err;
+                        results[pkg] = err;
                     }
                 })
             );
         }
         await Promise.all(promises);
-    }, 600 * 1000);
-
-    for (const pkg of topPackages) {
-        test(`Package '${pkg}'`, () => {
-            expect(results[pkg]).toBe(pkg);
-        });
+        return results;
     }
-});
+
+    describe("Install top 1000 npm packages with the most dependencies", async () => {
+        let results: Results;
+
+        beforeAll(async () => {
+            results = await installPackages();
+        }, 600 * 1000);
+
+        for (const pkg of packages) {
+            test(`Package '${pkg}'`, () => {
+                expect(results[pkg]).toBe(pkg);
+            });
+        }
+    });
+}
+
+// testPackages(topPackages);
+testPackages(topPackagesFailures);
