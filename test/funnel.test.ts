@@ -190,7 +190,7 @@ describe("MemoFunnel", () => {
     });
 });
 
-function measureRequestRatePerSecond(timings: Timing[]) {
+function measureMaxRequestRatePerSecond(timings: Timing[]) {
     const requestsPerSecondStartingAt = timings
         .map(t => t.start)
         .map(t => timings.filter(({ start }) => start >= t && start < t + 1000).length);
@@ -198,27 +198,52 @@ function measureRequestRatePerSecond(timings: Timing[]) {
 }
 
 describe("RateLimiter", () => {
-    test("Pauses when rate limit is 0", async () => {
-        const rateLimiter = new RateLimiter<void>(0);
-        let invocations = 0;
-        rateLimiter.push(async () => {
-            invocations++;
-        });
-        await delay(100);
-        expect(invocations).toBe(0);
-    });
-
     test(
         "Rate limits",
         async () => {
-            const requestRate = 5;
+            const requestRate = 10;
             const rateLimiter = new RateLimiter<Timing>(requestRate);
             const promises: Promise<Timing>[] = [];
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < 15; i++) {
                 promises.push(rateLimiter.push(() => timer(0)));
             }
             const timings = await Promise.all(promises);
-            expect(measureRequestRatePerSecond(timings)).toBe(requestRate);
+            expect(measureMaxRequestRatePerSecond(timings)).toBe(requestRate);
+        },
+        10 * 1000
+    );
+
+    test(
+        "Rate limits across second boundaries",
+        async () => {
+            const requestRate = 10;
+            const rateLimiter = new RateLimiter<Timing>(requestRate);
+            const promises: Promise<Timing>[] = [];
+            promises.push(rateLimiter.push(() => timer(0)));
+            await delay(900);
+            for (let i = 0; i < 15; i++) {
+                promises.push(rateLimiter.push(() => timer(0)));
+            }
+            const timings = await Promise.all(promises);
+            expect(measureMaxRequestRatePerSecond(timings)).toBe(requestRate);
+        },
+        10 * 1000
+    );
+
+    test(
+        "Bursting allows for request rate beyond target rate",
+        async () => {
+            const requestRate = 10;
+            const maxBurst = 5;
+            const rateLimiter = new RateLimiter<Timing>(requestRate, maxBurst);
+            const promises: Promise<Timing>[] = [];
+            for (let i = 0; i < 15; i++) {
+                promises.push(rateLimiter.push(() => timer(0)));
+            }
+            const timings = await Promise.all(promises);
+            const maxRate = measureMaxRequestRatePerSecond(timings);
+            expect(maxRate).toBeLessThanOrEqual(maxBurst + requestRate);
+            expect(maxRate).toBeGreaterThan(maxBurst);
         },
         10 * 1000
     );
@@ -228,65 +253,47 @@ describe("RateLimitedFunnel", () => {
     test(
         "Limits max concurrency and rate",
         async () => {
-            const maxConcurrency = 5;
-            const maxRequestsPerSecond = 10;
+            const maxConcurrency = 10;
+            const targetRequestsPerSecond = 10;
             const rateLimitedFunnel = new RateLimitedFunnel<Timing>({
                 maxConcurrency,
-                maxRequestsPerSecond
+                targetRequestsPerSecond
             });
 
             const promises = [];
-            for (let i = 0; i < 40; i++) {
-                promises.push(rateLimitedFunnel.push(async () => timer(100)));
+            for (let i = 0; i < 15; i++) {
+                promises.push(rateLimitedFunnel.push(() => timer(1000)));
             }
 
             const times = await Promise.all(promises);
             expect(measureConcurrency(times)).toBe(maxConcurrency);
-            expect(measureRequestRatePerSecond(times)).toBe(maxRequestsPerSecond);
+            expect(measureMaxRequestRatePerSecond(times)).toBe(targetRequestsPerSecond);
         },
         12 * 1000
     );
 
-    test.only(
+    test(
         "Limits rate with single concurrency",
         async () => {
             const maxConcurrency = 1;
-            const maxRequestsPerSecond = 10;
+            const targetRequestsPerSecond = 10;
+            const processTimeMs = 200;
             const rateLimitedFunnel = new RateLimitedFunnel<Timing>({
                 maxConcurrency,
-                maxRequestsPerSecond
+                targetRequestsPerSecond
             });
 
-            const begin = Date.now();
-
             const promises = [];
-            promises.push(rateLimitedFunnel.push(async () => timer(20)));
-            await delay(400);
-            for (let i = 0; i < 40; i++) {
-                promises.push(rateLimitedFunnel.push(async () => timer(20)));
+            for (let i = 0; i < 10; i++) {
+                promises.push(rateLimitedFunnel.push(() => timer(processTimeMs)));
             }
 
             const times = await Promise.all(promises);
-            console.log(
-                `%O`,
-                times.map(({ start, end }, i) => ({
-                    i,
-                    start: start - begin,
-                    end: end - begin
-                }))
-            );
-
-            console.log(
-                `%O`,
-                times.map(t => t.start).map((t, i) => ({
-                    i,
-                    n: times.filter(({ start }) => start >= t && start < t + 1000).length
-                }))
-            );
-
             expect(measureConcurrency(times)).toBe(maxConcurrency);
-            expect(measureRequestRatePerSecond(times)).toBe(maxRequestsPerSecond);
+            expect(measureMaxRequestRatePerSecond(times)).toBe(
+                Math.min(targetRequestsPerSecond, 1000 / processTimeMs)
+            );
         },
-        20 * 1000
+        10 * 1000
     );
 });

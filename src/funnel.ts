@@ -196,138 +196,69 @@ export class MemoFunnel<A, T> extends Funnel<T> {
     }
 }
 
-export class RateLimiter2<T> {
-    protected lastTick = 0;
-    protected requestsSinceLastTick = 0;
-    protected tickParity = false;
-    protected queue: Future<T>[] = [];
-
-    constructor(protected maxRequestsPerSecond: number) {
-        assert(maxRequestsPerSecond >= 0);
-    }
-
-    push(worker: () => Promise<T>) {
-        if (
-            this.queue.length === 0 &&
-            this.requestsSinceLastTick < this.maxTickRequests()
-        ) {
-            this.incrementRequests();
-            return worker();
-        }
-        const future = new Future(worker);
-        this.queue.push(future);
-        if (this.queue.length === 1) {
-            this.doWorkOnNextTick();
-        }
-        return future.promise;
-    }
-
-    setRateLimit(maxRequestsPerSecond: number) {
-        assert(maxRequestsPerSecond >= 0);
-        this.maxRequestsPerSecond = maxRequestsPerSecond;
-    }
-
-    protected maxTickRequests() {
-        return this.tickParity
-            ? Math.ceil(this.maxRequestsPerSecond / 2)
-            : Math.floor(this.maxRequestsPerSecond / 2);
-    }
-
-    protected tick() {
-        const now = Date.now();
-        if (now - this.lastTick >= 500) {
-            this.lastTick = now;
-            this.requestsSinceLastTick = 0;
-            this.tickParity = !this.tickParity;
-        }
-    }
-
-    protected incrementRequests() {
-        this.tick();
-        return ++this.requestsSinceLastTick;
-    }
-
-    protected async doWorkOnNextTick() {
-        const now = Date.now();
-        // Tick every 0.5s and allow 1/2 of the max request rate.
-        const msUntilNextTick = 500 - (now - this.lastTick);
-        if (msUntilNextTick > 0) {
-            await sleep(msUntilNextTick);
-        }
-        this.tick();
-        while (this.requestsSinceLastTick < this.maxTickRequests()) {
-            const next = this.queue.shift();
-            if (!next) {
-                break;
-            }
-            this.incrementRequests();
-            next.execute();
-        }
-        if (this.queue.length > 0) {
-            this.doWorkOnNextTick();
-        }
-    }
-}
-
 export class RateLimiter<T> {
-    protected lastSend = 0;
+    protected lastTick = 0;
     protected bucket = 0;
-    protected queue: Future<T>[] = [];
+    protected queue: Set<Future<T>> = new Set();
 
-    constructor(protected maxRequestsPerSecond: number) {
-        assert(maxRequestsPerSecond >= 0);
-        this.bucket = 0;
+    constructor(
+        protected targetRequestsPerSecond: number,
+        protected maxBurst: number = 1
+    ) {
+        assert(targetRequestsPerSecond > 0);
+        assert(this.maxBurst >= 1);
     }
 
     push(worker: () => Promise<T>) {
-        this.tick();
-        if (this.queue.length === 0 && this.bucket >= 1) {
-            this.recordExecute();
+        this.updateBucket();
+        if (this.queue.size === 0 && this.bucket <= this.maxBurst - 1) {
+            this.bucket++;
             return worker();
         }
 
         const future = new Future(worker);
-        this.queue.push(future);
-        if (this.queue.length === 1) {
-            this.doWorkOnNextTick();
+        this.queue.add(future);
+        if (this.queue.size === 1) {
+            this.drainQueue();
         }
         return future.promise;
     }
 
-    setRateLimit(maxRequestsPerSecond: number) {
-        assert(maxRequestsPerSecond >= 0);
-        this.maxRequestsPerSecond = maxRequestsPerSecond;
+    setTargetRateLimit(targetRequestsPerSecond: number) {
+        assert(targetRequestsPerSecond > 0);
+        this.targetRequestsPerSecond = targetRequestsPerSecond;
     }
 
-    protected recordExecute() {
-        this.bucket--;
-        this.lastSend = Date.now();
+    setBurstMax(maxBurst: number) {
+        assert(maxBurst >= 1);
+        this.maxBurst = maxBurst;
     }
 
-    protected tick() {
+    protected updateBucket() {
         const now = Date.now();
-        this.bucket += ((now - this.lastSend) / 1000) * this.maxRequestsPerSecond;
-        log(`Bucket: ${this.bucket}`);
-        this.bucket = Math.min(this.bucket, this.maxRequestsPerSecond);
-        log(`Bucket: ${this.bucket}`);
+        const secondsElapsed = (now - this.lastTick) / 1000;
+        this.bucket -= secondsElapsed * this.targetRequestsPerSecond;
+        this.bucket = Math.max(this.bucket, 0);
+        this.lastTick = now;
     }
 
-    protected async doWorkOnNextTick() {
-        const msUntilNextTick = Math.floor(1000 / this.maxRequestsPerSecond);
-        if (msUntilNextTick > 0) {
-            await sleep(msUntilNextTick);
+    protected async drainQueue() {
+        const requestAmountToDrain = 1 - (this.maxBurst - this.bucket);
+        const secondsToDrain = requestAmountToDrain / this.targetRequestsPerSecond;
+        if (secondsToDrain > 0) {
+            await sleep(secondsToDrain * 1000);
         }
-        this.tick();
-        while (this.bucket >= 1) {
-            const next = this.queue.shift();
+        this.updateBucket();
+        while (this.bucket <= this.maxBurst - 1) {
+            const next = popFirst(this.queue);
             if (!next) {
                 break;
             }
-            this.recordExecute();
+            this.bucket++;
             next.execute();
         }
-        if (this.queue.length > 0) {
-            this.doWorkOnNextTick();
+        if (this.queue.size > 0) {
+            this.drainQueue();
         }
     }
 }
@@ -338,13 +269,15 @@ export class RateLimitedFunnel<T> {
 
     constructor({
         maxConcurrency,
-        maxRequestsPerSecond
+        targetRequestsPerSecond,
+        maxBurst
     }: {
         maxConcurrency: number;
-        maxRequestsPerSecond: number;
+        targetRequestsPerSecond: number;
+        maxBurst?: number;
     }) {
         this.funnel = new Funnel<T>(maxConcurrency);
-        this.rateLimiter = new RateLimiter<T>(maxRequestsPerSecond);
+        this.rateLimiter = new RateLimiter<T>(targetRequestsPerSecond, maxBurst);
     }
 
     setMaxConcurrency(maxConcurrency: number) {
@@ -352,7 +285,7 @@ export class RateLimitedFunnel<T> {
     }
 
     setRateLimit(maxRequestsPerSecond: number) {
-        this.rateLimiter.setRateLimit(maxRequestsPerSecond);
+        this.rateLimiter.setTargetRateLimit(maxRequestsPerSecond);
     }
 
     push(worker: () => Promise<T>) {
