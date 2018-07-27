@@ -33,7 +33,7 @@ function testPackages(packages: string[]) {
         return results;
     }
 
-    describe("Install top 1000 npm packages with the most dependencies", async () => {
+    describe(`Install npm packages with the most dependencies`, async () => {
         let results: Results;
 
         beforeAll(async () => {
@@ -48,5 +48,7 @@ function testPackages(packages: string[]) {
     });
 }
 
-// testPackages(topPackages);
-testPackages(topPackagesFailures);
+// funnel(500) => 468s
+// funnel(900) => 504s
+testPackages(topPackages);
+// testPackages(topPackagesFailures);

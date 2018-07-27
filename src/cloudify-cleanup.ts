@@ -3,10 +3,11 @@ require("source-map-support").install();
 import * as aws from "aws-sdk";
 import * as commander from "commander";
 import * as inquirer from "inquirer";
+import { delay } from "../test/functions";
 import * as awsCloudify from "./aws/aws-cloudify";
 import { LocalCache } from "./cache";
-import { delay } from "../test/functions";
-import { retry, Funnel } from "./funnel";
+import { RateLimitedFunnel, retry } from "./funnel";
+import * as ora from "ora";
 
 const warn = console.warn;
 const log = console.log;
@@ -24,6 +25,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
     const { cloudwatch, iam, lambda, sns, sqs, s3 } = awsCloudify.createAWSApis(region);
 
     async function deleteAWSResource<T, U>(
+        name: string,
         pattern: RegExp,
         getList: () => aws.Request<T, aws.AWSError>,
         extractList: (arg: T) => U[] | undefined,
@@ -48,18 +50,31 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
         const matchingResources = allResources.filter(t => t.match(pattern));
         matchingResources.forEach(resource => printOutput && output(`  ${resource}`));
         nResources += matchingResources.length;
-        if (execute) {
-            const funnel = new Funnel(10);
+        if (execute && matchingResources.length > 0) {
+            const timeEstimate =
+                matchingResources.length <= 5
+                    ? ""
+                    : `(est: ${(matchingResources.length / 5).toFixed(1)}s)`;
+            const spinner = ora(
+                `Deleting ${matchingResources.length} ${name} ${timeEstimate}`
+            ).start();
+            const funnel = new RateLimitedFunnel({
+                maxConcurrency: 10,
+                targetRequestsPerSecond: 5,
+                maxBurst: 5
+            });
             await Promise.all(
                 matchingResources.map(resource =>
                     funnel.pushRetry(3, () => remove(resource))
                 )
             );
+            spinner.stopAndPersist({ symbol: "✔" });
         }
     }
 
     output(`SNS subscriptions`);
     await deleteAWSResource(
+        "SNS subscription(s)",
         /:cloudify-/,
         () => sns.listSubscriptions(),
         page => page.Subscriptions,
@@ -69,6 +84,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
 
     output(`SNS topics`);
     await deleteAWSResource(
+        "SNS topic(s)",
         /:cloudify-/,
         () => sns.listTopics(),
         page => page.Topics,
@@ -78,6 +94,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
 
     output(`SQS queues`);
     await deleteAWSResource(
+        "SQS queue(s)",
         /\/cloudify-/,
         () => sqs.listQueues(),
         page => page.QueueUrls,
@@ -87,6 +104,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
 
     output(`Lambda functions`);
     await deleteAWSResource(
+        "Lambda function(s)",
         /^cloudify-/,
         () => lambda.listFunctions(),
         page => page.Functions,
@@ -94,17 +112,9 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
         FunctionName => lambda.deleteFunction({ FunctionName }).promise()
     );
 
-    output(`Cloudwatch log groups`);
-    await deleteAWSResource(
-        /\/cloudify-/,
-        () => cloudwatch.describeLogGroups(),
-        page => page.logGroups,
-        logGroup => logGroup.logGroupName,
-        logGroupName => cloudwatch.deleteLogGroup({ logGroupName }).promise()
-    );
-
     output(`IAM roles`);
     await deleteAWSResource(
+        "IAM role(s)",
         cleanAll ? /^cloudify-/ : /^cloudify-(?!cached)/,
         () => iam.listRoles(),
         page => page.Roles,
@@ -114,38 +124,32 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
 
     output(`S3 buckets`);
     await deleteAWSResource(
+        "S3 Bucket(s)",
         /^cloudify-/,
         () => s3.listBuckets(),
         page => page.Buckets,
         bucket => bucket.Name,
-        async Bucket =>
-            retry(3, () =>
+        async Bucket => {
+            await retry(3, () =>
                 deleteAWSResource(
+                    "S3 Bucket Key(s)",
                     /./,
                     () => s3.listObjectsV2({ Bucket }),
                     object => object.Contents,
                     content => content.Key,
                     Key => s3.deleteObject({ Key, Bucket }).promise()
                 )
-            ),
-        false
+            );
+            await s3
+                .deleteBucket({ Bucket })
+                .promise()
+                .catch(err => warn(`Error deleting Bucket: ${Bucket}: ${err.message}`));
+        }
     );
 
     if (execute) {
         await delay(500);
     }
-
-    await deleteAWSResource(
-        /^cloudify-/,
-        () => s3.listBuckets(),
-        page => page.Buckets,
-        bucket => bucket.Name,
-        async Bucket =>
-            s3
-                .deleteBucket({ Bucket })
-                .promise()
-                .catch(err => warn(`Error deleting Bucket: ${Bucket}: ${err.message}`))
-    );
 
     const cache = new LocalCache("aws");
     output(`Local cache: ${cache.dir}`);
@@ -157,6 +161,16 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
     if (execute) {
         cache.clear();
     }
+
+    output(`Cloudwatch log groups`);
+    await deleteAWSResource(
+        "Cloudwatch log group(s)",
+        /\/cloudify-/,
+        () => cloudwatch.describeLogGroups(),
+        page => page.logGroups,
+        logGroup => logGroup.logGroupName,
+        logGroupName => cloudwatch.deleteLogGroup({ logGroupName }).promise()
+    );
 
     return nResources;
 }
