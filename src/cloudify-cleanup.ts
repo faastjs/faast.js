@@ -242,9 +242,9 @@ async function main() {
             }
             await prompt();
         }
-        const nResources = await cleanupAWS({ region, execute, cleanAll });
+        await cleanupAWS({ region, execute, cleanAll });
         if (execute) {
-            log(`Cleaned up ${nResources} resources.`);
+            log(`Done.`);
         } else {
             log(
                 `(dryrun mode, no resources will be deleted, specify -x to execute cleanup)`
