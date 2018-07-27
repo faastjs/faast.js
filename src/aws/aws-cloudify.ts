@@ -4,7 +4,7 @@ import { createHash } from "crypto";
 import * as fs from "fs";
 import * as uuidv4 from "uuid/v4";
 import { LocalCache } from "../cache";
-import { AWS, CloudFunctionImpl, CloudImpl, CreateFunctionOptions } from "../cloudify";
+import { AWS, CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
 import { Funnel, retry, MemoFunnel } from "../funnel";
 import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
@@ -24,16 +24,12 @@ import {
     sqsMessageAttribute
 } from "./aws-queue";
 
-export interface Options {
+export interface Options extends CommonOptions {
     region?: string;
     PolicyArn?: string;
     RoleName?: string;
-    timeout?: number;
-    memorySize?: number;
-    useQueue?: boolean;
     useDependencyCaching?: boolean;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
-    packerOptions?: PackerOptions;
 }
 
 export interface AWSResources {
@@ -74,7 +70,6 @@ export const Impl: CloudImpl<Options, State> = {
     initialize,
     cleanupResources,
     pack,
-    translateOptions,
     getFunctionImpl
 };
 
@@ -113,7 +108,10 @@ export let defaults: Required<Options> = {
     useQueue: true,
     useDependencyCaching: true,
     awsLambdaOptions: {},
-    packerOptions: {}
+    addDirectory: [],
+    addZipFile: [],
+    packageJson: false,
+    webpackOptions: {}
 };
 
 export function createAWSApis(region: string): AWSServices {
@@ -355,9 +353,8 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         memorySize: MemorySize = defaults.memorySize,
         useQueue = defaults.useQueue,
         awsLambdaOptions = defaults.awsLambdaOptions,
-        packerOptions = defaults.packerOptions,
         useDependencyCaching = defaults.useDependencyCaching,
-        ...rest
+        packageJson = defaults.packageJson
     } = options;
     log(`Creating AWS APIs`);
     const services = createAWSApis(region);
@@ -376,7 +373,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             Description: "cloudify trampoline function",
             Timeout,
             MemorySize,
-            ...rest,
             ...awsLambdaOptions
         };
         log(`createFunctionRequest: %O`, createFunctionRequest);
@@ -388,15 +384,15 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     }
 
     async function createCodeBundle() {
-        const bundle = pack(fModule, options, packerOptions);
+        const bundle = pack(fModule, options);
 
         let Code: aws.Lambda.FunctionCode;
-        if (packerOptions.packageJson) {
+        if (packageJson) {
             Code = await buildModulesOnLambda(
                 s3,
                 iam,
                 region,
-                packerOptions.packageJson,
+                packageJson,
                 bundle.then(b => b.indexContents),
                 FunctionName,
                 useDependencyCaching
@@ -610,17 +606,17 @@ export async function cleanup(state: PartialState) {
 
 export async function pack(
     functionModule: string,
-    _cloudifyOptions?: Options,
-    options?: PackerOptions
+    options?: Options
 ): Promise<PackerResult> {
+    const { webpackOptions, ...rest }: PackerOptions = options || {};
     return packer(
         {
             trampolineModule: require.resolve("./aws-trampoline"),
             functionModule
         },
         {
-            webpackOptions: { externals: "aws-sdk" },
-            ...options
+            webpackOptions: { externals: "aws-sdk", ...webpackOptions },
+            ...rest
         }
     );
 }
@@ -666,25 +662,6 @@ export async function setConcurrency(state: State, maxConcurrentExecutions: numb
     } else {
         state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
     }
-}
-
-export function translateOptions({
-    timeout,
-    memorySize,
-    cloudSpecific,
-    useQueue,
-    packageJson,
-    ...rest
-}: CreateFunctionOptions<Options>): Options {
-    const _exhaustiveCheck: Required<typeof rest> = {};
-    const { packerOptions = {}, ...cloudSpecificOther } = cloudSpecific || {};
-    return {
-        timeout,
-        memorySize,
-        useQueue,
-        packerOptions: { packageJson, ...packerOptions },
-        ...cloudSpecificOther
-    };
 }
 
 export function getFunctionImpl() {

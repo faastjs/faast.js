@@ -7,10 +7,20 @@ import * as google from "../src/google/google-cloudify";
 import * as path from "path";
 import { warn, log, disableWarnings, enableWarnings } from "../src/log";
 
-export function checkFunctions(
+export function checkFunctions<O extends cloudify.CommonOptions>(
+    description: string,
+    cloudProvider: "aws",
+    options: aws.Options
+): void;
+export function checkFunctions<O extends cloudify.CommonOptions>(
+    description: string,
+    cloudProvider: "google" | "google-emulator",
+    options: google.Options
+): void;
+export function checkFunctions<O extends cloudify.CommonOptions>(
     description: string,
     cloudProvider: cloudify.CloudProvider,
-    options?: cloudify.CreateFunctionOptions<any>
+    options: O
 ) {
     describe(description, () => {
         let remote: cloudify.Promisified<typeof funcs>;
@@ -19,11 +29,9 @@ export function checkFunctions(
         beforeAll(async () => {
             try {
                 const cloud = cloudify.create(cloudProvider);
-                lambda = await cloud.createFunction("./functions", {
-                    ...options,
-                    timeout: 30,
-                    memorySize: 512
-                });
+                options.timeout = 30;
+                options.memorySize = 512;
+                lambda = await cloud.createFunction("./functions", options);
                 remote = lambda.cloudifyAll(funcs);
             } catch (err) {
                 warn(err);
@@ -98,7 +106,7 @@ export function checkCodeBundle(
     packageType: string,
     maxZipFileSize?: number,
     options?: aws.Options,
-    packageJson?: string
+    expectations?: (root: string) => void
 ): void;
 export function checkCodeBundle(
     description: string,
@@ -106,7 +114,7 @@ export function checkCodeBundle(
     packageType: string,
     maxZipFileSize?: number,
     options?: google.Options,
-    packageJson?: string
+    expectations?: (root: string) => void
 ): void;
 export function checkCodeBundle(
     description: string,
@@ -114,7 +122,7 @@ export function checkCodeBundle(
     packageType: string,
     maxZipFileSize?: number,
     options?: any,
-    packageJson?: string
+    expectations?: (root: string) => void
 ) {
     describe(description, () => {
         test(
@@ -126,7 +134,7 @@ export function checkCodeBundle(
                 const zipFile = path.join("tmp", identifier) + ".zip";
                 const { archive } = await cloudify
                     .create(cloudProvider)
-                    .pack("./functions", options, { packageJson });
+                    .pack("./functions", options);
 
                 await new Promise((resolve, reject) => {
                     const output = fs.createWriteStream(zipFile);
@@ -140,6 +148,7 @@ export function checkCodeBundle(
                 expect(exec(`cd ${tmpDir} && node index.js`)).toMatch(
                     "Successfully loaded cloudify trampoline function."
                 );
+                expectations && expectations(tmpDir);
             },
             30 * 1000
         );

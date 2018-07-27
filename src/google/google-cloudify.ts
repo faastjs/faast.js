@@ -3,7 +3,7 @@ import * as sys from "child_process";
 import { cloudfunctions_v1, google, GoogleApis, pubsub_v1 } from "googleapis";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
-import { CloudFunctionImpl, CloudImpl, CreateFunctionOptions } from "../cloudify";
+import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
@@ -20,13 +20,9 @@ import {
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 
-export interface Options {
+export interface Options extends CommonOptions {
     region?: string;
-    timeoutSec?: number;
-    memorySize?: number;
-    useQueue?: boolean;
     googleCloudFunctionOptions?: CloudFunctions.Schema$CloudFunction;
-    packerOptions?: PackerOptions;
 }
 
 export interface GoogleResources {
@@ -61,7 +57,6 @@ export const Impl: CloudImpl<Options, State> = {
     initialize,
     cleanupResources,
     pack,
-    translateOptions,
     getFunctionImpl
 };
 
@@ -206,11 +201,14 @@ export async function initializeEmulator(fmodule: string, options: Options = {})
 
 export const defaults: Required<Options> = {
     region: "us-central1",
-    timeoutSec: 60,
+    timeout: 60,
     memorySize: 256,
     useQueue: false,
     googleCloudFunctionOptions: {},
-    packerOptions: {}
+    addZipFile: [],
+    addDirectory: [],
+    packageJson: false,
+    webpackOptions: {}
 };
 
 async function initializeWithApi(
@@ -224,16 +222,14 @@ async function initializeWithApi(
     const { cloudFunctions } = services;
     const {
         region = defaults.region,
-        timeoutSec = defaults.timeoutSec,
+        timeout = defaults.timeout,
         memorySize = defaults.memorySize,
         useQueue = defaults.useQueue,
-        googleCloudFunctionOptions,
-        packerOptions,
-        ...rest
+        googleCloudFunctionOptions
     } = options;
     const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
-    const { archive } = await pack(serverModule, options, packerOptions);
+    const { archive } = await pack(serverModule, options);
     const location = `projects/${project}/locations/${region}`;
     const uploadUrlResponse = await carefully(
         cloudFunctions.projects.locations.functions.generateUploadUrl({
@@ -260,11 +256,10 @@ async function initializeWithApi(
     const requestBody: CloudFunctions.Schema$CloudFunction = {
         name: trampoline,
         entryPoint: "trampoline",
-        timeout: `${timeoutSec}s`,
+        timeout: `${timeout}s`,
         availableMemoryMb: memorySize,
         sourceUploadUrl: uploadUrlResponse.uploadUrl,
-        ...googleCloudFunctionOptions,
-        ...rest
+        ...googleCloudFunctionOptions
     };
     if (useQueue) {
         requestBody.eventTrigger = {
@@ -484,7 +479,7 @@ function validateGoogleLabels(labels: { [key: string]: string } | undefined) {
     }
 }
 
-async function uploadZip(url: string, zipStream: Readable) {
+async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
     return Axios.put(url, zipStream, {
         headers: {
             "content-type": "application/zip",
@@ -495,13 +490,13 @@ async function uploadZip(url: string, zipStream: Readable) {
 
 export async function pack(
     functionModule: string,
-    cloudifyOptions: Options = {},
-    options?: PackerOptions
+    options: Options = {}
 ): Promise<PackerResult> {
-    const { useQueue = false } = cloudifyOptions;
+    const { useQueue = false } = options;
     const trampolineModule = useQueue
         ? "./google-trampoline-queue"
         : "./google-trampoline-https";
+    const packerOptions: PackerOptions = options;
     return packer(
         {
             trampolineModule: require.resolve(trampolineModule),
@@ -509,7 +504,7 @@ export async function pack(
         },
         {
             packageJson: useQueue ? "package.json" : undefined,
-            ...options
+            ...packerOptions
         }
     );
 }
@@ -544,24 +539,6 @@ export async function setConcurrency(
     state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
 }
 
-export function translateOptions({
-    timeout,
-    memorySize,
-    cloudSpecific,
-    useQueue,
-    packageJson,
-    ...rest
-}: CreateFunctionOptions<Options> = {}): Options {
-    const _exhaustiveCheck: Required<typeof rest> = {};
-    const { packerOptions = {}, ...cloudSpecificOther } = cloudSpecific || {};
-    return {
-        timeoutSec: timeout,
-        memorySize,
-        useQueue,
-        packerOptions: { packageJson, ...packerOptions },
-        ...cloudSpecificOther
-    };
-}
 export function getFunctionImpl() {
     return GoogleFunctionImpl;
 }

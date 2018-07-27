@@ -8,7 +8,7 @@ export function coldStartTest(
     description: string,
     cloudProvider: cloudify.CloudProvider,
     maxConcurrency: number,
-    options?: cloudify.CreateFunctionOptions<any>
+    options?: cloudify.CommonOptions
 ) {
     let lambda: cloudify.CloudFunction<any>;
     let remote: cloudify.Promisified<typeof funcs>;
@@ -65,7 +65,7 @@ export function throughputTest(
     description: string,
     cloudProvider: cloudify.CloudProvider,
     duration: number,
-    options?: cloudify.CreateFunctionOptions<any>
+    options?: cloudify.CommonOptions
 ) {
     describe(description, () => {
         let lambda: cloudify.CloudFunction<any>;
@@ -108,7 +108,7 @@ export function throughputTest(
 export function checkTimeout(
     description: string,
     cloudProvider: cloudify.CloudProvider,
-    options?: cloudify.CreateFunctionOptions<any>
+    options?: cloudify.CommonOptions
 ) {
     describe(description, () => {
         let remote: cloudify.Promisified<typeof funcs>;
@@ -145,7 +145,7 @@ export function checkTimeout(
 export function checkMemoryLimit(
     description: string,
     cloudProvider: cloudify.CloudProvider,
-    options?: cloudify.CreateFunctionOptions<any>
+    options?: cloudify.CommonOptions
 ) {
     describe(description, () => {
         let remote: cloudify.Promisified<typeof funcs>;

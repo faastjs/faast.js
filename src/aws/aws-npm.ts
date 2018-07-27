@@ -4,7 +4,7 @@ import * as sys from "child_process";
 import * as fs from "fs";
 import * as JSZip from "jszip";
 import * as path from "path";
-import * as stream from "stream";
+import { streamToBuffer } from "../shared";
 
 // Make tsc ok with JSZip declarations.
 declare global {
@@ -22,15 +22,6 @@ export function exec(cmds: string[]) {
 
 const buildDir = "/tmp/build";
 const s3 = new S3();
-
-export function streamToBuffer(s: stream.Readable) {
-    return new Promise<Buffer>((resolve, reject) => {
-        const buffers: Buffer[] = [];
-        s.on("error", reject);
-        s.on("data", (data: Buffer) => buffers.push(data));
-        s.on("end", () => resolve(Buffer.concat(buffers)));
-    });
-}
 
 export interface NpmInstallArgs {
     packageJsonContents: string;

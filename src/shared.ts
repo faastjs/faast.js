@@ -1,5 +1,6 @@
 import { isDeepStrictEqual } from "util";
 import { warn, stats } from "./log";
+import { Readable } from "stream";
 
 export interface CallId {
     CallId: string;
@@ -278,4 +279,13 @@ export class FunctionMetricsMap extends IncrementalMetricsMap<
 
 export function sleep(ms: number) {
     return new Promise<void>(resolve => setTimeout(resolve, ms));
+}
+
+export function streamToBuffer(s: Readable) {
+    return new Promise<Buffer>((resolve, reject) => {
+        const buffers: Buffer[] = [];
+        s.on("error", reject);
+        s.on("data", (data: Buffer) => buffers.push(data));
+        s.on("end", () => resolve(Buffer.concat(buffers)));
+    });
 }

@@ -15,8 +15,7 @@ checkCodeBundle(
     "google",
     "https-package",
     20 * kb,
-    {},
-    "test/package.json"
+    { packageJson: "test/package.json" }
 );
 
 checkCodeBundle(
@@ -35,9 +34,9 @@ checkCodeBundle(
     "queue-package",
     20 * kb,
     {
-        useQueue: true
-    },
-    "test/package.json"
+        useQueue: true,
+        packageJson: "test/package.json"
+    }
 );
 
 checkCodeBundle(

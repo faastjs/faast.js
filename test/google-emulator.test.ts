@@ -1,3 +1,3 @@
 import { checkFunctions } from "./tests";
 
-checkFunctions("Google Emulator", "google-emulator");
+checkFunctions("Google Emulator", "google-emulator", {});

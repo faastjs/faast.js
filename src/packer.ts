@@ -1,5 +1,4 @@
 import { Archiver } from "archiver";
-import { createHash, Hash } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
 import * as webpack from "webpack";
@@ -7,16 +6,22 @@ import { CloudifyLoaderOptions } from "./cloudify-loader";
 import { log } from "./log";
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
+import * as JSZip from "jszip";
+import { streamToBuffer } from "./shared";
+import { promisify } from "util";
 
 export interface PackerOptions {
     webpackOptions?: webpack.Configuration;
-    packageJson?: string | object;
+    packageJson?: string | object | false;
+    addDirectory?: string | string[];
+    addZipFile?: string | string[];
 }
 
+const readFile = promisify(fs.readFile);
+
 export interface PackerResult {
-    archive: Archiver;
+    archive: NodeJS.ReadableStream;
     indexContents: string;
-    hash: string;
 }
 
 function getUrlEncodedQueryParameters(options: CloudifyLoaderOptions) {
@@ -28,7 +33,13 @@ function getUrlEncodedQueryParameters(options: CloudifyLoaderOptions) {
 
 export function packer(
     loaderOptions: CloudifyLoaderOptions,
-    { webpackOptions = {}, packageJson, ...otherPackerOptions }: PackerOptions
+    {
+        webpackOptions = {},
+        packageJson,
+        addDirectory,
+        addZipFile,
+        ...otherPackerOptions
+    }: PackerOptions
 ): Promise<PackerResult> {
     const _exhaustiveCheck: Required<typeof otherPackerOptions> = {};
     log(`Running webpack`);
@@ -47,25 +58,21 @@ export function packer(
         ...webpackOptions
     };
 
-    function addToArchive(
-        mfs: MemoryFileSystem,
-        entry: string,
-        archive: Archiver,
-        hasher: Hash
-    ) {
-        const stat = mfs.statSync(entry);
-        if (stat.isDirectory()) {
-            for (const subEntry of mfs.readdirSync(entry)) {
-                const subEntryPath = path.join(entry, subEntry);
-                addToArchive(mfs, subEntryPath, archive, hasher);
+    function addToArchive(mfs: MemoryFileSystem, root: string, archive: Archiver) {
+        function addEntry(entry: string) {
+            const stat = mfs.statSync(entry);
+            if (stat.isDirectory()) {
+                for (const subEntry of mfs.readdirSync(entry)) {
+                    const subEntryPath = path.join(entry, subEntry);
+                    addEntry(subEntryPath);
+                }
+            } else if (stat.isFile()) {
+                archive.append((mfs as any).createReadStream(entry), {
+                    name: path.relative(root, entry)
+                });
             }
-        } else if (stat.isFile()) {
-            archive.append((mfs as any).createReadStream(entry), {
-                name: entry
-            });
-            hasher.update(entry);
-            hasher.update(mfs.readFileSync(entry));
         }
+        addEntry(root);
     }
 
     function addPackageJson(mfs: MemoryFileSystem, packageJsonFile: string | object) {
@@ -81,14 +88,44 @@ export function packer(
         return Object.keys(parsedPackageJson.dependencies);
     }
 
-    function zipAndHash(mfs: MemoryFileSystem): PackerResult {
-        const archive = archiver("zip", { zlib: { level: 9 } });
-        const hasher = createHash("sha256");
-        addToArchive(mfs, "/", archive, hasher);
-        const hash = hasher.digest("hex");
+    function processAddDirectories(archive: Archiver, directories: string[]) {
+        for (const dir of directories) {
+            log(`Adding directory to archive: ${dir}`);
+            archive.directory(dir, false);
+        }
+    }
+
+    async function processAddZips(archive: Archiver, zipFiles: string[]) {
+        if (zipFiles.length === 0) {
+            return;
+        }
+        const zip = new JSZip();
+        await zip.loadAsync(await streamToBuffer(archive));
+        for (const zipFile of zipFiles) {
+            await zip.loadAsync(await readFile(zipFile));
+        }
+
+        return zip.generateNodeStream({
+            compression: "DEFLATE",
+            compressionOptions: { level: 8 }
+        });
+    }
+
+    async function prepareZipArchive(mfs: MemoryFileSystem): Promise<PackerResult> {
+        const archive = archiver("zip", { zlib: { level: 8 } });
+        addToArchive(mfs, "/", archive);
+        if (typeof addDirectory === "string") {
+            addDirectory = [addDirectory];
+        }
+        addDirectory && processAddDirectories(archive, addDirectory);
         archive.finalize();
+        if (typeof addZipFile === "string") {
+            addZipFile = [addZipFile];
+        }
+        const result =
+            (addZipFile && (await processAddZips(archive, addZipFile))) || archive;
         const indexContents = mfs.readFileSync("/index.js").toString();
-        return { archive, hash, indexContents };
+        return { archive: result, indexContents };
     }
 
     return new Promise<PackerResult>((resolve, reject) => {
@@ -108,7 +145,7 @@ export function packer(
             } else {
                 log(stats.toString());
                 log(`Memory filesystem: %O`, mfs.data);
-                resolve(zipAndHash(mfs));
+                resolve(prepareZipArchive(mfs));
             }
         });
     });

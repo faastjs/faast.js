@@ -18,7 +18,7 @@ function testPackages(packages: string[]) {
                     try {
                         const lambda = await aws.createFunction("./functions", {
                             useQueue: false,
-                            cloudSpecific: { useDependencyCaching: false },
+                            useDependencyCaching: false,
                             packageJson: { dependencies: { [pkg]: "*" } }
                         });
                         await lambda.cleanup();

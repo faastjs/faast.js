@@ -6,8 +6,6 @@ import { log } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import { FunctionCall, FunctionMetricsMap, FunctionReturn } from "./shared";
 import { AnyFunction, Unpacked } from "./type-helpers";
-import { homedir } from "os";
-import { join } from "path";
 
 export interface ResponseDetails<D> {
     value?: D;
@@ -56,12 +54,10 @@ export type Responsified<M> = {
     [K in keyof M]: M[K] extends AnyFunction ? ResponsifiedFunction<M[K]> : never
 };
 
-export interface CreateFunctionOptions<CloudSpecificOptions> {
+export interface CommonOptions extends PackerOptions {
     timeout?: number;
     memorySize?: number;
-    cloudSpecific?: CloudSpecificOptions;
     useQueue?: boolean;
-    packageJson?: string | object;
 }
 
 function resolve(fmodule: string) {
@@ -76,7 +72,7 @@ function resolve(fmodule: string) {
     return moduleParentResolve(fmodule);
 }
 
-export class Cloud<O, S> {
+export class Cloud<O extends CommonOptions, S> {
     name: string = this.impl.name;
 
     constructor(protected impl: CloudImpl<O, S>) {}
@@ -85,22 +81,14 @@ export class Cloud<O, S> {
         return this.impl.cleanupResources(resources);
     }
 
-    pack(
-        fmodule: string,
-        cloudifyOptions?: O,
-        options?: PackerOptions
-    ): Promise<PackerResult> {
-        return this.impl.pack(resolve(fmodule), cloudifyOptions, options);
+    pack(fmodule: string, options?: O): Promise<PackerResult> {
+        return this.impl.pack(resolve(fmodule), options);
     }
 
-    async createFunction(
-        fmodule: string,
-        options: CreateFunctionOptions<O> = {}
-    ): Promise<CloudFunction<S>> {
-        const optionsImpl: O = this.impl.translateOptions(options);
+    async createFunction(fmodule: string, options?: O): Promise<CloudFunction<S>> {
         return new CloudFunction(
             this.impl.getFunctionImpl(),
-            await this.impl.initialize(resolve(fmodule), optionsImpl)
+            await this.impl.initialize(resolve(fmodule), options)
         );
     }
 }
@@ -274,12 +262,7 @@ export interface CloudImpl<O, S> {
     name: string;
     initialize(serverModule: string, options?: O): Promise<S>;
     cleanupResources(resources: string): Promise<void>;
-    pack(
-        functionModule: string,
-        cloudifyOptions?: O,
-        options?: PackerOptions
-    ): Promise<PackerResult>;
-    translateOptions(options?: CreateFunctionOptions<O>): O;
+    pack(functionModule: string, options?: O): Promise<PackerResult>;
     getFunctionImpl(): CloudFunctionImpl<S>;
 }
 
