@@ -1,6 +1,6 @@
-import { isDeepStrictEqual } from "util";
 import { warn, stats } from "./log";
 import { Readable } from "stream";
+import { deepStrictEqual } from "assert";
 
 export interface CallId {
     CallId: string;
@@ -53,7 +53,9 @@ export function serializeCall(call: FunctionCall) {
     const callStr = JSON.stringify(call);
     const deserialized = JSON.parse(callStr);
     deepCopyUndefined(deserialized, call);
-    if (!isDeepStrictEqual(deserialized, call)) {
+    try {
+        deepStrictEqual(deserialized, call);
+    } catch (_) {
         warn(`WARNING: problem serializing arguments to JSON`);
         warn(`deserialized arguments: %O`, deserialized);
         warn(`original arguments: %O`, call);

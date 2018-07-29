@@ -4,7 +4,7 @@ import { cloudfunctions_v1, google, GoogleApis, pubsub_v1 } from "googleapis";
 import { Readable } from "stream";
 import * as uuidv4 from "uuid/v4";
 import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
-import { Funnel } from "../funnel";
+import { Funnel, Deferred } from "../funnel";
 import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
@@ -334,7 +334,7 @@ async function initializeGoogleQueue(
         });
 
     await Promise.all([requestPromise, responsePromise]);
-
+    const deferred = new Deferred<cloudqueue.QueueError[]>();
     return {
         getMessageAttribute: (message, attr) => pubsubMessageAttribute(message, attr),
         pollResponseQueueMessages: () =>
@@ -345,9 +345,9 @@ async function initializeGoogleQueue(
             publish(pubsub, resources.requestQueueTopic!, body, attributes),
         publishReceiveQueueControlMessage: type =>
             publishControlMessage(type, pubsub, resources.responseQueueTopic!),
-        publishDLQControlMessage: async _type => {},
+        publishDLQControlMessage: async _type => deferred.resolve([]),
         isControlMessage: (m, value) => pubsubMessageAttribute(m, "cloudify") === value,
-        pollErrorQueue: () => Promise.resolve([])
+        pollErrorQueue: () => deferred.promise
     };
 }
 

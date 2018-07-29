@@ -5,11 +5,11 @@ import * as fs from "fs";
 import * as uuidv4 from "uuid/v4";
 import { LocalCache } from "../cache";
 import { AWS, CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
-import { Funnel, retry, MemoFunnel } from "../funnel";
+import { Funnel, MemoFunnel, retry } from "../funnel";
 import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { FunctionCall, FunctionReturn, sleep, serializeCall } from "../shared";
+import { FunctionCall, FunctionReturn, serializeCall, sleep } from "../shared";
 import * as awsNpm from "./aws-npm";
 import {
     createDLQ,

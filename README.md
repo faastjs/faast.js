@@ -22,6 +22,14 @@ npx
 npm install -g npx
 ```
 
+unzip
+
+Available by default on MacOS and most linux distributions. Install if needed with your local package manager. For example, on Ubuntu:
+
+```
+sudo apt install unzip
+```
+
 ## Building
 
 ```
