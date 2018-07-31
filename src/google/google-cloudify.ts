@@ -75,7 +75,7 @@ export const EmulatorImpl: CloudImpl<Options, State> = {
 };
 
 export async function initializeGoogleServices(
-    useEmulator: boolean
+    useEmulator: boolean = false
 ): Promise<GoogleServices> {
     const auth = await google.auth.getClient({
         scopes: ["https://www.googleapis.com/auth/cloud-platform"]
@@ -165,7 +165,7 @@ async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) 
 }
 
 export async function initialize(fmodule: string, options: Options = {}): Promise<State> {
-    const services = await initializeGoogleServices(false);
+    const services = await initializeGoogleServices();
     const project = await google.auth.getDefaultProjectId();
     return initializeWithApi(services, fmodule, options, project, false);
 }

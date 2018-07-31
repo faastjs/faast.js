@@ -295,4 +295,8 @@ export class RateLimitedFunnel<T> {
     pushRetry(n: number, worker: () => Promise<T>) {
         return this.funnel.pushRetry(n, () => this.rateLimiter.push(worker));
     }
+
+    allFutures() {
+        return this.funnel.allFutures();
+    }
 }

@@ -5,9 +5,13 @@ import * as commander from "commander";
 import * as inquirer from "inquirer";
 import { delay } from "../test/functions";
 import * as awsCloudify from "./aws/aws-cloudify";
+import * as googleCloudify from "./google/google-cloudify";
 import { LocalCache } from "./cache";
 import { RateLimitedFunnel, retry } from "./funnel";
 import * as ora from "ora";
+import { AxiosPromise, AxiosResponse } from "axios";
+import { cloudfunctions_v1, google } from "googleapis";
+import { match } from "../node_modules/@types/minimatch";
 
 const warn = console.warn;
 const log = console.log;
@@ -19,22 +23,53 @@ interface CleanupAWSOptions {
     print?: boolean;
 }
 
+async function deleteResources(
+    name: string,
+    matchingResources: string[],
+    remove: (arg: string) => Promise<any>,
+    { maxConcurrency = 10, targetRequestsPerSecond = 5, maxBurst = 5 } = {}
+) {
+    if (matchingResources.length > 0) {
+        const timeEstimate = (resources: any[]) =>
+            resources.length <= 5 ? "" : `(est: ${(resources.length / 5).toFixed(1)}s)`;
+        const updateSpinnerText = (resources: any[]) =>
+            `Deleting ${matchingResources.length} ${name} ${timeEstimate(resources)}`;
+        const spinner = ora(updateSpinnerText(matchingResources)).start();
+        const funnel = new RateLimitedFunnel({
+            maxConcurrency,
+            targetRequestsPerSecond,
+            maxBurst
+        });
+        const timer = setInterval(
+            () => (spinner.text = updateSpinnerText(funnel.allFutures())),
+            1000
+        );
+        try {
+            await Promise.all(
+                matchingResources.map(resource =>
+                    funnel.pushRetry(3, () => remove(resource))
+                )
+            );
+        } finally {
+            clearInterval(timer);
+        }
+        spinner.stopAndPersist({ symbol: "✔" });
+    }
+}
+
 async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
     let nResources = 0;
     const output = (msg: string) => !execute && log(msg);
     const { cloudwatch, iam, lambda, sns, sqs, s3 } = awsCloudify.createAWSApis(region);
 
-    async function deleteAWSResource<T, U>(
-        name: string,
+    function listAWSResource<T, U>(
         pattern: RegExp,
         getList: () => aws.Request<T, aws.AWSError>,
         extractList: (arg: T) => U[] | undefined,
-        extractElement: (arg: U) => string | undefined,
-        remove: (arg: string) => Promise<any>,
-        printOutput: boolean = true
+        extractElement: (arg: U) => string | undefined
     ) {
         const allResources: string[] = [];
-        await new Promise((resolve, reject) => {
+        return new Promise<string[]>((resolve, reject) => {
             getList().eachPage((err, page) => {
                 if (err) {
                     reject(err);
@@ -42,33 +77,36 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
                 const elems = (page && extractList(page)) || [];
                 allResources.push(...elems.map(elem => extractElement(elem) || ""));
                 if (page === null) {
-                    resolve(allResources);
+                    const matchingResources = allResources.filter(t => t.match(pattern));
+                    matchingResources.forEach(resource => output(`  ${resource}`));
+                    resolve(matchingResources);
                 }
                 return true;
             });
         });
-        const matchingResources = allResources.filter(t => t.match(pattern));
-        matchingResources.forEach(resource => printOutput && output(`  ${resource}`));
-        nResources += matchingResources.length;
-        if (execute && matchingResources.length > 0) {
-            const timeEstimate =
-                matchingResources.length <= 5
-                    ? ""
-                    : `(est: ${(matchingResources.length / 5).toFixed(1)}s)`;
-            const spinner = ora(
-                `Deleting ${matchingResources.length} ${name} ${timeEstimate}`
-            ).start();
-            const funnel = new RateLimitedFunnel({
+    }
+
+    async function deleteAWSResource<T, U>(
+        name: string,
+        pattern: RegExp,
+        getList: () => aws.Request<T, aws.AWSError>,
+        extractList: (arg: T) => U[] | undefined,
+        extractElement: (arg: U) => string | undefined,
+        remove: (arg: string) => Promise<any>
+    ) {
+        const allResources = await listAWSResource(
+            pattern,
+            getList,
+            extractList,
+            extractElement
+        );
+        nResources += allResources.length;
+        if (execute) {
+            await deleteResources(name, allResources, remove, {
                 maxConcurrency: 10,
                 targetRequestsPerSecond: 5,
                 maxBurst: 5
             });
-            await Promise.all(
-                matchingResources.map(resource =>
-                    funnel.pushRetry(3, () => remove(resource))
-                )
-            );
-            spinner.stopAndPersist({ symbol: "✔" });
         }
     }
 
@@ -175,7 +213,140 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
     return nResources;
 }
 
-async function cleanupGoogle() {}
+interface CleanupGoogleOptions {
+    region: string;
+    execute: boolean;
+    print?: boolean;
+}
+
+interface HasNextPageToken {
+    nextPageToken?: string;
+}
+
+async function iterate<T extends HasNextPageToken>(
+    getPage: (token?: string) => AxiosPromise<T>,
+    each: (val: T) => void
+) {
+    let token;
+    do {
+        const result: AxiosResponse<T> = await getPage(token);
+        each(result.data);
+        token = result.data.nextPageToken;
+    } while (token);
+}
+
+async function googleListFunctions(
+    cloudFunctions: cloudfunctions_v1.Cloudfunctions,
+    project: string
+) {
+    const allFunctions: string[] = [];
+    await iterate(
+        pageToken =>
+            cloudFunctions.projects.locations.functions.list({
+                pageToken,
+                parent: `projects/${project}/locations/-`
+            }),
+        result => {
+            const funcs = result.functions || [];
+            allFunctions.push(...funcs.map(f => f.name!));
+        }
+    );
+    return allFunctions;
+}
+
+async function cleanupGoogle({ execute }: CleanupGoogleOptions) {
+    let nResources = 0;
+    const output = (msg: string) => !execute && log(msg);
+
+    async function listGoogleResource<T, U>(
+        pattern: RegExp,
+        getList: (pageToken?: string) => AxiosPromise<T>,
+        extractList: (arg: T) => U[] | undefined,
+        extractElement: (arg: U) => string | undefined
+    ) {
+        const allResources: string[] = [];
+        await iterate(
+            pageToken => getList(pageToken),
+            result => {
+                const resources = extractList(result) || [];
+                allResources.push(...resources.map(elem => extractElement(elem) || ""));
+            }
+        );
+
+        const matchingResources = allResources.filter(t => t.match(pattern));
+        matchingResources.forEach(resource => output(`  ${resource}`));
+        return matchingResources;
+    }
+
+    async function deleteGoogleResource<T, U>(
+        name: string,
+        pattern: RegExp,
+        getList: (pageToken?: string) => AxiosPromise<T>,
+        extractList: (arg: T) => U[] | undefined,
+        extractElement: (arg: U) => string | undefined,
+        remove: (arg: string) => Promise<any>
+    ) {
+        const allResources = await listGoogleResource(
+            pattern,
+            getList,
+            extractList,
+            extractElement
+        );
+        nResources += allResources.length;
+        if (execute) {
+            await deleteResources(name, allResources, remove, {
+                maxConcurrency: 20,
+                targetRequestsPerSecond: 20,
+                maxBurst: 20
+            });
+        }
+    }
+    const { cloudFunctions, pubsub } = await googleCloudify.initializeGoogleServices();
+    const project = await google.auth.getDefaultProjectId();
+    log(`Default project: ${project}`);
+
+    output(`Cloud functions`);
+    await deleteGoogleResource(
+        "Cloud Function(s)",
+        /cloudify-/,
+        (pageToken?: string) =>
+            cloudFunctions.projects.locations.functions.list({
+                pageToken,
+                parent: `projects/${project}/locations/-`
+            }),
+        page => page.functions,
+        func => func.name,
+        name => cloudFunctions.projects.locations.functions.delete({ name })
+    );
+
+    output(`Pub/Sub subscriptions`);
+    await deleteGoogleResource(
+        "Pub/Sub Subscription(s)",
+        /cloudify-/,
+        pageToken =>
+            pubsub.projects.subscriptions.list({
+                pageToken,
+                project: `projects/${project}`
+            }),
+        page => page.subscriptions,
+        subscription => subscription.name,
+        subscriptionName =>
+            pubsub.projects.subscriptions.delete({ subscription: subscriptionName })
+    );
+
+    output(`Pub/Sub topics`);
+    await deleteGoogleResource(
+        "Pub/Sub topic(s)",
+        /topics\/cloudify-/,
+        pageToken =>
+            pubsub.projects.topics.list({ pageToken, project: `projects/${project}` }),
+        page => page.topics,
+        topic => topic.name,
+        topicName => pubsub.projects.topics.delete({ topic: topicName })
+    );
+
+    return nResources;
+}
 
 async function prompt() {
     const answer = await inquirer.prompt<any>([
@@ -224,36 +395,53 @@ async function main() {
         process.env.DEBUG = "cloudify:*";
     }
     const execute = commander.execute || false;
-    const region = commander.region || awsCloudify.defaults.region;
+    let region = commander.region;
+
+    if (!region) {
+        switch (cloud) {
+            case "aws":
+                region = awsCloudify.defaults.region;
+                break;
+            case "google":
+                region = googleCloudify.defaults.region;
+                break;
+        }
+    }
     const force = commander.force || false;
     const cleanAll = commander.all || false;
 
-    if (cloud === "aws") {
-        log(`Region: ${region}`);
-        if (execute && !force) {
-            const n = await cleanupAWS({
-                region,
-                execute: false,
-                cleanAll
-            });
-            if (n === 0) {
-                log(`No resources to clean up.`);
-                process.exit(0);
-            }
-            await prompt();
-        }
-        await cleanupAWS({ region, execute, cleanAll });
-        if (execute) {
-            log(`Done.`);
+    log(`Region: ${region}`);
+    let nResources = 0;
+    if (execute && !force) {
+        if (cloud === "aws") {
+            nResources = await cleanupAWS({ region, execute: false, cleanAll });
+        } else if (cloud === "google") {
+            nResources = await cleanupGoogle({ region, execute: false });
         } else {
-            log(
-                `(dryrun mode, no resources will be deleted, specify -x to execute cleanup)`
-            );
+            warn(`Unknown cloud name ${commander.cloud}. Must specify "aws" or "google"`);
+            process.exit(-1);
         }
-        return;
+
+        if (nResources === 0) {
+            log(`No resources to clean up.`);
+            process.exit(0);
+        }
+        await prompt();
     }
-    warn(`Unknown cloud name ${commander.cloud}. Must specify "aws" or "google"`);
-    process.exit(-1);
+
+    if (cloud === "aws") {
+        await cleanupAWS({ region, execute, cleanAll });
+    } else if (cloud === "google") {
+        await cleanupGoogle({ region, execute });
+    } else {
+        warn(`Unknown cloud name ${commander.cloud}. Must specify "aws" or "google"`);
+        process.exit(-1);
+    }
+    if (execute) {
+        log(`Done.`);
+    } else {
+        log(`(dryrun mode, no resources will be deleted, specify -x to execute cleanup)`);
+    }
 }
 
 main();
