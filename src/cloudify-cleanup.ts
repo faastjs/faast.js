@@ -1,17 +1,15 @@
 require("source-map-support").install();
 
 import * as aws from "aws-sdk";
-import * as commander from "commander";
-import * as inquirer from "inquirer";
-import { delay } from "../test/functions";
-import * as awsCloudify from "./aws/aws-cloudify";
-import * as googleCloudify from "./google/google-cloudify";
-import { LocalCache } from "./cache";
-import { RateLimitedFunnel, retry } from "./funnel";
-import * as ora from "ora";
 import { AxiosPromise, AxiosResponse } from "axios";
+import * as commander from "commander";
 import { cloudfunctions_v1, google } from "googleapis";
-import { match } from "../node_modules/@types/minimatch";
+import * as inquirer from "inquirer";
+import * as ora from "ora";
+import * as awsCloudify from "./aws/aws-cloudify";
+import { LocalCache } from "./cache";
+import { RateLimitedFunnel } from "./funnel";
+import * as googleCloudify from "./google/google-cloudify";
 
 const warn = console.warn;
 const log = console.log;
