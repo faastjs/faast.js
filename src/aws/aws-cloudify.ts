@@ -744,3 +744,21 @@ function addSnsInvokePermissionsToFunction(
         })
         .promise();
 }
+
+async function readLogGroup(logGroupName: string, cloudWatch: aws.CloudWatchLogs) {
+    await new Promise((resolve, reject) =>
+        cloudWatch.filterLogEvents({ logGroupName }).eachPage((err, data) => {
+            if (err) {
+                reject(err);
+            }
+            if (data === null) {
+                resolve();
+            }
+            const events = data.events || [];
+            for (const event of events) {
+                log(`log event: %O`, event);
+            }
+            return true;
+        })
+    );
+}
