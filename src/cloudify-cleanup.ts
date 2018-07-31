@@ -32,7 +32,7 @@ async function deleteResources(
     if (matchingResources.length > 0) {
         const timeEstimate = (resources: any[]) =>
             resources.length <= 5 ? "" : `(est: ${(resources.length / 5).toFixed(1)}s)`;
-        const updateSpinnerText = (resources: any[]) =>
+        const updateSpinnerText = (resources: any[] = []) =>
             `Deleting ${matchingResources.length} ${name} ${timeEstimate(resources)}`;
         const spinner = ora(updateSpinnerText(matchingResources)).start();
         const funnel = new RateLimitedFunnel({
@@ -52,6 +52,7 @@ async function deleteResources(
             );
         } finally {
             clearInterval(timer);
+            spinner.text = updateSpinnerText();
         }
         spinner.stopAndPersist({ symbol: "✔" });
     }
@@ -160,6 +161,24 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
         RoleName => awsCloudify.deleteRole(RoleName, iam)
     );
 
+    output(`S3 bucket keys`);
+    const buckets = await listAWSResource(
+        /^cloudify-/,
+        () => s3.listBuckets(),
+        page => page.Buckets,
+        bucket => bucket.Name
+    );
+    for (const Bucket of buckets) {
+        await deleteAWSResource(
+            "S3 Bucket key(s)",
+            /./,
+            () => s3.listObjectsV2({ Bucket }),
+            object => object.Contents,
+            content => content.Key,
+            Key => s3.deleteObject({ Key, Bucket }).promise()
+        );
+    }
+
     output(`S3 buckets`);
     await deleteAWSResource(
         "S3 Bucket(s)",
@@ -167,27 +186,8 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
         () => s3.listBuckets(),
         page => page.Buckets,
         bucket => bucket.Name,
-        async Bucket => {
-            await retry(3, () =>
-                deleteAWSResource(
-                    "S3 Bucket Key(s)",
-                    /./,
-                    () => s3.listObjectsV2({ Bucket }),
-                    object => object.Contents,
-                    content => content.Key,
-                    Key => s3.deleteObject({ Key, Bucket }).promise()
-                )
-            );
-            await s3
-                .deleteBucket({ Bucket })
-                .promise()
-                .catch(err => warn(`Error deleting Bucket: ${Bucket}: ${err.message}`));
-        }
+        Bucket => s3.deleteBucket({ Bucket }).promise()
     );
-
-    if (execute) {
-        await delay(500);
-    }
 
     const cache = new LocalCache("aws");
     output(`Local cache: ${cache.dir}`);
