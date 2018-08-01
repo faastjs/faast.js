@@ -50,6 +50,10 @@ export function promiseArg(promise: Promise<any>) {
     return promise;
 }
 
+export function optionalArg(arg?: string) {
+    return arg ? arg : "No arg";
+}
+
 export function consoleLog(str: string) {
     console.log(str);
 }

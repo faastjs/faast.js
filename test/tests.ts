@@ -88,6 +88,11 @@ export function checkFunctions<O extends cloudify.CommonOptions>(
             expect(await remote.promiseArg(Promise.resolve("hello"))).toEqual({});
             saved && enableWarnings();
         });
+
+        test("optional arguments are supported", async () => {
+            expect(await remote.optionalArg()).toBe("No arg");
+            expect(await remote.optionalArg("has arg")).toBe("has arg");
+        });
     });
 }
 
