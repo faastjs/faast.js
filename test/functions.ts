@@ -49,3 +49,15 @@ export async function timer(delayMs: number) {
 export function promiseArg(promise: Promise<any>) {
     return promise;
 }
+
+export function consoleLog(str: string) {
+    console.log(str);
+}
+
+export function consoleWarn(str: string) {
+    console.warn(str);
+}
+
+export function consoleError(str: string) {
+    console.error(str);
+}

@@ -72,6 +72,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
             getList().eachPage((err, page) => {
                 if (err) {
                     reject(err);
+                    return false;
                 }
                 const elems = (page && extractList(page)) || [];
                 allResources.push(...elems.map(elem => extractElement(elem) || ""));

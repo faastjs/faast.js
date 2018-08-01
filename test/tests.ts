@@ -2,20 +2,21 @@ import * as cloudify from "../src/cloudify";
 import * as funcs from "./functions";
 import * as sys from "child_process";
 import * as fs from "fs";
-import * as aws from "../src/aws/aws-cloudify";
-import * as google from "../src/google/google-cloudify";
+import * as awsCloudify from "../src/aws/aws-cloudify";
+import * as googleCloudify from "../src/google/google-cloudify";
 import * as path from "path";
 import { warn, log, disableWarnings, enableWarnings } from "../src/log";
+import { sleep } from "../src/shared";
 
 export function checkFunctions<O extends cloudify.CommonOptions>(
     description: string,
     cloudProvider: "aws",
-    options: aws.Options
+    options: awsCloudify.Options
 ): void;
 export function checkFunctions<O extends cloudify.CommonOptions>(
     description: string,
     cloudProvider: "google" | "google-emulator",
-    options: google.Options
+    options: googleCloudify.Options
 ): void;
 export function checkFunctions<O extends cloudify.CommonOptions>(
     description: string,
@@ -105,7 +106,7 @@ export function checkCodeBundle(
     cloudProvider: "aws",
     packageType: string,
     maxZipFileSize?: number,
-    options?: aws.Options,
+    options?: awsCloudify.Options,
     expectations?: (root: string) => void
 ): void;
 export function checkCodeBundle(
@@ -113,7 +114,7 @@ export function checkCodeBundle(
     cloudProvider: "google" | "google-emulator",
     packageType: string,
     maxZipFileSize?: number,
-    options?: google.Options,
+    options?: googleCloudify.Options,
     expectations?: (root: string) => void
 ): void;
 export function checkCodeBundle(
@@ -151,6 +152,61 @@ export function checkCodeBundle(
                 expectations && expectations(tmpDir);
             },
             30 * 1000
+        );
+    });
+}
+
+export function checkLogs<O extends cloudify.CommonOptions>(
+    description: string,
+    cloudProvider: "aws",
+    options: awsCloudify.Options
+): void;
+export function checkLogs<O extends cloudify.CommonOptions>(
+    description: string,
+    cloudProvider: "google" | "google-emulator",
+    options: googleCloudify.Options
+): void;
+export function checkLogs<O extends cloudify.CommonOptions>(
+    description: string,
+    cloudProvider: cloudify.CloudProvider,
+    options: O
+) {
+    describe(description, () => {
+        let remote: cloudify.Promisified<typeof funcs>;
+        let lambda: cloudify.CloudFunction<any>;
+
+        beforeAll(async () => {
+            try {
+                const cloud = cloudify.create(cloudProvider);
+                options.timeout = 30;
+                options.memorySize = 512;
+                lambda = await cloud.createFunction("./functions", options);
+                remote = lambda.cloudifyAll(funcs);
+            } catch (err) {
+                warn(err);
+            }
+        }, 90 * 1000);
+
+        afterAll(async () => {
+            await lambda.cleanup();
+            // await lambda.stop();
+        }, 60 * 1000);
+
+        test(
+            "logs",
+            async () => {
+                const state = lambda.state as awsCloudify.State;
+                await remote.consoleLog("Cloudify console.log");
+                await remote.consoleWarn("Cloudify console.warn");
+                await remote.consoleError("Cloudify console.error");
+                log(`Sleeping 20`);
+                await sleep(20 * 1000);
+                await awsCloudify.readLogGroup(
+                    state.resources.logGroupName,
+                    state.services.cloudwatch
+                );
+            },
+            100 * 1000
         );
     });
 }
