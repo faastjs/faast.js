@@ -61,3 +61,7 @@ export function consoleWarn(str: string) {
 export function consoleError(str: string) {
     console.error(str);
 }
+
+export function consoleInfo(str: string) {
+    console.info(str);
+}

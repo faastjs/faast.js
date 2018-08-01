@@ -196,9 +196,10 @@ export function checkLogs<O extends cloudify.CommonOptions>(
             "logs",
             async () => {
                 const state = lambda.state as awsCloudify.State;
-                await remote.consoleLog("Cloudify console.log");
-                await remote.consoleWarn("Cloudify console.warn");
-                await remote.consoleError("Cloudify console.error");
+                await remote.consoleLog("console.log works");
+                await remote.consoleWarn("console.warn works");
+                await remote.consoleError("console.error works");
+                await remote.consoleInfo("console.info works");
                 log(`Sleeping 20`);
                 await sleep(20 * 1000);
                 await awsCloudify.readLogGroup(
