@@ -758,7 +758,13 @@ export async function readLogGroup(logGroupName: string, cloudWatch: aws.CloudWa
             }
             const events = data.events || [];
             for (const event of events) {
-                log(event.message);
+                let m = event.message;
+                if (m) {
+                    if (m.match(/\n$/)) {
+                        m = m.slice(0, m.length - 1);
+                    }
+                    m && log(`LOG: ${m}`);
+                }
             }
             return true;
         })

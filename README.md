@@ -177,15 +177,10 @@ Response queue funnel: create a request listener for every 20 outstanding reques
 
 # Limitations
 
-Functions with optional arguments aren't supported well. All optional arguments will be removed in the type of the remote call. This is a limitation of TypeScript's type system at the moment. As an alternative, consider using the object-as-named-parameter pattern and define optional object keys. For example:
+Cloudified function arguments must be serializable with [`JSON.stringify`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify). Cloudify will print a warning if it detects a case where `JSON.stringify` will result in a loss of information passed to the function. This may cause unexpected behavior when the code in the lambda function executes. For example, the following will lose information:
 
-```typescript
-interface FunctionArgs {
- arg: string;
- optionalArg?: string;
-}
+- Promises are transformed into `{}`
+- `Date` instances are transformed into strings
+- ... and more. The MDN documentation contains more details about specific cases.
 
-function foo({ arg, optionalArg }: FunctionArgs) {
- // optionalArg has type string | undefined
-}
-```
+Cloudify tries its best to detect these cases, but 100% detection is not guaranteed.

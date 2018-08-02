@@ -18,40 +18,24 @@ export interface ResponseDetails<D> {
 
 export type Response<D> = ResponseDetails<Unpacked<D>>;
 
-export type PromisifiedFunction<T extends AnyFunction> =
-    // prettier-ignore
-    T extends () => infer D ? () => Promise<Unpacked<D>> :
-    T extends (a1: infer A1) => infer D ? (a1: A1) => Promise<Unpacked<D>> :
-    T extends (a1: infer A1, a2: infer A2) => infer D ? (a1: A1, a2: A2) => Promise<Unpacked<D>> :
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3) => infer D ? (a1: A1, a2: A2, a3: A3) => Promise<Unpacked<D>> :
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4) => infer D ? (a1: A1, a2: A2, a3: A3, a4: A4) => Promise<Unpacked<D>> :
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5) => infer D ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5) => Promise<Unpacked<D>> :
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6) => infer D ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6) => Promise<Unpacked<D>> :
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7) => infer D ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7) => Promise<Unpacked<D>> :
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7, a8: infer A8) => infer D ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7, a8: A8) => Promise<Unpacked<D>> :
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7, a8: infer A8, a9: infer A9) => infer D ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7, a8: A8, a9: A9) => Promise<Unpacked<D>> :
-    T extends (...args: any[]) => infer D ? (...args: any[]) => Promise<Unpacked<D>> : T;
+export type PromisifiedFunction<A extends any[], R> = (
+    ...args: A
+) => Promise<Unpacked<R>>;
 
 export type Promisified<M> = {
-    [K in keyof M]: M[K] extends AnyFunction ? PromisifiedFunction<M[K]> : never
+    [K in keyof M]: M[K] extends (...args: infer A) => infer R
+        ? PromisifiedFunction<A, R>
+        : never
 };
 
-export type ResponsifiedFunction<T extends AnyFunction> =
-    // prettier-ignore
-    T extends () => infer D ? () => Promise<Response<D>> :
-    T extends (a1: infer A1) => infer D ? (a1: A1) => Promise<Response<D>> :
-    T extends (a1: infer A1, a2: infer A2) => infer D ? (a1: A1, a2: A2) => Promise<Response<D>> :
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3) => infer D ? (a1: A1, a2: A2, a3: A3) => Promise<Response<D>> :
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4) => infer D ? (a1: A1, a2: A2, a3: A3, a4: A4) => Promise<Response<D>> :
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5) => infer D ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5) => Promise<Response<D>> :
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6) => infer D ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6) => Promise<Response<D>> :
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7) => infer D ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7) => Promise<Response<D>> :
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7, a8: infer A8) => infer D ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7, a8: A8) => Promise<Response<D>> :
-    T extends (a1: infer A1, a2: infer A2, a3: infer A3, a4: infer A4, a5: infer A5, a6: infer A6, a7: infer A7, a8: infer A8, a9: infer A9) => infer D ? (a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7, a8: A8, a9: A9) => Promise<Response<D>> :
-    T extends (...args: any[]) => infer D ? (...args: any[]) => Promise<Response<D>> :T;
+export type ResponsifiedFunction<A extends any[], R> = (
+    ...args: A
+) => Promise<Response<R>>;
 
 export type Responsified<M> = {
-    [K in keyof M]: M[K] extends AnyFunction ? ResponsifiedFunction<M[K]> : never
+    [K in keyof M]: M[K] extends (...args: infer A) => infer R
+        ? ResponsifiedFunction<A, R>
+        : never
 };
 
 export interface CommonOptions extends PackerOptions {
@@ -93,7 +77,7 @@ export class Cloud<O extends CommonOptions, S> {
     }
 }
 
-export function processResponse(
+export function processResponse<R>(
     returned: FunctionReturn,
     callRequest: FunctionCall,
     metrics: FunctionMetricsMap
@@ -106,7 +90,7 @@ export function processResponse(
         error.stack = errValue.stack;
     }
     const value = !error && returned.value;
-    let rv: Response<ReturnType<any>> = {
+    let rv: Response<R> = {
         value,
         error,
         rawResponse: returned.rawResponse
@@ -164,8 +148,10 @@ export class CloudFunction<S> {
         return this.impl.setConcurrency(this.state, maxConcurrentExecutions);
     }
 
-    cloudifyWithResponse<F extends AnyFunction>(fn: F) {
-        const responsifedFunc = async (...args: any[]) => {
+    cloudifyWithResponse<A extends any[], R>(
+        fn: (...args: A) => R
+    ): ResponsifiedFunction<A, R> {
+        const responsifedFunc = async (...args: A) => {
             const CallId = uuidv4();
             const start = Date.now();
             const callRequest: FunctionCall = { name: fn.name, args, CallId, start };
@@ -181,15 +167,15 @@ export class CloudFunction<S> {
                     };
                     return err;
                 });
-            return processResponse(rv, callRequest, this.functionMetrics);
+            return processResponse<R>(rv, callRequest, this.functionMetrics);
         };
-        return responsifedFunc as any;
+        return responsifedFunc;
     }
 
-    cloudify<F extends AnyFunction>(fn: F): PromisifiedFunction<F> {
-        const cloudifiedFunc = async (...args: any[]) => {
-            const cfn = this.cloudifyWithResponse<F>(fn) as any;
-            const response: Response<ReturnType<F>> = await cfn(...args);
+    cloudify<A extends any[], R>(fn: (...args: A) => R): PromisifiedFunction<A, R> {
+        const cloudifiedFunc = async (...args: A) => {
+            const cfn = this.cloudifyWithResponse(fn);
+            const response: Response<R> = await cfn(...args);
             if (response.error) {
                 throw response.error;
             }

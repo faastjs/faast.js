@@ -88,6 +88,11 @@ export function checkFunctions<O extends cloudify.CommonOptions>(
             expect(await remote.promiseArg(Promise.resolve("hello"))).toEqual({});
             saved && enableWarnings();
         });
+
+        test("optional arguments are supported", async () => {
+            expect(await remote.optionalArg()).toBe("No arg");
+            expect(await remote.optionalArg("has arg")).toBe("has arg");
+        });
     });
 }
 
@@ -196,9 +201,10 @@ export function checkLogs<O extends cloudify.CommonOptions>(
             "logs",
             async () => {
                 const state = lambda.state as awsCloudify.State;
-                await remote.consoleLog("Cloudify console.log");
-                await remote.consoleWarn("Cloudify console.warn");
-                await remote.consoleError("Cloudify console.error");
+                await remote.consoleLog("console.log works");
+                await remote.consoleWarn("console.warn works");
+                await remote.consoleError("console.error works");
+                await remote.consoleInfo("console.info works");
                 log(`Sleeping 20`);
                 const start = Date.now();
                 const logs = awsCloudify.streamLogGroup(
