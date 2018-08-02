@@ -200,11 +200,16 @@ export function checkLogs<O extends cloudify.CommonOptions>(
                 await remote.consoleWarn("Cloudify console.warn");
                 await remote.consoleError("Cloudify console.error");
                 log(`Sleeping 20`);
-                await sleep(20 * 1000);
-                await awsCloudify.readLogGroup(
+                const start = Date.now();
+                const logs = awsCloudify.streamLogGroup(
                     state.resources.logGroupName,
-                    state.services.cloudwatch
+                    state.services.cloudwatch,
+                    1000
                 );
+                while (Date.now() - start < 20 * 1000) {
+                    const logReply = await logs.next();
+                    logReply.value.forEach(entry => log(entry.message));
+                }
             },
             100 * 1000
         );

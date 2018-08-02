@@ -764,3 +764,31 @@ export async function readLogGroup(logGroupName: string, cloudWatch: aws.CloudWa
         })
     );
 }
+
+export async function* streamLogGroup(
+    logGroupName: string,
+    cloudWatch: aws.CloudWatchLogs,
+    pollIntervalMs: number = 1000
+) {
+    while (true) {
+        let nextToken: string | undefined;
+        let last = 0;
+
+        do {
+            const result = await cloudWatch
+                .filterLogEvents({ logGroupName, nextToken, startTime: last })
+                .promise();
+            nextToken = result.nextToken;
+            if (result.events) {
+                yield result.events;
+                for (const event of result.events) {
+                    if (event.timestamp && event.timestamp > last) {
+                        last = event.timestamp;
+                    }
+                }
+            }
+        } while (nextToken);
+
+        await sleep(pollIntervalMs);
+    }
+}
