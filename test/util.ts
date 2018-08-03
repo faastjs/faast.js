@@ -13,7 +13,7 @@ export function quietly<T>(p: Promise<T>) {
     return p.catch(_ => {});
 }
 
-export async function getResources(func: cloudify.GoogleCloudFunction) {
+export async function getGoogleResources(func: cloudify.GoogleCloudFunction) {
     const {
         services: { cloudFunctions, pubsub },
         resources: {

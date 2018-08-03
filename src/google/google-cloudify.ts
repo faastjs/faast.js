@@ -19,6 +19,7 @@ import {
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import Logging = logging_v2;
+import { LogStreamer } from "../logging";
 
 type Logging = logging_v2.Logging;
 
@@ -33,8 +34,6 @@ export interface GoogleResources {
     responseQueueTopic?: string;
     responseSubscription?: string;
     isEmulator: boolean;
-    project: string;
-    functionName: string;
 }
 
 export interface GoogleServices {
@@ -55,6 +54,8 @@ export interface State {
     queueState?: GoogleCloudQueueState;
     callFunnel: Funnel<FunctionReturn>;
     url?: string;
+    project: string;
+    functionName: string;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -250,14 +251,14 @@ async function initializeWithApi(
 
     const resources: Mutable<GoogleResources> = {
         trampoline,
-        isEmulator,
-        project,
-        functionName
+        isEmulator
     };
     const state: State = {
         resources,
         services,
-        callFunnel: new Funnel()
+        callFunnel: new Funnel(),
+        project,
+        functionName
     };
     if (useQueue) {
         log(`Initializing queue`);
@@ -422,8 +423,6 @@ export async function cleanup(state: PartialState) {
         responseSubscription,
         responseQueueTopic,
         isEmulator,
-        project,
-        functionName,
         ...rest
     } = state.resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
@@ -557,13 +556,55 @@ export function getFunctionImpl() {
     return GoogleFunctionImpl;
 }
 
+export async function* streamLogGroup(state: State, pollIntervalMs: number = 1000) {
+    const {
+        resources: {},
+        services: { cloudwatch }
+    } = state;
+
+    const logStreamer = new LogStreamer();
+
+    while (true) {
+        let nextToken: string | undefined;
+        do {
+            const result = await cloudwatch
+                .filterLogEvents({
+                    logGroupName,
+                    nextToken,
+                    startTime: logStreamer.lastLogEventTime
+                })
+                .promise();
+            nextToken = result.nextToken;
+            const { events } = result;
+            if (events) {
+                const newEvents = events.filter(e => !logStreamer.has(e.eventId!));
+                if (newEvents.length > 0) {
+                    yield newEvents;
+                }
+
+                const lastEvent = events[events.length - 1];
+                logStreamer.updateEvent(lastEvent.timestamp, lastEvent.eventId);
+                for (const e of events) {
+                    logStreamer.updateEvent(e.timestamp, e.eventId);
+                }
+            }
+        } while (nextToken);
+        yield [];
+
+        await sleep(pollIntervalMs);
+    }
+}
+
 export async function* streamLogs(
     state: State,
     pollIntervalMs: number
 ): AsyncIterableIterator<LogEntry[]> {
     log(`Streaming logs`);
+
+    const logStreamer = new LogStreamer();
     const {
-        resources: { project, functionName },
+        project,
+        functionName,
         services: { logging }
     } = state;
 
@@ -584,6 +625,8 @@ export async function* streamLogs(
                 message: entry.textPayload!,
                 timestamp: Date.parse(entry.timestamp!)
             }));
+
+            xxxxxx;
         } while (pageToken);
 
         yield [];

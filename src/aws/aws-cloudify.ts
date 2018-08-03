@@ -24,6 +24,7 @@ import {
     sqsMessageAttribute
 } from "./aws-queue";
 import { FilteredLogEvent } from "aws-sdk/clients/cloudwatchlogs";
+import { LogStreamer } from "../logging";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -747,43 +748,36 @@ function addSnsInvokePermissionsToFunction(
         .promise();
 }
 
-export async function* streamLogGroup(
-    logGroupName: string,
-    cloudWatch: aws.CloudWatchLogs,
-    pollIntervalMs: number = 1000
-) {
-    let last = 0;
-    const seenIds = new Set<string>();
+export async function* streamLogGroup(state: State, pollIntervalMs: number = 1000) {
+    const {
+        resources: { logGroupName },
+        services: { cloudwatch }
+    } = state;
 
-    function updateEvent(event: FilteredLogEvent) {
-        if (event.timestamp) {
-            if (event.timestamp > last) {
-                last = event.timestamp;
-                seenIds.clear();
-            }
-            if (event.timestamp === last) {
-                seenIds.add(event.eventId!);
-            }
-        }
-    }
+    const logStreamer = new LogStreamer();
 
     while (true) {
         let nextToken: string | undefined;
-
         do {
-            const result = await cloudWatch
-                .filterLogEvents({ logGroupName, nextToken, startTime: last })
+            const result = await cloudwatch
+                .filterLogEvents({
+                    logGroupName,
+                    nextToken,
+                    startTime: logStreamer.lastLogEventTime
+                })
                 .promise();
             nextToken = result.nextToken;
-            if (result.events) {
-                const newEvents = result.events.filter(e => !seenIds.has(e.eventId!));
+            const { events } = result;
+            if (events) {
+                const newEvents = events.filter(e => !logStreamer.has(e.eventId!));
                 if (newEvents.length > 0) {
                     yield newEvents;
                 }
 
-                updateEvent(result.events[result.events.length - 1]);
-                for (const e of result.events) {
-                    updateEvent(e);
+                const lastEvent = events[events.length - 1];
+                logStreamer.updateEvent(lastEvent.timestamp, lastEvent.eventId);
+                for (const e of events) {
+                    logStreamer.updateEvent(e.timestamp, e.eventId);
                 }
             }
         } while (nextToken);
@@ -794,19 +788,15 @@ export async function* streamLogGroup(
 }
 
 export async function* streamLogs(state: State, pollIntervalMs: number = 1000) {
-    const {
-        resources: { logGroupName },
-        services: { cloudwatch }
-    } = state;
-    const logStream = streamLogGroup(logGroupName, cloudwatch, pollIntervalMs);
+    const logStream = streamLogGroup(state, pollIntervalMs);
     for await (const entries of logStream) {
-        yield entries.filter(entry => entry.message) as Required<FilteredLogEvent>[];
+        yield entries.filter(entry => entry.message).map(entry => entry.message!);
     }
 }
 
 // Return currently available logs only, no polling.
-export async function readLogGroup(logGroupName: string, cloudWatch: aws.CloudWatchLogs) {
-    const logStream = streamLogGroup(logGroupName, cloudWatch);
+export async function readLogGroup(state: State) {
+    const logStream = streamLogGroup(state);
     const result: string[] = [];
     for await (const entries of logStream) {
         if (entries.length === 0) {
