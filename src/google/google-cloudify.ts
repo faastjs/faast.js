@@ -581,7 +581,6 @@ export async function* streamLogs(
             const filter = `resource.type="cloud_function" AND resource.labels.function_name="${functionName}" AND timestamp >= "${new Date(
                 logStreamer.lastLogEventTime
             ).toISOString()}"`;
-            log(`Log filter: ${filter}`);
             result = await logging.entries.list({
                 requestBody: {
                     resourceNames: [`projects/${project}`],
