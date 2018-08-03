@@ -598,11 +598,13 @@ export async function* streamLogs(
                     timestamp: toTime(entry.timestamp)
                 }));
 
-            const last = entries[entries.length - 1];
-            logStreamer.updateEvent(toTime(last.timestamp), last.insertId);
+            if (entries.length > 0) {
+                const last = entries[entries.length - 1];
+                logStreamer.updateEvent(toTime(last.timestamp), last.insertId);
 
-            for (const entry of entries) {
-                logStreamer.updateEvent(toTime(entry.timestamp), entry.insertId);
+                for (const entry of entries) {
+                    logStreamer.updateEvent(toTime(entry.timestamp), entry.insertId);
+                }
             }
         } while (pageToken);
 
