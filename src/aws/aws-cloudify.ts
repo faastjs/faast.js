@@ -9,7 +9,7 @@ import { Funnel, MemoFunnel, retry } from "../funnel";
 import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { FunctionCall, FunctionReturn, serializeCall, sleep } from "../shared";
+import { FunctionCall, FunctionReturn, serializeCall, sleep, chomp } from "../shared";
 import * as awsNpm from "./aws-npm";
 import {
     createDLQ,
@@ -23,6 +23,7 @@ import {
     receiveMessages,
     sqsMessageAttribute
 } from "./aws-queue";
+import { FilteredLogEvent } from "aws-sdk/clients/cloudwatchlogs";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -79,7 +80,8 @@ export const LambdaImpl: CloudFunctionImpl<State> = {
     cleanup,
     stop,
     getResourceList,
-    setConcurrency
+    setConcurrency,
+    streamLogs
 };
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
@@ -745,40 +747,28 @@ function addSnsInvokePermissionsToFunction(
         .promise();
 }
 
-export async function readLogGroup(logGroupName: string, cloudWatch: aws.CloudWatchLogs) {
-    await new Promise((resolve, reject) =>
-        cloudWatch.filterLogEvents({ logGroupName }).eachPage((err, data) => {
-            if (err) {
-                reject(err);
-                return false;
-            }
-            if (data === null) {
-                resolve();
-                return false;
-            }
-            const events = data.events || [];
-            for (const event of events) {
-                let m = event.message;
-                if (m) {
-                    if (m.match(/\n$/)) {
-                        m = m.slice(0, m.length - 1);
-                    }
-                    m && log(`LOG: ${m}`);
-                }
-            }
-            return true;
-        })
-    );
-}
-
 export async function* streamLogGroup(
     logGroupName: string,
     cloudWatch: aws.CloudWatchLogs,
     pollIntervalMs: number = 1000
 ) {
+    let last = 0;
+    const seenIds = new Set<string>();
+
+    function updateEvent(event: FilteredLogEvent) {
+        if (event.timestamp) {
+            if (event.timestamp > last) {
+                last = event.timestamp;
+                seenIds.clear();
+            }
+            if (event.timestamp === last) {
+                seenIds.add(event.eventId!);
+            }
+        }
+    }
+
     while (true) {
         let nextToken: string | undefined;
-        let last = 0;
 
         do {
             const result = await cloudWatch
@@ -786,15 +776,45 @@ export async function* streamLogGroup(
                 .promise();
             nextToken = result.nextToken;
             if (result.events) {
-                yield result.events;
-                for (const event of result.events) {
-                    if (event.timestamp && event.timestamp > last) {
-                        last = event.timestamp;
-                    }
+                const newEvents = result.events.filter(e => !seenIds.has(e.eventId!));
+                if (newEvents.length > 0) {
+                    yield newEvents;
+                }
+
+                updateEvent(result.events[result.events.length - 1]);
+                for (const e of result.events) {
+                    updateEvent(e);
                 }
             }
         } while (nextToken);
+        yield [];
 
         await sleep(pollIntervalMs);
     }
+}
+
+export async function* streamLogs(state: State, pollIntervalMs: number = 1000) {
+    const {
+        resources: { logGroupName },
+        services: { cloudwatch }
+    } = state;
+    const logStream = streamLogGroup(logGroupName, cloudwatch, pollIntervalMs);
+    for await (const entries of logStream) {
+        yield entries.filter(entry => entry.message) as Required<FilteredLogEvent>[];
+    }
+}
+
+// Return currently available logs only, no polling.
+export async function readLogGroup(logGroupName: string, cloudWatch: aws.CloudWatchLogs) {
+    const logStream = streamLogGroup(logGroupName, cloudWatch);
+    const result: string[] = [];
+    for await (const entries of logStream) {
+        if (entries.length === 0) {
+            return result;
+        }
+        result.push(
+            ...entries.filter(entry => entry.message).map(entry => chomp(entry.message!))
+        );
+    }
+    return result;
 }

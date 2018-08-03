@@ -203,6 +203,10 @@ export class CloudFunction<S> {
         }
         return rv;
     }
+
+    logs(pollIntervalMs: number = 1000): AsyncIterableIterator<LogEntry[]> {
+        return this.impl.streamLogs(this.state, pollIntervalMs);
+    }
 }
 
 export class AWS extends Cloud<aws.Options, aws.State> {
@@ -259,4 +263,10 @@ export interface CloudFunctionImpl<State> {
     stop(state: State): Promise<void>;
     getResourceList(state: State): string;
     setConcurrency(state: State, maxConcurrentExecutions: number): Promise<void>;
+    streamLogs(state: State, pollIntervalMs: number): AsyncIterableIterator<LogEntry[]>;
+}
+
+export interface LogEntry {
+    timestamp: number;
+    message: string;
 }

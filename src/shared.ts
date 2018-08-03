@@ -291,3 +291,10 @@ export function streamToBuffer(s: Readable) {
         s.on("end", () => resolve(Buffer.concat(buffers)));
     });
 }
+
+export function chomp(s: string) {
+    if (s.length > 0 && s[s.length - 1] === "\n") {
+        s = s.slice(0, s.length - 1);
+    }
+    return s;
+}

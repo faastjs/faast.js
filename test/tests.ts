@@ -6,7 +6,7 @@ import * as awsCloudify from "../src/aws/aws-cloudify";
 import * as googleCloudify from "../src/google/google-cloudify";
 import * as path from "path";
 import { warn, log, disableWarnings, enableWarnings } from "../src/log";
-import { sleep } from "../src/shared";
+import { sleep, chomp } from "../src/shared";
 
 export function checkFunctions<O extends cloudify.CommonOptions>(
     description: string,
@@ -207,14 +207,12 @@ export function checkLogs<O extends cloudify.CommonOptions>(
                 await remote.consoleInfo("console.info works");
                 log(`Sleeping 20`);
                 const start = Date.now();
-                const logs = awsCloudify.streamLogGroup(
-                    state.resources.logGroupName,
-                    state.services.cloudwatch,
-                    1000
-                );
+
+                const logs = lambda.logs();
+
                 while (Date.now() - start < 20 * 1000) {
                     const logReply = await logs.next();
-                    logReply.value.forEach(entry => log(entry.message));
+                    logReply.value.forEach(entry => log(chomp(entry.message || "")));
                 }
             },
             100 * 1000

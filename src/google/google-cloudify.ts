@@ -1,9 +1,8 @@
-import Axios, { AxiosPromise } from "axios";
+import Axios, { AxiosPromise, AxiosResponse } from "axios";
 import * as sys from "child_process";
-import { cloudfunctions_v1, google, GoogleApis, pubsub_v1 } from "googleapis";
-import { Readable } from "stream";
+import { cloudfunctions_v1, google, GoogleApis, pubsub_v1, logging_v2 } from "googleapis";
 import * as uuidv4 from "uuid/v4";
-import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
+import { CloudFunctionImpl, CloudImpl, CommonOptions, LogEntry } from "../cloudify";
 import { Funnel, Deferred } from "../funnel";
 import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
@@ -19,6 +18,9 @@ import {
 } from "./google-queue";
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
+import Logging = logging_v2;
+
+type Logging = logging_v2.Logging;
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -31,12 +33,15 @@ export interface GoogleResources {
     responseQueueTopic?: string;
     responseSubscription?: string;
     isEmulator: boolean;
+    project: string;
+    functionName: string;
 }
 
 export interface GoogleServices {
     readonly cloudFunctions: CloudFunctions.Cloudfunctions;
     readonly pubsub: PubSubApi.Pubsub;
     readonly google: GoogleApis;
+    readonly logging: Logging.Logging;
 }
 
 type ReceivedMessage = PubSubApi.Schema$ReceivedMessage;
@@ -66,7 +71,8 @@ export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
     cleanup,
     stop,
     getResourceList,
-    setConcurrency
+    setConcurrency,
+    streamLogs
 };
 
 export const EmulatorImpl: CloudImpl<Options, State> = {
@@ -84,6 +90,7 @@ export async function initializeGoogleServices(
     return {
         cloudFunctions: useEmulator ? await getEmulator() : google.cloudfunctions("v1"),
         pubsub: google.pubsub("v1"),
+        logging: google.logging("v2"),
         google
     };
 }
@@ -241,7 +248,12 @@ async function initializeWithApi(
     const functionName = "cloudify-" + nonce;
     const trampoline = `projects/${project}/locations/${region}/functions/${functionName}`;
 
-    const resources: Mutable<GoogleResources> = { trampoline, isEmulator };
+    const resources: Mutable<GoogleResources> = {
+        trampoline,
+        isEmulator,
+        project,
+        functionName
+    };
     const state: State = {
         resources,
         services,
@@ -410,6 +422,8 @@ export async function cleanup(state: PartialState) {
         responseSubscription,
         responseQueueTopic,
         isEmulator,
+        project,
+        functionName,
         ...rest
     } = state.resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
@@ -541,4 +555,38 @@ export async function setConcurrency(
 
 export function getFunctionImpl() {
     return GoogleFunctionImpl;
+}
+
+export async function* streamLogs(
+    state: State,
+    pollIntervalMs: number
+): AsyncIterableIterator<LogEntry[]> {
+    log(`Streaming logs`);
+    const {
+        resources: { project, functionName },
+        services: { logging }
+    } = state;
+
+    let pageToken;
+    while (true) {
+        do {
+            let result: AxiosResponse<Logging.Schema$ListLogEntriesResponse>;
+            result = await logging.entries.list({
+                requestBody: {
+                    resourceNames: [`projects/${project}`],
+                    pageToken,
+                    filter: `resource.type="cloud_function" AND resource.labels.function_name="${functionName}"`
+                }
+            });
+            pageToken = result.data.nextPageToken;
+            const entries = result.data.entries || [];
+            yield entries.filter(entry => entry.textPayload).map(entry => ({
+                message: entry.textPayload!,
+                timestamp: Date.parse(entry.timestamp!)
+            }));
+        } while (pageToken);
+
+        yield [];
+        await sleep(pollIntervalMs);
+    }
 }
