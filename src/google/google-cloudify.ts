@@ -556,50 +556,15 @@ export function getFunctionImpl() {
     return GoogleFunctionImpl;
 }
 
-export async function* streamLogGroup(state: State, pollIntervalMs: number = 1000) {
-    const {
-        resources: {},
-        services: { cloudwatch }
-    } = state;
-
-    const logStreamer = new LogStreamer();
-
-    while (true) {
-        let nextToken: string | undefined;
-        do {
-            const result = await cloudwatch
-                .filterLogEvents({
-                    logGroupName,
-                    nextToken,
-                    startTime: logStreamer.lastLogEventTime
-                })
-                .promise();
-            nextToken = result.nextToken;
-            const { events } = result;
-            if (events) {
-                const newEvents = events.filter(e => !logStreamer.has(e.eventId!));
-                if (newEvents.length > 0) {
-                    yield newEvents;
-                }
-
-                const lastEvent = events[events.length - 1];
-                logStreamer.updateEvent(lastEvent.timestamp, lastEvent.eventId);
-                for (const e of events) {
-                    logStreamer.updateEvent(e.timestamp, e.eventId);
-                }
-            }
-        } while (nextToken);
-        yield [];
-
-        await sleep(pollIntervalMs);
-    }
-}
-
 export async function* streamLogs(
     state: State,
     pollIntervalMs: number
 ): AsyncIterableIterator<LogEntry[]> {
     log(`Streaming logs`);
+
+    function toTime(timestampStr: string | undefined) {
+        return Date.parse(timestampStr || "") || 0;
+    }
 
     const logStreamer = new LogStreamer();
     const {
@@ -609,24 +574,36 @@ export async function* streamLogs(
     } = state;
 
     let pageToken;
+
     while (true) {
         do {
             let result: AxiosResponse<Logging.Schema$ListLogEntriesResponse>;
+            const filter = `resource.type="cloud_function" AND resource.labels.function_name="${functionName}" AND timestamp >= "${new Date(
+                logStreamer.lastLogEventTime
+            ).toISOString()}"`;
+            log(`Log filter: ${filter}`);
             result = await logging.entries.list({
                 requestBody: {
                     resourceNames: [`projects/${project}`],
                     pageToken,
-                    filter: `resource.type="cloud_function" AND resource.labels.function_name="${functionName}"`
+                    filter
                 }
             });
             pageToken = result.data.nextPageToken;
             const entries = result.data.entries || [];
-            yield entries.filter(entry => entry.textPayload).map(entry => ({
-                message: entry.textPayload!,
-                timestamp: Date.parse(entry.timestamp!)
-            }));
+            yield entries
+                .filter(entry => entry.textPayload && !logStreamer.has(entry.insertId))
+                .map(entry => ({
+                    message: entry.textPayload!,
+                    timestamp: toTime(entry.timestamp)
+                }));
 
-            xxxxxx;
+            const last = entries[entries.length - 1];
+            logStreamer.updateEvent(toTime(last.timestamp), last.insertId);
+
+            for (const entry of entries) {
+                logStreamer.updateEvent(toTime(entry.timestamp), entry.insertId);
+            }
         } while (pageToken);
 
         yield [];

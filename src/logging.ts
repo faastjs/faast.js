@@ -14,7 +14,7 @@ export class LogStreamer {
         }
     }
 
-    has(id: string) {
-        return this.seenIds.has(id);
+    has(id: string | undefined) {
+        return typeof id === "string" && this.seenIds.has(id);
     }
 }

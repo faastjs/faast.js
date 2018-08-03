@@ -4,7 +4,7 @@ import { createHash } from "crypto";
 import * as fs from "fs";
 import * as uuidv4 from "uuid/v4";
 import { LocalCache } from "../cache";
-import { AWS, CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
+import { AWS, CloudFunctionImpl, CloudImpl, CommonOptions, LogEntry } from "../cloudify";
 import { Funnel, MemoFunnel, retry } from "../funnel";
 import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
@@ -787,10 +787,15 @@ export async function* streamLogGroup(state: State, pollIntervalMs: number = 100
     }
 }
 
-export async function* streamLogs(state: State, pollIntervalMs: number = 1000) {
+export async function* streamLogs(
+    state: State,
+    pollIntervalMs: number = 1000
+): AsyncIterableIterator<LogEntry[]> {
     const logStream = streamLogGroup(state, pollIntervalMs);
     for await (const entries of logStream) {
-        yield entries.filter(entry => entry.message).map(entry => entry.message!);
+        yield entries
+            .filter(entry => entry.message)
+            .map(entry => ({ timestamp: entry.timestamp!, message: entry.message! }));
     }
 }
 

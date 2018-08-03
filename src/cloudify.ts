@@ -5,7 +5,9 @@ import * as google from "./google/google-cloudify";
 import { log } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import { FunctionCall, FunctionMetricsMap, FunctionReturn } from "./shared";
-import { AnyFunction, Unpacked } from "./type-helpers";
+import { Unpacked } from "./type-helpers";
+
+(<any>Symbol).asyncIterator = Symbol.asyncIterator || Symbol.for("Symbol.asyncIterator");
 
 export interface ResponseDetails<D> {
     value?: D;

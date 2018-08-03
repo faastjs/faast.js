@@ -2,10 +2,10 @@ import { FunctionCall, FunctionReturn } from "../shared";
 import * as aws from "aws-sdk";
 import { SNSEvent } from "aws-lambda";
 import { publishSQS, publishSQSControlMessage } from "./aws-queue";
+import { AnyFunction } from "../type-helpers";
 
 const sqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
-type AnyFunction = (...args: any[]) => any;
 const funcs: { [func: string]: AnyFunction } = {};
 
 export function registerFunction(fn: AnyFunction, name?: string) {
