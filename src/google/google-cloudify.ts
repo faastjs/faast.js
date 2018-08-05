@@ -7,7 +7,7 @@ import { Funnel, Deferred } from "../funnel";
 import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { FunctionCall, FunctionReturn, sleep, serializeCall } from "../shared";
+import { FunctionCall, FunctionReturn, sleep, serializeCall, chomp } from "../shared";
 import { Mutable } from "../type-helpers";
 import {
     getMessageBody,
@@ -19,7 +19,7 @@ import {
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import Logging = logging_v2;
-import { LogStreamer } from "../logging";
+import { LogStitcher } from "../logging";
 
 type Logging = logging_v2.Logging;
 
@@ -56,6 +56,7 @@ export interface State {
     url?: string;
     project: string;
     functionName: string;
+    logStitcher: LogStitcher;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -73,7 +74,7 @@ export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
     stop,
     getResourceList,
     setConcurrency,
-    streamLogs
+    readLogs
 };
 
 export const EmulatorImpl: CloudImpl<Options, State> = {
@@ -258,7 +259,8 @@ async function initializeWithApi(
         services,
         callFunnel: new Funnel(),
         project,
-        functionName
+        functionName,
+        logStitcher: new LogStitcher()
     };
     if (useQueue) {
         log(`Initializing queue`);
@@ -556,58 +558,55 @@ export function getFunctionImpl() {
     return GoogleFunctionImpl;
 }
 
-export async function* streamLogs(
-    state: State,
-    pollIntervalMs: number
-): AsyncIterableIterator<LogEntry[]> {
-    log(`Streaming logs`);
+function parseTimestamp(timestampStr: string | undefined) {
+    return Date.parse(timestampStr || "") || 0;
+}
 
-    function toTime(timestampStr: string | undefined) {
-        return Date.parse(timestampStr || "") || 0;
-    }
-
-    const logStreamer = new LogStreamer();
+export async function* readLogsRaw(state: State) {
     const {
         project,
         functionName,
-        services: { logging }
+        services: { logging },
+        logStitcher
     } = state;
 
-    let pageToken;
+    let pageToken: string | undefined;
 
-    while (true) {
-        do {
-            let result: AxiosResponse<Logging.Schema$ListLogEntriesResponse>;
-            const filter = `resource.type="cloud_function" AND resource.labels.function_name="${functionName}" AND timestamp >= "${new Date(
-                logStreamer.lastLogEventTime
-            ).toISOString()}"`;
-            result = await logging.entries.list({
-                requestBody: {
-                    resourceNames: [`projects/${project}`],
-                    pageToken,
-                    filter
-                }
-            });
-            pageToken = result.data.nextPageToken;
-            const entries = result.data.entries || [];
-            yield entries
-                .filter(entry => entry.textPayload && !logStreamer.has(entry.insertId))
-                .map(entry => ({
-                    message: entry.textPayload!,
-                    timestamp: toTime(entry.timestamp)
-                }));
-
-            if (entries.length > 0) {
-                const last = entries[entries.length - 1];
-                logStreamer.updateEvent(toTime(last.timestamp), last.insertId);
-
-                for (const entry of entries) {
-                    logStreamer.updateEvent(toTime(entry.timestamp), entry.insertId);
-                }
+    do {
+        let result: AxiosResponse<Logging.Schema$ListLogEntriesResponse>;
+        const filter = `resource.type="cloud_function" AND resource.labels.function_name="${functionName}" AND timestamp >= "${new Date(
+            logStitcher.lastLogEventTime
+        ).toISOString()}"`;
+        result = await logging.entries.list({
+            requestBody: {
+                resourceNames: [`projects/${project}`],
+                pageToken,
+                filter
             }
-        } while (pageToken);
+        });
+        pageToken = result.data.nextPageToken;
+        const entries = result.data.entries || [];
+        const newEntries = entries.filter(entry => !logStitcher.has(entry.insertId));
+        if (newEntries.length > 0) {
+            yield newEntries;
+        }
+        logStitcher.updateEvents(
+            entries,
+            e => parseTimestamp(e.timestamp),
+            e => e.insertId
+        );
+    } while (pageToken);
+}
 
-        yield [];
-        await sleep(pollIntervalMs);
+export async function* readLogs(state: State): AsyncIterableIterator<LogEntry[]> {
+    const logStream = readLogsRaw(state);
+    for await (const entries of logStream) {
+        const newEntries = entries.filter(entry => entry.textPayload).map(entry => ({
+            message: entry.textPayload!,
+            timestamp: parseTimestamp(entry.timestamp)
+        }));
+        if (newEntries.length > 0) {
+            yield newEntries;
+        }
     }
 }

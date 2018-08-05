@@ -200,20 +200,14 @@ export function checkLogs<O extends cloudify.CommonOptions>(
         test(
             "logs",
             async () => {
-                const state = lambda.state as awsCloudify.State;
                 await remote.consoleLog("console.log works");
                 await remote.consoleWarn("console.warn works");
                 await remote.consoleError("console.error works");
                 await remote.consoleInfo("console.info works");
                 log(`Sleeping 20`);
-                const start = Date.now();
-
-                const logs = lambda.logs();
-
-                while (Date.now() - start < 20 * 1000) {
-                    const logReply = await logs.next();
-                    logReply.value.forEach(entry => log(chomp(entry.message || "")));
-                }
+                lambda.printLogs();
+                await sleep(20 * 1000);
+                lambda.stopLogs();
             },
             100 * 1000
         );

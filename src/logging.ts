@@ -1,4 +1,4 @@
-export class LogStreamer {
+export class LogStitcher {
     lastLogEventTime = 0;
     seenIds = new Set<string>();
 
@@ -10,6 +10,20 @@ export class LogStreamer {
             }
             if (eventId && timestamp === this.lastLogEventTime) {
                 this.seenIds.add(eventId);
+            }
+        }
+    }
+
+    updateEvents<T>(
+        entries: T[],
+        getTimestamp: (event: T) => number | undefined,
+        getId: (event: T) => string | undefined
+    ) {
+        if (entries.length > 0) {
+            const last = entries[entries.length - 1];
+            this.updateEvent(getTimestamp(last), getId(last));
+            for (const entry of entries) {
+                this.updateEvent(getTimestamp(entry), getId(entry));
             }
         }
     }

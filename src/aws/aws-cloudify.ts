@@ -24,7 +24,7 @@ import {
     sqsMessageAttribute
 } from "./aws-queue";
 import { FilteredLogEvent } from "aws-sdk/clients/cloudwatchlogs";
-import { LogStreamer } from "../logging";
+import { LogStitcher } from "../logging";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -65,6 +65,7 @@ export interface State {
     services: AWSServices;
     callFunnel: Funnel<AWSInvocationResponse>;
     queueState?: AWSCloudQueueState;
+    logStitcher: LogStitcher;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -82,7 +83,7 @@ export const LambdaImpl: CloudFunctionImpl<State> = {
     stop,
     getResourceList,
     setConcurrency,
-    streamLogs
+    readLogs
 };
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
@@ -414,7 +415,8 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             region
         },
         services,
-        callFunnel: new Funnel()
+        callFunnel: new Funnel(),
+        logStitcher: new LogStitcher()
     };
 
     try {
@@ -748,68 +750,43 @@ function addSnsInvokePermissionsToFunction(
         .promise();
 }
 
-export async function* streamLogGroup(state: State, pollIntervalMs: number = 1000) {
+export async function* readLogsRaw(state: State) {
     const {
         resources: { logGroupName },
-        services: { cloudwatch }
+        services: { cloudwatch },
+        logStitcher
     } = state;
 
-    const logStreamer = new LogStreamer();
-
-    while (true) {
-        let nextToken: string | undefined;
-        do {
-            const result = await cloudwatch
-                .filterLogEvents({
-                    logGroupName,
-                    nextToken,
-                    startTime: logStreamer.lastLogEventTime
-                })
-                .promise();
-            nextToken = result.nextToken;
-            const { events } = result;
-            if (events) {
-                const newEvents = events.filter(e => !logStreamer.has(e.eventId!));
-                if (newEvents.length > 0) {
-                    yield newEvents;
-                }
-
-                const lastEvent = events[events.length - 1];
-                logStreamer.updateEvent(lastEvent.timestamp, lastEvent.eventId);
-                for (const e of events) {
-                    logStreamer.updateEvent(e.timestamp, e.eventId);
-                }
+    let nextToken: string | undefined;
+    do {
+        const result = await cloudwatch
+            .filterLogEvents({
+                logGroupName,
+                nextToken,
+                startTime: logStitcher.lastLogEventTime
+            })
+            .promise();
+        nextToken = result.nextToken;
+        const { events } = result;
+        if (events) {
+            const newEvents = events.filter(e => !logStitcher.has(e.eventId!));
+            if (newEvents.length > 0) {
+                yield newEvents;
             }
-        } while (nextToken);
-        yield [];
-
-        await sleep(pollIntervalMs);
-    }
-}
-
-export async function* streamLogs(
-    state: State,
-    pollIntervalMs: number = 1000
-): AsyncIterableIterator<LogEntry[]> {
-    const logStream = streamLogGroup(state, pollIntervalMs);
-    for await (const entries of logStream) {
-        yield entries
-            .filter(entry => entry.message)
-            .map(entry => ({ timestamp: entry.timestamp!, message: entry.message! }));
-    }
-}
-
-// Return currently available logs only, no polling.
-export async function readLogGroup(state: State) {
-    const logStream = streamLogGroup(state);
-    const result: string[] = [];
-    for await (const entries of logStream) {
-        if (entries.length === 0) {
-            return result;
+            logStitcher.updateEvents(events, e => e.timestamp, e => e.eventId);
         }
-        result.push(
-            ...entries.filter(entry => entry.message).map(entry => chomp(entry.message!))
-        );
+    } while (nextToken);
+}
+
+export async function* readLogs(state: State): AsyncIterableIterator<LogEntry[]> {
+    const logStream = readLogsRaw(state);
+    for await (const entries of logStream) {
+        const newEntries = entries.filter(entry => entry.message).map(entry => ({
+            timestamp: entry.timestamp!,
+            message: chomp(entry.message!)
+        }));
+        if (newEntries.length > 0) {
+            yield newEntries;
+        }
     }
-    return result;
 }

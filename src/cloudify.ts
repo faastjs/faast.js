@@ -4,7 +4,7 @@ import * as aws from "./aws/aws-cloudify";
 import * as google from "./google/google-cloudify";
 import { log } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
-import { FunctionCall, FunctionMetricsMap, FunctionReturn } from "./shared";
+import { FunctionCall, FunctionMetricsMap, FunctionReturn, sleep } from "./shared";
 import { Unpacked } from "./type-helpers";
 
 (<any>Symbol).asyncIterator = Symbol.asyncIterator || Symbol.for("Symbol.asyncIterator");
@@ -118,6 +118,7 @@ export class CloudFunction<S> {
     cloudName = this.impl.name;
     timer?: NodeJS.Timer;
     functionMetrics = new FunctionMetricsMap();
+    logging = false;
 
     constructor(protected impl: CloudFunctionImpl<S>, readonly state: S) {}
 
@@ -206,8 +207,38 @@ export class CloudFunction<S> {
         return rv;
     }
 
-    logs(pollIntervalMs: number = 1000): AsyncIterableIterator<LogEntry[]> {
-        return this.impl.streamLogs(this.state, pollIntervalMs);
+    async *streamLogs(pollIntervalMs: number = 1000) {
+        while (true) {
+            if (!this.logging) {
+                return;
+            }
+            const start = Date.now();
+            for await (const logs of this.impl.readLogs(this.state)) {
+                yield logs;
+                if (!this.logging) {
+                    return;
+                }
+            }
+            const elapsed = Date.now() - start;
+            if (elapsed < pollIntervalMs) {
+                if (!this.logging) {
+                    return;
+                }
+                await sleep(pollIntervalMs - elapsed);
+            }
+        }
+    }
+
+    async printLogs(logger: (message: string) => void = console.log) {
+        for await (const entries of this.streamLogs()) {
+            entries.forEach(entry =>
+                logger(`${new Date(entry.timestamp).toLocaleString()}: ${entry.message}`)
+            );
+        }
+    }
+
+    stopLogs() {
+        this.logging = false;
     }
 }
 
@@ -265,7 +296,7 @@ export interface CloudFunctionImpl<State> {
     stop(state: State): Promise<void>;
     getResourceList(state: State): string;
     setConcurrency(state: State, maxConcurrentExecutions: number): Promise<void>;
-    streamLogs(state: State, pollIntervalMs: number): AsyncIterableIterator<LogEntry[]>;
+    readLogs(state: State): AsyncIterableIterator<LogEntry[]>;
 }
 
 export interface LogEntry {
