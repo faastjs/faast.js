@@ -647,7 +647,7 @@ export async function stop(state: PartialState) {
     callFunnel &&
         callFunnel
             .pendingFutures()
-            .map(p => p.reject(new Error("Rejected pending request")));
+            .forEach(p => p.reject(new Error("Rejected pending request")));
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
     }

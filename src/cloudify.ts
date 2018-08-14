@@ -120,7 +120,6 @@ export function processResponse<R>(
 
 export class CloudFunction<S> {
     cloudName = this.impl.name;
-    timer?: NodeJS.Timer;
     functionMetrics = new FunctionMetricsMap();
     logging = false;
 

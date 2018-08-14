@@ -36,8 +36,9 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
     readLogs
 };
 
-async function initialize(serverModule: string, options?: Options): Promise<State> {
+async function initialize(serverModule: string, options: Options = {}): Promise<State> {
     // const bundle = await pack(serverModule, options);
+
     return Promise.resolve({
         resources: { childProcesses: new Set() },
         callFunnel: new Funnel<FunctionReturn>(),
@@ -84,7 +85,13 @@ function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>
 }
 
 async function cleanup(state: State): Promise<void> {
-    stop(state);
+    await stop(state);
+    const childProcesses = state.resources.childProcesses;
+    const completed = Promise.all(
+        [...childProcesses.values()].map(p => new Promise(done => p.on("exit", done)))
+    );
+    childProcesses.forEach(p => p.kill());
+    await completed;
 }
 
 async function stop(state: State): Promise<void> {

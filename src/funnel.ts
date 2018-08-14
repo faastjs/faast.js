@@ -1,5 +1,4 @@
 import { sleep } from "./shared";
-import { log } from "./log";
 import * as assert from "assert";
 
 export class Deferred<T> {
