@@ -13,6 +13,7 @@ export interface State {
     resources: ProcessResources;
     callFunnel: Funnel<FunctionReturn>;
     logStitcher: LogStitcher;
+    serverModule: string;
 }
 
 export interface Options extends CommonOptions {}
@@ -36,11 +37,12 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
 };
 
 async function initialize(serverModule: string, options?: Options): Promise<State> {
-    const bundle = await pack(serverModule, options);
+    // const bundle = await pack(serverModule, options);
     return Promise.resolve({
         resources: { childProcesses: new Set() },
         callFunnel: new Funnel<FunctionReturn>(),
-        logStitcher: new LogStitcher()
+        logStitcher: new LogStitcher(),
+        serverModule
     });
 }
 
@@ -54,10 +56,18 @@ function getFunctionImpl(): CloudFunctionImpl<State> {
     return FunctionImpl;
 }
 
+export interface ProcessFunctionCall {
+    call: FunctionCall;
+    serverModule: string;
+}
+
 function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn> {
-    const child = childProcess.fork("./process-trampoline", undefined, { silent: true });
+    const child = childProcess.fork(require.resolve("./process-trampoline"), undefined, {
+        silent: true
+    });
     state.resources.childProcesses.add(child);
-    child.send(call);
+    const pfCall: ProcessFunctionCall = { call, serverModule: state.serverModule };
+    child.send(pfCall);
     return state.callFunnel.push(
         () =>
             new Promise((resolve, reject) => {
@@ -66,7 +76,7 @@ function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>
                     state.resources.childProcesses.delete(child);
                     reject(err);
                 });
-                child.on("exit", (code, signal) => {
+                child.on("exit", (_code, _signal) => {
                     state.resources.childProcesses.delete(child);
                 });
             })
@@ -92,6 +102,6 @@ async function setConcurrency(
     state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
 }
 
-function readLogs(state: State): AsyncIterableIterator<LogEntry[]> {
+function readLogs(_state: State): AsyncIterableIterator<LogEntry[]> {
     throw new Error("process_cloudify logs unsupported");
 }

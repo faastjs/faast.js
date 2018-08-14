@@ -6,8 +6,12 @@ import { log } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import { FunctionCall, FunctionMetricsMap, FunctionReturn, sleep } from "./shared";
 import { Unpacked } from "./type-helpers";
+import * as process from "./process/process-cloudify";
 
-(<any>Symbol).asyncIterator = Symbol.asyncIterator || Symbol.for("Symbol.asyncIterator");
+if (!Symbol.asyncIterator) {
+    (Symbol as any).asyncIterator =
+        Symbol.asyncIterator || Symbol.for("Symbol.asyncIterator");
+}
 
 export interface ResponseDetails<D> {
     value?: D;
@@ -262,13 +266,22 @@ export class GoogleEmulator extends Cloud<google.Options, google.State> {
     }
 }
 
+export class Process extends Cloud<process.Options, process.State> {
+    constructor() {
+        super(process.Impl);
+    }
+}
+
+export class ProcessFunction extends CloudFunction<process.State> {}
+
 export class GoogleCloudFunction extends CloudFunction<google.State> {}
 
-export type CloudProvider = "aws" | "google" | "google-emulator";
+export type CloudProvider = "aws" | "google" | "google-emulator" | "process";
 
 export function create(cloudName: "aws"): AWS;
 export function create(cloudName: "google"): Google;
 export function create(cloudName: "google-emulator"): GoogleEmulator;
+export function create(cloudName: "process"): Process;
 export function create(cloudName: CloudProvider): Cloud<any, any>;
 export function create(cloudName: CloudProvider): Cloud<any, any> {
     if (cloudName === "aws") {
@@ -277,6 +290,8 @@ export function create(cloudName: CloudProvider): Cloud<any, any> {
         return new Google();
     } else if (cloudName === "google-emulator") {
         return new GoogleEmulator();
+    } else if (cloudName === "process") {
+        return new Process();
     }
     throw new Error(`Unknown cloud name: "${cloudName}"`);
 }

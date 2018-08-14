@@ -1,12 +1,13 @@
-import * as cloudify from "../src/cloudify";
-import * as funcs from "./functions";
 import * as sys from "child_process";
 import * as fs from "fs";
-import * as awsCloudify from "../src/aws/aws-cloudify";
-import * as googleCloudify from "../src/google/google-cloudify";
 import * as path from "path";
-import { warn, log, disableWarnings, enableWarnings } from "../src/log";
-import { sleep, chomp } from "../src/shared";
+import * as awsCloudify from "../src/aws/aws-cloudify";
+import * as cloudify from "../src/cloudify";
+import * as googleCloudify from "../src/google/google-cloudify";
+import { disableWarnings, enableWarnings, log, warn } from "../src/log";
+import { sleep } from "../src/shared";
+import * as funcs from "./functions";
+import * as processCloudify from "../src/process/process-cloudify";
 
 export function checkFunctions<O extends cloudify.CommonOptions>(
     description: string,
@@ -17,6 +18,11 @@ export function checkFunctions<O extends cloudify.CommonOptions>(
     description: string,
     cloudProvider: "google" | "google-emulator",
     options: googleCloudify.Options
+): void;
+export function checkFunctions<O extends cloudify.CommonOptions>(
+    description: string,
+    cloudProvider: "process",
+    options: processCloudify.Options
 ): void;
 export function checkFunctions<O extends cloudify.CommonOptions>(
     description: string,
