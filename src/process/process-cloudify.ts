@@ -13,9 +13,15 @@ export interface State {
     callFunnel: Funnel<FunctionReturn>;
     serverModule: string;
     logEntries: LogEntry[];
+    options: Options;
 }
 
 export interface Options extends CommonOptions {}
+
+export let defaults: Options = {
+    timeout: 60,
+    memorySize: 256
+};
 
 export const Impl: CloudImpl<Options, State> = {
     name: "process",
@@ -36,13 +42,12 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
 };
 
 async function initialize(serverModule: string, options: Options = {}): Promise<State> {
-    // const bundle = await pack(serverModule, options);
-
     return Promise.resolve({
         resources: { childProcesses: new Set() },
         callFunnel: new Funnel<FunctionReturn>(),
         serverModule,
-        logEntries: []
+        logEntries: [],
+        options
     });
 }
 
@@ -59,11 +64,15 @@ function getFunctionImpl(): CloudFunctionImpl<State> {
 export interface ProcessFunctionCall {
     call: FunctionCall;
     serverModule: string;
+    timeout: number;
 }
 
 function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn> {
     const child = childProcess.fork(require.resolve("./process-trampoline"), [], {
-        silent: true
+        silent: true,
+        execArgv: [
+            `--max-old-space-size=${state.options.memorySize || defaults.memorySize}`
+        ]
     });
     state.resources.childProcesses.add(child);
 

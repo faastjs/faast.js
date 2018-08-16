@@ -4,13 +4,22 @@ import { FunctionReturn } from "../shared";
 
 process.on(
     "message",
-    async ({ call: { CallId, name, args }, serverModule }: ProcessFunctionCall) => {
+    async ({
+        call: { CallId, name, args },
+        serverModule,
+        timeout
+    }: ProcessFunctionCall) => {
         const executionStart = Date.now();
 
-        const mod = require(serverModule);
-        const fn = mod[name];
+        const timer = setTimeout(() => {
+            process.disconnect();
+            console.error(`Cloudify process timed out after ${timeout}s`);
+            process.exit(-1);
+        }, timeout * 1000);
 
         try {
+            const mod = require(serverModule);
+            const fn = mod[name];
             const rv = await fn(...args);
             const ret: FunctionReturn = {
                 type: "returned",
@@ -31,7 +40,9 @@ process.on(
                 executionEnd: Date.now()
             };
             process.send!(errorReturn);
+        } finally {
+            clearTimeout(timer);
+            process.disconnect();
         }
-        process.disconnect();
     }
 );
