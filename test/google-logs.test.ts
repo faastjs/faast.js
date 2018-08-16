@@ -1,3 +1,3 @@
 import { checkLogs } from "./tests";
 
-checkLogs("Google Log groups", "google", {});
+checkLogs("Google Log groups", "google");

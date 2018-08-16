@@ -167,20 +167,10 @@ export function checkCodeBundle(
     });
 }
 
-export function checkLogs<O extends cloudify.CommonOptions>(
-    description: string,
-    cloudProvider: "aws",
-    options: awsCloudify.Options
-): void;
-export function checkLogs<O extends cloudify.CommonOptions>(
-    description: string,
-    cloudProvider: "google" | "google-emulator",
-    options: googleCloudify.Options
-): void;
-export function checkLogs<O extends cloudify.CommonOptions>(
+export function checkLogs(
     description: string,
     cloudProvider: cloudify.CloudProvider,
-    options: O
+    logDelayTime: number = 20 * 1000
 ) {
     describe(description, () => {
         let remote: cloudify.Promisified<typeof funcs>;
@@ -189,8 +179,10 @@ export function checkLogs<O extends cloudify.CommonOptions>(
         beforeAll(async () => {
             try {
                 const cloud = cloudify.create(cloudProvider);
-                options.timeout = 30;
-                options.memorySize = 512;
+                const options = {
+                    timeout: 30,
+                    memorySize: 512
+                };
                 lambda = await cloud.createFunction("./functions", options);
                 remote = lambda.cloudifyAll(funcs);
             } catch (err) {
@@ -210,10 +202,22 @@ export function checkLogs<O extends cloudify.CommonOptions>(
                 await remote.consoleWarn("console.warn works");
                 await remote.consoleError("console.error works");
                 await remote.consoleInfo("console.info works");
-                log(`Sleeping 20`);
-                lambda.printLogs();
-                await sleep(20 * 1000);
+                log(`Sleeping ${logDelayTime / 1000}`);
+                const received = {};
+                const logger = (msg: string) => {
+                    // console.log(msg);
+                    const result = msg.match(/(console.\w+) works/);
+                    if (result && result[1]) {
+                        received[result[1]] = true;
+                    }
+                };
+                lambda.printLogs(logger);
+                await sleep(logDelayTime);
                 lambda.stopLogs();
+                expect(received["console.log"]).toBe(true);
+                expect(received["console.warn"]).toBe(true);
+                expect(received["console.error"]).toBe(true);
+                expect(received["console.info"]).toBe(true);
             },
             100 * 1000
         );

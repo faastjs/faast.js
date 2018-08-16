@@ -1,7 +1,6 @@
 import * as childProcess from "child_process";
 import { CloudFunctionImpl, CloudImpl, CommonOptions, LogEntry } from "../cloudify";
 import { Funnel } from "../funnel";
-import { LogStitcher } from "../logging";
 import { PackerResult } from "../packer";
 import { FunctionCall, FunctionReturn } from "../shared";
 
@@ -12,8 +11,8 @@ export interface ProcessResources {
 export interface State {
     resources: ProcessResources;
     callFunnel: Funnel<FunctionReturn>;
-    logStitcher: LogStitcher;
     serverModule: string;
+    logEntries: LogEntry[];
 }
 
 export interface Options extends CommonOptions {}
@@ -42,8 +41,8 @@ async function initialize(serverModule: string, options: Options = {}): Promise<
     return Promise.resolve({
         resources: { childProcesses: new Set() },
         callFunnel: new Funnel<FunctionReturn>(),
-        logStitcher: new LogStitcher(),
-        serverModule
+        serverModule,
+        logEntries: []
     });
 }
 
@@ -63,10 +62,20 @@ export interface ProcessFunctionCall {
 }
 
 function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn> {
-    const child = childProcess.fork(require.resolve("./process-trampoline"), undefined, {
+    const child = childProcess.fork(require.resolve("./process-trampoline"), [], {
         silent: true
     });
     state.resources.childProcesses.add(child);
+
+    function appendLog(chunk: string) {
+        if (state.logEntries.length > 5000) {
+            state.logEntries.splice(0, 1000);
+        }
+        state.logEntries.push({ message: chunk, timestamp: Date.now() });
+    }
+    child.stdout.on("data", appendLog);
+    child.stderr.on("data", appendLog);
+
     const pfCall: ProcessFunctionCall = { call, serverModule: state.serverModule };
     child.send(pfCall);
     return state.callFunnel.push(
@@ -85,17 +94,17 @@ function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>
 }
 
 async function cleanup(state: State): Promise<void> {
-    await stop(state);
-    const childProcesses = state.resources.childProcesses;
-    const completed = Promise.all(
-        [...childProcesses.values()].map(p => new Promise(done => p.on("exit", done)))
-    );
-    childProcesses.forEach(p => p.kill());
-    await completed;
+    return stop(state);
 }
 
 async function stop(state: State): Promise<void> {
     state.callFunnel.clearPending();
+    const childProcesses = state.resources.childProcesses;
+    const completed = Promise.all(
+        [...childProcesses].map(p => new Promise(resolve => p.on("exit", resolve)))
+    );
+    childProcesses.forEach(p => p.kill());
+    await completed;
 }
 
 function getResourceList(_state: State): string {
@@ -109,6 +118,10 @@ async function setConcurrency(
     state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
 }
 
-function readLogs(_state: State): AsyncIterableIterator<LogEntry[]> {
-    throw new Error("process_cloudify logs unsupported");
+async function* readLogs(state: State): AsyncIterableIterator<LogEntry[]> {
+    const entries = state.logEntries;
+    state.logEntries = [];
+    if (entries.length > 0) {
+        yield entries;
+    }
 }

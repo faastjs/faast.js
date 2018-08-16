@@ -211,6 +211,7 @@ export class CloudFunction<S> {
     }
 
     async *streamLogs(pollIntervalMs: number = 1000) {
+        this.logging = true;
         while (true) {
             if (!this.logging) {
                 return;
