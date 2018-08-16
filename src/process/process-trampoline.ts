@@ -19,7 +19,15 @@ process.on(
 
         try {
             const mod = require(serverModule);
+            if (!mod) {
+                throw new Error(`Could not find module '${serverModule}'`);
+            }
             const fn = mod[name];
+            if (!fn) {
+                throw new Error(
+                    `Could not find function '${name}' in module '${serverModule}'`
+                );
+            }
             const rv = await fn(...args);
             const ret: FunctionReturn = {
                 type: "returned",

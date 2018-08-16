@@ -3,6 +3,7 @@ import { CloudFunctionImpl, CloudImpl, CommonOptions, LogEntry } from "../cloudi
 import { Funnel } from "../funnel";
 import { PackerResult } from "../packer";
 import { FunctionCall, FunctionReturn } from "../shared";
+import { log } from "../log";
 
 export interface ProcessResources {
     childProcesses: Set<childProcess.ChildProcess>;
@@ -18,7 +19,7 @@ export interface State {
 
 export interface Options extends CommonOptions {}
 
-export let defaults: Options = {
+export const defaults = {
     timeout: 60,
     memorySize: 256
 };
@@ -68,34 +69,57 @@ export interface ProcessFunctionCall {
 }
 
 function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn> {
-    const child = childProcess.fork(require.resolve("./process-trampoline"), [], {
-        silent: true,
-        execArgv: [
-            `--max-old-space-size=${state.options.memorySize || defaults.memorySize}`
-        ]
-    });
-    state.resources.childProcesses.add(child);
-
-    function appendLog(chunk: string) {
-        if (state.logEntries.length > 5000) {
-            state.logEntries.splice(0, 1000);
-        }
-        state.logEntries.push({ message: chunk, timestamp: Date.now() });
-    }
-    child.stdout.on("data", appendLog);
-    child.stderr.on("data", appendLog);
-
-    const pfCall: ProcessFunctionCall = { call, serverModule: state.serverModule };
-    child.send(pfCall);
     return state.callFunnel.push(
         () =>
             new Promise((resolve, reject) => {
+                log(`Forking trampoline module`);
+                const child = childProcess.fork(
+                    require.resolve("./process-trampoline"),
+                    [],
+                    {
+                        silent: true,
+                        execArgv: [
+                            `--max-old-space-size=${state.options.memorySize ||
+                                defaults.memorySize}`
+                        ]
+                    }
+                );
+                state.resources.childProcesses.add(child);
+
+                log(`Appending log`);
+
+                function appendLog(chunk: string) {
+                    if (state.logEntries.length > 5000) {
+                        state.logEntries.splice(0, 1000);
+                    }
+                    state.logEntries.push({ message: chunk, timestamp: Date.now() });
+                }
+                child.stdout.on("data", appendLog);
+                child.stderr.on("data", appendLog);
+
+                const pfCall: ProcessFunctionCall = {
+                    call,
+                    serverModule: state.serverModule,
+                    timeout: state.options.timeout || defaults.timeout
+                };
+                log(`Sending function call %O`, pfCall);
+
+                child.send(pfCall);
+
                 child.on("message", resolve);
                 child.on("error", err => {
+                    log(`Child error event`);
+
                     state.resources.childProcesses.delete(child);
                     reject(err);
                 });
-                child.on("exit", (_code, _signal) => {
+                child.on("exit", (code, signal) => {
+                    log(`Child exit event, code: ${code}, signal: ${signal}`);
+                    if (code) {
+                        reject(new Error(`Exited with error code ${code}`));
+                    } else if (signal) {
+                        reject(new Error(`Aborted with signal ${signal}`));
+                    }
                     state.resources.childProcesses.delete(child);
                 });
             })

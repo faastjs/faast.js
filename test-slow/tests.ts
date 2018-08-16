@@ -2,7 +2,7 @@ import * as cloudify from "../src/cloudify";
 import { Pump } from "../src/funnel";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
-import { warn } from "../src/log";
+import { warn, log } from "../src/log";
 
 export function coldStartTest(
     description: string,
@@ -50,10 +50,10 @@ export function coldStartTest(
 
                 lambda.functionMetrics.log("", { detailed: true });
 
-                console.log(`inside: ${insidePoints}, samples: ${samplePoints}`);
+                log(`inside: ${insidePoints}, samples: ${samplePoints}`);
                 expect(samplePoints).toBe(nParallelFunctions * nSamplesPerFunction);
                 const estimatedPI = (insidePoints / samplePoints) * 4;
-                console.log(`PI estimate: ${estimatedPI}`);
+                log(`PI estimate: ${estimatedPI}`);
                 expect(Number(estimatedPI.toFixed(2))).toBe(3.14);
             },
             600 * 1000
@@ -96,7 +96,7 @@ export function throughputTest(
                 pump.start();
                 await sleep(duration);
                 await pump.drain();
-                console.log(
+                log(
                     `Completed ${completed} calls in ${duration / (60 * 1000)} minute(s)`
                 );
             },
@@ -153,13 +153,20 @@ export function checkMemoryLimit(
 
         beforeAll(async () => {
             try {
+                log(`BeforeAll`);
+
                 const cloud = cloudify.create(cloudProvider);
+                log(`Creating function`);
+
                 lambda = await cloud.createFunction("./functions", {
                     ...options,
                     timeout: 200,
                     memorySize: 256
                 });
+                log(`CloudifyAll`);
+
                 remote = lambda.cloudifyAll(funcs);
+                lambda.printLogs();
             } catch (err) {
                 warn(err);
             }
@@ -174,6 +181,7 @@ export function checkMemoryLimit(
             "out of memory error",
             async () => {
                 const bytes = 256 * 1024 * 1024;
+                log(`Invoking remote allocation`);
                 await expect(remote.allocate(bytes)).rejects.toThrowError(/memory/i);
             },
             600 * 1000
