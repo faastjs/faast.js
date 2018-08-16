@@ -57,7 +57,7 @@ function resolve(fmodule: string) {
             `WARNING: import cloudify before aws-cloudify to avoid problems with module resolution`
         );
     }
-    log(`Cloudify module parent: %O`, (parent as any).filename);
+    // log(`Cloudify module parent: %O`, (parent as any).filename);
     const moduleParentResolve = (parent.require as NodeRequire).resolve;
     return moduleParentResolve(fmodule);
 }

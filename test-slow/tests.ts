@@ -153,20 +153,13 @@ export function checkMemoryLimit(
 
         beforeAll(async () => {
             try {
-                log(`BeforeAll`);
-
                 const cloud = cloudify.create(cloudProvider);
-                log(`Creating function`);
-
                 lambda = await cloud.createFunction("./functions", {
                     ...options,
                     timeout: 200,
                     memorySize: 256
                 });
-                log(`CloudifyAll`);
-
                 remote = lambda.cloudifyAll(funcs);
-                lambda.printLogs();
             } catch (err) {
                 warn(err);
             }
@@ -181,7 +174,6 @@ export function checkMemoryLimit(
             "out of memory error",
             async () => {
                 const bytes = 256 * 1024 * 1024;
-                log(`Invoking remote allocation`);
                 await expect(remote.allocate(bytes)).rejects.toThrowError(/memory/i);
             },
             600 * 1000

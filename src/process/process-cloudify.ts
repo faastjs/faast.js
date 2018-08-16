@@ -3,7 +3,6 @@ import { CloudFunctionImpl, CloudImpl, CommonOptions, LogEntry } from "../cloudi
 import { Funnel } from "../funnel";
 import { PackerResult } from "../packer";
 import { FunctionCall, FunctionReturn } from "../shared";
-import { log } from "../log";
 
 export interface ProcessResources {
     childProcesses: Set<childProcess.ChildProcess>;
@@ -68,59 +67,69 @@ export interface ProcessFunctionCall {
     timeout: number;
 }
 
+const oomPattern = /Allocation failed - JavaScript heap out of memory/;
+
 function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn> {
+    let oom: string;
+
+    function setupLogForwarding(child: childProcess.ChildProcess) {
+        function appendLog(chunk: string) {
+            if (state.logEntries.length > 5000) {
+                state.logEntries.splice(0, 1000);
+            }
+            if (oomPattern.test(chunk)) {
+                oom = chunk;
+            }
+            state.logEntries.push({ message: chunk, timestamp: Date.now() });
+        }
+        child.stderr.setEncoding("utf8");
+        child.stderr.on("data", appendLog);
+
+        child.stdout.setEncoding("utf8");
+        child.stdout.on("data", appendLog);
+    }
+
+    const {
+        memorySize = defaults.memorySize,
+        timeout = defaults.timeout
+    } = state.options;
+    const execArgv = process.execArgv.filter(arg => !arg.match(/--max-old-space-size/));
+    execArgv.push(`--max-old-space-size=${memorySize}`);
+    const trampolineModule = require.resolve("./process-trampoline");
     return state.callFunnel.push(
         () =>
             new Promise((resolve, reject) => {
-                log(`Forking trampoline module`);
-                const child = childProcess.fork(
-                    require.resolve("./process-trampoline"),
-                    [],
-                    {
-                        silent: true,
-                        execArgv: [
-                            `--max-old-space-size=${state.options.memorySize ||
-                                defaults.memorySize}`
-                        ]
-                    }
-                );
+                const child = childProcess.fork(trampolineModule, [], {
+                    silent: true,
+                    execArgv
+                });
                 state.resources.childProcesses.add(child);
-
-                log(`Appending log`);
-
-                function appendLog(chunk: string) {
-                    if (state.logEntries.length > 5000) {
-                        state.logEntries.splice(0, 1000);
-                    }
-                    state.logEntries.push({ message: chunk, timestamp: Date.now() });
-                }
-                child.stdout.on("data", appendLog);
-                child.stderr.on("data", appendLog);
+                setupLogForwarding(child);
 
                 const pfCall: ProcessFunctionCall = {
                     call,
                     serverModule: state.serverModule,
-                    timeout: state.options.timeout || defaults.timeout
+                    timeout
                 };
-                log(`Sending function call %O`, pfCall);
 
                 child.send(pfCall);
 
                 child.on("message", resolve);
                 child.on("error", err => {
-                    log(`Child error event`);
-
                     state.resources.childProcesses.delete(child);
                     reject(err);
                 });
                 child.on("exit", (code, signal) => {
-                    log(`Child exit event, code: ${code}, signal: ${signal}`);
+                    state.resources.childProcesses.delete(child);
                     if (code) {
                         reject(new Error(`Exited with error code ${code}`));
                     } else if (signal) {
-                        reject(new Error(`Aborted with signal ${signal}`));
+                        let errorMessage = `Aborted with signal ${signal}`;
+                        if (signal === "SIGABRT" && oom) {
+                            errorMessage += ` (${oom})`;
+                        }
+                        reject(new Error(errorMessage));
                     }
-                    state.resources.childProcesses.delete(child);
                 });
             })
     );

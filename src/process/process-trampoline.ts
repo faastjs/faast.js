@@ -12,9 +12,17 @@ process.on(
         const executionStart = Date.now();
 
         const timer = setTimeout(() => {
-            process.disconnect();
             console.error(`Cloudify process timed out after ${timeout}s`);
-            process.exit(-1);
+            const timeoutReturn: FunctionReturn = {
+                type: "error",
+                value: new Error(`Function timed out after ${timeout}s`),
+                CallId,
+                executionStart,
+                executionEnd: Date.now()
+            };
+            process.send!(timeoutReturn);
+            process.disconnect();
+            process.exit();
         }, timeout * 1000);
 
         try {
