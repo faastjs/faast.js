@@ -2,7 +2,7 @@ require("source-map-support").install();
 import * as uuidv4 from "uuid/v4";
 import * as aws from "./aws/aws-cloudify";
 import * as google from "./google/google-cloudify";
-import { log } from "./log";
+import { log, warn } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import { FunctionCall, FunctionMetricsMap, FunctionReturn, sleep } from "./shared";
 import { Unpacked } from "./type-helpers";
@@ -91,6 +91,11 @@ export function processResponse<R>(
     let error: Error | undefined;
     if (returned.type === "error") {
         const errValue = returned.value;
+        if (Object.keys(errValue).length === 0) {
+            warn(
+                `Error response has no keys, likely a bug in cloudify (not objectifying error objects)`
+            );
+        }
         error = new Error(errValue.message);
         error.name = errValue.name;
         error.stack = errValue.stack;
