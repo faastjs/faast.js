@@ -1,7 +1,8 @@
 import debug from "debug";
 import { Deferred, Pump } from "./funnel";
-import { FunctionCall, FunctionReturn, sleep, serializeCall } from "./shared";
+import { sleep } from "./shared";
 import { warn } from "./log";
+import { FunctionReturn, FunctionCall, serializeCall } from "./trampoline";
 const log = debug("cloudify:collector");
 
 export interface Attributes {

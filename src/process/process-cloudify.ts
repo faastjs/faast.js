@@ -2,7 +2,7 @@ import * as childProcess from "child_process";
 import { CloudFunctionImpl, CloudImpl, CommonOptions, LogEntry } from "../cloudify";
 import { Funnel } from "../funnel";
 import { PackerResult } from "../packer";
-import { FunctionCall, FunctionReturn } from "../shared";
+import { FunctionReturn, FunctionCall } from "../trampoline";
 
 export interface ProcessResources {
     childProcesses: Set<childProcess.ChildProcess>;

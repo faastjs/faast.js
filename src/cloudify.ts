@@ -4,9 +4,10 @@ import * as aws from "./aws/aws-cloudify";
 import * as google from "./google/google-cloudify";
 import { log, warn } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
-import { FunctionCall, FunctionMetricsMap, FunctionReturn, sleep } from "./shared";
+import { FunctionMetricsMap, sleep } from "./shared";
 import { Unpacked } from "./type-helpers";
 import * as process from "./process/process-cloudify";
+import { FunctionReturn, FunctionCall } from "./trampoline";
 
 if (!Symbol.asyncIterator) {
     (Symbol as any).asyncIterator =
@@ -93,7 +94,7 @@ export function processResponse<R>(
         const errValue = returned.value;
         if (Object.keys(errValue).length === 0) {
             warn(
-                `Error response has no keys, likely a bug in cloudify (not objectifying error objects)`
+                `Error response has no keys, likely a bug in cloudify (not serializing error objects)`
             );
         }
         error = new Error(errValue.message);

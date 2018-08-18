@@ -7,9 +7,10 @@ import { LocalCache } from "../cache";
 import { AWS, CloudFunctionImpl, CloudImpl, CommonOptions, LogEntry } from "../cloudify";
 import { Funnel, MemoFunnel, retry } from "../funnel";
 import { log, warn } from "../log";
+import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { FunctionCall, FunctionReturn, serializeCall, sleep, chomp } from "../shared";
+import { chomp, sleep } from "../shared";
 import * as awsNpm from "./aws-npm";
 import {
     createDLQ,
@@ -23,8 +24,7 @@ import {
     receiveMessages,
     sqsMessageAttribute
 } from "./aws-queue";
-import { FilteredLogEvent } from "aws-sdk/clients/cloudwatchlogs";
-import { LogStitcher } from "../logging";
+import { FunctionCall, FunctionReturn, serializeCall } from "../trampoline";
 
 export interface Options extends CommonOptions {
     region?: string;

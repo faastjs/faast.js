@@ -13,8 +13,8 @@ export default function webpackCloudifyLoader(this: any, _source: string) {
     `;
     if (options.functionModule !== undefined) {
         rv += `
-            const functionExports = require("${options.functionModule}");
-            trampolineModule.registerAllFunctions(functionExports);
+            const fModule = require("${options.functionModule}");
+            trampolineModule.registerModule(fModule);
         `;
     }
     return rv;

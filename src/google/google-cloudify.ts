@@ -1,13 +1,14 @@
 import Axios, { AxiosPromise, AxiosResponse } from "axios";
 import * as sys from "child_process";
-import { cloudfunctions_v1, google, GoogleApis, pubsub_v1, logging_v2 } from "googleapis";
+import { cloudfunctions_v1, google, GoogleApis, logging_v2, pubsub_v1 } from "googleapis";
 import * as uuidv4 from "uuid/v4";
 import { CloudFunctionImpl, CloudImpl, CommonOptions, LogEntry } from "../cloudify";
-import { Funnel, Deferred } from "../funnel";
+import { Deferred, Funnel } from "../funnel";
 import { log, warn } from "../log";
+import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { FunctionCall, FunctionReturn, sleep, serializeCall, chomp } from "../shared";
+import { sleep } from "../shared";
 import { Mutable } from "../type-helpers";
 import {
     getMessageBody,
@@ -19,7 +20,7 @@ import {
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import Logging = logging_v2;
-import { LogStitcher } from "../logging";
+import { FunctionReturn, FunctionCall, serializeCall } from "../trampoline";
 
 type Logging = logging_v2.Logging;
 

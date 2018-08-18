@@ -2,7 +2,7 @@ import * as aws from "aws-sdk";
 import * as cloudqueue from "../queue";
 import { log, warn } from "../log";
 import { SNSEvent } from "aws-lambda";
-import { FunctionCall } from "../shared";
+import { FunctionCall } from "../trampoline";
 
 export function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
     const a = message.MessageAttributes;

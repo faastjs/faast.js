@@ -1,9 +1,8 @@
 import { google, pubsub_v1 } from "googleapis";
 import { publish, publishControlMessage } from "./google-queue";
+import { moduleWrapper, FunctionCall } from "../trampoline";
 import PubSubApi = pubsub_v1;
-import { parseFunc, callFunc, createErrorResponse } from "./google-trampoline-shared";
-
-export { registerAllFunctions } from "./google-trampoline-shared";
+export { registerModule } from "../trampoline";
 
 interface CloudFunctionContext {
     eventId: string;
@@ -32,27 +31,30 @@ async function initialize() {
 export async function trampoline(event: CloudFunctionPubSubEvent): Promise<void> {
     const start = Date.now();
     await initialize();
-    let CallId: string = "";
-    let ResponseQueueId: string | undefined;
+    const str = Buffer.from(event.data.data!, "base64");
+    const call: FunctionCall = JSON.parse(str.toString());
+    const { CallId, ResponseQueueId } = call;
+    const startedMessageTimer = setTimeout(
+        () =>
+            publishControlMessage("functionstarted", pubsub, ResponseQueueId!, {
+                CallId
+            }),
+        2 * 1000
+    );
+
     try {
-        const startedMessageTimer = setTimeout(
-            () =>
-                publishControlMessage("functionstarted", pubsub, ResponseQueueId!, {
-                    CallId
-                }),
-            2 * 1000
-        );
-        const str = Buffer.from(event.data.data!, "base64");
-        const parsedFunc = parseFunc(JSON.parse(str.toString()));
-        ({ CallId, ResponseQueueId } = parsedFunc);
-        const returned = await callFunc(parsedFunc, start);
+        const returned = await moduleWrapper.execute(call);
         clearTimeout(startedMessageTimer);
-        await publish(pubsub, ResponseQueueId!, JSON.stringify(returned), { CallId });
+        await publish(pubsub, call.ResponseQueueId!, JSON.stringify(returned), {
+            CallId
+        });
     } catch (err) {
         console.error(err);
         if (ResponseQueueId) {
-            const response = createErrorResponse(err, CallId, start);
-            await publish(pubsub, ResponseQueueId!, JSON.stringify(response), { CallId });
+            const response = moduleWrapper.createErrorResponse(err, call, start);
+            await publish(pubsub, ResponseQueueId!, JSON.stringify(response), {
+                CallId
+            });
         }
     }
 }

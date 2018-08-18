@@ -1,4 +1,4 @@
-import { deepCopyUndefined } from "../src/shared";
+import { deepCopyUndefined } from "../src/trampoline";
 
 test("Copy of undefined properties", () => {
     const obj = { prop: undefined };
