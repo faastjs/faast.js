@@ -16,7 +16,9 @@ export interface State {
     options: Options;
 }
 
-export interface Options extends CommonOptions {}
+export interface Options extends CommonOptions {
+    printLogsToStdout?: boolean;
+}
 
 export const defaults = {
     timeout: 60,
@@ -99,12 +101,15 @@ function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>
     return state.callFunnel.push(
         () =>
             new Promise((resolve, reject) => {
+                const silent = !state.options.printLogsToStdout;
                 const child = childProcess.fork(trampolineModule, [], {
-                    silent: true,
+                    silent,
                     execArgv
                 });
                 state.resources.childProcesses.add(child);
-                setupLogForwarding(child);
+                if (silent) {
+                    setupLogForwarding(child);
+                }
 
                 const pfCall: ProcessFunctionCall = {
                     call,
