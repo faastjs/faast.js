@@ -198,11 +198,6 @@ export function checkLogs(
         test(
             "logs",
             async () => {
-                await remote.consoleLog("console.log works");
-                await remote.consoleWarn("console.warn works");
-                await remote.consoleError("console.error works");
-                await remote.consoleInfo("console.info works");
-                log(`Sleeping ${logDelayTime / 1000}`);
                 const received = {};
                 const logger = (msg: string) => {
                     // console.log(msg);
@@ -211,9 +206,14 @@ export function checkLogs(
                         received[result[1]] = true;
                     }
                 };
-                lambda.printLogs(logger);
+                lambda.setLogger(logger);
+                await remote.consoleLog("console.log works");
+                await remote.consoleWarn("console.warn works");
+                await remote.consoleError("console.error works");
+                await remote.consoleInfo("console.info works");
+                log(`Sleeping ${logDelayTime / 1000}`);
                 await sleep(logDelayTime);
-                lambda.stopLogs();
+                lambda.setLogger(undefined);
                 expect(received["console.log"]).toBe(true);
                 expect(received["console.warn"]).toBe(true);
                 expect(received["console.error"]).toBe(true);

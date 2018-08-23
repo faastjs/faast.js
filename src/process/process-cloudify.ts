@@ -1,5 +1,11 @@
 import * as childProcess from "child_process";
-import { CloudFunctionImpl, CloudImpl, CommonOptions, LogEntry } from "../cloudify";
+import {
+    CloudFunctionImpl,
+    CloudImpl,
+    CommonOptions,
+    LogEntry,
+    Logger
+} from "../cloudify";
 import { Funnel } from "../funnel";
 import { PackerResult } from "../packer";
 import { FunctionReturn, FunctionCall } from "../trampoline";
@@ -12,13 +18,11 @@ export interface State {
     resources: ProcessResources;
     callFunnel: Funnel<FunctionReturn>;
     serverModule: string;
-    logEntries: LogEntry[];
     options: Options;
+    logger?: Logger;
 }
 
-export interface Options extends CommonOptions {
-    printLogsToStdout?: boolean;
-}
+export interface Options extends CommonOptions {}
 
 export const defaults = {
     timeout: 60,
@@ -40,7 +44,7 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
     stop,
     getResourceList,
     setConcurrency,
-    readLogs
+    setLogger
 };
 
 async function initialize(serverModule: string, options: Options = {}): Promise<State> {
@@ -48,7 +52,7 @@ async function initialize(serverModule: string, options: Options = {}): Promise<
         resources: { childProcesses: new Set() },
         callFunnel: new Funnel<FunctionReturn>(),
         serverModule,
-        logEntries: [],
+        loggers: new Set(),
         options
     });
 }
@@ -74,21 +78,21 @@ const oomPattern = /Allocation failed - JavaScript heap out of memory/;
 function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn> {
     let oom: string;
 
-    function setupLogForwarding(child: childProcess.ChildProcess) {
-        function appendLog(chunk: string) {
-            if (state.logEntries.length > 5000) {
-                state.logEntries.splice(0, 1000);
-            }
+    function setupLoggers(child: childProcess.ChildProcess) {
+        function detectOom(chunk: string) {
             if (oomPattern.test(chunk)) {
                 oom = chunk;
             }
-            state.logEntries.push({ message: chunk, timestamp: Date.now() });
         }
         child.stderr.setEncoding("utf8");
-        child.stderr.on("data", appendLog);
-
         child.stdout.setEncoding("utf8");
-        child.stdout.on("data", appendLog);
+
+        child.stderr.on("data", detectOom);
+
+        if (state.logger) {
+            child.stdout.on("data", state.logger);
+            child.stderr.on("data", state.logger);
+        }
     }
 
     const {
@@ -101,15 +105,12 @@ function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>
     return state.callFunnel.push(
         () =>
             new Promise((resolve, reject) => {
-                const silent = !state.options.printLogsToStdout;
                 const child = childProcess.fork(trampolineModule, [], {
-                    silent,
+                    silent: true,
                     execArgv
                 });
                 state.resources.childProcesses.add(child);
-                if (silent) {
-                    setupLogForwarding(child);
-                }
+                setupLoggers(child);
 
                 const pfCall: ProcessFunctionCall = {
                     call,
@@ -152,6 +153,7 @@ async function stop(state: State): Promise<void> {
     );
     childProcesses.forEach(p => p.kill());
     await completed;
+    state.logger = undefined;
 }
 
 function getResourceList(_state: State): string {
@@ -165,10 +167,16 @@ async function setConcurrency(
     state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
 }
 
-async function* readLogs(state: State): AsyncIterableIterator<LogEntry[]> {
-    const entries = state.logEntries;
-    state.logEntries = [];
-    if (entries.length > 0) {
-        yield entries;
+function setLogger(state: State, logger: Logger | undefined) {
+    state.resources.childProcesses.forEach(p => {
+        p.stdout.removeAllListeners("data");
+        p.stderr.removeAllListeners("data");
+    });
+    if (logger) {
+        state.resources.childProcesses.forEach(p => {
+            p.stdout.on("data", logger);
+            p.stderr.on("data", logger);
+        });
     }
+    state.logger = logger;
 }

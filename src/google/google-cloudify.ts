@@ -2,7 +2,13 @@ import Axios, { AxiosPromise, AxiosResponse } from "axios";
 import * as sys from "child_process";
 import { cloudfunctions_v1, google, GoogleApis, logging_v2, pubsub_v1 } from "googleapis";
 import * as uuidv4 from "uuid/v4";
-import { CloudFunctionImpl, CloudImpl, CommonOptions, LogEntry } from "../cloudify";
+import {
+    CloudFunctionImpl,
+    CloudImpl,
+    CommonOptions,
+    LogEntry,
+    Logger
+} from "../cloudify";
 import { Deferred, Funnel } from "../funnel";
 import { log, warn } from "../log";
 import { LogStitcher } from "../logging";
@@ -58,6 +64,7 @@ export interface State {
     project: string;
     functionName: string;
     logStitcher: LogStitcher;
+    logger?: Logger;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -75,7 +82,7 @@ export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
     stop,
     getResourceList,
     setConcurrency,
-    readLogs
+    setLogger
 };
 
 export const EmulatorImpl: CloudImpl<Options, State> = {
@@ -599,15 +606,35 @@ export async function* readLogsRaw(state: State) {
     } while (pageToken);
 }
 
-export async function* readLogs(state: State): AsyncIterableIterator<LogEntry[]> {
+export async function outputCurrentLogs(state: State) {
     const logStream = readLogsRaw(state);
     for await (const entries of logStream) {
-        const newEntries = entries.filter(entry => entry.textPayload).map(entry => ({
-            message: entry.textPayload!,
-            timestamp: parseTimestamp(entry.timestamp)
-        }));
-        if (newEntries.length > 0) {
-            yield newEntries;
+        const newEntries = entries.filter(entry => entry.textPayload);
+
+        for (const entry of newEntries) {
+            if (!state.logger) {
+                return;
+            }
+            state.logger(
+                `${new Date(parseTimestamp(entry.timestamp)).toLocaleString()} ${
+                    entry.textPayload
+                }`
+            );
         }
+    }
+}
+
+async function outputLogs(state: State) {
+    while (state.logger) {
+        outputCurrentLogs(state);
+        await sleep(1000);
+    }
+}
+
+function setLogger(state: State, logger: Logger | undefined) {
+    const prev = state.logger;
+    state.logger = logger;
+    if (!prev) {
+        outputLogs(state);
     }
 }

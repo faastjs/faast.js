@@ -14,6 +14,8 @@ if (!Symbol.asyncIterator) {
         Symbol.asyncIterator || Symbol.for("Symbol.asyncIterator");
 }
 
+export type Logger = (msg: string) => void;
+
 export interface ResponseDetails<D> {
     value?: D;
     error?: Error;
@@ -127,6 +129,7 @@ export function processResponse<R>(
 export class CloudFunction<S> {
     cloudName = this.impl.name;
     functionMetrics = new FunctionMetricsMap();
+    logger?: Logger;
     logging = false;
 
     constructor(protected impl: CloudFunctionImpl<S>, readonly state: S) {}
@@ -216,39 +219,9 @@ export class CloudFunction<S> {
         return rv;
     }
 
-    async *streamLogs(pollIntervalMs: number = 1000) {
-        this.logging = true;
-        while (true) {
-            if (!this.logging) {
-                return;
-            }
-            const start = Date.now();
-            for await (const logs of this.impl.readLogs(this.state)) {
-                yield logs;
-                if (!this.logging) {
-                    return;
-                }
-            }
-            const elapsed = Date.now() - start;
-            if (elapsed < pollIntervalMs) {
-                if (!this.logging) {
-                    return;
-                }
-                await sleep(pollIntervalMs - elapsed);
-            }
-        }
-    }
-
-    async printLogs(logger: (message: string) => void = console.log) {
-        for await (const entries of this.streamLogs()) {
-            entries.forEach(entry =>
-                logger(`${new Date(entry.timestamp).toLocaleString()}: ${entry.message}`)
-            );
-        }
-    }
-
-    stopLogs() {
-        this.logging = false;
+    setLogger(logger: Logger | undefined) {
+        this.logger = logger;
+        this.impl.setLogger(this.state, logger);
     }
 }
 
@@ -317,7 +290,7 @@ export interface CloudFunctionImpl<State> {
     stop(state: State): Promise<void>;
     getResourceList(state: State): string;
     setConcurrency(state: State, maxConcurrentExecutions: number): Promise<void>;
-    readLogs(state: State): AsyncIterableIterator<LogEntry[]>;
+    setLogger(state: State, logger: Logger | undefined): void;
 }
 
 export interface LogEntry {

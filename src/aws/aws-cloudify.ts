@@ -4,7 +4,14 @@ import { createHash } from "crypto";
 import * as fs from "fs";
 import * as uuidv4 from "uuid/v4";
 import { LocalCache } from "../cache";
-import { AWS, CloudFunctionImpl, CloudImpl, CommonOptions, LogEntry } from "../cloudify";
+import {
+    AWS,
+    CloudFunctionImpl,
+    CloudImpl,
+    CommonOptions,
+    LogEntry,
+    Logger
+} from "../cloudify";
 import { Funnel, MemoFunnel, retry } from "../funnel";
 import { log, warn } from "../log";
 import { LogStitcher } from "../logging";
@@ -66,6 +73,7 @@ export interface State {
     callFunnel: Funnel<AWSInvocationResponse>;
     queueState?: AWSCloudQueueState;
     logStitcher: LogStitcher;
+    logger?: Logger;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -83,7 +91,7 @@ export const LambdaImpl: CloudFunctionImpl<State> = {
     stop,
     getResourceList,
     setConcurrency,
-    readLogs
+    setLogger
 };
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
@@ -420,10 +428,9 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     };
 
     try {
-        // log(`Creating log group`);
-        // await createLogGroup(logGroupName, services);
-        log(`Creating function`);
+        const logGroupPromise = createLogGroup(logGroupName, services);
 
+        log(`Creating function`);
         const rolePromise = createRoleFunnel.pushMemoizedRetry(3, RoleName, () =>
             createLambdaRole(RoleName, PolicyArn, services)
         );
@@ -437,7 +444,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
                 return createFunction(codeBundle, roleArn);
             }
         );
-        const promises: Promise<any>[] = [/*logGroupPromise,*/ createFunctionPromise];
+        const promises: Promise<any>[] = [logGroupPromise, createFunctionPromise];
 
         if (useQueue) {
             log(`Creating DLQ`);
@@ -651,6 +658,7 @@ export async function stop(state: PartialState) {
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
     }
+    state.logger = undefined;
 }
 
 export async function setConcurrency(state: State, maxConcurrentExecutions: number) {
@@ -750,13 +758,11 @@ function addSnsInvokePermissionsToFunction(
         .promise();
 }
 
-export async function* readLogsRaw(state: State) {
-    const {
-        resources: { logGroupName },
-        services: { cloudwatch },
-        logStitcher
-    } = state;
-
+async function* readCurrentLogsRaw(
+    logGroupName: string,
+    cloudwatch: AWS.CloudWatchLogs,
+    logStitcher: LogStitcher
+) {
     let nextToken: string | undefined;
     do {
         const result = await cloudwatch
@@ -778,15 +784,36 @@ export async function* readLogsRaw(state: State) {
     } while (nextToken);
 }
 
-export async function* readLogs(state: State): AsyncIterableIterator<LogEntry[]> {
-    const logStream = readLogsRaw(state);
+async function outputCurrentLogs(state: State) {
+    const logStream = readCurrentLogsRaw(
+        state.resources.logGroupName,
+        state.services.cloudwatch,
+        state.logStitcher
+    );
     for await (const entries of logStream) {
-        const newEntries = entries.filter(entry => entry.message).map(entry => ({
-            timestamp: entry.timestamp!,
-            message: chomp(entry.message!)
-        }));
-        if (newEntries.length > 0) {
-            yield newEntries;
+        const newEntries = entries.filter(entry => entry.message);
+        for (const entry of newEntries) {
+            if (!state.logger) {
+                return;
+            }
+            state.logger(
+                `${new Date(entry.timestamp!).toLocaleString()} ${chomp(entry.message!)}`
+            );
         }
+    }
+}
+
+async function outputLogs(state: State) {
+    while (state.logger) {
+        outputCurrentLogs(state);
+        await sleep(1000);
+    }
+}
+
+function setLogger(state: State, logger: Logger | undefined) {
+    const prev = state.logger;
+    state.logger = logger;
+    if (!prev) {
+        outputLogs(state);
     }
 }

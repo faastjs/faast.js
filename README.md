@@ -73,10 +73,11 @@ $ yarn test
 
 This excludes the larger tests `test-slow/*`. These should be executed individually using `npx`.
 
-Jest sometimes overwrites output during the test (this shows up as garbled Jest test status output). Redirect stdout to get clean output:
+Jest sometimes overwrites output during the test (this shows up as garbled Jest test status output, or missing log messages output through the console). Redirect stdout to get clean output:
 
 ```
 $ yarn test > out
+$ cat out
 ```
 
 ## Local Testing

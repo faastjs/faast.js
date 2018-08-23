@@ -119,11 +119,10 @@ export function checkTimeout(
                 const cloud = cloudify.create(cloudProvider);
                 lambda = await cloud.createFunction("./functions", {
                     ...options,
-                    timeout: 3,
-                    printLogsToStdout: true
+                    timeout: 3
                 });
                 remote = lambda.cloudifyAll(funcs);
-                // lambda.printLogs();
+                lambda.setLogger(console.log);
             } catch (err) {
                 warn(err);
             }
