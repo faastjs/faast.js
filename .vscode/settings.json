@@ -5,5 +5,6 @@
     },
     "terminal.integrated.env.windows": {
         "DEBUG": "cloudify:info,cloudify:stats"
-    }
+    },
+    "debug.node.autoAttach": "on"
 }

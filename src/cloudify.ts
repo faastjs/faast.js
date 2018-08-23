@@ -94,9 +94,9 @@ export function processResponse<R>(
     let error: Error | undefined;
     if (returned.type === "error") {
         const errValue = returned.value;
-        if (Object.keys(errValue).length === 0) {
+        if (Object.keys(errValue).length === 0 && !(errValue instanceof Error)) {
             warn(
-                `Error response has no keys, likely a bug in cloudify (not serializing error objects)`
+                `Error response object has no keys, likely a bug in cloudify (not serializing error objects)`
             );
         }
         error = new Error(errValue.message);
