@@ -8,6 +8,7 @@ import { FunctionMetricsMap, sleep } from "./shared";
 import { Unpacked } from "./type-helpers";
 import * as process from "./process/process-cloudify";
 import { FunctionReturn, FunctionCall } from "./trampoline";
+import * as path from "path";
 
 if (!Symbol.asyncIterator) {
     (Symbol as any).asyncIterator =
@@ -60,9 +61,12 @@ function resolve(fmodule: string) {
             `WARNING: import cloudify before aws-cloudify to avoid problems with module resolution`
         );
     }
-    // log(`Cloudify module parent: %O`, (parent as any).filename);
-    const moduleParentResolve = (parent.require as NodeRequire).resolve;
-    return moduleParentResolve(fmodule);
+    log(`fmodule: ${fmodule}`);
+    if (path.isAbsolute(fmodule)) {
+        return fmodule;
+    }
+    const Module = module.constructor;
+    return (Module as any)._resolveFilename(fmodule, module.parent);
 }
 
 export class Cloud<O extends CommonOptions, S> {

@@ -98,7 +98,9 @@ function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>
         memorySize = defaults.memorySize,
         timeout = defaults.timeout
     } = state.options;
-    const execArgv = process.execArgv.filter(arg => !arg.match(/--max-old-space-size/));
+    const execArgv = process.execArgv.filter(
+        arg => !arg.match(/^--max-old-space-size/) && !arg.match(/^--inspect/)
+    );
     execArgv.push(`--max-old-space-size=${memorySize}`);
     const trampolineModule = require.resolve("./process-trampoline");
     return state.callFunnel.push(
