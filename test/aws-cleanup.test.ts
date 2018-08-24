@@ -88,7 +88,7 @@ test(
     async () => {
         const cloud = cloudify.create("aws");
         const func = await cloud.createFunction("./functions", { useQueue: true });
-        const resourceList = func.getResourceList();
+        const resourceList = await func.stop();
         await cloud.cleanupResources(resourceList);
         await checkResourcesCleanedUp(func);
     },

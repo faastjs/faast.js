@@ -80,7 +80,6 @@ export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
     callFunction,
     cleanup,
     stop,
-    getResourceList,
     setConcurrency,
     setLogger
 };
@@ -532,10 +531,6 @@ export async function pack(
     );
 }
 
-export function getResourceList(state: State) {
-    return JSON.stringify(state.resources);
-}
-
 export async function cleanupResources(resourcesString: string) {
     const resources: GoogleResources = JSON.parse(resourcesString);
     const services = await initializeGoogleServices(resources.isEmulator);
@@ -553,6 +548,7 @@ export async function stop(state: Partial<State>) {
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
     }
+    return JSON.stringify(state.resources);
 }
 
 export async function setConcurrency(
@@ -626,8 +622,12 @@ export async function outputCurrentLogs(state: State) {
 
 async function outputLogs(state: State) {
     while (state.logger) {
-        outputCurrentLogs(state);
-        await sleep(1000);
+        const start = Date.now();
+        await outputCurrentLogs(state);
+        const delay = 1000 - (Date.now() - start);
+        if (delay > 0) {
+            await sleep(delay);
+        }
     }
 }
 

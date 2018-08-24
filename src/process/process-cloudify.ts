@@ -42,7 +42,6 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
     callFunction,
     cleanup,
     stop,
-    getResourceList,
     setConcurrency,
     setLogger
 };
@@ -142,10 +141,10 @@ function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>
 }
 
 async function cleanup(state: State): Promise<void> {
-    return stop(state);
+    await stop(state);
 }
 
-async function stop(state: State): Promise<void> {
+async function stop(state: State): Promise<string> {
     state.callFunnel.clearPending();
     const childProcesses = state.resources.childProcesses;
     const completed = Promise.all(
@@ -154,9 +153,6 @@ async function stop(state: State): Promise<void> {
     childProcesses.forEach(p => p.kill());
     await completed;
     state.logger = undefined;
-}
-
-function getResourceList(_state: State): string {
     return "";
 }
 

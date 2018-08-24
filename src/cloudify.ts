@@ -143,10 +143,6 @@ export class CloudFunction<S> {
         return this.impl.stop(this.state);
     }
 
-    getResourceList() {
-        return this.impl.getResourceList(this.state);
-    }
-
     getState() {
         return this.state;
     }
@@ -287,8 +283,7 @@ export interface CloudFunctionImpl<State> {
     name: string;
     callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>;
     cleanup(state: State): Promise<void>;
-    stop(state: State): Promise<void>;
-    getResourceList(state: State): string;
+    stop(state: State): Promise<string>;
     setConcurrency(state: State, maxConcurrentExecutions: number): Promise<void>;
     setLogger(state: State, logger: Logger | undefined): void;
 }

@@ -138,7 +138,7 @@ export function packer(
         log(`webpack config: %O`, config);
         const compiler = webpack(config);
 
-        compiler.outputFileSystem = mfs;
+        compiler.outputFileSystem = mfs as any;
         compiler.run((err, stats) => {
             if (err) {
                 reject(err);

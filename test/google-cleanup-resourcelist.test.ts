@@ -7,7 +7,7 @@ test(
         const cloud = cloudify.create("google");
         const func = await cloud.createFunction("./functions", { useQueue: true });
         checkResourcesExist(await getGoogleResources(func));
-        const resourceList = func.getResourceList();
+        const resourceList = await func.stop();
         await cloud.cleanupResources(resourceList);
         checkResourcesCleanedUp(await getGoogleResources(func));
     },

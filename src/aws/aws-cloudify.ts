@@ -4,20 +4,14 @@ import { createHash } from "crypto";
 import * as fs from "fs";
 import * as uuidv4 from "uuid/v4";
 import { LocalCache } from "../cache";
-import {
-    AWS,
-    CloudFunctionImpl,
-    CloudImpl,
-    CommonOptions,
-    LogEntry,
-    Logger
-} from "../cloudify";
+import { AWS, CloudFunctionImpl, CloudImpl, CommonOptions, Logger } from "../cloudify";
 import { Funnel, MemoFunnel, retry } from "../funnel";
 import { log, warn } from "../log";
 import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import { chomp, sleep } from "../shared";
+import { FunctionCall, FunctionReturn, serializeCall } from "../trampoline";
 import * as awsNpm from "./aws-npm";
 import {
     createDLQ,
@@ -31,7 +25,6 @@ import {
     receiveMessages,
     sqsMessageAttribute
 } from "./aws-queue";
-import { FunctionCall, FunctionReturn, serializeCall } from "../trampoline";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -89,7 +82,6 @@ export const LambdaImpl: CloudFunctionImpl<State> = {
     callFunction,
     cleanup,
     stop,
-    getResourceList,
     setConcurrency,
     setLogger
 };
@@ -613,7 +605,9 @@ export async function cleanup(state: PartialState) {
             })
         );
     }
+    log(`Awaiting stop promise`);
     await stopPromise;
+    log(`Cleanup done`);
 }
 
 export async function pack(
@@ -631,10 +625,6 @@ export async function pack(
             ...rest
         }
     );
-}
-
-export function getResourceList(state: State) {
-    return JSON.stringify(state.resources);
 }
 
 export function cleanupResources(resourceString: string) {
@@ -659,6 +649,7 @@ export async function stop(state: PartialState) {
         await cloudqueue.stop(state.queueState);
     }
     state.logger = undefined;
+    return JSON.stringify(state.resources);
 }
 
 export async function setConcurrency(state: State, maxConcurrentExecutions: number) {
@@ -763,8 +754,11 @@ async function* readCurrentLogsRaw(
     cloudwatch: AWS.CloudWatchLogs,
     logStitcher: LogStitcher
 ) {
+    log(`Reading logs raw`);
     let nextToken: string | undefined;
     do {
+        log(`requesting logs`);
+
         const result = await cloudwatch
             .filterLogEvents({
                 logGroupName,
@@ -777,6 +771,7 @@ async function* readCurrentLogsRaw(
         if (events) {
             const newEvents = events.filter(e => !logStitcher.has(e.eventId!));
             if (newEvents.length > 0) {
+                log(`yielding log events`);
                 yield newEvents;
             }
             logStitcher.updateEvents(events, e => e.timestamp, e => e.eventId);
@@ -791,8 +786,11 @@ async function outputCurrentLogs(state: State) {
         state.logStitcher
     );
     for await (const entries of logStream) {
+        log(`Read log stream`);
         const newEntries = entries.filter(entry => entry.message);
         for (const entry of newEntries) {
+            log(`Read log stream entries`);
+
             if (!state.logger) {
                 return;
             }
@@ -805,8 +803,12 @@ async function outputCurrentLogs(state: State) {
 
 async function outputLogs(state: State) {
     while (state.logger) {
-        outputCurrentLogs(state);
-        await sleep(1000);
+        const start = Date.now();
+        await outputCurrentLogs(state);
+        const delay = 1000 - (Date.now() - start);
+        if (delay > 0) {
+            await sleep(delay);
+        }
     }
 }
 
