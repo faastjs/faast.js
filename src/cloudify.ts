@@ -9,6 +9,7 @@ import { Unpacked } from "./type-helpers";
 import * as process from "./process/process-cloudify";
 import { FunctionReturn, FunctionCall } from "./trampoline";
 import * as path from "path";
+import Module = require("module");
 
 if (!Symbol.asyncIterator) {
     (Symbol as any).asyncIterator =
@@ -61,11 +62,9 @@ function resolve(fmodule: string) {
             `WARNING: import cloudify before aws-cloudify to avoid problems with module resolution`
         );
     }
-    log(`fmodule: ${fmodule}`);
     if (path.isAbsolute(fmodule)) {
         return fmodule;
     }
-    const Module = module.constructor;
     return (Module as any)._resolveFilename(fmodule, module.parent);
 }
 
@@ -199,21 +198,21 @@ export class CloudFunction<S> {
         return cloudifiedFunc as any;
     }
 
-    cloudifyAll<M>(module: M): Promisified<M> {
+    cloudifyAll<M>(fmodule: M): Promisified<M> {
         const rv: any = {};
-        for (const name of Object.keys(module)) {
-            if (typeof module[name] === "function") {
-                rv[name] = this.cloudify(module[name]);
+        for (const name of Object.keys(fmodule)) {
+            if (typeof fmodule[name] === "function") {
+                rv[name] = this.cloudify(fmodule[name]);
             }
         }
         return rv;
     }
 
-    cloudifyAllWithResponse<M>(module: M): Responsified<M> {
+    cloudifyAllWithResponse<M>(fmodule: M): Responsified<M> {
         const rv: any = {};
-        for (const name of Object.keys(module)) {
-            if (typeof module[name] === "function") {
-                rv[name] = this.cloudifyWithResponse(module[name]);
+        for (const name of Object.keys(fmodule)) {
+            if (typeof fmodule[name] === "function") {
+                rv[name] = this.cloudifyWithResponse(fmodule[name]);
             }
         }
         return rv;
