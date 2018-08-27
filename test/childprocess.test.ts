@@ -2,12 +2,12 @@ import { checkFunctions, checkLogs } from "./tests";
 import * as cloudify from "../src/cloudify";
 import * as funcs from "./functions";
 
-checkFunctions("cloudify-process basic functions", "process", {});
+checkFunctions("cloudify childprocess basic functions", "childprocess", {});
 
-checkLogs("cloudify-process logs", "process", 0);
+checkLogs("cloudify childprocess logs", "childprocess", 0);
 
-test("cloudify-process cleanup waits for all child processes to exit", async () => {
-    const cloud = cloudify.create("process");
+test("cloudify childprocess cleanup waits for all child processes to exit", async () => {
+    const cloud = cloudify.create("childprocess");
     const func = await cloud.createFunction("./functions");
     // func.setLogger(console.log);
     const process = func.cloudifyAll(funcs);

@@ -1,6 +1,8 @@
 import * as process from "process";
-import { moduleWrapper, FunctionReturn } from "../trampoline";
-import { ProcessFunctionCall } from "./process-cloudify";
+import { ModuleWrapper, FunctionReturn } from "../trampoline";
+import { ProcessFunctionCall } from "./childprocess-cloudify";
+
+export const moduleWrapper = new ModuleWrapper();
 
 process.on("message", async ({ call, serverModule, timeout }: ProcessFunctionCall) => {
     const executionStart = Date.now();

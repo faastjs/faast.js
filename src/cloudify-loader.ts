@@ -14,7 +14,7 @@ export default function webpackCloudifyLoader(this: any, _source: string) {
     if (options.functionModule !== undefined) {
         rv += `
             const fModule = require("${options.functionModule}");
-            trampolineModule.registerModule(fModule);
+            trampolineModule.moduleWrapper.register(fModule);
         `;
     }
     return rv;

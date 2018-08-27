@@ -130,9 +130,3 @@ export function serializeCall(call: FunctionCall) {
     }
     return callStr;
 }
-
-export const moduleWrapper = new ModuleWrapper();
-
-export function registerModule(fModule: ModuleType) {
-    moduleWrapper.register(fModule);
-}

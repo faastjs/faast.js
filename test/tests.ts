@@ -7,28 +7,22 @@ import * as googleCloudify from "../src/google/google-cloudify";
 import { disableWarnings, enableWarnings, log, warn } from "../src/log";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
-import * as processCloudify from "../src/process/process-cloudify";
 
-export function checkFunctions<O extends cloudify.CommonOptions>(
+export function checkFunctions(
     description: string,
     cloudProvider: "aws",
     options: awsCloudify.Options
 ): void;
-export function checkFunctions<O extends cloudify.CommonOptions>(
-    description: string,
-    cloudProvider: "google" | "google-emulator",
-    options: googleCloudify.Options
-): void;
-export function checkFunctions<O extends cloudify.CommonOptions>(
-    description: string,
-    cloudProvider: "process",
-    options: processCloudify.Options
-): void;
-export function checkFunctions<O extends cloudify.CommonOptions>(
+export function checkFunctions(
     description: string,
     cloudProvider: cloudify.CloudProvider,
-    options: O
-) {
+    options: cloudify.CommonOptions
+): void;
+export function checkFunctions(
+    description: string,
+    cloudProvider: cloudify.CloudProvider,
+    options: cloudify.CommonOptions
+): void {
     describe(description, () => {
         let remote: cloudify.Promisified<typeof funcs>;
         let lambda: cloudify.CloudFunction<any>;
@@ -200,7 +194,7 @@ export function checkLogs(
             async () => {
                 const received = {};
                 const logger = (msg: string) => {
-                    // console.log(msg);
+                    // console.log(`logger message: ${msg}`);
                     const result = msg.match(/(console.\w+) works/);
                     if (result && result[1]) {
                         received[result[1]] = true;

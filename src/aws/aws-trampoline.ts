@@ -1,10 +1,11 @@
 import { SNSEvent } from "aws-lambda";
 import * as aws from "aws-sdk";
-import { FunctionCall, FunctionReturn, moduleWrapper } from "../trampoline";
+import { FunctionCall, FunctionReturn, ModuleWrapper } from "../trampoline";
 import { publishSQS, publishSQSControlMessage } from "./aws-queue";
-export { registerModule } from "../trampoline";
 
 const sqs = new aws.SQS({ apiVersion: "2012-11-05" });
+
+export const moduleWrapper = new ModuleWrapper();
 
 export async function trampoline(
     event: any,

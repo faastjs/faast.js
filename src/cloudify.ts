@@ -1,13 +1,14 @@
+import * as path from "path";
 import * as uuidv4 from "uuid/v4";
 import * as aws from "./aws/aws-cloudify";
+import * as childprocess from "./childprocess/childprocess-cloudify";
 import * as google from "./google/google-cloudify";
+import * as immediate from "./immediate/immediate-cloudify";
 import { log, warn } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
-import { FunctionMetricsMap, sleep } from "./shared";
+import { assertNever, FunctionMetricsMap } from "./shared";
+import { FunctionCall, FunctionReturn } from "./trampoline";
 import { Unpacked } from "./type-helpers";
-import * as process from "./process/process-cloudify";
-import { FunctionReturn, FunctionCall } from "./trampoline";
-import * as path from "path";
 import Module = require("module");
 
 if (!Symbol.asyncIterator) {
@@ -236,28 +237,42 @@ export class Google extends Cloud<google.Options, google.State> {
     }
 }
 
+export class GoogleCloudFunction extends CloudFunction<google.State> {}
+
 export class GoogleEmulator extends Cloud<google.Options, google.State> {
     constructor() {
         super(google.EmulatorImpl);
     }
 }
 
-export class Process extends Cloud<process.Options, process.State> {
+export class ChildProcess extends Cloud<childprocess.Options, childprocess.State> {
     constructor() {
-        super(process.Impl);
+        super(childprocess.Impl);
     }
 }
 
-export class ProcessFunction extends CloudFunction<process.State> {}
+export class ChildProcessFunction extends CloudFunction<childprocess.State> {}
 
-export class GoogleCloudFunction extends CloudFunction<google.State> {}
+export class Immediate extends Cloud<immediate.Options, immediate.State> {
+    constructor() {
+        super(immediate.Impl);
+    }
+}
 
-export type CloudProvider = "aws" | "google" | "google-emulator" | "process";
+export class ImmediateFunction extends CloudFunction<immediate.State> {}
+
+export type CloudProvider =
+    | "aws"
+    | "google"
+    | "google-emulator"
+    | "childprocess"
+    | "immediate";
 
 export function create(cloudName: "aws"): AWS;
 export function create(cloudName: "google"): Google;
 export function create(cloudName: "google-emulator"): GoogleEmulator;
-export function create(cloudName: "process"): Process;
+export function create(cloudName: "childprocess"): ChildProcess;
+export function create(cloudName: "immediate"): Immediate;
 export function create(cloudName: CloudProvider): Cloud<any, any>;
 export function create(cloudName: CloudProvider): Cloud<any, any> {
     if (cloudName === "aws") {
@@ -266,10 +281,12 @@ export function create(cloudName: CloudProvider): Cloud<any, any> {
         return new Google();
     } else if (cloudName === "google-emulator") {
         return new GoogleEmulator();
-    } else if (cloudName === "process") {
-        return new Process();
+    } else if (cloudName === "childprocess") {
+        return new ChildProcess();
+    } else if (cloudName === "immediate") {
+        return new Immediate();
     }
-    throw new Error(`Unknown cloud name: "${cloudName}"`);
+    return assertNever(cloudName);
 }
 
 export interface CloudImpl<O, S> {

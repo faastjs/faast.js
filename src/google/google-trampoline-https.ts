@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import { moduleWrapper, FunctionCall } from "../trampoline";
-export { registerModule } from "../trampoline";
+import { ModuleWrapper, FunctionCall } from "../trampoline";
+
+export const moduleWrapper = new ModuleWrapper();
 
 export async function trampoline(request: Request, response: Response) {
     const executionStart = Date.now();

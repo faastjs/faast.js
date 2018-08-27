@@ -231,3 +231,7 @@ export function chomp(s: string) {
     }
     return s;
 }
+
+export function assertNever(x: never): never {
+    throw new Error("Unexpected object: " + x);
+}

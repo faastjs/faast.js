@@ -1,8 +1,9 @@
 import { google, pubsub_v1 } from "googleapis";
 import { publish, publishControlMessage } from "./google-queue";
-import { moduleWrapper, FunctionCall } from "../trampoline";
+import { ModuleWrapper, FunctionCall } from "../trampoline";
 import PubSubApi = pubsub_v1;
-export { registerModule } from "../trampoline";
+
+export const moduleWrapper = new ModuleWrapper();
 
 interface CloudFunctionContext {
     eventId: string;
