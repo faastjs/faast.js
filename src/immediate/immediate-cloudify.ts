@@ -62,12 +62,6 @@ function getFunctionImpl(): CloudFunctionImpl<State> {
     return FunctionImpl;
 }
 
-export interface ImmediateFunctionCall {
-    call: FunctionCall;
-    serverModule: string;
-    timeout: number;
-}
-
 function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn> {
     const scall = JSON.parse(serializeCall(call));
     return state.callFunnel.push(async () => {
@@ -97,12 +91,4 @@ async function setConcurrency(
     state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
 }
 
-function setLogger(_state: State, logger: Logger | undefined) {
-    // process.stdout.removeAllListeners("data");
-    // process.stderr.removeAllListeners("data");
-    console.error(`setLogger`);
-    if (logger) {
-        process.stdout.on("data", logger);
-        process.stderr.on("data", logger);
-    }
-}
+function setLogger(_state: State, _logger: Logger | undefined) {}

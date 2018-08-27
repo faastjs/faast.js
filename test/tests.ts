@@ -194,7 +194,6 @@ export function checkLogs(
             async () => {
                 const received = {};
                 const logger = (msg: string) => {
-                    // console.log(`logger message: ${msg}`);
                     const result = msg.match(/(console.\w+) works/);
                     if (result && result[1]) {
                         received[result[1]] = true;

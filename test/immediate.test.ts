@@ -1,10 +1,8 @@
-import { checkFunctions, checkLogs } from "./tests";
 import * as cloudify from "../src/cloudify";
 import * as funcs from "./functions";
+import { checkFunctions } from "./tests";
 
 checkFunctions("cloudify-immediate basic functions", "immediate", {});
-
-checkLogs("cloudify-immediate logs", "immediate", 0);
 
 test("cloudify-immediate cleanup waits for all executions to exit", async () => {
     const cloud = cloudify.create("immediate");
