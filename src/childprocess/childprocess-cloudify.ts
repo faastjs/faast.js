@@ -95,7 +95,7 @@ function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>
         arg => !arg.match(/^--max-old-space-size/) && !arg.match(/^--inspect/)
     );
     execArgv.push(`--max-old-space-size=${memorySize}`);
-    const trampolineModule = require.resolve("./process-trampoline");
+    const trampolineModule = require.resolve("./childprocess-trampoline");
     return state.callFunnel.push(
         () =>
             new Promise((resolve, reject) => {
