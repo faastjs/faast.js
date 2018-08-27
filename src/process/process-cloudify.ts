@@ -1,14 +1,8 @@
 import * as childProcess from "child_process";
-import {
-    CloudFunctionImpl,
-    CloudImpl,
-    CommonOptions,
-    LogEntry,
-    Logger
-} from "../cloudify";
+import { CloudFunctionImpl, CloudImpl, CommonOptions, Logger } from "../cloudify";
 import { Funnel } from "../funnel";
 import { PackerResult } from "../packer";
-import { FunctionReturn, FunctionCall } from "../trampoline";
+import { FunctionCall, FunctionReturn } from "../trampoline";
 
 export interface ProcessResources {
     childProcesses: Set<childProcess.ChildProcess>;
@@ -47,13 +41,12 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
 };
 
 async function initialize(serverModule: string, options: Options = {}): Promise<State> {
-    return Promise.resolve({
+    return {
         resources: { childProcesses: new Set() },
         callFunnel: new Funnel<FunctionReturn>(),
         serverModule,
-        loggers: new Set(),
         options
-    });
+    };
 }
 
 async function cleanupResources(_resources: string): Promise<void> {}

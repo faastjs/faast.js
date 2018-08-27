@@ -1,4 +1,3 @@
-require("source-map-support").install();
 import * as uuidv4 from "uuid/v4";
 import * as aws from "./aws/aws-cloudify";
 import * as google from "./google/google-cloudify";
@@ -132,8 +131,7 @@ export function processResponse<R>(
 export class CloudFunction<S> {
     cloudName = this.impl.name;
     functionMetrics = new FunctionMetricsMap();
-    logger?: Logger;
-    logging = false;
+    protected logger?: Logger;
 
     constructor(protected impl: CloudFunctionImpl<S>, readonly state: S) {}
 
