@@ -71,6 +71,19 @@ async function getGoogleCloudFunctionsPricing(cloudBilling: CloudBilling.Cloudbi
     });
     const { skus = [] } = skusResponse.data;
     console.log("%O", skus);
+
+    function getPricing(skus: CloudBilling.Schema$Sku[], description: string) {
+        const p = skus.find(
+            sku => sku.description === description && sku.serviceRegions![0] === "global"
+        );
+
+        if (!p) {
+            return 0;
+        }
+        const pricing = p.pricingInfo![0].pricingExpression!;
+        pricing.tieredRates!.findXXX;
+    }
+
     const perInvocation = skus.find(
         sku => sku.description === "Invocations" && sku.serviceRegions![0] === "global"
     )!;
@@ -92,7 +105,12 @@ async function getGoogleCloudFunctionsPricing(cloudBilling: CloudBilling.Cloudbi
 async function main() {
     const services = await cloudify.google.initializeGoogleServices();
     const pricing = await getGoogleCloudFunctionsPricing(services.cloudBilling);
-    console.log(`%O`, pricing);
+    console.log(
+        `%O %O %O`,
+        pricing.perInvocation![0].pricingExpression!.tieredRates![1].unitPrice!.nanos,
+        pricing.perGhzSecond![0],
+        pricing.perGhzSecond![0]!.pricingExpression!.tieredRates!
+    );
 }
 
 main();
