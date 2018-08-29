@@ -121,12 +121,6 @@ export class Metrics<C, M extends string> {
         this.statistics.update(key, value);
     }
 
-    updateMany(obj: Partial<{ [key in M]: number }>) {
-        for (const key of Object.keys(obj)) {
-            this.update(key as M, obj[key]);
-        }
-    }
-
     toString() {
         return `${this.counters.toString()} ${this.statistics.toString()}`;
     }
@@ -153,38 +147,37 @@ export class MetricsMap<C, M extends string> extends FactoryMap<string, Metrics<
     }
 }
 
-export class IncrementalMetricsMap<C, M extends string> extends MetricsMap<C, M> {
-    incremental = new MetricsMap<C, M>();
-    timer?: NodeJS.Timer;
+export class IncrementalMetricsMap<C, M extends string> {
+    perFunctionIncremental = new MetricsMap<C, M>();
+    perFunctionAggregate = new MetricsMap<C, M>();
+    aggregate = new Metrics<C, M>();
+    private timer?: NodeJS.Timer;
 
     increment(key: string, counter: C) {
-        this.getOrCreate(key).increment(counter);
-        this.incremental.getOrCreate(key).increment(counter);
+        this.perFunctionAggregate.getOrCreate(key).increment(counter);
+        this.perFunctionIncremental.getOrCreate(key).increment(counter);
+        this.aggregate.increment(counter);
     }
 
     update(key: string, name: M, value: number) {
-        this.getOrCreate(key).update(name, value);
-        this.incremental.getOrCreate(key).update(name, value);
-    }
-
-    updateMany(key: string, obj: Partial<{ [property in M]: number }>) {
-        this.getOrCreate(key).updateMany(obj);
-        this.incremental.getOrCreate(key).updateMany(obj);
+        this.perFunctionAggregate.getOrCreate(key).update(name, value);
+        this.perFunctionIncremental.getOrCreate(key).update(name, value);
+        this.aggregate.update(name, value);
     }
 
     resetIncremental() {
-        this.incremental = new MetricsMap();
+        this.perFunctionIncremental = new MetricsMap();
     }
 
     logIncremental(prefix: string = "", detailedOpt?: { detailed: boolean }) {
-        this.incremental.log(prefix, detailedOpt);
+        this.perFunctionIncremental.log(prefix, detailedOpt);
     }
 
     logInterval(interval: number) {
         this.timer && clearInterval(this.timer);
         this.timer = setInterval(() => {
             this.logIncremental();
-            this.incremental = new MetricsMap();
+            this.perFunctionIncremental = new MetricsMap();
         }, interval);
     }
 
@@ -195,22 +188,17 @@ export class IncrementalMetricsMap<C, M extends string> extends MetricsMap<C, M>
 }
 
 export type FunctionCounters = "completed" | "retries" | "errors";
-export type FunctionStatistics = "startLatency" | "executionLatency" | "returnLatency";
 
-export type FunctionMetrics = MetricsMap<FunctionCounters, FunctionStatistics>;
+export type FunctionStatistics =
+    | "startLatency"
+    | "executionLatency"
+    | "returnLatency"
+    | "estimatedBilledTime";
 
-export class FunctionMetricsMap extends IncrementalMetricsMap<
+export class FunctionMetrics extends IncrementalMetricsMap<
     FunctionCounters,
     FunctionStatistics
-> {
-    getAggregateFunctionStats(): FunctionMetrics {
-        return this;
-    }
-
-    getIncrementalFunctionStats(): FunctionMetrics {
-        return this.incremental;
-    }
-}
+> {}
 
 export function sleep(ms: number) {
     return new Promise<void>(resolve => setTimeout(resolve, ms));

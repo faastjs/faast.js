@@ -10,7 +10,7 @@ import { log, warn } from "../log";
 import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { chomp, sleep } from "../shared";
+import { chomp, sleep, FunctionMetrics } from "../shared";
 import { FunctionCall, FunctionReturn, serializeCall } from "../trampoline";
 import * as awsNpm from "./aws-npm";
 import {
@@ -34,6 +34,11 @@ export interface Options extends CommonOptions {
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
 }
 
+export interface AWSLambdaPrices {
+    perRequest: number;
+    perGbSecond: number;
+}
+
 export interface AWSResources {
     FunctionName: string;
     RoleName: string;
@@ -54,6 +59,7 @@ export interface AWSServices {
     readonly sqs: aws.SQS;
     readonly sns: aws.SNS;
     readonly s3: aws.S3;
+    readonly pricing: aws.Pricing;
 }
 
 type AWSCloudQueueState = cloudqueue.StateWithMessageType<aws.SQS.Message>;
@@ -67,6 +73,8 @@ export interface State {
     queueState?: AWSCloudQueueState;
     logStitcher: LogStitcher;
     logger?: Logger;
+    options: Options;
+    prices?: AWSLambdaPrices;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -83,7 +91,8 @@ export const LambdaImpl: CloudFunctionImpl<State> = {
     cleanup,
     stop,
     setConcurrency,
-    setLogger
+    setLogger,
+    costEstimate
 };
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
@@ -125,7 +134,8 @@ export function createAWSApis(region: string): AWSServices {
         cloudwatch: new aws.CloudWatchLogs({ apiVersion: "2014-03-28", region }),
         sqs: new aws.SQS({ apiVersion: "2012-11-05", region }),
         sns: new aws.SNS({ apiVersion: "2010-03-31", region }),
-        s3: new aws.S3({ apiVersion: "2006-03-01", region })
+        s3: new aws.S3({ apiVersion: "2006-03-01", region }),
+        pricing: new aws.Pricing({ region: "us-east-1" })
     };
 }
 
@@ -416,7 +426,8 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         },
         services,
         callFunnel: new Funnel(),
-        logStitcher: new LogStitcher()
+        logStitcher: new LogStitcher(),
+        options
     };
 
     try {
@@ -436,7 +447,16 @@ export async function initialize(fModule: string, options: Options = {}): Promis
                 return createFunction(codeBundle, roleArn);
             }
         );
-        const promises: Promise<any>[] = [logGroupPromise, createFunctionPromise];
+
+        const pricingPromise = awsLambdaPrices(services.pricing, region).then(
+            prices => (state.prices = prices)
+        );
+
+        const promises: Promise<any>[] = [
+            logGroupPromise,
+            createFunctionPromise,
+            pricingPromise
+        ];
 
         if (useQueue) {
             log(`Creating DLQ`);
@@ -641,6 +661,7 @@ export function cleanupResources(resourceString: string) {
 
 export async function stop(state: PartialState) {
     const { callFunnel } = state;
+    state.logger = undefined;
     callFunnel &&
         callFunnel
             .pendingFutures()
@@ -648,7 +669,6 @@ export async function stop(state: PartialState) {
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
     }
-    state.logger = undefined;
     return JSON.stringify(state.resources);
 }
 
@@ -818,4 +838,77 @@ function setLogger(state: State, logger: Logger | undefined) {
     if (!prev) {
         outputLogs(state);
     }
+}
+
+// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html
+const regions = {
+    "us-east-1": "US East (N. Virginia)",
+    "us-east-2": "US East (Ohio)",
+    "us-west-1": "US West (N. California)",
+    "us-west-2": "US West (Oregon)",
+    "ca-central-1": "Canada (Central)",
+    "eu-central-1": "EU (Frankfurt)",
+    "eu-west-1": "EU (Ireland)",
+    "eu-west-2": "EU (London)",
+    "eu-west-3": "EU (Paris)",
+    "ap-northeast-1": "Asia Pacific (Tokyo)",
+    "ap-northeast-2": "Asia Pacific (Seoul)",
+    "ap-northeast-3": "Asia Pacific (Osaka-Local)",
+    "ap-southeast-1": "Asia Pacific (Singapore)",
+    "ap-southeast-2": "Asia Pacific (Sydney)",
+    "ap-south-1": "Asia Pacific (Mumbai)",
+    "sa-east-1": "South America (São Paulo)"
+};
+
+async function awsLambdaPrices(
+    pricing: aws.Pricing,
+    region: string
+): Promise<AWSLambdaPrices> {
+    return {
+        perRequest: await awsPrice(pricing, "AWSLambda", region, "AWS-Lambda-Requests"),
+        perGbSecond: await awsPrice(pricing, "AWSLambda", region, "AWS-Lambda-Duration")
+    };
+}
+
+async function awsPrice(
+    pricing: aws.Pricing,
+    ServiceCode: string,
+    region: string,
+    group: string
+) {
+    function $$(obj: object) {
+        return obj[Object.keys(obj)[0]];
+    }
+    const priceResult = await pricing
+        .getProducts({
+            ServiceCode,
+            Filters: [
+                { Field: "group", Type: "TERM_MATCH", Value: group },
+                { Field: "location", Type: "TERM_MATCH", Value: regions[region] }
+            ]
+        })
+        .promise();
+    const pList: any = priceResult.PriceList![0];
+    const rawPrice = $$($$(pList.terms.OnDemand).priceDimensions).pricePerUnit.USD;
+    return Number(rawPrice);
+}
+
+function costEstimate(state: State, { aggregate }: FunctionMetrics) {
+    const prices = state.prices!;
+
+    const { counters, statistics } = aggregate;
+
+    const { memorySize = defaults.memorySize } = state.options;
+    const billedTimeStats = statistics.get("estimatedBilledTime")!;
+    const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
+    const durationCost = prices.perGbSecond * (memorySize / 1024) * seconds;
+
+    const nRequests =
+        counters.getOrCreate("completed") +
+        counters.getOrCreate("retries") +
+        counters.getOrCreate("errors");
+    const requestCost = nRequests * prices.perRequest;
+
+    const cost = requestCost + durationCost;
+    return cost;
 }

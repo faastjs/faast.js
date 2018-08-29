@@ -21,7 +21,7 @@ function ignore(p: Promise<any>) {
     return p.catch(_ => {});
 }
 
-function sendError(
+async function sendError(
     err: any,
     ResponseQueueUrl: string,
     call: FunctionCall,
@@ -33,7 +33,7 @@ function sendError(
         QueueUrl: ResponseQueueUrl,
         MessageBody: JSON.stringify(moduleWrapper.createErrorResponse(err, call, start))
     };
-    ignore(
+    return ignore(
         publishSQS(sqs, ResponseQueueUrl, JSON.stringify(errorResponse), {
             CallId: call.CallId
         })
@@ -58,11 +58,11 @@ export async function snsTrampoline(
         );
         const result = await moduleWrapper.execute(call);
         clearTimeout(startedMessageTimer);
-        publishSQS(sqs, ResponseQueueId!, JSON.stringify(result), { CallId }).catch(
-            puberr => {
-                sendError(puberr, ResponseQueueId!, call, result.executionStart!);
-            }
-        );
+        return publishSQS(sqs, ResponseQueueId!, JSON.stringify(result), {
+            CallId
+        }).catch(puberr => {
+            sendError(puberr, ResponseQueueId!, call, result.executionStart!);
+        });
     }
 }
 

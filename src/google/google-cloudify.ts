@@ -1,20 +1,21 @@
 import Axios, { AxiosPromise, AxiosResponse } from "axios";
 import * as sys from "child_process";
-import { cloudfunctions_v1, google, GoogleApis, logging_v2, pubsub_v1 } from "googleapis";
-import * as uuidv4 from "uuid/v4";
 import {
-    CloudFunctionImpl,
-    CloudImpl,
-    CommonOptions,
-    LogEntry,
-    Logger
-} from "../cloudify";
+    cloudfunctions_v1,
+    google,
+    GoogleApis,
+    logging_v2,
+    pubsub_v1,
+    cloudbilling_v1
+} from "googleapis";
+import * as uuidv4 from "uuid/v4";
+import { CloudFunctionImpl, CloudImpl, CommonOptions, Logger } from "../cloudify";
 import { Deferred, Funnel } from "../funnel";
 import { log, warn } from "../log";
 import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { sleep } from "../shared";
+import { sleep, FunctionMetrics } from "../shared";
 import { Mutable } from "../type-helpers";
 import {
     getMessageBody,
@@ -26,6 +27,7 @@ import {
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import Logging = logging_v2;
+import CloudBilling = cloudbilling_v1;
 import { FunctionReturn, FunctionCall, serializeCall } from "../trampoline";
 
 type Logging = logging_v2.Logging;
@@ -43,11 +45,18 @@ export interface GoogleResources {
     isEmulator: boolean;
 }
 
+export interface GoogleCloudFunctionsPricing {
+    perInvocation: number;
+    perGhzSecond: number;
+    perGbSecond: number;
+}
+
 export interface GoogleServices {
     readonly cloudFunctions: CloudFunctions.Cloudfunctions;
     readonly pubsub: PubSubApi.Pubsub;
     readonly google: GoogleApis;
     readonly logging: Logging.Logging;
+    readonly cloudBilling: CloudBilling.Cloudbilling;
 }
 
 type ReceivedMessage = PubSubApi.Schema$ReceivedMessage;
@@ -65,6 +74,7 @@ export interface State {
     functionName: string;
     logStitcher: LogStitcher;
     logger?: Logger;
+    pricing?: GoogleCloudFunctionsPricing;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -81,7 +91,8 @@ export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
     cleanup,
     stop,
     setConcurrency,
-    setLogger
+    setLogger,
+    costEstimate
 };
 
 export const EmulatorImpl: CloudImpl<Options, State> = {
@@ -100,6 +111,7 @@ export async function initializeGoogleServices(
         cloudFunctions: useEmulator ? await getEmulator() : google.cloudfunctions("v1"),
         pubsub: google.pubsub("v1"),
         logging: google.logging("v2"),
+        cloudBilling: google.cloudbilling("v1"),
         google
     };
 }
@@ -638,3 +650,11 @@ function setLogger(state: State, logger: Logger | undefined) {
         outputLogs(state);
     }
 }
+
+async function getGoogleCloudFunctionsPricing(cloudBilling: CloudBilling.Cloudbilling) {
+    const services = await cloudBilling.services.list();
+    services.data.services!.forEach(service => console.log(`%O`, service));
+    // cloudBilling.services.skus.list({ parent: "" });
+}
+
+function costEstimate(state: State, { aggregate }: FunctionMetrics) {}

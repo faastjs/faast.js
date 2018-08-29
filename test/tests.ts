@@ -25,7 +25,7 @@ export function checkFunctions(
 ): void {
     describe(description, () => {
         let remote: cloudify.Promisified<typeof funcs>;
-        let lambda: cloudify.CloudFunction<any>;
+        let lambda: cloudify.AnyCloudFunction;
 
         beforeAll(async () => {
             try {
@@ -168,7 +168,7 @@ export function checkLogs(
 ) {
     describe(description, () => {
         let remote: cloudify.Promisified<typeof funcs>;
-        let lambda: cloudify.CloudFunction<any>;
+        let lambda: cloudify.AnyCloudFunction;
 
         beforeAll(async () => {
             try {

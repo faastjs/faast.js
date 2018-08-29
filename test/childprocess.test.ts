@@ -13,7 +13,7 @@ test("cloudify childprocess cleanup waits for all child processes to exit", asyn
     const process = func.cloudifyAll(funcs);
     process.hello("there").catch(_ => {});
     process.delay(2000).catch(_ => {});
-    expect(func.getState().resources.childProcesses.size).toBe(2);
+    expect(func.state.resources.childProcesses.size).toBe(2);
     await func.cleanup();
-    expect(func.getState().resources.childProcesses.size).toBe(0);
+    expect(func.state.resources.childProcesses.size).toBe(0);
 });

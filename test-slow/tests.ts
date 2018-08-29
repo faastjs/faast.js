@@ -10,7 +10,7 @@ export function coldStartTest(
     maxConcurrency: number,
     options?: cloudify.CommonOptions
 ) {
-    let lambda: cloudify.CloudFunction<any>;
+    let lambda: cloudify.AnyCloudFunction;
     let remote: cloudify.Promisified<typeof funcs>;
 
     describe(description, () => {
@@ -48,7 +48,7 @@ export function coldStartTest(
                     samplePoints += m.samples;
                 });
 
-                lambda.functionMetrics.log("", { detailed: true });
+                lambda.functionMetrics.perFunctionAggregate.log("", { detailed: true });
 
                 log(`inside: ${insidePoints}, samples: ${samplePoints}`);
                 expect(samplePoints).toBe(nParallelFunctions * nSamplesPerFunction);
@@ -68,7 +68,7 @@ export function throughputTest(
     options?: cloudify.CommonOptions
 ) {
     describe(description, () => {
-        let lambda: cloudify.CloudFunction<any>;
+        let lambda: cloudify.AnyCloudFunction;
         let remote: cloudify.Promisified<typeof funcs>;
 
         beforeAll(async () => {
@@ -112,7 +112,7 @@ export function checkTimeout(
 ) {
     describe(description, () => {
         let remote: cloudify.Promisified<typeof funcs>;
-        let lambda: cloudify.CloudFunction<any>;
+        let lambda: cloudify.AnyCloudFunction;
 
         beforeAll(async () => {
             try {
@@ -150,7 +150,7 @@ export function checkMemoryLimit(
 ) {
     describe(description, () => {
         let remote: cloudify.Promisified<typeof funcs>;
-        let lambda: cloudify.CloudFunction<any>;
+        let lambda: cloudify.AnyCloudFunction;
 
         beforeAll(async () => {
             try {

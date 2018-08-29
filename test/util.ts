@@ -24,7 +24,7 @@ export async function getGoogleResources(func: cloudify.GoogleCloudFunction) {
             responseSubscription,
             ...rest
         }
-    } = func.getState();
+    } = func.state;
     const _exhaustiveCheck: Required<typeof rest> = {};
 
     const functionResult = await quietly(

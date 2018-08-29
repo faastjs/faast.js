@@ -23,7 +23,7 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
             s3Key,
             ...rest
         }
-    } = func.getState();
+    } = func.state;
 
     const _exhaustiveCheck: Required<typeof rest> = {};
 

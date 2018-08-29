@@ -6,10 +6,12 @@ import * as google from "./google/google-cloudify";
 import * as immediate from "./immediate/immediate-cloudify";
 import { log, warn } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
-import { assertNever, FunctionMetricsMap } from "./shared";
+import { assertNever, FunctionMetrics } from "./shared";
 import { FunctionCall, FunctionReturn } from "./trampoline";
 import { Unpacked } from "./type-helpers";
 import Module = require("module");
+
+export { aws, google, childprocess, immediate };
 
 if (!Symbol.asyncIterator) {
     (Symbol as any).asyncIterator =
@@ -81,18 +83,21 @@ export class Cloud<O extends CommonOptions, S> {
         return this.impl.pack(resolve(fmodule), options);
     }
 
-    async createFunction(fmodule: string, options?: O): Promise<CloudFunction<S>> {
+    async createFunction(fmodule: string, options?: O): Promise<CloudFunction<O, S>> {
         return new CloudFunction(
             this.impl.getFunctionImpl(),
-            await this.impl.initialize(resolve(fmodule), options)
+            await this.impl.initialize(resolve(fmodule), options),
+            options
         );
     }
 }
 
+export type AnyCloud = Cloud<any, any>;
+
 export function processResponse<R>(
     returned: FunctionReturn,
     callRequest: FunctionCall,
-    metrics: FunctionMetricsMap
+    metrics: FunctionMetrics
 ) {
     let error: Error | undefined;
     if (returned.type === "error") {
@@ -121,7 +126,12 @@ export function processResponse<R>(
             returnLatency: Date.now() - returned.executionEnd
         };
         rv = { ...rv, ...latencies };
-        metrics.updateMany(fn, latencies);
+        metrics.update(fn, "executionLatency", latencies.executionLatency);
+        metrics.update(fn, "startLatency", latencies.startLatency);
+        metrics.update(fn, "returnLatency", latencies.returnLatency);
+        const billed = latencies.executionLatency + latencies.returnLatency;
+        const estimatedBilledTime = Math.ceil(billed / 100) * 100;
+        metrics.update(fn, "estimatedBilledTime", estimatedBilledTime);
     }
     if (error) {
         metrics.increment(fn, "errors");
@@ -129,12 +139,16 @@ export function processResponse<R>(
     return rv;
 }
 
-export class CloudFunction<S> {
+export class CloudFunction<O extends CommonOptions, S> {
     cloudName = this.impl.name;
-    functionMetrics = new FunctionMetricsMap();
+    functionMetrics = new FunctionMetrics();
     protected logger?: Logger;
 
-    constructor(protected impl: CloudFunctionImpl<S>, readonly state: S) {}
+    constructor(
+        protected impl: CloudFunctionImpl<S>,
+        readonly state: S,
+        readonly options?: O
+    ) {}
 
     cleanup() {
         this.stopPrintStatisticsInterval();
@@ -143,10 +157,6 @@ export class CloudFunction<S> {
 
     stop() {
         return this.impl.stop(this.state);
-    }
-
-    getState() {
-        return this.state;
     }
 
     printStatisticsInterval(interval: number) {
@@ -221,7 +231,17 @@ export class CloudFunction<S> {
         this.logger = logger;
         this.impl.setLogger(this.state, logger);
     }
+
+    costEstimate(): number {
+        if (this.impl.costEstimate) {
+            return this.impl.costEstimate(this.state, this.functionMetrics);
+        } else {
+            return 0;
+        }
+    }
 }
+
+export type AnyCloudFunction = CloudFunction<any, any>;
 
 export class AWS extends Cloud<aws.Options, aws.State> {
     constructor() {
@@ -229,7 +249,7 @@ export class AWS extends Cloud<aws.Options, aws.State> {
     }
 }
 
-export class AWSLambda extends CloudFunction<aws.State> {}
+export class AWSLambda extends CloudFunction<aws.Options, aws.State> {}
 
 export class Google extends Cloud<google.Options, google.State> {
     constructor() {
@@ -237,7 +257,7 @@ export class Google extends Cloud<google.Options, google.State> {
     }
 }
 
-export class GoogleCloudFunction extends CloudFunction<google.State> {}
+export class GoogleCloudFunction extends CloudFunction<google.Options, google.State> {}
 
 export class GoogleEmulator extends Cloud<google.Options, google.State> {
     constructor() {
@@ -251,7 +271,10 @@ export class ChildProcess extends Cloud<childprocess.Options, childprocess.State
     }
 }
 
-export class ChildProcessFunction extends CloudFunction<childprocess.State> {}
+export class ChildProcessFunction extends CloudFunction<
+    childprocess.Options,
+    childprocess.State
+> {}
 
 export class Immediate extends Cloud<immediate.Options, immediate.State> {
     constructor() {
@@ -259,7 +282,10 @@ export class Immediate extends Cloud<immediate.Options, immediate.State> {
     }
 }
 
-export class ImmediateFunction extends CloudFunction<immediate.State> {}
+export class ImmediateFunction extends CloudFunction<
+    immediate.Options,
+    immediate.State
+> {}
 
 export type CloudProvider =
     | "aws"
@@ -299,6 +325,7 @@ export interface CloudImpl<O, S> {
 
 export interface CloudFunctionImpl<State> {
     name: string;
+    costEstimate?: (state: State, metrics: FunctionMetrics) => number;
     callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>;
     cleanup(state: State): Promise<void>;
     stop(state: State): Promise<string>;

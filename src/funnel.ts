@@ -262,19 +262,17 @@ export class RateLimiter<T> {
     }
 }
 
+interface Limits {
+    maxConcurrency: number;
+    targetRequestsPerSecond: number;
+    maxBurst?: number;
+}
+
 export class RateLimitedFunnel<T> {
     protected funnel: Funnel<T>;
     protected rateLimiter: RateLimiter<T>;
 
-    constructor({
-        maxConcurrency,
-        targetRequestsPerSecond,
-        maxBurst
-    }: {
-        maxConcurrency: number;
-        targetRequestsPerSecond: number;
-        maxBurst?: number;
-    }) {
+    constructor({ maxConcurrency, targetRequestsPerSecond, maxBurst }: Limits) {
         this.funnel = new Funnel<T>(maxConcurrency);
         this.rateLimiter = new RateLimiter<T>(targetRequestsPerSecond, maxBurst);
     }
@@ -297,5 +295,22 @@ export class RateLimitedFunnel<T> {
 
     allFutures() {
         return this.funnel.allFutures();
+    }
+}
+
+export class BoundedFunnel<T> extends RateLimitedFunnel<T> {
+    protected elems: Array<Promise<T>> = [];
+    constructor(limits: Limits) {
+        super(limits);
+    }
+
+    push(worker: () => Promise<T>) {
+        const promise = super.push(worker);
+        this.elems.push(promise);
+        return promise;
+    }
+
+    all() {
+        return Promise.all(this.elems);
     }
 }
