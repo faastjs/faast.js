@@ -652,9 +652,52 @@ function setLogger(state: State, logger: Logger | undefined) {
 }
 
 async function getGoogleCloudFunctionsPricing(cloudBilling: CloudBilling.Cloudbilling) {
-    const services = await cloudBilling.services.list();
-    services.data.services!.forEach(service => console.log(`%O`, service));
-    // cloudBilling.services.skus.list({ parent: "" });
+    try {
+        const services = await cloudBilling.services.list();
+        const cloudFunctionsService = services.data.services!.find(
+            service => service.displayName === "Cloud Functions"
+        )!;
+        const skusResponse = await cloudBilling.services.skus.list({
+            parent: cloudFunctionsService.name
+        });
+        const { skus = [] } = skusResponse.data;
+        function getPricing(description: string) {
+            try {
+                const prices = skus
+                    .find(
+                        sku =>
+                            sku.description === description &&
+                            sku.serviceRegions![0] === "global"
+                    )!
+                    .pricingInfo![0].pricingExpression!.tieredRates!.map(
+                        rate => rate.unitPrice!.nanos!
+                    );
+                return Math.max(...prices);
+            } catch (err) {
+                warn(`Could not get Google Cloud Functions pricing for '${description}'`);
+                warn(err);
+                return 0;
+            }
+        }
+
+        return {
+            perInvocation: await getPricing("Invocations"),
+            perGhzSecond: await getPricing("CPU Time"),
+            perGbSecond: await getPricing("Memory Time")
+        };
+    } catch (err) {
+        warn(`Could not get Google Cloud Functions pricing`);
+        warn(err);
+        return {
+            perInvocation: 0,
+            perGhzSecond: 0,
+            perGbSecond: 0
+        };
+    }
 }
 
-function costEstimate(state: State, { aggregate }: FunctionMetrics) {}
+async function costEstimate(state: State, { aggregate }: FunctionMetrics) {
+    if (!state.pricing) {
+        state.pricing = await getGoogleCloudFunctionsPricing;
+    }
+}

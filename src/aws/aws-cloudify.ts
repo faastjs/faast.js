@@ -4,13 +4,21 @@ import { createHash } from "crypto";
 import * as fs from "fs";
 import * as uuidv4 from "uuid/v4";
 import { LocalCache } from "../cache";
-import { AWS, CloudFunctionImpl, CloudImpl, CommonOptions, Logger } from "../cloudify";
+import {
+    AWS,
+    CloudFunctionImpl,
+    CloudImpl,
+    CommonOptions,
+    Logger,
+    FunctionCounters,
+    FunctionStats
+} from "../cloudify";
 import { Funnel, MemoFunnel, retry } from "../funnel";
 import { log, warn } from "../log";
 import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { chomp, sleep, FunctionMetrics } from "../shared";
+import { chomp, sleep, FunctionMetrics, Metrics } from "../shared";
 import { FunctionCall, FunctionReturn, serializeCall } from "../trampoline";
 import * as awsNpm from "./aws-npm";
 import {
@@ -35,8 +43,17 @@ export interface Options extends CommonOptions {
 }
 
 export interface AWSLambdaPrices {
-    perRequest: number;
-    perGbSecond: number;
+    lambdaPerRequest: number;
+    lambdaPerGbSecond: number;
+    snsPer64kPublish: number;
+    sqsPer64kRequest: number;
+    dataOutPerGb: number;
+}
+
+export interface AWSMetrics {
+    dataOutBytes: number;
+    sns64kRequests: number;
+    sqs64kRequests: number;
 }
 
 export interface AWSResources {
@@ -75,6 +92,7 @@ export interface State {
     logger?: Logger;
     options: Options;
     prices?: AWSLambdaPrices;
+    metrics: AWSMetrics;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -427,6 +445,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         services,
         callFunnel: new Funnel(),
         logStitcher: new LogStitcher(),
+        metrics: new Metrics(),
         options
     };
 
@@ -448,9 +467,10 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             }
         );
 
-        const pricingPromise = awsLambdaPrices(services.pricing, region).then(
-            prices => (state.prices = prices)
-        );
+        const pricingPromise = awsPrices(services.pricing, region).then(prices => {
+            state.prices = prices;
+            console.log("%O", prices);
+        });
 
         const promises: Promise<any>[] = [
             logGroupPromise,
@@ -841,7 +861,7 @@ function setLogger(state: State, logger: Logger | undefined) {
 }
 
 // https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html
-const regions = {
+const locations = {
     "us-east-1": "US East (N. Virginia)",
     "us-east-2": "US East (Ohio)",
     "us-west-1": "US West (N. California)",
@@ -860,55 +880,99 @@ const regions = {
     "sa-east-1": "South America (São Paulo)"
 };
 
-async function awsLambdaPrices(
+export async function awsPrice(
+    pricing: aws.Pricing,
+    ServiceCode: string,
+    filter: object
+) {
+    try {
+        function first(obj: object) {
+            return obj[Object.keys(obj)[0]];
+        }
+        function extractPrice(obj: any) {
+            const prices = Object.keys(obj.priceDimensions).map(key =>
+                Number(obj.priceDimensions[key].pricePerUnit.USD)
+            );
+            return Math.max(...prices);
+        }
+        const priceResult = await pricing
+            .getProducts({
+                ServiceCode,
+                Filters: Object.keys(filter).map(key => ({
+                    Field: key,
+                    Type: "TERM_MATCH",
+                    Value: filter[key]
+                }))
+            })
+            .promise();
+        if (priceResult.PriceList!.length > 1) {
+            console.log(`Multiple product prices: %O`, priceResult.PriceList!);
+        }
+        if (priceResult.PriceList!.length > 1) {
+            warn(
+                `Price query returned more than one product '${ServiceCode}' ($O)`,
+                filter
+            );
+        }
+        const pList: any = priceResult.PriceList![0];
+        const price = extractPrice(first(pList.terms.OnDemand));
+        return price;
+    } catch (err) {
+        warn(`Could not get AWS pricing for '${ServiceCode}' (%O)`, filter);
+        warn(err);
+        return 0;
+    }
+}
+
+export async function awsPrices(
     pricing: aws.Pricing,
     region: string
 ): Promise<AWSLambdaPrices> {
+    const location = locations[region];
     return {
-        perRequest: await awsPrice(pricing, "AWSLambda", region, "AWS-Lambda-Requests"),
-        perGbSecond: await awsPrice(pricing, "AWSLambda", region, "AWS-Lambda-Duration")
+        lambdaPerRequest: await awsPrice(pricing, "AWSLambda", {
+            location,
+            group: "AWS-Lambda-Requests"
+        }),
+        lambdaPerGbSecond: await awsPrice(pricing, "AWSLambda", {
+            location,
+            group: "AWS-Lambda-Duration"
+        }),
+        snsPer64kPublish: await awsPrice(pricing, "AmazonSNS", {
+            location,
+            group: "SNS-Requests-Tier1"
+        }),
+        sqsPer64kRequest: await awsPrice(pricing, "AWSQueueService", {
+            location,
+            group: "SQS-APIRequest-Tier1",
+            queueType: "Standard"
+        }),
+        dataOutPerGb: await awsPrice(pricing, "AWSDataTransfer", {
+            fromLocation: location,
+            transferType: "AWS Outbound"
+        })
     };
 }
 
-async function awsPrice(
-    pricing: aws.Pricing,
-    ServiceCode: string,
-    region: string,
-    group: string
+export function costEstimate(
+    state: State,
+    counters: FunctionCounters,
+    statistics: FunctionStats
 ) {
-    function $$(obj: object) {
-        return obj[Object.keys(obj)[0]];
-    }
-    const priceResult = await pricing
-        .getProducts({
-            ServiceCode,
-            Filters: [
-                { Field: "group", Type: "TERM_MATCH", Value: group },
-                { Field: "location", Type: "TERM_MATCH", Value: regions[region] }
-            ]
-        })
-        .promise();
-    const pList: any = priceResult.PriceList![0];
-    const rawPrice = $$($$(pList.terms.OnDemand).priceDimensions).pricePerUnit.USD;
-    return Number(rawPrice);
-}
-
-function costEstimate(state: State, { aggregate }: FunctionMetrics) {
     const prices = state.prices!;
 
-    const { counters, statistics } = aggregate;
-
     const { memorySize = defaults.memorySize } = state.options;
-    const billedTimeStats = statistics.get("estimatedBilledTime")!;
+    const billedTimeStats = statistics.estimatedBilledTimeMs;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
-    const durationCost = prices.perGbSecond * (memorySize / 1024) * seconds;
+    const durationCost = prices.lambdaPerGbSecond * (memorySize / 1024) * seconds;
 
-    const nRequests =
-        counters.getOrCreate("completed") +
-        counters.getOrCreate("retries") +
-        counters.getOrCreate("errors");
-    const requestCost = nRequests * prices.perRequest;
+    const nRequests = counters.completed + counters.retries + counters.errors;
+    const requestCost = nRequests * prices.lambdaPerRequest;
+
+    if (state.queueState) {
+        XXX;
+    }
 
     const cost = requestCost + durationCost;
-    return cost;
+    return Promise.resolve(cost);
 }

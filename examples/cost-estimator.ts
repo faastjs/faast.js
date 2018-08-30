@@ -1,24 +1,71 @@
-// import * as awssdk from "aws-sdk";
-// import * as cloudify from "../src/cloudify";
-// import { BoundedFunnel } from "../src/funnel";
-// import * as funcs from "../test-slow/functions";
-// import { sleep } from "../src/shared";
+import * as awssdk from "aws-sdk";
+import * as cloudify from "../src/cloudify";
+import { BoundedFunnel } from "../src/funnel";
+import * as funcs from "../test-slow/functions";
+import { sleep } from "../src/shared";
+import { rejected } from "../test/functions";
+import { awsPrice } from "../src/aws/aws-cloudify";
 
-// const pricing = new awssdk.Pricing({ region: "us-east-1" });
+const pricing = new awssdk.Pricing({ region: "us-east-1" });
 
-// async function printLambdaAttributes() {
-//     const lambdaAttributes = ["location", "servicecode", "usagetype", "group"];
+async function printAWSServices() {
+    const services = await pricing.describeServices().promise();
+    // services.Services!.forEach(service =>
+    //     console.log(`${service.ServiceCode}: ${service.AttributeNames}`)
+    // );
+    return services.Services!;
+}
 
-//     console.log(`Attributes: `);
-//     const promises = lambdaAttributes.map(async attr => {
-//         const attrValues = await pricing
-//             .getAttributeValues({ ServiceCode: "AWSLambda", AttributeName: attr })
-//             .promise();
-//         attrValues.AttributeValues!.forEach(val => console.log(`${attr}: ${val.Value}`));
-//     });
+async function printAWSServiceAttributes(service: string, attributes: string[]) {
+    console.log(`${service} Attributes: `);
+    for (const attr of attributes) {
+        await new Promise((resolve, reject) => {
+            pricing
+                .getAttributeValues({ ServiceCode: service, AttributeName: attr })
+                .eachPage((err, response) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    if (response === null) {
+                        resolve();
+                        return true;
+                    }
+                    response.AttributeValues!.forEach(val =>
+                        console.log(`${attr}: ${val.Value}`)
+                    );
+                    return true;
+                });
+        });
+    }
+}
 
-//     await Promise.all(promises);
-// }
+async function main() {
+    const services = await printAWSServices();
+    // const service = services.find(s => s.ServiceCode === "AmazonSNS")!;
+    // const service = services.find(s => s.ServiceCode === "AWSQueueService")!;
+    const service = services.find(s => s.ServiceCode === "AWSDataTransfer")!;
+
+    await printAWSServiceAttributes(service.ServiceCode!, service.AttributeNames!);
+
+    const result = await pricing
+        .getProducts({
+            ServiceCode: service.ServiceCode!,
+            Filters: [
+                { Field: "transferType", Type: "TERM_MATCH", Value: "AWS Outbound" },
+                { Field: "fromLocation", Type: "TERM_MATCH", Value: "US East (Ohio)" }
+                // { Field: "queueType", Type: "TERM_MATCH", Value: "Standard" }
+                // { Field: "endpointType", Type: "TERM_MATCH", Value: "AWS Lambda" }
+                // { Field: "productFamily", Type: "TERM_MATCH", Value: "API Request" }
+                // { Field: "group", Type: "TERM_MATCH", Value: "" }
+                // { Field: "location", Type: "TERM_MATCH", Value: regions[region] }
+            ]
+        })
+        .promise();
+
+    console.log(`Price: %O`, result.PriceList!);
+}
+
+main();
 
 // interface CostResult {
 //     MB: number;
@@ -56,61 +103,14 @@
 //     console.log(err)
 // );
 
-import { cloudbilling_v1 } from "googleapis";
-import * as cloudify from "../src/cloudify";
-import CloudBilling = cloudbilling_v1;
+// import { cloudbilling_v1 } from "googleapis";
+// import * as cloudify from "../src/cloudify";
+// import CloudBilling = cloudbilling_v1;
+// import { warn } from "../src/log";
 
-async function getGoogleCloudFunctionsPricing(cloudBilling: CloudBilling.Cloudbilling) {
-    const services = await cloudBilling.services.list();
-    // services.data.services!.forEach(service => console.log(`%O`, service));
-    const cloudFunctionsService = services.data.services!.find(
-        service => service.displayName === "Cloud Functions"
-    )!;
-    const skusResponse = await cloudBilling.services.skus.list({
-        parent: cloudFunctionsService.name
-    });
-    const { skus = [] } = skusResponse.data;
-    console.log("%O", skus);
+// async function main() {
+//     const services = await cloudify.google.initializeGoogleServices();
+//     const pricing = await getGoogleCloudFunctionsPricing(services.cloudBilling);
+// }
 
-    function getPricing(skus: CloudBilling.Schema$Sku[], description: string) {
-        const p = skus.find(
-            sku => sku.description === description && sku.serviceRegions![0] === "global"
-        );
-
-        if (!p) {
-            return 0;
-        }
-        const pricing = p.pricingInfo![0].pricingExpression!;
-        pricing.tieredRates!.findXXX;
-    }
-
-    const perInvocation = skus.find(
-        sku => sku.description === "Invocations" && sku.serviceRegions![0] === "global"
-    )!;
-    const perGhzSecond = skus.find(
-        sku => sku.description === "CPU Time" && sku.serviceRegions![0] === "global"
-    )!;
-    const perGbSecond = skus.find(
-        sku => sku.description === "Memory Time" && sku.serviceRegions![0] === "global"
-    )!;
-
-    return {
-        perInvocation: perInvocation.pricingInfo,
-        perGhzSecond: perGhzSecond.pricingInfo,
-        perGbSecond: perGbSecond.pricingInfo
-    };
-    // cloudBilling.services.skus.list({ parent: "" });
-}
-
-async function main() {
-    const services = await cloudify.google.initializeGoogleServices();
-    const pricing = await getGoogleCloudFunctionsPricing(services.cloudBilling);
-    console.log(
-        `%O %O %O`,
-        pricing.perInvocation![0].pricingExpression!.tieredRates![1].unitPrice!.nanos,
-        pricing.perGhzSecond![0],
-        pricing.perGhzSecond![0]!.pricingExpression!.tieredRates!
-    );
-}
-
-main();
+// main();

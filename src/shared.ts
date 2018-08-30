@@ -10,7 +10,10 @@ export class Statistics {
     mean = NaN;
 
     // https://math.stackexchange.com/questions/374881/recursive-formula-for-variance
-    update(value: number) {
+    update(value: number | undefined) {
+        if (value === undefined) {
+            return;
+        }
         let previousMean = this.mean;
         let previousVariance = this.variance;
         if (this.samples === 0) {

@@ -4,12 +4,13 @@ import * as aws from "./aws/aws-cloudify";
 import * as childprocess from "./childprocess/childprocess-cloudify";
 import * as google from "./google/google-cloudify";
 import * as immediate from "./immediate/immediate-cloudify";
-import { log, warn } from "./log";
+import { log, warn, stats } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
-import { assertNever, FunctionMetrics } from "./shared";
+import { assertNever, Statistics, FactoryMap } from "./shared";
 import { FunctionCall, FunctionReturn } from "./trampoline";
 import { Unpacked } from "./type-helpers";
 import Module = require("module");
+import { fstat } from "fs";
 
 export { aws, google, childprocess, immediate };
 
@@ -94,10 +95,92 @@ export class Cloud<O extends CommonOptions, S> {
 
 export type AnyCloud = Cloud<any, any>;
 
+export class FunctionCounters {
+    completed = 0;
+    retries = 0;
+    errors = 0;
+}
+
+export class FunctionStats {
+    startLatencyMs = new Statistics();
+    executionLatencyMs = new Statistics();
+    returnLatencyMs = new Statistics();
+    estimatedBilledTimeMs = new Statistics();
+    estimatedDataOutBytes = new Statistics();
+}
+
+export class FunctionCountersMap {
+    fIncremental = new FactoryMap<string, FunctionCounters>(() => new FunctionCounters());
+    fAggregate = new FactoryMap<string, FunctionCounters>(() => new FunctionCounters());
+    aggregate = new FunctionCounters();
+
+    incr(fn: string, key: keyof FunctionCounters) {
+        this.fIncremental.getOrCreate(fn)[key]++;
+        this.fAggregate.getOrCreate(fn)[key]++;
+        this.aggregate[key]++;
+    }
+
+    resetIncremental() {
+        this.fIncremental.clear();
+    }
+
+    logIncremental(prefix: string = "") {
+        this.print(prefix, this.fIncremental);
+    }
+
+    log(prefix: string = "") {
+        this.print(prefix, this.fAggregate);
+    }
+
+    protected print(prefix: string = "", map: FactoryMap<string, FunctionCounters>) {
+        for (const [key, value] of map) {
+            stats(`${prefix} ${key}: ${value}`);
+        }
+    }
+}
+
+export class FunctionStatsMap {
+    fIncremental = new FactoryMap<string, FunctionStats>(() => new FunctionStats());
+    fAggregate = new FactoryMap<string, FunctionStats>(() => new FunctionStats());
+    aggregate = new FunctionStats();
+
+    update(fn: string, key: keyof FunctionStats, value: number | undefined) {
+        this.fIncremental.getOrCreate(fn)[key].update(value);
+        this.fAggregate.getOrCreate(fn)[key].update(value);
+        this.aggregate[key].update(value);
+    }
+
+    resetIncremental() {
+        this.fIncremental.clear();
+    }
+
+    logIncremental(prefix: string = "", detailedOpt?: { detailed: boolean }) {
+        this.print(prefix, this.fIncremental, detailedOpt);
+    }
+
+    log(prefix: string = "", detailedOpt?: { detailed: boolean }) {
+        this.print(prefix, this.fAggregate, detailedOpt);
+    }
+
+    protected print(
+        prefix: string = "",
+        map: FactoryMap<string, FunctionStats>,
+        detailedOpt?: { detailed: boolean }
+    ) {
+        stats(`${prefix} statistics:`);
+        for (const [metric, fstatistics] of map) {
+            for (const stat of Object.keys(fstatistics)) {
+                fstatistics[stat].log(metric, detailedOpt);
+            }
+        }
+    }
+}
+
 export function processResponse<R>(
     returned: FunctionReturn,
     callRequest: FunctionCall,
-    metrics: FunctionMetrics
+    fcounters: FunctionCountersMap,
+    fstats: FunctionStatsMap
 ) {
     let error: Error | undefined;
     if (returned.type === "error") {
@@ -118,31 +201,32 @@ export function processResponse<R>(
         rawResponse: returned.rawResponse
     };
     const fn = callRequest.name;
-    metrics.increment(fn, "completed");
+    fcounters.incr(fn, "completed");
     if (returned.executionStart && returned.executionEnd) {
-        const latencies = {
-            executionLatency: returned.executionEnd - returned.executionStart,
-            startLatency: returned.executionStart - callRequest.start,
-            returnLatency: Date.now() - returned.executionEnd
-        };
-        rv = { ...rv, ...latencies };
-        metrics.update(fn, "executionLatency", latencies.executionLatency);
-        metrics.update(fn, "startLatency", latencies.startLatency);
-        metrics.update(fn, "returnLatency", latencies.returnLatency);
-        const billed = latencies.executionLatency + latencies.returnLatency;
+        const executionLatency = returned.executionEnd - returned.executionStart;
+        const startLatency = returned.executionStart - callRequest.start;
+        const returnLatency = Date.now() - returned.executionEnd;
+        fstats.update(fn, "startLatencyMs", startLatency);
+        fstats.update(fn, "executionLatencyMs", executionLatency);
+        fstats.update(fn, "returnLatencyMs", returnLatency);
+        const billed = (executionLatency || 0) + (returnLatency || 0);
         const estimatedBilledTime = Math.ceil(billed / 100) * 100;
-        metrics.update(fn, "estimatedBilledTime", estimatedBilledTime);
+        fstats.update(fn, "estimatedBilledTimeMs", estimatedBilledTime);
+        rv = { ...rv, executionLatency, startLatency, returnLatency };
     }
+
     if (error) {
-        metrics.increment(fn, "errors");
+        fcounters.incr(fn, "errors");
     }
     return rv;
 }
 
 export class CloudFunction<O extends CommonOptions, S> {
     cloudName = this.impl.name;
-    functionMetrics = new FunctionMetrics();
+    functionCounters = new FunctionCountersMap();
+    functionStats = new FunctionStatsMap();
     protected logger?: Logger;
+    protected timer?: NodeJS.Timer;
 
     constructor(
         protected impl: CloudFunctionImpl<S>,
@@ -159,12 +243,23 @@ export class CloudFunction<O extends CommonOptions, S> {
         return this.impl.stop(this.state);
     }
 
+    printIncremental() {
+        this.functionCounters.logIncremental();
+        this.functionStats.logIncremental();
+    }
+
     printStatisticsInterval(interval: number) {
-        this.functionMetrics.logInterval(interval);
+        this.timer && clearInterval(this.timer);
+        this.timer = setInterval(() => {
+            this.printIncremental();
+            this.functionCounters.resetIncremental();
+            this.functionStats.resetIncremental();
+        }, interval);
     }
 
     stopPrintStatisticsInterval() {
-        this.functionMetrics.stopLogInterval();
+        this.timer && clearInterval(this.timer);
+        this.timer = undefined;
     }
 
     setConcurrency(maxConcurrentExecutions: number): Promise<void> {
@@ -190,7 +285,12 @@ export class CloudFunction<O extends CommonOptions, S> {
                     };
                     return err;
                 });
-            return processResponse<R>(rv, callRequest, this.functionMetrics);
+            return processResponse<R>(
+                rv,
+                callRequest,
+                this.functionCounters,
+                this.functionStats
+            );
         };
         return responsifedFunc;
     }
@@ -232,11 +332,15 @@ export class CloudFunction<O extends CommonOptions, S> {
         this.impl.setLogger(this.state, logger);
     }
 
-    costEstimate(): number {
+    costEstimate(): Promise<number> {
         if (this.impl.costEstimate) {
-            return this.impl.costEstimate(this.state, this.functionMetrics);
+            return this.impl.costEstimate(
+                this.state,
+                this.functionCounters.aggregate,
+                this.functionStats.aggregate
+            );
         } else {
-            return 0;
+            return Promise.resolve(0);
         }
     }
 }
@@ -325,7 +429,11 @@ export interface CloudImpl<O, S> {
 
 export interface CloudFunctionImpl<State> {
     name: string;
-    costEstimate?: (state: State, metrics: FunctionMetrics) => number;
+    costEstimate?: (
+        state: State,
+        counters: FunctionCounters,
+        stats: FunctionStats
+    ) => Promise<number>;
     callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>;
     cleanup(state: State): Promise<void>;
     stop(state: State): Promise<string>;
