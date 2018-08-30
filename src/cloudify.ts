@@ -10,7 +10,6 @@ import { assertNever, Statistics, FactoryMap } from "./shared";
 import { FunctionCall, FunctionReturn } from "./trampoline";
 import { Unpacked } from "./type-helpers";
 import Module = require("module");
-import { fstat } from "fs";
 
 export { aws, google, childprocess, immediate };
 

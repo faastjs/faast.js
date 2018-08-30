@@ -469,7 +469,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
 
         const pricingPromise = awsPrices(services.pricing, region).then(prices => {
             state.prices = prices;
-            console.log("%O", prices);
+            // log("AWS prices: %O", prices);
         });
 
         const promises: Promise<any>[] = [
@@ -548,6 +548,12 @@ async function callFunctionHttps(
         returned = JSON.parse(rawResponse.Payload as string);
         returned.rawResponse = rawResponse;
     }
+    const { httpResponse } = rawResponse.$response;
+    returned.bytesReturned = httpResponse.headers;
+    // returned.bytesReturned = httpResponse.headers[""];
+    log(`Response headers: %O`, httpResponse.headers);
+    // log(`Response body: %O`, httpResponse.body);
+
     return returned;
 }
 
@@ -905,9 +911,6 @@ export async function awsPrice(
                 }))
             })
             .promise();
-        if (priceResult.PriceList!.length > 1) {
-            console.log(`Multiple product prices: %O`, priceResult.PriceList!);
-        }
         if (priceResult.PriceList!.length > 1) {
             warn(
                 `Price query returned more than one product '${ServiceCode}' ($O)`,

@@ -20,6 +20,7 @@ export interface FunctionReturn extends CallId {
     executionEnd?: number;
     retries?: number;
     rawResponse?: any;
+    bytesReturned?: number;
 }
 
 export interface ModuleType {
