@@ -3,11 +3,10 @@ import { Deferred, Pump } from "./funnel";
 import { sleep } from "./shared";
 import { warn } from "./log";
 import { FunctionReturn, FunctionCall, serializeCall } from "./trampoline";
+import { Attributes } from "./type-helpers";
+import { AWSMetrics } from "./aws/aws-cloudify";
+import { computeHttpResponseBytes } from "./aws/aws-queue";
 const log = debug("cloudify:collector");
-
-export interface Attributes {
-    [key: string]: string;
-}
 
 const CallIdAttribute: keyof Pick<FunctionReturn, "CallId"> = "CallId";
 
@@ -138,7 +137,6 @@ async function resultCollector<M>(state: StateWithMessageType<M>) {
                     log(`Resolving CallId: ${CallId}`);
                     callResultsPending.delete(CallId);
                     returned.rawResponse = m;
-xxx                    returned.bytesReturned = body.length;
                     if (deferred) {
                         deferred.resolve(returned);
                     } else {

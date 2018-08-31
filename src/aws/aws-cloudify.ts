@@ -28,12 +28,12 @@ import {
     isControlMessage,
     processAWSErrorMessage,
     publishSNS,
-    publishSQSControlMessage,
     receiveDLQMessages,
     receiveMessages,
     sqsMessageAttribute,
     computeHttpResponseBytes
 } from "./aws-queue";
+import { publishSQSControlMessage } from "./aws-trampoline";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -51,10 +51,10 @@ export interface AWSLambdaPrices {
     dataOutPerGb: number;
 }
 
-export interface AWSMetrics {
-    dataOutBytes: number;
-    sns64kRequests: number;
-    sqs64kRequests: number;
+export class AWSMetrics {
+    dataOutBytes = 0;
+    sns64kRequests = 0;
+    sqs64kRequests = 0;
 }
 
 export interface AWSResources {
@@ -93,7 +93,7 @@ export interface State {
     logger?: Logger;
     options: Options;
     prices?: AWSLambdaPrices;
-    metrics?: AWSMetrics;
+    metrics: AWSMetrics;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -449,7 +449,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         services,
         callFunnel: new Funnel(),
         logStitcher: new LogStitcher(),
-        // metrics: new Metrics(),
+        metrics: new AWSMetrics(),
         options
     };
 
@@ -522,23 +522,12 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     }
 }
 
-xxx Change FunctionReturn to not have bytes. Because it's wrong for message queues, should just pass the stats back down...?
-export function computeHttpResponseBytes(httpResponse: aws.HttpResponse) {
-    const { headers } = httpResponse;
-    const contentLength = Number(headers["content-length"] || "0");
-    const headerKeys = Object.keys(headers);
-    const headerLength = headerKeys
-        .map(header => header.length + headers[header].length)
-        .reduce((x, y) => x + y + 2, 0);
-    const otherLength = 10 + httpResponse.statusMessage.length;
-    return contentLength + headerLength + otherLength;
-}
-
 async function callFunctionHttps(
     lambda: aws.Lambda,
     FunctionName: string,
     callRequest: FunctionCall,
-    callFunnel: Funnel<AWSInvocationResponse>
+    callFunnel: Funnel<AWSInvocationResponse>,
+    metrics: AWSMetrics
 ) {
     let returned: FunctionReturn;
     let rawResponse: AWSInvocationResponse;
@@ -565,9 +554,7 @@ async function callFunctionHttps(
         returned = JSON.parse(payload);
         returned.rawResponse = rawResponse;
     }
-    const headers = rawResponse.$response.httpResponse.headers;
-    const contentLength = Number(headers["content-length"] || "0");
-    returned.bytesReturned = contentLength;
+    metrics.dataOutBytes += computeHttpResponseBytes(rawResponse.$response.httpResponse);
     return returned;
 }
 
@@ -582,9 +569,10 @@ async function callFunction(state: State, callRequest: FunctionCall) {
         const {
             callFunnel,
             services: { lambda },
-            resources: { FunctionName }
+            resources: { FunctionName },
+            metrics
         } = state;
-        return callFunctionHttps(lambda, FunctionName, callRequest, callFunnel);
+        return callFunctionHttps(lambda, FunctionName, callRequest, callFunnel, metrics);
     }
 }
 
@@ -738,7 +726,7 @@ export async function createQueueImpl(
     FunctionArn: string
 ): Promise<AWSCloudQueueImpl> {
     const { sqs, sns, lambda } = state.services;
-    const resources = state.resources;
+    const { resources, metrics } = state;
     log(`Creating SNS request topic`);
     const createTopicPromise = createSNSTopic(sns, `${FunctionName}-Requests`);
 
@@ -780,7 +768,7 @@ export async function createQueueImpl(
     return {
         getMessageAttribute: (message, attr) => sqsMessageAttribute(message, attr),
         pollResponseQueueMessages: () =>
-            receiveMessages(sqs, resources.ResponseQueueUrl!),
+            receiveMessages(sqs, resources.ResponseQueueUrl!, metrics),
         getMessageBody: message => message.Body || "",
         description: () => resources.ResponseQueueUrl!,
         publishRequestMessage: call => publishSNS(sns, resources.RequestTopicArn!, call),
@@ -789,7 +777,7 @@ export async function createQueueImpl(
         publishDLQControlMessage: type =>
             publishSQSControlMessage(type, sqs, resources.DLQUrl!),
         isControlMessage: (message, type) => isControlMessage(message, type),
-        pollErrorQueue: () => receiveDLQMessages(sqs, resources.DLQUrl!)
+        pollErrorQueue: () => receiveDLQMessages(sqs, resources.DLQUrl!, metrics)
     };
 }
 

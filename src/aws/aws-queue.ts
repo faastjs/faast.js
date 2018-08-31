@@ -3,6 +3,9 @@ import * as cloudqueue from "../queue";
 import { log, warn } from "../log";
 import { SNSEvent } from "aws-lambda";
 import { FunctionCall } from "../trampoline";
+import { AWSMetrics } from "./aws-cloudify";
+import { Attributes } from "../type-helpers";
+import { convertMapToAWSMessageAttributes } from "./aws-trampoline";
 
 export function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
     const a = message.MessageAttributes;
@@ -10,17 +13,6 @@ export function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
         return undefined;
     }
     return a[attr] && a[attr].StringValue;
-}
-
-function convertMapToAWSMessageAttributes(
-    attributes?: cloudqueue.Attributes
-): aws.SNS.MessageAttributeMap {
-    const attr: aws.SNS.MessageAttributeMap = {};
-    attributes &&
-        Object.keys(attributes).forEach(
-            key => (attr[key] = { DataType: "String", StringValue: attributes[key] })
-        );
-    return attr;
 }
 
 export async function createSNSTopic(sns: aws.SNS, Name: string) {
@@ -32,7 +24,7 @@ export function publishSNS(
     sns: aws.SNS,
     TopicArn: string,
     body: string,
-    attributes?: cloudqueue.Attributes
+    attributes?: Attributes
 ) {
     return sns
         .publish({
@@ -65,29 +57,6 @@ export async function createSQSQueue(
     return response.QueueUrl!;
 }
 
-export function publishSQS(
-    sqs: aws.SQS,
-    QueueUrl: string,
-    MessageBody: string,
-    attr?: cloudqueue.Attributes
-): Promise<any> {
-    const message = {
-        QueueUrl,
-        MessageBody,
-        MessageAttributes: convertMapToAWSMessageAttributes(attr)
-    };
-    return sqs.sendMessage(message).promise();
-}
-
-export function publishSQSControlMessage(
-    type: cloudqueue.ControlMessageType,
-    sqs: aws.SQS,
-    QueueUrl: string,
-    attr?: cloudqueue.Attributes
-) {
-    return publishSQS(sqs, QueueUrl, "control message", { cloudify: type, ...attr });
-}
-
 export function isControlMessage(
     message: aws.SQS.Message,
     type: cloudqueue.ControlMessageType
@@ -98,9 +67,21 @@ export function isControlMessage(
     return value === type;
 }
 
+export function computeHttpResponseBytes(httpResponse: aws.HttpResponse) {
+    const { headers } = httpResponse;
+    const contentLength = Number(headers["content-length"] || "0");
+    const headerKeys = Object.keys(headers);
+    const headerLength = headerKeys
+        .map(header => header.length + headers[header].length)
+        .reduce((x, y) => x + y + 2, 0);
+    const otherLength = 10 + httpResponse.statusMessage.length;
+    return contentLength + headerLength + otherLength;
+}
+
 export async function receiveMessages(
     sqs: aws.SQS,
-    ResponseQueueUrl: string
+    ResponseQueueUrl: string,
+    metrics: AWSMetrics
 ): Promise<cloudqueue.ReceivedMessages<aws.SQS.Message>> {
     const MaxNumberOfMessages = 10;
     const response = await sqs
@@ -112,6 +93,14 @@ export async function receiveMessages(
         })
         .promise();
     const { Messages = [] } = response;
+    const receivedBytes = computeHttpResponseBytes(response.$response.httpResponse);
+    metrics.dataOutBytes += receivedBytes;
+    const inferSqsRequests = (bytes: number) => Math.ceil(bytes / (64 * 1024));
+    const inferredSqsRequestsReceived = inferSqsRequests(receivedBytes);
+    const inferredSqsRequestsSent = Messages.map(m =>
+        inferSqsRequests((m.Body || "").length)
+    ).reduce((a, b) => a + b, 0);
+    metrics.sqs64kRequests += inferredSqsRequestsSent + inferredSqsRequestsReceived;
     if (Messages.length > 0) {
         sqs.deleteMessageBatch({
             QueueUrl: ResponseQueueUrl!,
@@ -120,6 +109,7 @@ export async function receiveMessages(
                 ReceiptHandle: m.ReceiptHandle!
             }))
         }).promise();
+        metrics.sqs64kRequests++;
     }
     return {
         Messages,
@@ -156,9 +146,10 @@ export function processAWSErrorMessage(message: string) {
 
 export async function receiveDLQMessages(
     sqs: aws.SQS,
-    DLQUrl: string
+    DLQUrl: string,
+    metrics: AWSMetrics
 ): Promise<cloudqueue.QueueError[]> {
-    const { Messages } = await receiveMessages(sqs, DLQUrl);
+    const { Messages } = await receiveMessages(sqs, DLQUrl, metrics);
     const rv = [];
     for (const m of Messages) {
         try {

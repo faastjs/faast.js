@@ -1,8 +1,42 @@
 import { SNSEvent } from "aws-lambda";
 import * as aws from "aws-sdk";
 import { FunctionCall, FunctionReturn, ModuleWrapper } from "../trampoline";
-import { publishSQS, publishSQSControlMessage } from "./aws-queue";
-import * as zip from "zlib";
+import { ControlMessageType } from "../queue";
+import { Attributes } from "../type-helpers";
+
+export function convertMapToAWSMessageAttributes(
+    attributes?: Attributes
+): aws.SNS.MessageAttributeMap {
+    const attr: aws.SNS.MessageAttributeMap = {};
+    attributes &&
+        Object.keys(attributes).forEach(
+            key => (attr[key] = { DataType: "String", StringValue: attributes[key] })
+        );
+    return attr;
+}
+
+function publishSQS(
+    sqs: aws.SQS,
+    QueueUrl: string,
+    MessageBody: string,
+    attr?: Attributes
+): Promise<any> {
+    const message = {
+        QueueUrl,
+        MessageBody,
+        MessageAttributes: convertMapToAWSMessageAttributes(attr)
+    };
+    return sqs.sendMessage(message).promise();
+}
+
+export function publishSQSControlMessage(
+    type: ControlMessageType,
+    sqs: aws.SQS,
+    QueueUrl: string,
+    attr?: Attributes
+) {
+    return publishSQS(sqs, QueueUrl, "control message", { cloudify: type, ...attr });
+}
 
 const sqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
