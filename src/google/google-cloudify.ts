@@ -15,7 +15,7 @@ import { log, warn } from "../log";
 import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { sleep, FunctionMetrics } from "../shared";
+import { sleep } from "../shared";
 import { Mutable } from "../type-helpers";
 import {
     getMessageBody,

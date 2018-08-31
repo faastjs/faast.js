@@ -132,11 +132,13 @@ async function resultCollector<M>(state: StateWithMessageType<M>) {
         } else {
             if (CallId) {
                 try {
-                    const returned: FunctionReturn = JSON.parse(state.getMessageBody(m));
+                    const body = state.getMessageBody(m);
+                    const returned: FunctionReturn = JSON.parse(body);
                     const deferred = callResultsPending.get(CallId);
                     log(`Resolving CallId: ${CallId}`);
                     callResultsPending.delete(CallId);
                     returned.rawResponse = m;
+xxx                    returned.bytesReturned = body.length;
                     if (deferred) {
                         deferred.resolve(returned);
                     } else {

@@ -48,7 +48,8 @@ export function coldStartTest(
                     samplePoints += m.samples;
                 });
 
-                lambda.functionMetrics.perFunctionAggregate.log("", { detailed: true });
+                lambda.functionStats.log("", { detailed: true });
+                lambda.functionCounters.log();
 
                 log(`inside: ${insidePoints}, samples: ${samplePoints}`);
                 expect(samplePoints).toBe(nParallelFunctions * nSamplesPerFunction);

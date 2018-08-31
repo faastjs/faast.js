@@ -121,7 +121,10 @@ export async function receiveMessages(
             }))
         }).promise();
     }
-    return { Messages, isFullMessageBatch: Messages.length === MaxNumberOfMessages };
+    return {
+        Messages,
+        isFullMessageBatch: Messages.length === MaxNumberOfMessages
+    };
 }
 
 export async function createDLQ(FunctionName: string, sqs: aws.SQS) {

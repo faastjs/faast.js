@@ -66,142 +66,142 @@ export class FactoryMap<K, V> extends Map<K, V> {
     }
 }
 
-export class CountersMap<K> extends FactoryMap<K, number> {
-    constructor() {
-        super(() => 0);
-    }
+// export class CountersMap<K> extends FactoryMap<K, number> {
+//     constructor() {
+//         super(() => 0);
+//     }
 
-    increment(key: K) {
-        const current = this.getOrCreate(key) + 1;
-        this.set(key, current);
-    }
+//     increment(key: K) {
+//         const current = this.getOrCreate(key) + 1;
+//         this.set(key, current);
+//     }
 
-    toString() {
-        return Array.from(this)
-            .map(([key, value]) => `${key}: ${value}`)
-            .join(", ");
-    }
+//     toString() {
+//         return Array.from(this)
+//             .map(([key, value]) => `${key}: ${value}`)
+//             .join(", ");
+//     }
 
-    log(prefix: string = "", _detailedOpt?: { detailed: boolean }) {
-        for (const [key, value] of this) {
-            stats(`${prefix} ${key}: ${value}`);
-        }
-    }
-}
+//     log(prefix: string = "", _detailedOpt?: { detailed: boolean }) {
+//         for (const [key, value] of this) {
+//             stats(`${prefix} ${key}: ${value}`);
+//         }
+//     }
+// }
 
-export class StatisticsMap<K extends string> extends FactoryMap<K, Statistics> {
-    constructor() {
-        super(() => new Statistics());
-    }
+// export class StatisticsMap<K extends string> extends FactoryMap<K, Statistics> {
+//     constructor() {
+//         super(() => new Statistics());
+//     }
 
-    update(key: K, value: number) {
-        this.getOrCreate(key).update(value);
-    }
+//     update(key: K, value: number) {
+//         this.getOrCreate(key).update(value);
+//     }
 
-    toString() {
-        return Array.from(this)
-            .map(([key, value]) => `${key}: ${value.toString()}`)
-            .join(", ");
-    }
+//     toString() {
+//         return Array.from(this)
+//             .map(([key, value]) => `${key}: ${value.toString()}`)
+//             .join(", ");
+//     }
 
-    log(prefix: string = "", detailedOpt?: { detailed: boolean }) {
-        stats(`${prefix} statistics:`);
-        for (const [metric, statistics] of this) {
-            statistics.log(metric, detailedOpt);
-        }
-    }
-}
+//     log(prefix: string = "", detailedOpt?: { detailed: boolean }) {
+//         stats(`${prefix} statistics:`);
+//         for (const [metric, statistics] of this) {
+//             statistics.log(metric, detailedOpt);
+//         }
+//     }
+// }
 
-export class Metrics<C, M extends string> {
-    counters = new CountersMap<C>();
-    statistics = new StatisticsMap<M>();
+// export class Metrics<C, M extends string> {
+//     counters = new CountersMap<C>();
+//     statistics = new StatisticsMap<M>();
 
-    increment(key: C) {
-        this.counters.increment(key);
-    }
+//     increment(key: C) {
+//         this.counters.increment(key);
+//     }
 
-    update(key: M, value: number) {
-        this.statistics.update(key, value);
-    }
+//     update(key: M, value: number) {
+//         this.statistics.update(key, value);
+//     }
 
-    toString() {
-        return `${this.counters.toString()} ${this.statistics.toString()}`;
-    }
+//     toString() {
+//         return `${this.counters.toString()} ${this.statistics.toString()}`;
+//     }
 
-    log(prefix: string = "", detailedOpt?: { detailed: boolean }) {
-        if (detailedOpt && detailedOpt.detailed) {
-            this.counters.log(prefix, detailedOpt);
-            this.statistics.log(prefix, detailedOpt);
-        } else {
-            stats(`${prefix} ${this.toString()}`);
-        }
-    }
-}
+//     log(prefix: string = "", detailedOpt?: { detailed: boolean }) {
+//         if (detailedOpt && detailedOpt.detailed) {
+//             this.counters.log(prefix, detailedOpt);
+//             this.statistics.log(prefix, detailedOpt);
+//         } else {
+//             stats(`${prefix} ${this.toString()}`);
+//         }
+//     }
+// }
 
-export class MetricsMap<C, M extends string> extends FactoryMap<string, Metrics<C, M>> {
-    constructor() {
-        super(() => new Metrics());
-    }
+// export class MetricsMap<C, M extends string> extends FactoryMap<string, Metrics<C, M>> {
+//     constructor() {
+//         super(() => new Metrics());
+//     }
 
-    log(prefix: string = "", detailedOpt?: { detailed: boolean }) {
-        for (const [key, metrics] of this) {
-            metrics.log(`${prefix}${key}`, detailedOpt);
-        }
-    }
-}
+//     log(prefix: string = "", detailedOpt?: { detailed: boolean }) {
+//         for (const [key, metrics] of this) {
+//             metrics.log(`${prefix}${key}`, detailedOpt);
+//         }
+//     }
+// }
 
-export class IncrementalMetricsMap<C, M extends string> {
-    perFunctionIncremental = new MetricsMap<C, M>();
-    perFunctionAggregate = new MetricsMap<C, M>();
-    aggregate = new Metrics<C, M>();
-    private timer?: NodeJS.Timer;
+// export class IncrementalMetricsMap<C, M extends string> {
+//     perFunctionIncremental = new MetricsMap<C, M>();
+//     perFunctionAggregate = new MetricsMap<C, M>();
+//     aggregate = new Metrics<C, M>();
+//     private timer?: NodeJS.Timer;
 
-    increment(key: string, counter: C) {
-        this.perFunctionAggregate.getOrCreate(key).increment(counter);
-        this.perFunctionIncremental.getOrCreate(key).increment(counter);
-        this.aggregate.increment(counter);
-    }
+//     increment(key: string, counter: C) {
+//         this.perFunctionAggregate.getOrCreate(key).increment(counter);
+//         this.perFunctionIncremental.getOrCreate(key).increment(counter);
+//         this.aggregate.increment(counter);
+//     }
 
-    update(key: string, name: M, value: number) {
-        this.perFunctionAggregate.getOrCreate(key).update(name, value);
-        this.perFunctionIncremental.getOrCreate(key).update(name, value);
-        this.aggregate.update(name, value);
-    }
+//     update(key: string, name: M, value: number) {
+//         this.perFunctionAggregate.getOrCreate(key).update(name, value);
+//         this.perFunctionIncremental.getOrCreate(key).update(name, value);
+//         this.aggregate.update(name, value);
+//     }
 
-    resetIncremental() {
-        this.perFunctionIncremental = new MetricsMap();
-    }
+//     resetIncremental() {
+//         this.perFunctionIncremental = new MetricsMap();
+//     }
 
-    logIncremental(prefix: string = "", detailedOpt?: { detailed: boolean }) {
-        this.perFunctionIncremental.log(prefix, detailedOpt);
-    }
+//     logIncremental(prefix: string = "", detailedOpt?: { detailed: boolean }) {
+//         this.perFunctionIncremental.log(prefix, detailedOpt);
+//     }
 
-    logInterval(interval: number) {
-        this.timer && clearInterval(this.timer);
-        this.timer = setInterval(() => {
-            this.logIncremental();
-            this.perFunctionIncremental = new MetricsMap();
-        }, interval);
-    }
+//     logInterval(interval: number) {
+//         this.timer && clearInterval(this.timer);
+//         this.timer = setInterval(() => {
+//             this.logIncremental();
+//             this.perFunctionIncremental = new MetricsMap();
+//         }, interval);
+//     }
 
-    stopLogInterval() {
-        this.timer && clearInterval(this.timer);
-        this.timer = undefined;
-    }
-}
+//     stopLogInterval() {
+//         this.timer && clearInterval(this.timer);
+//         this.timer = undefined;
+//     }
+// }
 
-export type FunctionCounters = "completed" | "retries" | "errors";
+// export type FunctionCounters = "completed" | "retries" | "errors";
 
-export type FunctionStatistics =
-    | "startLatency"
-    | "executionLatency"
-    | "returnLatency"
-    | "estimatedBilledTime";
+// export type FunctionStatistics =
+//     | "startLatency"
+//     | "executionLatency"
+//     | "returnLatency"
+//     | "estimatedBilledTime";
 
-export class FunctionMetrics extends IncrementalMetricsMap<
-    FunctionCounters,
-    FunctionStatistics
-> {}
+// export class FunctionMetrics extends IncrementalMetricsMap<
+//     FunctionCounters,
+//     FunctionStatistics
+// > {}
 
 export function sleep(ms: number) {
     return new Promise<void>(resolve => setTimeout(resolve, ms));

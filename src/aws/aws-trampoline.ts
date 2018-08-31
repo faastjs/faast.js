@@ -2,6 +2,7 @@ import { SNSEvent } from "aws-lambda";
 import * as aws from "aws-sdk";
 import { FunctionCall, FunctionReturn, ModuleWrapper } from "../trampoline";
 import { publishSQS, publishSQSControlMessage } from "./aws-queue";
+import * as zip from "zlib";
 
 const sqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
@@ -10,7 +11,7 @@ export const moduleWrapper = new ModuleWrapper();
 export async function trampoline(
     event: any,
     _context: any,
-    callback: (err: Error | null, obj: FunctionReturn) => void
+    callback: (err: Error | null, obj: FunctionReturn | string) => void
 ) {
     const call = event as FunctionCall;
     const result = await moduleWrapper.execute(call);

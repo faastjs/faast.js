@@ -3,7 +3,7 @@
         "outDir": "build",
         "rootDir": ".",
         "module": "commonjs",
-        "target": "es6",
+        "target": "es2017",
         "lib": ["es2017", "esnext.asynciterable"],
         // "sourceMap": true,
         "inlineSourceMap": true,

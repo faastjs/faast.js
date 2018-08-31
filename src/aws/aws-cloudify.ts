@@ -18,7 +18,7 @@ import { log, warn } from "../log";
 import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { chomp, sleep, FunctionMetrics, Metrics } from "../shared";
+import { chomp, sleep } from "../shared";
 import { FunctionCall, FunctionReturn, serializeCall } from "../trampoline";
 import * as awsNpm from "./aws-npm";
 import {
@@ -31,7 +31,8 @@ import {
     publishSQSControlMessage,
     receiveDLQMessages,
     receiveMessages,
-    sqsMessageAttribute
+    sqsMessageAttribute,
+    computeHttpResponseBytes
 } from "./aws-queue";
 
 export interface Options extends CommonOptions {
@@ -92,7 +93,7 @@ export interface State {
     logger?: Logger;
     options: Options;
     prices?: AWSLambdaPrices;
-    metrics: AWSMetrics;
+    metrics?: AWSMetrics;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -146,7 +147,8 @@ export let defaults: Required<Options> = {
 };
 
 export function createAWSApis(region: string): AWSServices {
-    return {
+    aws.config.update({ correctClockSkew: true });
+    const services = {
         iam: new aws.IAM({ apiVersion: "2010-05-08", region }),
         lambda: new aws.Lambda({ apiVersion: "2015-03-31", region }),
         cloudwatch: new aws.CloudWatchLogs({ apiVersion: "2014-03-28", region }),
@@ -155,6 +157,7 @@ export function createAWSApis(region: string): AWSServices {
         s3: new aws.S3({ apiVersion: "2006-03-01", region }),
         pricing: new aws.Pricing({ region: "us-east-1" })
     };
+    return services;
 }
 
 const createRoleFunnel = new MemoFunnel<string, string>(1);
@@ -399,7 +402,8 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             FunctionName,
             // Role: roleResponse.Role.Arn,
             Role,
-            Runtime: "nodejs6.10",
+            // Runtime: "nodejs6.10",
+            Runtime: "nodejs8.10",
             Handler: useQueue ? "index.snsTrampoline" : "index.trampoline",
             Code,
             Description: "cloudify trampoline function",
@@ -445,7 +449,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         services,
         callFunnel: new Funnel(),
         logStitcher: new LogStitcher(),
-        metrics: new Metrics(),
+        // metrics: new Metrics(),
         options
     };
 
@@ -518,6 +522,18 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     }
 }
 
+xxx Change FunctionReturn to not have bytes. Because it's wrong for message queues, should just pass the stats back down...?
+export function computeHttpResponseBytes(httpResponse: aws.HttpResponse) {
+    const { headers } = httpResponse;
+    const contentLength = Number(headers["content-length"] || "0");
+    const headerKeys = Object.keys(headers);
+    const headerLength = headerKeys
+        .map(header => header.length + headers[header].length)
+        .reduce((x, y) => x + y + 2, 0);
+    const otherLength = 10 + httpResponse.statusMessage.length;
+    return contentLength + headerLength + otherLength;
+}
+
 async function callFunctionHttps(
     lambda: aws.Lambda,
     FunctionName: string,
@@ -529,10 +545,10 @@ async function callFunctionHttps(
 
     const request: aws.Lambda.Types.InvocationRequest = {
         FunctionName,
-        LogType: "Tail",
         Payload: serializeCall(callRequest)
     };
     rawResponse = await callFunnel.push(() => lambda.invoke(request).promise());
+    log(`RawResponse headers: %O`, rawResponse.$response.httpResponse.headers);
     if (rawResponse.FunctionError) {
         if (rawResponse.LogResult) {
             log(Buffer.from(rawResponse.LogResult!, "base64").toString());
@@ -545,15 +561,13 @@ async function callFunctionHttps(
             value: new Error(message)
         };
     } else {
-        returned = JSON.parse(rawResponse.Payload as string);
+        const payload = rawResponse.Payload! as string;
+        returned = JSON.parse(payload);
         returned.rawResponse = rawResponse;
     }
-    const { httpResponse } = rawResponse.$response;
-    returned.bytesReturned = httpResponse.headers;
-    // returned.bytesReturned = httpResponse.headers[""];
-    log(`Response headers: %O`, httpResponse.headers);
-    // log(`Response body: %O`, httpResponse.body);
-
+    const headers = rawResponse.$response.httpResponse.headers;
+    const contentLength = Number(headers["content-length"] || "0");
+    returned.bytesReturned = contentLength;
     return returned;
 }
 
