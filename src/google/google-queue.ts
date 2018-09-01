@@ -1,6 +1,7 @@
 import { pubsub_v1 } from "googleapis";
 import * as cloudqueue from "../queue";
 import PubSubApi = pubsub_v1;
+import { Attributes } from "../type-helpers";
 
 export function pubsubMessageAttribute(
     { message }: PubSubApi.Schema$ReceivedMessage,
@@ -14,10 +15,10 @@ export async function receiveMessages(
     pubsub: PubSubApi.Pubsub,
     responseSubscription: string
 ): Promise<cloudqueue.ReceivedMessages<PubSubApi.Schema$ReceivedMessage>> {
+    // XXX
     const maxMessages = 10;
     const response = await pubsub.projects.subscriptions.pull({
         subscription: responseSubscription,
-        // XXX maxMessages?
         requestBody: { returnImmediately: false, maxMessages }
     });
     const Messages = response.data.receivedMessages || [];
@@ -36,7 +37,7 @@ export function publishControlMessage(
     type: cloudqueue.ControlMessageType,
     pubsub: PubSubApi.Pubsub,
     topic: string,
-    attr?: cloudqueue.Attributes
+    attr?: Attributes
 ) {
     return publish(pubsub, topic, "empty", { cloudify: type, ...attr });
 }
@@ -50,7 +51,7 @@ export async function publish(
     pubsub: PubSubApi.Pubsub,
     topic: string,
     data: string,
-    attributes?: cloudqueue.Attributes
+    attributes?: Attributes
 ) {
     const buf = Buffer.from(data);
     return pubsub.projects.topics.publish({

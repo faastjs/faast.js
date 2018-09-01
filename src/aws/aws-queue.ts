@@ -5,7 +5,7 @@ import { SNSEvent } from "aws-lambda";
 import { FunctionCall } from "../trampoline";
 import { AWSMetrics } from "./aws-cloudify";
 import { Attributes } from "../type-helpers";
-import { convertMapToAWSMessageAttributes } from "./aws-trampoline";
+import { objectSize, sum } from "../shared";
 
 export function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
     const a = message.MessageAttributes;
@@ -20,12 +20,55 @@ export async function createSNSTopic(sns: aws.SNS, Name: string) {
     return topic.TopicArn!;
 }
 
+function countRequests(bytes: number) {
+    return Math.ceil(bytes / (64 * 1024));
+}
+
+export function convertMapToAWSMessageAttributes(
+    attributes?: Attributes
+): aws.SNS.MessageAttributeMap {
+    const attr: aws.SNS.MessageAttributeMap = {};
+    attributes &&
+        Object.keys(attributes).forEach(
+            key => (attr[key] = { DataType: "String", StringValue: attributes[key] })
+        );
+    return attr;
+}
+
+export function publishSQS(
+    sqs: aws.SQS,
+    QueueUrl: string,
+    MessageBody: string,
+    attr?: Attributes
+): Promise<any> {
+    const message = {
+        QueueUrl,
+        MessageBody,
+        MessageAttributes: convertMapToAWSMessageAttributes(attr)
+    };
+    return sqs.sendMessage(message).promise();
+}
+
+export function publishSQSControlMessage(
+    type: cloudqueue.ControlMessageType,
+    sqs: aws.SQS,
+    QueueUrl: string,
+    attr?: Attributes
+) {
+    return publishSQS(sqs, QueueUrl, "control message", {
+        cloudify: type,
+        ...attr
+    });
+}
+
 export function publishSNS(
     sns: aws.SNS,
     TopicArn: string,
     body: string,
+    metrics: AWSMetrics,
     attributes?: Attributes
 ) {
+    metrics.sns64kRequests += countRequests(body.length);
     return sns
         .publish({
             TopicArn,
@@ -35,26 +78,20 @@ export function publishSNS(
         .promise();
 }
 
-export async function createSQSQueue(
-    QueueName: string,
-    VTimeout: number,
-    sqs: aws.SQS,
-    deadLetterTargetArn?: string
-) {
+export async function createSQSQueue(QueueName: string, VTimeout: number, sqs: aws.SQS) {
     const createQueueRequest: aws.SQS.CreateQueueRequest = {
         QueueName,
         Attributes: {
             VisibilityTimeout: `${VTimeout}`
         }
     };
-    if (deadLetterTargetArn) {
-        createQueueRequest.Attributes!.RedrivePolicy = JSON.stringify({
-            maxReceiveCount: "5",
-            deadLetterTargetArn
-        });
-    }
     const response = await sqs.createQueue(createQueueRequest).promise();
-    return response.QueueUrl!;
+    const QueueUrl = response.QueueUrl!;
+    const arnResponse = await sqs
+        .getQueueAttributes({ QueueUrl, AttributeNames: ["QueueArn"] })
+        .promise();
+    const QueueArn = arnResponse.Attributes && arnResponse.Attributes.QueueArn;
+    return { QueueUrl, QueueArn };
 }
 
 export function isControlMessage(
@@ -71,9 +108,7 @@ export function computeHttpResponseBytes(httpResponse: aws.HttpResponse) {
     const { headers } = httpResponse;
     const contentLength = Number(headers["content-length"] || "0");
     const headerKeys = Object.keys(headers);
-    const headerLength = headerKeys
-        .map(header => header.length + headers[header].length)
-        .reduce((x, y) => x + y + 2, 0);
+    const headerLength = objectSize(headers) + headerKeys.length * ": ".length;
     const otherLength = 10 + httpResponse.statusMessage.length;
     return contentLength + headerLength + otherLength;
 }
@@ -94,12 +129,11 @@ export async function receiveMessages(
         .promise();
     const { Messages = [] } = response;
     const receivedBytes = computeHttpResponseBytes(response.$response.httpResponse);
-    metrics.dataOutBytes += receivedBytes;
-    const inferSqsRequests = (bytes: number) => Math.ceil(bytes / (64 * 1024));
-    const inferredSqsRequestsReceived = inferSqsRequests(receivedBytes);
-    const inferredSqsRequestsSent = Messages.map(m =>
-        inferSqsRequests((m.Body || "").length)
-    ).reduce((a, b) => a + b, 0);
+    metrics.outboundBytes += receivedBytes;
+    const inferredSqsRequestsReceived = countRequests(receivedBytes);
+    const inferredSqsRequestsSent = sum(
+        Messages.map(m => (m.Body && countRequests(m.Body.length)) || 1)
+    );
     metrics.sqs64kRequests += inferredSqsRequestsSent + inferredSqsRequestsReceived;
     if (Messages.length > 0) {
         sqs.deleteMessageBatch({
@@ -117,26 +151,6 @@ export async function receiveMessages(
     };
 }
 
-export async function createDLQ(FunctionName: string, sqs: aws.SQS) {
-    let DLQUrl: string | undefined;
-    let DLQArn: string | undefined;
-    try {
-        DLQUrl = await createSQSQueue(`${FunctionName}-DLQ`, 60, sqs);
-        const DLQResponse = await sqs
-            .getQueueAttributes({
-                QueueUrl: DLQUrl,
-                AttributeNames: ["QueueArn"]
-            })
-            .promise();
-        DLQArn =
-            (DLQResponse && DLQResponse.Attributes && DLQResponse.Attributes.QueueArn) ||
-            undefined;
-    } catch (err) {
-        warn(err);
-    }
-    return { DLQUrl, DLQArn };
-}
-
 export function processAWSErrorMessage(message: string) {
     if (message && message.match(/Process exited before completing/)) {
         message += " (cloudify: possibly out of memory)";
@@ -144,27 +158,22 @@ export function processAWSErrorMessage(message: string) {
     return message;
 }
 
-export async function receiveDLQMessages(
-    sqs: aws.SQS,
-    DLQUrl: string,
-    metrics: AWSMetrics
-): Promise<cloudqueue.QueueError[]> {
-    const { Messages } = await receiveMessages(sqs, DLQUrl, metrics);
+export function deadLetterMessages(
+    m: aws.SQS.Message
+): cloudqueue.DeadLetter[] | undefined {
+    // https://docs.aws.amazon.com/lambda/latest/dg/dlq.html
+    const errorMessage = sqsMessageAttribute(m, "ErrorMessage");
+    if (!errorMessage) {
+        return;
+    }
+    log(`Received DLQ message: %O`, m);
+    const body = m.Body && JSON.parse(m.Body);
+    const snsMessage: SNSEvent = body;
     const rv = [];
-    for (const m of Messages) {
+    for (const record of snsMessage.Records) {
         try {
-            if (isControlMessage(m, "stopqueue")) {
-                return [];
-            }
-            // https://docs.aws.amazon.com/lambda/latest/dg/dlq.html
-            const errorMessage = sqsMessageAttribute(m, "ErrorMessage");
-            log(`Received DLQ message: %O`, m);
-            const body = m.Body && JSON.parse(m.Body);
-            const snsMessage: SNSEvent = body;
-            for (const record of snsMessage.Records) {
-                const callRequest: FunctionCall = JSON.parse(record.Sns.Message);
-                rv.push({ callRequest, message: processAWSErrorMessage(errorMessage!) });
-            }
+            const callRequest: FunctionCall = JSON.parse(record.Sns.Message);
+            rv.push({ callRequest, message: processAWSErrorMessage(errorMessage!) });
         } catch (err) {
             warn(err);
         }

@@ -1,44 +1,9 @@
 import { SNSEvent } from "aws-lambda";
 import * as aws from "aws-sdk";
 import { FunctionCall, FunctionReturn, ModuleWrapper } from "../trampoline";
-import { ControlMessageType } from "../queue";
-import { Attributes } from "../type-helpers";
+import { publishSQS, publishSQSControlMessage } from "./aws-queue";
 
-export function convertMapToAWSMessageAttributes(
-    attributes?: Attributes
-): aws.SNS.MessageAttributeMap {
-    const attr: aws.SNS.MessageAttributeMap = {};
-    attributes &&
-        Object.keys(attributes).forEach(
-            key => (attr[key] = { DataType: "String", StringValue: attributes[key] })
-        );
-    return attr;
-}
-
-function publishSQS(
-    sqs: aws.SQS,
-    QueueUrl: string,
-    MessageBody: string,
-    attr?: Attributes
-): Promise<any> {
-    const message = {
-        QueueUrl,
-        MessageBody,
-        MessageAttributes: convertMapToAWSMessageAttributes(attr)
-    };
-    return sqs.sendMessage(message).promise();
-}
-
-export function publishSQSControlMessage(
-    type: ControlMessageType,
-    sqs: aws.SQS,
-    QueueUrl: string,
-    attr?: Attributes
-) {
-    return publishSQS(sqs, QueueUrl, "control message", { cloudify: type, ...attr });
-}
-
-const sqs = new aws.SQS({ apiVersion: "2012-11-05" });
+const awsSqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
 export const moduleWrapper = new ModuleWrapper();
 
@@ -69,7 +34,7 @@ async function sendError(
         MessageBody: JSON.stringify(moduleWrapper.createErrorResponse(err, call, start))
     };
     return ignore(
-        publishSQS(sqs, ResponseQueueUrl, JSON.stringify(errorResponse), {
+        publishSQS(awsSqs, ResponseQueueUrl, JSON.stringify(errorResponse), {
             CallId: call.CallId
         })
     );
@@ -86,14 +51,14 @@ export async function snsTrampoline(
         const { CallId, ResponseQueueId } = call;
         const startedMessageTimer = setTimeout(
             () =>
-                publishSQSControlMessage("functionstarted", sqs, ResponseQueueId!, {
+                publishSQSControlMessage("functionstarted", awsSqs, ResponseQueueId!, {
                     CallId
                 }),
             2 * 1000
         );
         const result = await moduleWrapper.execute(call);
         clearTimeout(startedMessageTimer);
-        return publishSQS(sqs, ResponseQueueId!, JSON.stringify(result), {
+        return publishSQS(awsSqs, ResponseQueueId!, JSON.stringify(result), {
             CallId
         }).catch(puberr => {
             sendError(puberr, ResponseQueueId!, call, result.executionStart!);

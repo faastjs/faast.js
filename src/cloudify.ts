@@ -6,7 +6,7 @@ import * as google from "./google/google-cloudify";
 import * as immediate from "./immediate/immediate-cloudify";
 import { log, warn, stats } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
-import { assertNever, Statistics, FactoryMap } from "./shared";
+import { assertNever, Statistics, FactoryMap, sum } from "./shared";
 import { FunctionCall, FunctionReturn } from "./trampoline";
 import { Unpacked } from "./type-helpers";
 import Module = require("module");
@@ -93,6 +93,41 @@ export class Cloud<O extends CommonOptions, S> {
 }
 
 export type AnyCloud = Cloud<any, any>;
+
+export class CostMetric {
+    public pricing: number;
+    public measured: number;
+
+    constructor({
+        pricing = 0,
+        measured = 0
+    }: { pricing?: number; measured?: number } = {}) {
+        this.pricing = pricing;
+        this.measured = measured;
+    }
+
+    get cost() {
+        return this.measured * this.pricing;
+    }
+}
+
+export class Costs {
+    functionCallRequests = new CostMetric();
+    functionCallDuration = new CostMetric();
+    outboundDataTransfer = new CostMetric();
+    queueRequests = new CostMetric();
+    other: { [metric: string]: CostMetric } = {};
+
+    get total() {
+        return (
+            this.functionCallDuration.cost +
+            this.functionCallRequests.cost +
+            this.outboundDataTransfer.cost +
+            this.queueRequests.cost +
+            sum(Object.keys(this.other).map(key => this.other[key].cost))
+        );
+    }
+}
 
 export class FunctionCounters {
     completed = 0;
@@ -331,7 +366,7 @@ export class CloudFunction<O extends CommonOptions, S> {
         this.impl.setLogger(this.state, logger);
     }
 
-    costEstimate(): Promise<number> {
+    costEstimate(): Promise<Costs> {
         if (this.impl.costEstimate) {
             return this.impl.costEstimate(
                 this.state,
@@ -339,7 +374,7 @@ export class CloudFunction<O extends CommonOptions, S> {
                 this.functionStats.aggregate
             );
         } else {
-            return Promise.resolve(0);
+            return Promise.resolve(new Costs());
         }
     }
 }
@@ -432,7 +467,7 @@ export interface CloudFunctionImpl<State> {
         state: State,
         counters: FunctionCounters,
         stats: FunctionStats
-    ) => Promise<number>;
+    ) => Promise<Costs>;
     callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>;
     cleanup(state: State): Promise<void>;
     stop(state: State): Promise<string>;

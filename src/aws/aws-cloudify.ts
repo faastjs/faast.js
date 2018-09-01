@@ -11,7 +11,9 @@ import {
     CommonOptions,
     Logger,
     FunctionCounters,
-    FunctionStats
+    FunctionStats,
+    Costs,
+    CostMetric
 } from "../cloudify";
 import { Funnel, MemoFunnel, retry } from "../funnel";
 import { log, warn } from "../log";
@@ -22,18 +24,17 @@ import { chomp, sleep } from "../shared";
 import { FunctionCall, FunctionReturn, serializeCall } from "../trampoline";
 import * as awsNpm from "./aws-npm";
 import {
-    createDLQ,
     createSNSTopic,
     createSQSQueue,
     isControlMessage,
     processAWSErrorMessage,
     publishSNS,
-    receiveDLQMessages,
     receiveMessages,
     sqsMessageAttribute,
-    computeHttpResponseBytes
+    computeHttpResponseBytes,
+    publishSQSControlMessage,
+    deadLetterMessages
 } from "./aws-queue";
-import { publishSQSControlMessage } from "./aws-trampoline";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -52,7 +53,7 @@ export interface AWSLambdaPrices {
 }
 
 export class AWSMetrics {
-    dataOutBytes = 0;
+    outboundBytes = 0;
     sns64kRequests = 0;
     sqs64kRequests = 0;
 }
@@ -63,9 +64,9 @@ export interface AWSResources {
     logGroupName: string;
     region: string;
     ResponseQueueUrl?: string;
+    ResponseQueueArn?: string;
     RequestTopicArn?: string;
     SNSLambdaSubscriptionArn?: string;
-    DLQUrl?: string;
     s3Bucket?: string;
     s3Key?: string;
 }
@@ -483,20 +484,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         ];
 
         if (useQueue) {
-            log(`Creating DLQ`);
-            promises.push(
-                createDLQ(FunctionName, sqs).then(async ({ DLQArn, DLQUrl }) => {
-                    state.resources.DLQUrl = DLQUrl;
-                    await createFunctionPromise;
-                    log(`Adding DLQ to function`);
-                    return lambda
-                        .updateFunctionConfiguration({
-                            FunctionName,
-                            DeadLetterConfig: { TargetArn: DLQArn }
-                        })
-                        .promise();
-                })
-            );
             promises.push(
                 createFunctionPromise.then(async func => {
                     if (useQueue) {
@@ -509,11 +496,21 @@ export async function initialize(fModule: string, options: Options = {}): Promis
                         state.queueState = cloudqueue.initializeCloudFunctionQueue(
                             awsQueueImpl
                         );
+                        log(`Adding DLQ to function`);
+                        lambda
+                            .updateFunctionConfiguration({
+                                FunctionName,
+                                DeadLetterConfig: {
+                                    TargetArn: state.resources.ResponseQueueArn
+                                }
+                            })
+                            .promise();
                     }
                 })
             );
         }
         await Promise.all(promises);
+        log(`Lambda function initialization complete.`);
         return state;
     } catch (err) {
         warn(`ERROR: ${err}`);
@@ -537,7 +534,6 @@ async function callFunctionHttps(
         Payload: serializeCall(callRequest)
     };
     rawResponse = await callFunnel.push(() => lambda.invoke(request).promise());
-    log(`RawResponse headers: %O`, rawResponse.$response.httpResponse.headers);
     if (rawResponse.FunctionError) {
         if (rawResponse.LogResult) {
             log(Buffer.from(rawResponse.LogResult!, "base64").toString());
@@ -554,7 +550,7 @@ async function callFunctionHttps(
         returned = JSON.parse(payload);
         returned.rawResponse = rawResponse;
     }
-    metrics.dataOutBytes += computeHttpResponseBytes(rawResponse.$response.httpResponse);
+    metrics.outboundBytes += computeHttpResponseBytes(rawResponse.$response.httpResponse);
     return returned;
 }
 
@@ -605,8 +601,8 @@ export async function cleanup(state: PartialState) {
         region,
         RequestTopicArn,
         ResponseQueueUrl,
+        ResponseQueueArn,
         SNSLambdaSubscriptionArn,
-        DLQUrl,
         s3Bucket,
         s3Key,
         ...rest
@@ -639,10 +635,6 @@ export async function cleanup(state: PartialState) {
     if (ResponseQueueUrl) {
         log(`Deleting response queue: ${ResponseQueueUrl}`);
         await quietly(sqs.deleteQueue({ QueueUrl: ResponseQueueUrl }));
-    }
-    if (DLQUrl) {
-        log(`Deleting DLQ: ${DLQUrl}`);
-        await quietly(sqs.deleteQueue({ QueueUrl: DLQUrl }));
     }
     if (s3Bucket && s3Key) {
         log(`Deleting S3 Key: ${s3Key} in Bucket: ${s3Bucket}`);
@@ -754,7 +746,10 @@ export async function createQueueImpl(
     );
     log(`Creating SQS response queue`);
     const createQueuePromise = createSQSQueue(`${FunctionName}-Responses`, 60, sqs).then(
-        queueUrl => (resources.ResponseQueueUrl = queueUrl)
+        ({ QueueUrl, QueueArn }) => {
+            resources.ResponseQueueUrl = QueueUrl;
+            resources.ResponseQueueArn = QueueArn;
+        }
     );
     await Promise.all([
         createTopicPromise,
@@ -771,13 +766,12 @@ export async function createQueueImpl(
             receiveMessages(sqs, resources.ResponseQueueUrl!, metrics),
         getMessageBody: message => message.Body || "",
         description: () => resources.ResponseQueueUrl!,
-        publishRequestMessage: call => publishSNS(sns, resources.RequestTopicArn!, call),
+        publishRequestMessage: call =>
+            publishSNS(sns, resources.RequestTopicArn!, call, metrics),
         publishReceiveQueueControlMessage: type =>
             publishSQSControlMessage(type, sqs, resources.ResponseQueueUrl!),
-        publishDLQControlMessage: type =>
-            publishSQSControlMessage(type, sqs, resources.DLQUrl!),
         isControlMessage: (message, type) => isControlMessage(message, type),
-        pollErrorQueue: () => receiveDLQMessages(sqs, resources.DLQUrl!, metrics)
+        deadLetterMessages: message => deadLetterMessages(message)
     };
 }
 
@@ -800,7 +794,8 @@ function addSnsInvokePermissionsToFunction(
 async function* readCurrentLogsRaw(
     logGroupName: string,
     cloudwatch: AWS.CloudWatchLogs,
-    logStitcher: LogStitcher
+    logStitcher: LogStitcher,
+    metrics: AWSMetrics
 ) {
     log(`Reading logs raw`);
     let nextToken: string | undefined;
@@ -814,6 +809,7 @@ async function* readCurrentLogsRaw(
                 startTime: logStitcher.lastLogEventTime
             })
             .promise();
+        metrics.outboundBytes += computeHttpResponseBytes(result.$response.httpResponse);
         nextToken = result.nextToken;
         const { events } = result;
         if (events) {
@@ -831,7 +827,8 @@ async function outputCurrentLogs(state: State) {
     const logStream = readCurrentLogsRaw(
         state.resources.logGroupName,
         state.services.cloudwatch,
-        state.logStitcher
+        state.logStitcher,
+        state.metrics
     );
     for await (const entries of logStream) {
         log(`Read log stream`);
@@ -966,18 +963,39 @@ export function costEstimate(
 ) {
     const prices = state.prices!;
 
+    const costs = new Costs();
+
     const { memorySize = defaults.memorySize } = state.options;
     const billedTimeStats = statistics.estimatedBilledTimeMs;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
-    const durationCost = prices.lambdaPerGbSecond * (memorySize / 1024) * seconds;
 
-    const nRequests = counters.completed + counters.retries + counters.errors;
-    const requestCost = nRequests * prices.lambdaPerRequest;
+    costs.functionCallDuration = new CostMetric({
+        pricing: prices.lambdaPerGbSecond,
+        measured: (memorySize / 1024) * seconds
+    });
 
-    if (state.queueState) {
-        XXX;
-    }
+    costs.functionCallRequests = new CostMetric({
+        pricing: prices.lambdaPerRequest,
+        measured: counters.completed + counters.retries + counters.errors
+    });
 
-    const cost = requestCost + durationCost;
-    return Promise.resolve(cost);
+    const { metrics } = state;
+    costs.outboundDataTransfer = new CostMetric({
+        pricing: prices.dataOutPerGb,
+        measured: metrics.outboundBytes / 2 ** 30
+    });
+
+    costs.queueRequests = new CostMetric({
+        pricing: prices.sqsPer64kRequest,
+        measured: metrics.sqs64kRequests
+    });
+
+    const snsCosts = new CostMetric({
+        pricing: prices.snsPer64kPublish,
+        measured: metrics.sns64kRequests
+    });
+
+    costs.other["sns"] = snsCosts;
+
+    return Promise.resolve(costs);
 }

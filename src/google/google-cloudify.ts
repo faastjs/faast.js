@@ -368,7 +368,6 @@ async function initializeGoogleQueue(
         });
 
     await Promise.all([requestPromise, responsePromise]);
-    const deferred = new Deferred<cloudqueue.QueueError[]>();
     return {
         getMessageAttribute: (message, attr) => pubsubMessageAttribute(message, attr),
         pollResponseQueueMessages: () =>
@@ -379,9 +378,8 @@ async function initializeGoogleQueue(
             publish(pubsub, resources.requestQueueTopic!, body, attributes),
         publishReceiveQueueControlMessage: type =>
             publishControlMessage(type, pubsub, resources.responseQueueTopic!),
-        publishDLQControlMessage: async _type => deferred.resolve([]),
         isControlMessage: (m, value) => pubsubMessageAttribute(m, "cloudify") === value,
-        pollErrorQueue: () => deferred.promise
+        deadLetterMessages: _ => undefined
     };
 }
 

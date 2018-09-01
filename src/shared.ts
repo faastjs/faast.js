@@ -226,3 +226,14 @@ export function chomp(s: string) {
 export function assertNever(x: never): never {
     throw new Error("Unexpected object: " + x);
 }
+
+export function sum(numbers: number[]) {
+    return numbers.reduce((a, b) => a + b, 0);
+}
+
+export function objectSize(obj?: { [key: string]: string }) {
+    if (!obj) {
+        return 0;
+    }
+    return sum(Object.keys(obj).map(key => key.length + obj[key].length));
+}

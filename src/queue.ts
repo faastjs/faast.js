@@ -26,14 +26,13 @@ export class PendingRequest extends Deferred<FunctionReturn> {
 export interface QueueState {
     readonly callResultsPending: Map<string, PendingRequest>;
     readonly collectorPump: Pump<void>;
-    readonly errorPump: Pump<void>;
     readonly retryTimer: NodeJS.Timer;
 }
 
 export type StateWithMessageType<M> = QueueState & QueueImpl<M>;
 export type State = StateWithMessageType<{}>;
 
-export interface QueueError {
+export interface DeadLetter {
     message: string;
     callRequest?: FunctionCall;
 }
@@ -49,9 +48,8 @@ export interface QueueImpl<M> {
     getMessageBody(message: M): string;
     description(): string;
     publishReceiveQueueControlMessage(type: CommandMessageType): Promise<any>;
-    publishDLQControlMessage(type: CommandMessageType): Promise<any>;
     isControlMessage(message: M, type: ControlMessageType): boolean;
-    pollErrorQueue(): Promise<QueueError[]>;
+    deadLetterMessages(message: M): DeadLetter[] | undefined;
 }
 
 export function initializeCloudFunctionQueue<M>(
@@ -61,11 +59,9 @@ export function initializeCloudFunctionQueue<M>(
         ...impl,
         callResultsPending: new Map(),
         collectorPump: new Pump<void>(2, () => resultCollector(state)),
-        errorPump: new Pump<void>(1, () => errorCollector(state)),
         retryTimer: setInterval(() => retryQueue(state), 5 * 1000)
     };
     state.collectorPump.start();
-    state.errorPump.start();
     return state;
 }
 
@@ -88,7 +84,6 @@ export async function stop(state: State) {
     log(`Stopping result collector`);
     state.collectorPump.stop();
     log(`Stopping error collector`);
-    state.errorPump.stop();
     clearInterval(state.retryTimer);
     rejectAll(state.callResultsPending);
     let count = 0;
@@ -97,9 +92,6 @@ export async function stop(state: State) {
     while (state.collectorPump.getConcurrency() > 0 && count++ < 100) {
         tasks.push(state.publishReceiveQueueControlMessage("stopqueue"));
         await sleep(100);
-    }
-    if (state.errorPump.getConcurrency() > 0) {
-        tasks.push(state.publishDLQControlMessage("stopqueue"));
     }
     await Promise.all(tasks);
 }
@@ -121,55 +113,48 @@ async function resultCollector<M>(state: StateWithMessageType<M>) {
         if (state.isControlMessage(m, "stopqueue")) {
             return;
         }
-        const CallId = state.getMessageAttribute(m, CallIdAttribute);
-        if (state.isControlMessage(m, "functionstarted")) {
-            log(`Received Function Started message CallID: ${CallId}`);
-            const deferred = CallId && callResultsPending.get(CallId);
-            if (deferred) {
-                deferred!.executing = true;
-            }
-        } else {
-            if (CallId) {
-                try {
-                    const body = state.getMessageBody(m);
-                    const returned: FunctionReturn = JSON.parse(body);
-                    const deferred = callResultsPending.get(CallId);
-                    log(`Resolving CallId: ${CallId}`);
+        const deadLetters = state.deadLetterMessages(m);
+        if (deadLetters) {
+            for (const deadLetter of deadLetters) {
+                log(
+                    `Error "${deadLetter.message}" in call request %O`,
+                    deadLetter.callRequest
+                );
+                const CallId = deadLetter.callRequest!.CallId;
+                const deferred = callResultsPending.get(CallId);
+                if (deferred) {
+                    log(`Rejecting CallId: ${CallId}`);
                     callResultsPending.delete(CallId);
-                    returned.rawResponse = m;
-                    if (deferred) {
-                        deferred.resolve(returned);
-                    } else {
-                        log(`Deferred promise not found for CallId: ${CallId}`);
-                    }
-                } catch (err) {
-                    warn(err);
+                    deferred.reject(new Error(deadLetter.message));
                 }
             }
-        }
-    }
-}
-
-async function errorCollector<M>(state: StateWithMessageType<M>) {
-    const { callResultsPending } = state;
-    log(`Error Collector polling for queue errors`);
-    const queueErrors = await state.pollErrorQueue();
-    log(`Error Collector returned ${queueErrors.length} errors`);
-    for (const queueError of queueErrors) {
-        try {
-            log(
-                `Error "${queueError.message}" in call request %O`,
-                queueError.callRequest
-            );
-            const CallId = queueError.callRequest!.CallId;
-            const deferred = callResultsPending.get(CallId);
-            if (deferred) {
-                log(`Rejecting CallId: ${CallId}`);
-                callResultsPending.delete(CallId);
-                deferred.reject(new Error(queueError.message));
+        } else {
+            const CallId = state.getMessageAttribute(m, CallIdAttribute);
+            if (state.isControlMessage(m, "functionstarted")) {
+                log(`Received Function Started message CallID: ${CallId}`);
+                const deferred = CallId && callResultsPending.get(CallId);
+                if (deferred) {
+                    deferred!.executing = true;
+                }
+            } else {
+                if (CallId) {
+                    try {
+                        const body = state.getMessageBody(m);
+                        const returned: FunctionReturn = JSON.parse(body);
+                        const deferred = callResultsPending.get(CallId);
+                        log(`Resolving CallId: ${CallId}`);
+                        callResultsPending.delete(CallId);
+                        returned.rawResponse = m;
+                        if (deferred) {
+                            deferred.resolve(returned);
+                        } else {
+                            log(`Deferred promise not found for CallId: ${CallId}`);
+                        }
+                    } catch (err) {
+                        warn(err);
+                    }
+                }
             }
-        } catch (err) {
-            warn(err);
         }
     }
 }
