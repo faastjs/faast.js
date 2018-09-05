@@ -1,5 +1,6 @@
 import { Readable } from "stream";
 import { stats } from "./log";
+import { content } from "googleapis/build/src/apis/content";
 
 export class Statistics {
     samples = 0;
@@ -236,4 +237,24 @@ export function objectSize(obj?: { [key: string]: string }) {
         return 0;
     }
     return sum(Object.keys(obj).map(key => key.length + obj[key].length));
+}
+
+export function computeHttpResponseBytes(
+    headers: { [key: string]: string },
+    opts = { httpHeaders: true, min: 0 }
+) {
+    const headerKeys = Object.keys(headers);
+    let contentLength = 0;
+    for (const key of headerKeys) {
+        if (key.match(/^content-length$/i)) {
+            contentLength = Number(headerKeys[key]);
+            break;
+        }
+    }
+    if (!opts.httpHeaders) {
+        return Math.max(contentLength, opts.min);
+    }
+    const headerLength = objectSize(headers) + headerKeys.length * ": ".length;
+    const otherLength = 13;
+    return Math.max(contentLength + headerLength + otherLength, opts.min);
 }

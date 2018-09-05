@@ -3,9 +3,9 @@ import * as cloudqueue from "../queue";
 import { log, warn } from "../log";
 import { SNSEvent } from "aws-lambda";
 import { FunctionCall } from "../trampoline";
-import { AWSMetrics } from "./aws-cloudify";
+import { AWSCostMetrics } from "./aws-cloudify";
 import { Attributes } from "../type-helpers";
-import { objectSize, sum } from "../shared";
+import { sum, computeHttpResponseBytes } from "../shared";
 
 export function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
     const a = message.MessageAttributes;
@@ -65,10 +65,10 @@ export function publishSNS(
     sns: aws.SNS,
     TopicArn: string,
     body: string,
-    metrics: AWSMetrics,
+    costMetrics: AWSCostMetrics,
     attributes?: Attributes
 ) {
-    metrics.sns64kRequests += countRequests(body.length);
+    costMetrics.sns64kRequests += countRequests(body.length);
     return sns
         .publish({
             TopicArn,
@@ -104,19 +104,10 @@ export function isControlMessage(
     return value === type;
 }
 
-export function computeHttpResponseBytes(httpResponse: aws.HttpResponse) {
-    const { headers } = httpResponse;
-    const contentLength = Number(headers["content-length"] || "0");
-    const headerKeys = Object.keys(headers);
-    const headerLength = objectSize(headers) + headerKeys.length * ": ".length;
-    const otherLength = 10 + httpResponse.statusMessage.length;
-    return contentLength + headerLength + otherLength;
-}
-
 export async function receiveMessages(
     sqs: aws.SQS,
     ResponseQueueUrl: string,
-    metrics: AWSMetrics
+    metrics: AWSCostMetrics
 ): Promise<cloudqueue.ReceivedMessages<aws.SQS.Message>> {
     const MaxNumberOfMessages = 10;
     const response = await sqs
@@ -128,7 +119,8 @@ export async function receiveMessages(
         })
         .promise();
     const { Messages = [] } = response;
-    const receivedBytes = computeHttpResponseBytes(response.$response.httpResponse);
+    const { httpResponse } = response.$response;
+    const receivedBytes = computeHttpResponseBytes(httpResponse.headers);
     metrics.outboundBytes += receivedBytes;
     const inferredSqsRequestsReceived = countRequests(receivedBytes);
     const inferredSqsRequestsSent = sum(

@@ -29,6 +29,7 @@ async function initialize() {
     }
 }
 
+ xxx node8 signature changed
 export async function trampoline(event: CloudFunctionPubSubEvent): Promise<void> {
     const start = Date.now();
     await initialize();

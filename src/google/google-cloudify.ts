@@ -1,21 +1,31 @@
 import Axios, { AxiosPromise, AxiosResponse } from "axios";
 import * as sys from "child_process";
 import {
+    cloudbilling_v1,
     cloudfunctions_v1,
     google,
     GoogleApis,
     logging_v2,
-    pubsub_v1,
-    cloudbilling_v1
+    pubsub_v1
 } from "googleapis";
 import * as uuidv4 from "uuid/v4";
-import { CloudFunctionImpl, CloudImpl, CommonOptions, Logger } from "../cloudify";
-import { Deferred, Funnel } from "../funnel";
+import {
+    CloudFunctionImpl,
+    CloudImpl,
+    CommonOptions,
+    Logger,
+    Costs,
+    FunctionCounters,
+    FunctionStats,
+    CostMetric
+} from "../cloudify";
+import { Funnel } from "../funnel";
 import { log, warn } from "../log";
 import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { sleep } from "../shared";
+import { sleep, computeHttpResponseBytes } from "../shared";
+import { FunctionCall, FunctionReturn, serializeCall } from "../trampoline";
 import { Mutable } from "../type-helpers";
 import {
     getMessageBody,
@@ -28,7 +38,6 @@ import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import Logging = logging_v2;
 import CloudBilling = cloudbilling_v1;
-import { FunctionReturn, FunctionCall, serializeCall } from "../trampoline";
 
 type Logging = logging_v2.Logging;
 
@@ -45,10 +54,17 @@ export interface GoogleResources {
     isEmulator: boolean;
 }
 
-export interface GoogleCloudFunctionsPricing {
+export interface GoogleCloudPricing {
     perInvocation: number;
     perGhzSecond: number;
     perGbSecond: number;
+    perGbOutboundData: number;
+    perGbPubSub: number;
+}
+
+export class GoogleCostMetrics {
+    outboundBytes = 0;
+    pubSubBytes = 0;
 }
 
 export interface GoogleServices {
@@ -74,7 +90,9 @@ export interface State {
     functionName: string;
     logStitcher: LogStitcher;
     logger?: Logger;
-    pricing?: GoogleCloudFunctionsPricing;
+    pricing?: GoogleCloudPricing;
+    metrics: GoogleCostMetrics;
+    options: Options;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -91,8 +109,8 @@ export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
     cleanup,
     stop,
     setConcurrency,
-    setLogger,
-    costEstimate
+    setLogger
+    // costEstimate
 };
 
 export const EmulatorImpl: CloudImpl<Options, State> = {
@@ -279,8 +297,19 @@ async function initializeWithApi(
         callFunnel: new Funnel(),
         project,
         functionName,
-        logStitcher: new LogStitcher()
+        logStitcher: new LogStitcher(),
+        metrics: new GoogleCostMetrics(),
+        options
     };
+
+    const pricingPromise = getGoogleCloudFunctionsPricing(
+        services.cloudBilling,
+        region
+    ).then(pricing => {
+        state.pricing = pricing;
+        log(`Pricing: %O`, state.pricing);
+    });
+
     if (useQueue) {
         log(`Initializing queue`);
         const googleQueueImpl = await initializeGoogleQueue(state, project, functionName);
@@ -293,6 +322,7 @@ async function initializeWithApi(
         timeout: `${timeout}s`,
         availableMemoryMb: memorySize,
         sourceUploadUrl: uploadUrlResponse.uploadUrl,
+        runtime: "nodejs8",
         ...googleCloudFunctionOptions
     };
     if (useQueue) {
@@ -339,6 +369,7 @@ async function initializeWithApi(
         log(`Function URL: ${url}`);
         state.url = url;
     }
+    await pricingPromise;
     return state;
 }
 
@@ -347,7 +378,7 @@ async function initializeGoogleQueue(
     project: string,
     functionName: string
 ): Promise<GoogleCloudQueueImpl> {
-    const { resources } = state;
+    const { resources, metrics } = state;
     const { pubsub } = state.services;
     resources.requestQueueTopic = `projects/${project}/topics/${functionName}-Requests`;
     const requestPromise = pubsub.projects.topics.create({
@@ -371,11 +402,11 @@ async function initializeGoogleQueue(
     return {
         getMessageAttribute: (message, attr) => pubsubMessageAttribute(message, attr),
         pollResponseQueueMessages: () =>
-            receiveMessages(pubsub, resources.responseSubscription!),
+            receiveMessages(pubsub, resources.responseSubscription!, metrics),
         getMessageBody: received => getMessageBody(received),
         description: () => state.resources.responseQueueTopic!,
         publishRequestMessage: (body, attributes) =>
-            publish(pubsub, resources.requestQueueTopic!, body, attributes),
+            publish(pubsub, resources.requestQueueTopic!, body, attributes, metrics),
         publishReceiveQueueControlMessage: type =>
             publishControlMessage(type, pubsub, resources.responseQueueTopic!),
         isControlMessage: (m, value) => pubsubMessageAttribute(m, "cloudify") === value,
@@ -389,12 +420,18 @@ export function exec(cmd: string) {
     return result;
 }
 
-async function callFunctionHttps(url: string, callArgs: FunctionCall) {
+async function callFunctionHttps(
+    url: string,
+    callArgs: FunctionCall,
+    costMetrics: GoogleCostMetrics
+) {
     // only for validation
     serializeCall(callArgs);
     const rawResponse = await Axios.put<FunctionReturn>(url!, callArgs);
     const returned: FunctionReturn = rawResponse.data;
     returned.rawResponse = rawResponse;
+    log(`%O`, rawResponse.headers);
+    costMetrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
     return returned;
 }
 
@@ -410,7 +447,11 @@ async function callFunction(state: State, callRequest: FunctionCall) {
         );
     } else {
         return callFunnel.pushRetry(3, async n => {
-            const rv = await callFunctionHttps(state.url!, callRequest).catch(err => {
+            const rv = await callFunctionHttps(
+                state.url!,
+                callRequest,
+                state.metrics
+            ).catch(err => {
                 const { response } = err;
                 if (response) {
                     let interpretation = "";
@@ -649,28 +690,48 @@ function setLogger(state: State, logger: Logger | undefined) {
     }
 }
 
-async function getGoogleCloudFunctionsPricing(cloudBilling: CloudBilling.Cloudbilling) {
+async function getGoogleCloudFunctionsPricing(
+    cloudBilling: CloudBilling.Cloudbilling,
+    region: string
+): Promise<GoogleCloudPricing> {
     try {
         const services = await cloudBilling.services.list();
-        const cloudFunctionsService = services.data.services!.find(
-            service => service.displayName === "Cloud Functions"
-        )!;
-        const skusResponse = await cloudBilling.services.skus.list({
-            parent: cloudFunctionsService.name
-        });
-        const { skus = [] } = skusResponse.data;
-        function getPricing(description: string) {
+        async function getPricing(
+            serviceName: string,
+            description: string,
+            conversionFactor: number = 1
+        ) {
             try {
-                const prices = skus
-                    .find(
-                        sku =>
-                            sku.description === description &&
-                            sku.serviceRegions![0] === "global"
-                    )!
-                    .pricingInfo![0].pricingExpression!.tieredRates!.map(
-                        rate => rate.unitPrice!.nanos!
-                    );
-                return Math.max(...prices);
+                const service = services.data.services!.find(
+                    s => s.displayName === serviceName
+                )!;
+                const skusResponse = await cloudBilling.services.skus.list({
+                    parent: service.name
+                });
+                const { skus = [] } = skusResponse.data;
+                const matchingSkus = skus.filter(sku => sku.description === description);
+                log(`matching SKUs: %O`, matchingSkus);
+                log(
+                    `  Pricing info: %O`,
+                    matchingSkus.map(s => s.pricingInfo![0].pricingExpression)
+                );
+                const regionOrGlobalSku =
+                    matchingSkus.find(sku => sku.serviceRegions![0] === region) ||
+                    matchingSkus.find(sku => sku.serviceRegions![0] === "global");
+
+                const pexp = regionOrGlobalSku!.pricingInfo![0].pricingExpression!;
+                const prices = pexp.tieredRates!.map(
+                    rate =>
+                        Number(rate.unitPrice!.units || "0") +
+                        rate.unitPrice!.nanos! / 10e9
+                );
+                const price =
+                    Math.max(...prices) *
+                    (conversionFactor / pexp.baseUnitConversionFactor!);
+                log(
+                    `Found price for ${serviceName}, ${description}, ${region}: ${price}`
+                );
+                return price;
             } catch (err) {
                 warn(`Could not get Google Cloud Functions pricing for '${description}'`);
                 warn(err);
@@ -679,9 +740,19 @@ async function getGoogleCloudFunctionsPricing(cloudBilling: CloudBilling.Cloudbi
         }
 
         return {
-            perInvocation: await getPricing("Invocations"),
-            perGhzSecond: await getPricing("CPU Time"),
-            perGbSecond: await getPricing("Memory Time")
+            perInvocation: await getPricing("Cloud Functions", "Invocations"),
+            perGhzSecond: await getPricing("Cloud Functions", "CPU Time"),
+            perGbSecond: await getPricing("Cloud Functions", "Memory Time", 2 ** 30),
+            perGbOutboundData: await getPricing(
+                "Cloud Functions",
+                `Network Egress from ${region}`,
+                2 ** 30
+            ),
+            perGbPubSub: await getPricing(
+                "Cloud Pub/Sub",
+                "Message Delivery Basic",
+                2 ** 30
+            )
         };
     } catch (err) {
         warn(`Could not get Google Cloud Functions pricing`);
@@ -689,13 +760,69 @@ async function getGoogleCloudFunctionsPricing(cloudBilling: CloudBilling.Cloudbi
         return {
             perInvocation: 0,
             perGhzSecond: 0,
-            perGbSecond: 0
+            perGbSecond: 0,
+            perGbOutboundData: 0,
+            perGbPubSub: 0
         };
     }
 }
 
-async function costEstimate(state: State, { aggregate }: FunctionMetrics) {
-    if (!state.pricing) {
-        state.pricing = await getGoogleCloudFunctionsPricing;
+// https://cloud.google.com/functions/pricing
+const gcfProvisonableMemoryTable = {
+    128: 0.2,
+    256: 0.4,
+    512: 0.8,
+    1024: 1.4,
+    2048: 2.4
+};
+
+async function costEstimate(
+    state: State,
+    counters: FunctionCounters,
+    stats: FunctionStats
+): Promise<Costs> {
+    const { memorySize = defaults.memorySize } = state.options;
+    const provisionableSizes = Object.keys(gcfProvisonableMemoryTable)
+        .map(n => Number(n))
+        .sort();
+    const provisionedMb = provisionableSizes.find(size => memorySize <= size);
+    log(`For memory size ${memorySize}, provisioned: ${provisionedMb}`);
+    if (!provisionedMb) {
+        warn(
+            `Could not determine provisioned memory or CPU for requested memory size ${memorySize}`
+        );
     }
+    const provisionedGhz = gcfProvisonableMemoryTable[provisionedMb!];
+    const billedTimeStats = stats.estimatedBilledTimeMs;
+    const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
+
+    const prices = state.pricing!;
+    const functionCallDuration = CostMetric({
+        pricing:
+            prices.perGbSecond * (provisionedMb! / 1024) +
+            prices.perGhzSecond * provisionedGhz,
+        measured: seconds,
+        unit: "GB*sec"
+    });
+
+    const functionCallRequests = CostMetric({
+        pricing: prices.perInvocation,
+        measured: counters.completed + counters.retries + counters.errors,
+        unit: "requests"
+    });
+
+    const outboundDataTransfer = CostMetric({
+        pricing: prices.perGbOutboundData,
+        measured: state.metrics.outboundBytes / 2 ** 30,
+        unit: "GB"
+    });
+
+    const pubsub = CostMetric({
+        pricing: prices.perGbPubSub,
+        measured: state.metrics.pubSubBytes / 2 ** 40,
+        unit: "TB"
+    });
+
+    xxx;
+    return {};
 }

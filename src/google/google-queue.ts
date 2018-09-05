@@ -2,6 +2,8 @@ import { pubsub_v1 } from "googleapis";
 import * as cloudqueue from "../queue";
 import PubSubApi = pubsub_v1;
 import { Attributes } from "../type-helpers";
+import { GoogleCostMetrics } from "./google-cloudify";
+import { computeHttpResponseBytes } from "../shared";
 
 export function pubsubMessageAttribute(
     { message }: PubSubApi.Schema$ReceivedMessage,
@@ -13,14 +15,18 @@ export function pubsubMessageAttribute(
 
 export async function receiveMessages(
     pubsub: PubSubApi.Pubsub,
-    responseSubscription: string
+    responseSubscription: string,
+    metrics: GoogleCostMetrics
 ): Promise<cloudqueue.ReceivedMessages<PubSubApi.Schema$ReceivedMessage>> {
-    // XXX
+    // Does higher message batching lead to better throughput? 10 is the max that AWS SQS allows.
     const maxMessages = 10;
     const response = await pubsub.projects.subscriptions.pull({
         subscription: responseSubscription,
         requestBody: { returnImmediately: false, maxMessages }
     });
+    metrics.outboundBytes += computeHttpResponseBytes(response.headers);
+    metrics.pubSubBytes +=
+        computeHttpResponseBytes(response.headers, { httpHeaders: false, min: 1024 }) * 2;
     const Messages = response.data.receivedMessages || [];
     if (Messages.length > 0) {
         pubsub.projects.subscriptions.acknowledge({
@@ -50,12 +56,20 @@ export function getMessageBody(received: PubSubApi.Schema$ReceivedMessage) {
 export async function publish(
     pubsub: PubSubApi.Pubsub,
     topic: string,
-    data: string,
-    attributes?: Attributes
+    message: string,
+    attributes?: Attributes,
+    metrics?: GoogleCostMetrics
 ) {
-    const buf = Buffer.from(data);
-    return pubsub.projects.topics.publish({
+    const data = Buffer.from(message).toString("base64");
+    const publishResponse = await pubsub.projects.topics.publish({
         topic,
-        requestBody: { messages: [{ data: buf.toString("base64"), attributes }] }
+        requestBody: { messages: [{ data, attributes }] }
     });
+    if (metrics) {
+        metrics.pubSubBytes += computeHttpResponseBytes(publishResponse.headers, {
+            httpHeaders: false,
+            min: 1024
+        });
+    }
+    return publishResponse;
 }

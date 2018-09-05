@@ -20,7 +20,7 @@ import { log, warn } from "../log";
 import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { chomp, sleep } from "../shared";
+import { chomp, sleep, computeHttpResponseBytes } from "../shared";
 import { FunctionCall, FunctionReturn, serializeCall } from "../trampoline";
 import * as awsNpm from "./aws-npm";
 import {
@@ -31,7 +31,6 @@ import {
     publishSNS,
     receiveMessages,
     sqsMessageAttribute,
-    computeHttpResponseBytes,
     publishSQSControlMessage,
     deadLetterMessages
 } from "./aws-queue";
@@ -52,7 +51,7 @@ export interface AWSLambdaPrices {
     dataOutPerGb: number;
 }
 
-export class AWSMetrics {
+export class AWSCostMetrics {
     outboundBytes = 0;
     sns64kRequests = 0;
     sqs64kRequests = 0;
@@ -94,7 +93,7 @@ export interface State {
     logger?: Logger;
     options: Options;
     prices?: AWSLambdaPrices;
-    metrics: AWSMetrics;
+    metrics: AWSCostMetrics;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -450,7 +449,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         services,
         callFunnel: new Funnel(),
         logStitcher: new LogStitcher(),
-        metrics: new AWSMetrics(),
+        metrics: new AWSCostMetrics(),
         options
     };
 
@@ -524,7 +523,7 @@ async function callFunctionHttps(
     FunctionName: string,
     callRequest: FunctionCall,
     callFunnel: Funnel<AWSInvocationResponse>,
-    metrics: AWSMetrics
+    metrics: AWSCostMetrics
 ) {
     let returned: FunctionReturn;
     let rawResponse: AWSInvocationResponse;
@@ -550,7 +549,9 @@ async function callFunctionHttps(
         returned = JSON.parse(payload);
         returned.rawResponse = rawResponse;
     }
-    metrics.outboundBytes += computeHttpResponseBytes(rawResponse.$response.httpResponse);
+    metrics.outboundBytes += computeHttpResponseBytes(
+        rawResponse.$response.httpResponse.headers
+    );
     return returned;
 }
 
@@ -795,7 +796,7 @@ async function* readCurrentLogsRaw(
     logGroupName: string,
     cloudwatch: AWS.CloudWatchLogs,
     logStitcher: LogStitcher,
-    metrics: AWSMetrics
+    metrics: AWSCostMetrics
 ) {
     log(`Reading logs raw`);
     let nextToken: string | undefined;
@@ -809,7 +810,9 @@ async function* readCurrentLogsRaw(
                 startTime: logStitcher.lastLogEventTime
             })
             .promise();
-        metrics.outboundBytes += computeHttpResponseBytes(result.$response.httpResponse);
+        metrics.outboundBytes += computeHttpResponseBytes(
+            result.$response.httpResponse.headers
+        );
         nextToken = result.nextToken;
         const { events } = result;
         if (events) {
@@ -960,42 +963,50 @@ export function costEstimate(
     state: State,
     counters: FunctionCounters,
     statistics: FunctionStats
-) {
+): Promise<Costs> {
     const prices = state.prices!;
-
-    const costs = new Costs();
 
     const { memorySize = defaults.memorySize } = state.options;
     const billedTimeStats = statistics.estimatedBilledTimeMs;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
 
-    costs.functionCallDuration = new CostMetric({
+    const functionCallDuration = CostMetric({
         pricing: prices.lambdaPerGbSecond,
-        measured: (memorySize / 1024) * seconds
+        measured: (memorySize / 1024) * seconds,
+        unit: "Gb*sec"
     });
 
-    costs.functionCallRequests = new CostMetric({
+    const functionCallRequests: CostMetric = CostMetric({
         pricing: prices.lambdaPerRequest,
-        measured: counters.completed + counters.retries + counters.errors
+        measured: counters.completed + counters.retries + counters.errors,
+        unit: "requests"
     });
 
     const { metrics } = state;
-    costs.outboundDataTransfer = new CostMetric({
+    const outboundDataTransfer = CostMetric({
         pricing: prices.dataOutPerGb,
-        measured: metrics.outboundBytes / 2 ** 30
+        measured: metrics.outboundBytes / 2 ** 30,
+        unit: "GB"
     });
 
-    costs.queueRequests = new CostMetric({
+    const sqsCosts: CostMetric = CostMetric({
         pricing: prices.sqsPer64kRequest,
-        measured: metrics.sqs64kRequests
+        measured: metrics.sqs64kRequests,
+        unit: "requests (64kb)"
     });
 
-    const snsCosts = new CostMetric({
+    const snsCosts: CostMetric = CostMetric({
         pricing: prices.snsPer64kPublish,
-        measured: metrics.sns64kRequests
+        measured: metrics.sns64kRequests,
+        unit: "requests (64kb)"
     });
 
-    costs.other["sns"] = snsCosts;
+    const other = { sns: snsCosts, sqs: sqsCosts };
 
-    return Promise.resolve(costs);
+    return Promise.resolve({
+        functionCallDuration,
+        functionCallRequests,
+        outboundDataTransfer,
+        other
+    });
 }

@@ -18,7 +18,7 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
             SNSLambdaSubscriptionArn,
             RequestTopicArn,
             ResponseQueueUrl,
-            DLQUrl,
+            ResponseQueueArn,
             s3Bucket,
             s3Key,
             ...rest
@@ -59,11 +59,6 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
             sns.listSubscriptionsByTopic({ TopicArn: RequestTopicArn! })
         );
         expect(snsResult).toBeUndefined();
-    }
-
-    if (DLQUrl) {
-        const dlqResult = await quietly(sqs.getQueueAttributes({ QueueUrl: DLQUrl }));
-        expect(dlqResult).toBeUndefined();
     }
 
     if (s3Bucket && s3Key) {

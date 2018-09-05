@@ -8,7 +8,7 @@ import { log, warn, stats } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import { assertNever, Statistics, FactoryMap, sum } from "./shared";
 import { FunctionCall, FunctionReturn } from "./trampoline";
-import { Unpacked } from "./type-helpers";
+import { Unpacked, Omit } from "./type-helpers";
 import Module = require("module");
 
 export { aws, google, childprocess, immediate };
@@ -94,39 +94,39 @@ export class Cloud<O extends CommonOptions, S> {
 
 export type AnyCloud = Cloud<any, any>;
 
-export class CostMetric {
-    public pricing: number;
-    public measured: number;
-
-    constructor({
-        pricing = 0,
-        measured = 0
-    }: { pricing?: number; measured?: number } = {}) {
-        this.pricing = pricing;
-        this.measured = measured;
-    }
-
-    get cost() {
-        return this.measured * this.pricing;
-    }
+export interface CostMetric {
+    pricing: number;
+    measured: number;
+    unit: string;
+    cost: number;
 }
 
-export class Costs {
-    functionCallRequests = new CostMetric();
-    functionCallDuration = new CostMetric();
-    outboundDataTransfer = new CostMetric();
-    queueRequests = new CostMetric();
-    other: { [metric: string]: CostMetric } = {};
+export function CostMetric(costMetrics: Omit<CostMetric, "cost">): CostMetric {
+    return { ...costMetrics, cost: costMetrics.pricing * costMetrics.measured };
+}
 
-    get total() {
-        return (
-            this.functionCallDuration.cost +
-            this.functionCallRequests.cost +
-            this.outboundDataTransfer.cost +
-            this.queueRequests.cost +
-            sum(Object.keys(this.other).map(key => this.other[key].cost))
-        );
-    }
+export interface Costs {
+    functionCallRequests?: CostMetric;
+    functionCallDuration?: CostMetric;
+    outboundDataTransfer?: CostMetric;
+    other?: { [metric: string]: CostMetric };
+}
+
+export function sumTotalCosts(costs: Costs) {
+    const {
+        functionCallDuration,
+        functionCallRequests,
+        outboundDataTransfer,
+        other,
+        ...rest
+    } = costs;
+    const _exhaustiveCheck: typeof rest = {};
+    return (
+        (functionCallDuration ? functionCallDuration.cost : 0) +
+        (functionCallRequests ? functionCallRequests.cost : 0) +
+        (outboundDataTransfer ? outboundDataTransfer.cost : 0) +
+        (other ? sum(Object.keys(other).map(key => other[key].cost)) : 0)
+    );
 }
 
 export class FunctionCounters {
@@ -374,7 +374,7 @@ export class CloudFunction<O extends CommonOptions, S> {
                 this.functionStats.aggregate
             );
         } else {
-            return Promise.resolve(new Costs());
+            return Promise.resolve({});
         }
     }
 }

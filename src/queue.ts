@@ -4,8 +4,6 @@ import { sleep } from "./shared";
 import { warn } from "./log";
 import { FunctionReturn, FunctionCall, serializeCall } from "./trampoline";
 import { Attributes } from "./type-helpers";
-import { AWSMetrics } from "./aws/aws-cloudify";
-import { computeHttpResponseBytes } from "./aws/aws-queue";
 const log = debug("cloudify:collector");
 
 const CallIdAttribute: keyof Pick<FunctionReturn, "CallId"> = "CallId";
