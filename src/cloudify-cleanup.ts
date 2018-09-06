@@ -234,25 +234,6 @@ async function iterate<T extends HasNextPageToken>(
     } while (token);
 }
 
-async function googleListFunctions(
-    cloudFunctions: cloudfunctions_v1.Cloudfunctions,
-    project: string
-) {
-    const allFunctions: string[] = [];
-    await iterate(
-        pageToken =>
-            cloudFunctions.projects.locations.functions.list({
-                pageToken,
-                parent: `projects/${project}/locations/-`
-            }),
-        result => {
-            const funcs = result.functions || [];
-            allFunctions.push(...funcs.map(f => f.name!));
-        }
-    );
-    return allFunctions;
-}
-
 async function cleanupGoogle({ execute }: CleanupGoogleOptions) {
     let nResources = 0;
     const output = (msg: string) => !execute && log(msg);

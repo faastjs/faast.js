@@ -101,15 +101,26 @@ export interface CostMetric {
     cost: number;
 }
 
-export function CostMetric(costMetrics: Omit<CostMetric, "cost">): CostMetric {
+export function CostMetric(costMetrics?: Omit<CostMetric, "cost">): CostMetric {
+    if (!costMetrics) {
+        return { pricing: 0, measured: 0, unit: "", cost: 0 };
+    }
     return { ...costMetrics, cost: costMetrics.pricing * costMetrics.measured };
 }
 
 export interface Costs {
-    functionCallRequests?: CostMetric;
-    functionCallDuration?: CostMetric;
-    outboundDataTransfer?: CostMetric;
+    functionCallRequests: CostMetric;
+    functionCallDuration: CostMetric;
+    outboundDataTransfer: CostMetric;
     other?: { [metric: string]: CostMetric };
+}
+
+export function EmptyCosts(): Costs {
+    return {
+        functionCallDuration: CostMetric(),
+        functionCallRequests: CostMetric(),
+        outboundDataTransfer: CostMetric()
+    };
 }
 
 export function sumTotalCosts(costs: Costs) {
@@ -374,7 +385,7 @@ export class CloudFunction<O extends CommonOptions, S> {
                 this.functionStats.aggregate
             );
         } else {
-            return Promise.resolve({});
+            return Promise.resolve(EmptyCosts());
         }
     }
 }

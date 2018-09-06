@@ -12,11 +12,6 @@ interface CloudFunctionContext {
     resource: object;
 }
 
-interface CloudFunctionPubSubEvent {
-    data: PubSubApi.Schema$PubsubMessage;
-    context: CloudFunctionContext;
-}
-
 let pubsub: PubSubApi.Pubsub;
 
 async function initialize() {
@@ -29,11 +24,13 @@ async function initialize() {
     }
 }
 
- xxx node8 signature changed
-export async function trampoline(event: CloudFunctionPubSubEvent): Promise<void> {
+export async function trampoline(
+    data: PubSubApi.Schema$PubsubMessage,
+    _context: CloudFunctionContext
+): Promise<void> {
     const start = Date.now();
     await initialize();
-    const str = Buffer.from(event.data.data!, "base64");
+    const str = Buffer.from(data.data!, "base64");
     const call: FunctionCall = JSON.parse(str.toString());
     const { CallId, ResponseQueueId } = call;
     const startedMessageTimer = setTimeout(

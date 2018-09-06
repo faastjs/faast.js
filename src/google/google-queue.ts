@@ -2,7 +2,7 @@ import { pubsub_v1 } from "googleapis";
 import * as cloudqueue from "../queue";
 import PubSubApi = pubsub_v1;
 import { Attributes } from "../type-helpers";
-import { GoogleCostMetrics } from "./google-cloudify";
+import { GoogleMetrics } from "./google-cloudify";
 import { computeHttpResponseBytes } from "../shared";
 
 export function pubsubMessageAttribute(
@@ -16,7 +16,7 @@ export function pubsubMessageAttribute(
 export async function receiveMessages(
     pubsub: PubSubApi.Pubsub,
     responseSubscription: string,
-    metrics: GoogleCostMetrics
+    metrics: GoogleMetrics
 ): Promise<cloudqueue.ReceivedMessages<PubSubApi.Schema$ReceivedMessage>> {
     // Does higher message batching lead to better throughput? 10 is the max that AWS SQS allows.
     const maxMessages = 10;
@@ -58,7 +58,7 @@ export async function publish(
     topic: string,
     message: string,
     attributes?: Attributes,
-    metrics?: GoogleCostMetrics
+    metrics?: GoogleMetrics
 ) {
     const data = Buffer.from(message).toString("base64");
     const publishResponse = await pubsub.projects.topics.publish({

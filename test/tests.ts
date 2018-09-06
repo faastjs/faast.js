@@ -37,7 +37,7 @@ export function checkFunctions(
             } catch (err) {
                 warn(err);
             }
-        }, 90 * 1000);
+        }, 180 * 1000);
 
         afterAll(async () => {
             await lambda.cleanup();
@@ -161,11 +161,7 @@ export function checkCodeBundle(
     });
 }
 
-export function checkLogs(
-    description: string,
-    cloudProvider: cloudify.CloudProvider,
-    logDelayTime: number = 20 * 1000
-) {
+export function checkLogs(description: string, cloudProvider: cloudify.CloudProvider) {
     describe(description, () => {
         let remote: cloudify.Promisified<typeof funcs>;
         let lambda: cloudify.AnyCloudFunction;
@@ -193,26 +189,33 @@ export function checkLogs(
             "logs",
             async () => {
                 const received = {};
-                const logger = (msg: string) => {
-                    const result = msg.match(/(console.\w+) works/);
-                    if (result && result[1]) {
-                        received[result[1]] = true;
-                    }
-                };
+                let logger;
+                const logPromise = new Promise(resolve => {
+                    logger = (msg: string) => {
+                        // log(`logger: ${msg}`);
+                        const result = msg.match(/(console.\w+) works/);
+                        if (result && result[1]) {
+                            received[result[1]] = true;
+                        }
+                        // log(`received: %O`, received);
+                        if (Object.keys(received).length === 4) {
+                            resolve();
+                        }
+                    };
+                });
                 lambda.setLogger(logger);
                 await remote.consoleLog("console.log works");
                 await remote.consoleWarn("console.warn works");
                 await remote.consoleError("console.error works");
                 await remote.consoleInfo("console.info works");
-                log(`Sleeping ${logDelayTime / 1000}`);
-                await sleep(logDelayTime);
+                await logPromise;
                 lambda.setLogger(undefined);
                 expect(received["console.log"]).toBe(true);
                 expect(received["console.warn"]).toBe(true);
                 expect(received["console.error"]).toBe(true);
                 expect(received["console.info"]).toBe(true);
             },
-            100 * 1000
+            120 * 1000
         );
     });
 }

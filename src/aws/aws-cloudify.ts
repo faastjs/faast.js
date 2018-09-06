@@ -16,7 +16,7 @@ import {
     CostMetric
 } from "../cloudify";
 import { Funnel, MemoFunnel, retry } from "../funnel";
-import { log, warn } from "../log";
+import { log, warn, logPricing } from "../log";
 import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
@@ -51,7 +51,7 @@ export interface AWSLambdaPrices {
     dataOutPerGb: number;
 }
 
-export class AWSCostMetrics {
+export class AWSMetrics {
     outboundBytes = 0;
     sns64kRequests = 0;
     sqs64kRequests = 0;
@@ -93,7 +93,7 @@ export interface State {
     logger?: Logger;
     options: Options;
     prices?: AWSLambdaPrices;
-    metrics: AWSCostMetrics;
+    metrics: AWSMetrics;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -449,7 +449,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         services,
         callFunnel: new Funnel(),
         logStitcher: new LogStitcher(),
-        metrics: new AWSCostMetrics(),
+        metrics: new AWSMetrics(),
         options
     };
 
@@ -473,7 +473,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
 
         const pricingPromise = awsPrices(services.pricing, region).then(prices => {
             state.prices = prices;
-            // log("AWS prices: %O", prices);
+            logPricing("AWS prices: %O", prices);
         });
 
         const promises: Promise<any>[] = [
@@ -523,7 +523,7 @@ async function callFunctionHttps(
     FunctionName: string,
     callRequest: FunctionCall,
     callFunnel: Funnel<AWSInvocationResponse>,
-    metrics: AWSCostMetrics
+    metrics: AWSMetrics
 ) {
     let returned: FunctionReturn;
     let rawResponse: AWSInvocationResponse;
@@ -796,7 +796,7 @@ async function* readCurrentLogsRaw(
     logGroupName: string,
     cloudwatch: AWS.CloudWatchLogs,
     logStitcher: LogStitcher,
-    metrics: AWSCostMetrics
+    metrics: AWSMetrics
 ) {
     log(`Reading logs raw`);
     let nextToken: string | undefined;
@@ -989,24 +989,22 @@ export function costEstimate(
         unit: "GB"
     });
 
-    const sqsCosts: CostMetric = CostMetric({
+    const sqs: CostMetric = CostMetric({
         pricing: prices.sqsPer64kRequest,
         measured: metrics.sqs64kRequests,
         unit: "requests (64kb)"
     });
 
-    const snsCosts: CostMetric = CostMetric({
+    const sns: CostMetric = CostMetric({
         pricing: prices.snsPer64kPublish,
         measured: metrics.sns64kRequests,
         unit: "requests (64kb)"
     });
 
-    const other = { sns: snsCosts, sqs: sqsCosts };
-
     return Promise.resolve({
         functionCallDuration,
         functionCallRequests,
         outboundDataTransfer,
-        other
+        other: { sns, sqs }
     });
 }

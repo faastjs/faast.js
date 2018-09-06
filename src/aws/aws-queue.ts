@@ -3,7 +3,7 @@ import * as cloudqueue from "../queue";
 import { log, warn } from "../log";
 import { SNSEvent } from "aws-lambda";
 import { FunctionCall } from "../trampoline";
-import { AWSCostMetrics } from "./aws-cloudify";
+import { AWSMetrics } from "./aws-cloudify";
 import { Attributes } from "../type-helpers";
 import { sum, computeHttpResponseBytes } from "../shared";
 
@@ -65,7 +65,7 @@ export function publishSNS(
     sns: aws.SNS,
     TopicArn: string,
     body: string,
-    costMetrics: AWSCostMetrics,
+    costMetrics: AWSMetrics,
     attributes?: Attributes
 ) {
     costMetrics.sns64kRequests += countRequests(body.length);
@@ -107,7 +107,7 @@ export function isControlMessage(
 export async function receiveMessages(
     sqs: aws.SQS,
     ResponseQueueUrl: string,
-    metrics: AWSCostMetrics
+    metrics: AWSMetrics
 ): Promise<cloudqueue.ReceivedMessages<aws.SQS.Message>> {
     const MaxNumberOfMessages = 10;
     const response = await sqs

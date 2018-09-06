@@ -20,7 +20,7 @@ import {
     CostMetric
 } from "../cloudify";
 import { Funnel } from "../funnel";
-import { log, warn } from "../log";
+import { log, warn, logPricing } from "../log";
 import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
@@ -62,7 +62,7 @@ export interface GoogleCloudPricing {
     perGbPubSub: number;
 }
 
-export class GoogleCostMetrics {
+export class GoogleMetrics {
     outboundBytes = 0;
     pubSubBytes = 0;
 }
@@ -91,7 +91,7 @@ export interface State {
     logStitcher: LogStitcher;
     logger?: Logger;
     pricing?: GoogleCloudPricing;
-    metrics: GoogleCostMetrics;
+    metrics: GoogleMetrics;
     options: Options;
 }
 
@@ -156,7 +156,7 @@ async function poll<T>({
     request,
     checkDone,
     delay = defaultPollDelay,
-    maxRetries = 20
+    maxRetries = 30
 }: PollConfig<T>): Promise<T | undefined> {
     let retries = 0;
     await delay(retries);
@@ -298,7 +298,7 @@ async function initializeWithApi(
         project,
         functionName,
         logStitcher: new LogStitcher(),
-        metrics: new GoogleCostMetrics(),
+        metrics: new GoogleMetrics(),
         options
     };
 
@@ -307,7 +307,7 @@ async function initializeWithApi(
         region
     ).then(pricing => {
         state.pricing = pricing;
-        log(`Pricing: %O`, state.pricing);
+        logPricing(`Pricing: %O`, state.pricing);
     });
 
     if (useQueue) {
@@ -423,14 +423,13 @@ export function exec(cmd: string) {
 async function callFunctionHttps(
     url: string,
     callArgs: FunctionCall,
-    costMetrics: GoogleCostMetrics
+    costMetrics: GoogleMetrics
 ) {
     // only for validation
     serializeCall(callArgs);
     const rawResponse = await Axios.put<FunctionReturn>(url!, callArgs);
     const returned: FunctionReturn = rawResponse.data;
     returned.rawResponse = rawResponse;
-    log(`%O`, rawResponse.headers);
     costMetrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
     return returned;
 }
@@ -628,6 +627,12 @@ export async function* readLogsRaw(state: State) {
     let pageToken: string | undefined;
 
     do {
+        // Google enforces a rate of 1 call per second, but there appears to be
+        // bugs that prevent all logs from being loaded at that rate.
+        // Experimentally 1.5s works well.
+        //
+        // https://cloud.google.com/logging/quotas
+        await sleep(1500);
         let result: AxiosResponse<Logging.Schema$ListLogEntriesResponse>;
         const filter = `resource.type="cloud_function" AND resource.labels.function_name="${functionName}" AND timestamp >= "${new Date(
             logStitcher.lastLogEventTime
@@ -636,7 +641,8 @@ export async function* readLogsRaw(state: State) {
             requestBody: {
                 resourceNames: [`projects/${project}`],
                 pageToken,
-                filter
+                filter,
+                orderBy: "timestamp asc"
             }
         });
         pageToken = result.data.nextPageToken;
@@ -657,7 +663,6 @@ export async function outputCurrentLogs(state: State) {
     const logStream = readLogsRaw(state);
     for await (const entries of logStream) {
         const newEntries = entries.filter(entry => entry.textPayload);
-
         for (const entry of newEntries) {
             if (!state.logger) {
                 return;
@@ -673,12 +678,7 @@ export async function outputCurrentLogs(state: State) {
 
 async function outputLogs(state: State) {
     while (state.logger) {
-        const start = Date.now();
         await outputCurrentLogs(state);
-        const delay = 1000 - (Date.now() - start);
-        if (delay > 0) {
-            await sleep(delay);
-        }
     }
 }
 
@@ -710,8 +710,8 @@ async function getGoogleCloudFunctionsPricing(
                 });
                 const { skus = [] } = skusResponse.data;
                 const matchingSkus = skus.filter(sku => sku.description === description);
-                log(`matching SKUs: %O`, matchingSkus);
-                log(
+                logPricing(`matching SKUs: %O`, matchingSkus);
+                logPricing(
                     `  Pricing info: %O`,
                     matchingSkus.map(s => s.pricingInfo![0].pricingExpression)
                 );
@@ -728,7 +728,7 @@ async function getGoogleCloudFunctionsPricing(
                 const price =
                     Math.max(...prices) *
                     (conversionFactor / pexp.baseUnitConversionFactor!);
-                log(
+                logPricing(
                     `Found price for ${serviceName}, ${description}, ${region}: ${price}`
                 );
                 return price;
@@ -786,7 +786,7 @@ async function costEstimate(
         .map(n => Number(n))
         .sort();
     const provisionedMb = provisionableSizes.find(size => memorySize <= size);
-    log(`For memory size ${memorySize}, provisioned: ${provisionedMb}`);
+    logPricing(`For memory size ${memorySize}, provisioned: ${provisionedMb}`);
     if (!provisionedMb) {
         warn(
             `Could not determine provisioned memory or CPU for requested memory size ${memorySize}`
@@ -819,10 +819,14 @@ async function costEstimate(
 
     const pubsub = CostMetric({
         pricing: prices.perGbPubSub,
-        measured: state.metrics.pubSubBytes / 2 ** 40,
-        unit: "TB"
+        measured: state.metrics.pubSubBytes / 2 ** 30,
+        unit: "GB"
     });
 
-    xxx;
-    return {};
+    return {
+        functionCallDuration,
+        functionCallRequests,
+        outboundDataTransfer,
+        other: { pubsub }
+    };
 }
