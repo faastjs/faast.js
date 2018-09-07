@@ -627,24 +627,23 @@ export async function* readLogsRaw(state: State) {
     let pageToken: string | undefined;
 
     do {
-        // Google enforces a rate of 1 call per second, but there appears to be
-        // bugs that prevent all logs from being loaded at that rate.
-        // Experimentally 1.5s works well.
-        //
-        // https://cloud.google.com/logging/quotas
-        await sleep(1500);
         let result: AxiosResponse<Logging.Schema$ListLogEntriesResponse>;
-        const filter = `resource.type="cloud_function" AND resource.labels.function_name="${functionName}" AND timestamp >= "${new Date(
+        const filter = `resource.type="cloud_function" AND resource.labels.function_name="${functionName}" AND receiveTimestamp >= "${new Date(
             logStitcher.lastLogEventTime
         ).toISOString()}"`;
-        result = await logging.entries.list({
-            requestBody: {
-                resourceNames: [`projects/${project}`],
-                pageToken,
-                filter,
-                orderBy: "timestamp asc"
-            }
-        });
+        try {
+            result = await logging.entries.list({
+                requestBody: {
+                    resourceNames: [`projects/${project}`],
+                    pageToken,
+                    filter
+                }
+            });
+        } catch (err) {
+            log(err);
+            await sleep(2000);
+            continue;
+        }
         pageToken = result.data.nextPageToken;
         const entries = result.data.entries || [];
         const newEntries = entries.filter(entry => !logStitcher.has(entry.insertId));
@@ -653,7 +652,7 @@ export async function* readLogsRaw(state: State) {
         }
         logStitcher.updateEvents(
             entries,
-            e => parseTimestamp(e.timestamp),
+            e => parseTimestamp(e.receiveTimestamp),
             e => e.insertId
         );
     } while (pageToken);
@@ -678,7 +677,12 @@ export async function outputCurrentLogs(state: State) {
 
 async function outputLogs(state: State) {
     while (state.logger) {
+        const start = Date.now();
         await outputCurrentLogs(state);
+        const delay = 1000 - (Date.now() - start);
+        if (delay > 0) {
+            await sleep(delay);
+        }
     }
 }
 
