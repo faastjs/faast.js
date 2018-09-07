@@ -616,14 +616,13 @@ function parseTimestamp(timestampStr: string | undefined) {
     return Date.parse(timestampStr || "") || 0;
 }
 
-export async function* readLogsRaw(state: State) {
-    const {
-        project,
-        functionName,
-        services: { logging },
-        logStitcher
-    } = state;
-
+export async function* readLogsRaw(
+    logging: Logging,
+    project: string,
+    functionName: string,
+    logStitcher: LogStitcher,
+    metrics: GoogleMetrics
+) {
     let pageToken: string | undefined;
 
     do {
@@ -644,6 +643,7 @@ export async function* readLogsRaw(state: State) {
             await sleep(2000);
             continue;
         }
+        metrics.outboundBytes += computeHttpResponseBytes(result.headers);
         pageToken = result.data.nextPageToken;
         const entries = result.data.entries || [];
         const newEntries = entries.filter(entry => !logStitcher.has(entry.insertId));
@@ -659,7 +659,13 @@ export async function* readLogsRaw(state: State) {
 }
 
 export async function outputCurrentLogs(state: State) {
-    const logStream = readLogsRaw(state);
+    const logStream = readLogsRaw(
+        state.services.logging,
+        state.project,
+        state.functionName,
+        state.logStitcher,
+        state.metrics
+    );
     for await (const entries of logStream) {
         const newEntries = entries.filter(entry => entry.textPayload);
         for (const entry of newEntries) {
