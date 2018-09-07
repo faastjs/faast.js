@@ -12,8 +12,9 @@ import {
     Logger,
     FunctionCounters,
     FunctionStats,
-    Costs,
-    CostMetric
+    CostBreakdown,
+    CostMetric,
+    CostMetric2
 } from "../cloudify";
 import { Funnel, MemoFunnel, retry } from "../funnel";
 import { log, warn, logPricing } from "../log";
@@ -798,11 +799,8 @@ async function* readLogsRaw(
     logStitcher: LogStitcher,
     metrics: AWSMetrics
 ) {
-    log(`Reading logs raw`);
     let nextToken: string | undefined;
     do {
-        log(`requesting logs`);
-
         const result = await cloudwatch
             .filterLogEvents({
                 logGroupName,
@@ -848,7 +846,7 @@ async function outputCurrentLogs(state: State) {
 async function outputLogs(state: State) {
     while (state.logger) {
         const start = Date.now();
-        await outputCurrentLogs(state);
+        await outputCurrentLogs(state).catch();
         const delay = 1000 - (Date.now() - start);
         if (delay > 0) {
             await sleep(delay);
@@ -959,48 +957,54 @@ export function costEstimate(
     state: State,
     counters: FunctionCounters,
     statistics: FunctionStats
-): Promise<Costs> {
+): Promise<CostBreakdown> {
     const prices = state.prices!;
 
     const { memorySize = defaults.memorySize } = state.options;
     const billedTimeStats = statistics.estimatedBilledTimeMs;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
 
-    const functionCallDuration = CostMetric({
+    const functionCallDuration = new CostMetric2({
         pricing: prices.lambdaPerGbSecond,
-        measured: (memorySize / 1024) * seconds,
-        unit: "Gb*sec"
+        unit: "(GB*second)",
+        measured: memorySize / 1024,
+        measuredUnit: "GB",
+        measured2: seconds,
+        measured2Unit: "second"
     });
 
-    const functionCallRequests: CostMetric = CostMetric({
+    const functionCallRequests = new CostMetric({
         pricing: prices.lambdaPerRequest,
         measured: counters.completed + counters.retries + counters.errors,
-        unit: "requests"
+        unit: "request"
     });
 
     const { metrics } = state;
-    const outboundDataTransfer = CostMetric({
+    const outboundDataTransfer = new CostMetric({
         pricing: prices.dataOutPerGb,
         measured: metrics.outboundBytes / 2 ** 30,
         unit: "GB"
     });
 
-    const sqs: CostMetric = CostMetric({
+    const sqs: CostMetric = new CostMetric({
         pricing: prices.sqsPer64kRequest,
         measured: metrics.sqs64kRequests,
-        unit: "requests (64kb)"
+        unit: "request"
     });
 
-    const sns: CostMetric = CostMetric({
+    const sns: CostMetric = new CostMetric({
         pricing: prices.snsPer64kPublish,
         measured: metrics.sns64kRequests,
-        unit: "requests (64kb)"
+        unit: "request"
     });
 
-    return Promise.resolve({
-        functionCallDuration,
-        functionCallRequests,
-        outboundDataTransfer,
-        other: { sns, sqs }
-    });
+    return Promise.resolve(
+        new CostBreakdown({
+            functionCallDuration,
+            functionCallRequests,
+            outboundDataTransfer,
+            sns,
+            sqs
+        })
+    );
 }

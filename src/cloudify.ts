@@ -4,11 +4,11 @@ import * as aws from "./aws/aws-cloudify";
 import * as childprocess from "./childprocess/childprocess-cloudify";
 import * as google from "./google/google-cloudify";
 import * as immediate from "./immediate/immediate-cloudify";
-import { log, warn, stats } from "./log";
+import { log, stats, warn } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
-import { assertNever, Statistics, FactoryMap, sum } from "./shared";
+import { assertNever, FactoryMap, Statistics, sum } from "./shared";
 import { FunctionCall, FunctionReturn } from "./trampoline";
-import { Unpacked, Omit } from "./type-helpers";
+import { NonFunctionProperties, Unpacked } from "./type-helpers";
 import Module = require("module");
 
 export { aws, google, childprocess, immediate };
@@ -94,56 +94,105 @@ export class Cloud<O extends CommonOptions, S> {
 
 export type AnyCloud = Cloud<any, any>;
 
-export interface CostMetric {
-    pricing: number;
-    measured: number;
-    unit: string;
-    cost: number;
-}
+export class CostMetric {
+    pricing = 0;
+    unit = "";
+    measured = 0;
 
-export function CostMetric(costMetrics?: Omit<CostMetric, "cost">): CostMetric {
-    if (!costMetrics) {
-        return { pricing: 0, measured: 0, unit: "", cost: 0 };
+    constructor(opts?: NonFunctionProperties<CostMetric>) {
+        Object.assign(this, opts);
     }
-    return { ...costMetrics, cost: costMetrics.pricing * costMetrics.measured };
+
+    cost() {
+        return this.pricing * this.measured;
+    }
+
+    toString() {
+        return `$${this.p(this.pricing)}/${this.unit} x ${this.describe(
+            this.measured,
+            this.unit
+        )} = $${this.p(this.cost())}`;
+    }
+
+    protected p = (n: number) => (Number.isInteger(n) ? n : n.toFixed(8));
+    protected addPlural = (n: number, str: string) =>
+        n > 1 && !str.match(/[A-Z]$/) ? "s" : "";
+    protected describe = (measured: number, unit: string) =>
+        `${this.p(measured)} ${unit + this.addPlural(measured, unit)}`;
 }
 
-export interface Costs {
-    functionCallRequests: CostMetric;
-    functionCallDuration: CostMetric;
-    outboundDataTransfer: CostMetric;
-    other?: { [metric: string]: CostMetric };
+export class CostMetric2 extends CostMetric {
+    measuredUnit = "";
+    measured2 = 0;
+    measured2Unit = "";
+
+    constructor(opts?: NonFunctionProperties<CostMetric2>) {
+        super();
+        Object.assign(this, opts);
+    }
+
+    cost() {
+        return super.cost() * this.measured2;
+    }
+
+    toString() {
+        return `$${this.p(this.pricing)}/${this.unit} x ${this.describe(
+            this.measured,
+            this.measuredUnit
+        )} x ${this.describe(this.measured2, this.measured2Unit)} = $${this.p(
+            this.cost()
+        )}`;
+    }
 }
 
-export function EmptyCosts(): Costs {
-    return {
-        functionCallDuration: CostMetric(),
-        functionCallRequests: CostMetric(),
-        outboundDataTransfer: CostMetric()
-    };
-}
+export class CostBreakdown {
+    costs: { [metric: string]: CostMetric | CostMetric2 } = {};
 
-export function estimateTotalCosts(costs: Costs) {
-    const {
-        functionCallDuration,
-        functionCallRequests,
-        outboundDataTransfer,
-        other,
-        ...rest
-    } = costs;
-    const _exhaustiveCheck: typeof rest = {};
-    return (
-        (functionCallDuration ? functionCallDuration.cost : 0) +
-        (functionCallRequests ? functionCallRequests.cost : 0) +
-        (outboundDataTransfer ? outboundDataTransfer.cost : 0) +
-        (other ? sum(Object.keys(other).map(key => other[key].cost)) : 0)
-    );
+    constructor(metrics?: { [metric: string]: CostMetric | CostMetric2 }) {
+        Object.assign(this.costs, metrics);
+    }
+
+    estimateTotal() {
+        return sum(Object.values(this.costs || {}).map(metric => metric.cost()));
+    }
+
+    toString() {
+        let rv = "";
+        const costs = [];
+
+        for (const [name, metric] of Object.entries(this.costs || {})) {
+            costs.push({
+                metric: name,
+                cost: metric.cost(),
+                description: metric.toString()
+            });
+        }
+
+        costs.sort((a, b) => b.cost - a.cost);
+        const total = this.estimateTotal();
+
+        for (const entry of costs) {
+            rv += `${((entry.cost / total) * 100).toFixed(1).padStart(5)}% ${
+                entry.metric
+            }: ${entry.description}\n`;
+        }
+
+        rv += `estimated total: $${this.estimateTotal().toFixed(8)}\n`;
+        rv += `(Estimated using highest pricing tier for each service. Does not account for free tier. Limitations apply.)`;
+        return rv;
+    }
 }
 
 export class FunctionCounters {
     completed = 0;
     retries = 0;
     errors = 0;
+
+    toString() {
+        return `completed: ${this.completed}, retries: ${this.retries}, errors: ${
+            this.errors
+        }`;
+    }
 }
 
 export class FunctionStats {
@@ -155,11 +204,11 @@ export class FunctionStats {
 }
 
 export class FunctionCountersMap {
+    aggregate = new FunctionCounters();
     fIncremental = new FactoryMap<string, FunctionCounters>(() => new FunctionCounters());
     fAggregate = new FactoryMap<string, FunctionCounters>(() => new FunctionCounters());
-    aggregate = new FunctionCounters();
 
-    incr(fn: string, key: keyof FunctionCounters) {
+    incr(fn: string, key: keyof NonFunctionProperties<FunctionCounters>) {
         this.fIncremental.getOrCreate(fn)[key]++;
         this.fAggregate.getOrCreate(fn)[key]++;
         this.aggregate[key]++;
@@ -177,10 +226,13 @@ export class FunctionCountersMap {
         this.print(prefix, this.fAggregate);
     }
 
-    protected print(prefix: string = "", map: FactoryMap<string, FunctionCounters>) {
-        for (const [key, value] of map) {
-            stats(`${prefix} ${key}: ${value}`);
-        }
+    protected print(prefix: string = "", counters: FactoryMap<string, FunctionCounters>) {
+        prefix = prefix === "" ? "" : prefix.trim() + " ";
+        stats(
+            `${prefix}${[...counters]
+                .map(([key, value]) => `${key}: ${value}`)
+                .join(", ")}`
+        );
     }
 }
 
@@ -212,10 +264,21 @@ export class FunctionStatsMap {
         map: FactoryMap<string, FunctionStats>,
         detailedOpt?: { detailed: boolean }
     ) {
-        stats(`${prefix} statistics:`);
-        for (const [metric, fstatistics] of map) {
-            for (const stat of Object.keys(fstatistics)) {
-                fstatistics[stat].log(metric, detailedOpt);
+        prefix = prefix === "" ? "" : prefix.trim() + " ";
+        if (detailedOpt && detailedOpt.detailed) {
+            for (const [func, fstatistics] of map) {
+                for (const stat of Object.keys(fstatistics)) {
+                    const fstats = fstatistics[stat] as Statistics;
+                    fstats.log(`${prefix}${func} ${stat}`, detailedOpt);
+                }
+            }
+        } else {
+            for (const [func, fstatistics] of map) {
+                stats(
+                    `${prefix}${func}: {${Object.keys(fstatistics)
+                        .map(key => `${key}: ${fstatistics[key].mean.toFixed(1)}`)
+                        .join(", ")}}`
+                );
             }
         }
     }
@@ -377,7 +440,7 @@ export class CloudFunction<O extends CommonOptions, S> {
         this.impl.setLogger(this.state, logger);
     }
 
-    costEstimate(): Promise<Costs> {
+    costEstimate(): Promise<CostBreakdown> {
         if (this.impl.costEstimate) {
             return this.impl.costEstimate(
                 this.state,
@@ -385,7 +448,7 @@ export class CloudFunction<O extends CommonOptions, S> {
                 this.functionStats.aggregate
             );
         } else {
-            return Promise.resolve(EmptyCosts());
+            return Promise.resolve(new CostBreakdown());
         }
     }
 }
@@ -478,7 +541,7 @@ export interface CloudFunctionImpl<State> {
         state: State,
         counters: FunctionCounters,
         stats: FunctionStats
-    ) => Promise<Costs>;
+    ) => Promise<CostBreakdown>;
     callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>;
     cleanup(state: State): Promise<void>;
     stop(state: State): Promise<string>;

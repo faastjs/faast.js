@@ -14,6 +14,10 @@ export type AnyFunction = (...args: any[]) => any;
 
 export type Unpacked<T> = T extends Promise<infer D> ? D : T;
 
-export type Attributes = { [key: string]: string };
+export interface Attributes {
+    [key: string]: string;
+}
 
-export type Headers = { [key: string]: string };
+export interface Headers {
+    [key: string]: string;
+}

@@ -56,6 +56,8 @@ export function coldStartTest(
                 const estimatedPI = (insidePoints / samplePoints) * 4;
                 log(`PI estimate: ${estimatedPI}`);
                 expect(Number(estimatedPI.toFixed(2))).toBe(3.14);
+                const cost = await lambda.costEstimate();
+                log(`Cost: ${cost}`);
             },
             600 * 1000
         );
@@ -66,6 +68,7 @@ export function throughputTest(
     description: string,
     cloudProvider: cloudify.CloudProvider,
     duration: number,
+    concurrency: number = 500,
     options?: cloudify.CommonOptions
 ) {
     describe(description, () => {
@@ -91,12 +94,15 @@ export function throughputTest(
             async () => {
                 let completed = 0;
                 const nSamplesPerFunction = 2000000;
-                const pump = new Pump(500, () =>
+                const pump = new Pump(concurrency, () =>
                     remote.monteCarloPI(nSamplesPerFunction).then(_ => completed++)
                 );
                 pump.start();
                 await sleep(duration);
                 await pump.drain();
+                const cost = await lambda.costEstimate();
+                log(`Cost:`);
+                log(`${cost}`);
                 log(
                     `Completed ${completed} calls in ${duration / (60 * 1000)} minute(s)`
                 );

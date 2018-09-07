@@ -6,6 +6,7 @@ import * as googleCloudify from "../src/google/google-cloudify";
 import { disableWarnings, enableWarnings, log, warn } from "../src/log";
 import * as funcs from "./functions";
 import * as cloudify from "../src/cloudify";
+import { sleep } from "../src/shared";
 
 export function checkCosts(description: string, cloudProvider: cloudify.CloudProvider) {
     describe(description, () => {
@@ -15,20 +16,21 @@ export function checkCosts(description: string, cloudProvider: cloudify.CloudPro
         beforeAll(async () => {
             try {
                 const cloud = cloudify.create(cloudProvider);
-                const options = {
+                lambda = await cloud.createFunction("./functions", {
                     timeout: 30,
-                    memorySize: 512
-                };
-                lambda = await cloud.createFunction("./functions", options);
+                    memorySize: 512,
+                    useQueue: true
+                });
                 remote = lambda.cloudifyAll(funcs);
+                lambda.setLogger(console.log);
             } catch (err) {
                 warn(err);
             }
         }, 90 * 1000);
 
         afterAll(async () => {
-            await lambda.cleanup();
-            // await lambda.stop();
+            // await lambda.cleanup();
+            await lambda.stop();
         }, 60 * 1000);
 
         test(
@@ -36,8 +38,9 @@ export function checkCosts(description: string, cloudProvider: cloudify.CloudPro
             async () => {
                 await remote.hello("there");
                 const costs = await lambda.costEstimate();
-                console.log("%O", costs);
-                console.log(`total: ${cloudify.estimateTotalCosts(costs)}`);
+                console.log(`${costs}`);
+                console.log(`total: ${costs.estimateTotal()}`);
+                lambda.functionStats.log();
             },
             120 * 1000
         );
@@ -45,3 +48,6 @@ export function checkCosts(description: string, cloudProvider: cloudify.CloudPro
 }
 
 checkCosts("AWS costs", "aws");
+// checkCosts("Google costs", "google");
+// checkCosts("immediate", "immediate");
+// checkCosts("childprocess", "childprocess");

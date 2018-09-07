@@ -10,6 +10,8 @@ export class Statistics {
     stdev = NaN;
     mean = NaN;
 
+    constructor(protected printFixedPrecision: number = 1) {}
+
     // https://math.stackexchange.com/questions/374881/recursive-formula-for-variance
     update(value: number | undefined) {
         if (value === undefined) {
@@ -37,17 +39,17 @@ export class Statistics {
     }
 
     toString() {
-        return `${this.mean.toFixed(1)}`;
+        return `${this.mean.toFixed(this.printFixedPrecision)}`;
     }
 
     log(prefix: string = "", detailedOpt?: { detailed: boolean }) {
-        const p = (n: number) => n.toFixed(1);
+        const p = (n: number) => n.toFixed(this.printFixedPrecision);
         if (detailedOpt && detailedOpt.detailed) {
             const { samples, mean, stdev, min, max } = this;
             stats(`${prefix}`);
             stats(`%O`, { samples, mean, stdev, min, max });
         } else {
-            stats(`${prefix}: ${this.mean}`);
+            stats(`${prefix}: ${p(this.mean)}`);
         }
     }
 }
@@ -66,143 +68,6 @@ export class FactoryMap<K, V> extends Map<K, V> {
         return val;
     }
 }
-
-// export class CountersMap<K> extends FactoryMap<K, number> {
-//     constructor() {
-//         super(() => 0);
-//     }
-
-//     increment(key: K) {
-//         const current = this.getOrCreate(key) + 1;
-//         this.set(key, current);
-//     }
-
-//     toString() {
-//         return Array.from(this)
-//             .map(([key, value]) => `${key}: ${value}`)
-//             .join(", ");
-//     }
-
-//     log(prefix: string = "", _detailedOpt?: { detailed: boolean }) {
-//         for (const [key, value] of this) {
-//             stats(`${prefix} ${key}: ${value}`);
-//         }
-//     }
-// }
-
-// export class StatisticsMap<K extends string> extends FactoryMap<K, Statistics> {
-//     constructor() {
-//         super(() => new Statistics());
-//     }
-
-//     update(key: K, value: number) {
-//         this.getOrCreate(key).update(value);
-//     }
-
-//     toString() {
-//         return Array.from(this)
-//             .map(([key, value]) => `${key}: ${value.toString()}`)
-//             .join(", ");
-//     }
-
-//     log(prefix: string = "", detailedOpt?: { detailed: boolean }) {
-//         stats(`${prefix} statistics:`);
-//         for (const [metric, statistics] of this) {
-//             statistics.log(metric, detailedOpt);
-//         }
-//     }
-// }
-
-// export class Metrics<C, M extends string> {
-//     counters = new CountersMap<C>();
-//     statistics = new StatisticsMap<M>();
-
-//     increment(key: C) {
-//         this.counters.increment(key);
-//     }
-
-//     update(key: M, value: number) {
-//         this.statistics.update(key, value);
-//     }
-
-//     toString() {
-//         return `${this.counters.toString()} ${this.statistics.toString()}`;
-//     }
-
-//     log(prefix: string = "", detailedOpt?: { detailed: boolean }) {
-//         if (detailedOpt && detailedOpt.detailed) {
-//             this.counters.log(prefix, detailedOpt);
-//             this.statistics.log(prefix, detailedOpt);
-//         } else {
-//             stats(`${prefix} ${this.toString()}`);
-//         }
-//     }
-// }
-
-// export class MetricsMap<C, M extends string> extends FactoryMap<string, Metrics<C, M>> {
-//     constructor() {
-//         super(() => new Metrics());
-//     }
-
-//     log(prefix: string = "", detailedOpt?: { detailed: boolean }) {
-//         for (const [key, metrics] of this) {
-//             metrics.log(`${prefix}${key}`, detailedOpt);
-//         }
-//     }
-// }
-
-// export class IncrementalMetricsMap<C, M extends string> {
-//     perFunctionIncremental = new MetricsMap<C, M>();
-//     perFunctionAggregate = new MetricsMap<C, M>();
-//     aggregate = new Metrics<C, M>();
-//     private timer?: NodeJS.Timer;
-
-//     increment(key: string, counter: C) {
-//         this.perFunctionAggregate.getOrCreate(key).increment(counter);
-//         this.perFunctionIncremental.getOrCreate(key).increment(counter);
-//         this.aggregate.increment(counter);
-//     }
-
-//     update(key: string, name: M, value: number) {
-//         this.perFunctionAggregate.getOrCreate(key).update(name, value);
-//         this.perFunctionIncremental.getOrCreate(key).update(name, value);
-//         this.aggregate.update(name, value);
-//     }
-
-//     resetIncremental() {
-//         this.perFunctionIncremental = new MetricsMap();
-//     }
-
-//     logIncremental(prefix: string = "", detailedOpt?: { detailed: boolean }) {
-//         this.perFunctionIncremental.log(prefix, detailedOpt);
-//     }
-
-//     logInterval(interval: number) {
-//         this.timer && clearInterval(this.timer);
-//         this.timer = setInterval(() => {
-//             this.logIncremental();
-//             this.perFunctionIncremental = new MetricsMap();
-//         }, interval);
-//     }
-
-//     stopLogInterval() {
-//         this.timer && clearInterval(this.timer);
-//         this.timer = undefined;
-//     }
-// }
-
-// export type FunctionCounters = "completed" | "retries" | "errors";
-
-// export type FunctionStatistics =
-//     | "startLatency"
-//     | "executionLatency"
-//     | "returnLatency"
-//     | "estimatedBilledTime";
-
-// export class FunctionMetrics extends IncrementalMetricsMap<
-//     FunctionCounters,
-//     FunctionStatistics
-// > {}
 
 export function sleep(ms: number) {
     return new Promise<void>(resolve => setTimeout(resolve, ms));

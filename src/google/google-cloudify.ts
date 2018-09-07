@@ -14,10 +14,11 @@ import {
     CloudImpl,
     CommonOptions,
     Logger,
-    Costs,
+    CostBreakdown,
     FunctionCounters,
     FunctionStats,
-    CostMetric
+    CostMetric,
+    CostMetric2
 } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log, warn, logPricing } from "../log";
@@ -109,8 +110,8 @@ export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
     cleanup,
     stop,
     setConcurrency,
-    setLogger
-    // costEstimate
+    setLogger,
+    costEstimate
 };
 
 export const EmulatorImpl: CloudImpl<Options, State> = {
@@ -790,7 +791,7 @@ async function costEstimate(
     state: State,
     counters: FunctionCounters,
     stats: FunctionStats
-): Promise<Costs> {
+): Promise<CostBreakdown> {
     const { memorySize = defaults.memorySize } = state.options;
     const provisionableSizes = Object.keys(gcfProvisonableMemoryTable)
         .map(n => Number(n))
@@ -807,36 +808,39 @@ async function costEstimate(
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
 
     const prices = state.pricing!;
-    const functionCallDuration = CostMetric({
+    const functionCallDuration = new CostMetric2({
         pricing:
             prices.perGbSecond * (provisionedMb! / 1024) +
             prices.perGhzSecond * provisionedGhz,
-        measured: seconds,
-        unit: "GB*sec"
+        unit: "(GB*second)",
+        measured: provisionedMb! / 1024,
+        measuredUnit: "GB",
+        measured2: seconds,
+        measured2Unit: "second"
     });
 
-    const functionCallRequests = CostMetric({
+    const functionCallRequests = new CostMetric({
         pricing: prices.perInvocation,
         measured: counters.completed + counters.retries + counters.errors,
-        unit: "requests"
+        unit: "request"
     });
 
-    const outboundDataTransfer = CostMetric({
+    const outboundDataTransfer = new CostMetric({
         pricing: prices.perGbOutboundData,
         measured: state.metrics.outboundBytes / 2 ** 30,
         unit: "GB"
     });
 
-    const pubsub = CostMetric({
+    const pubsub = new CostMetric({
         pricing: prices.perGbPubSub,
         measured: state.metrics.pubSubBytes / 2 ** 30,
         unit: "GB"
     });
 
-    return {
+    return new CostBreakdown({
         functionCallDuration,
         functionCallRequests,
         outboundDataTransfer,
-        other: { pubsub }
-    };
+        pubsub
+    });
 }
