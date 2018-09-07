@@ -123,7 +123,7 @@ export function EmptyCosts(): Costs {
     };
 }
 
-export function sumTotalCosts(costs: Costs) {
+export function estimateTotalCosts(costs: Costs) {
     const {
         functionCallDuration,
         functionCallRequests,

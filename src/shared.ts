@@ -247,7 +247,7 @@ export function computeHttpResponseBytes(
     let contentLength = 0;
     for (const key of headerKeys) {
         if (key.match(/^content-length$/i)) {
-            contentLength = Number(headerKeys[key]);
+            contentLength = Number(headers[key]);
             break;
         }
     }

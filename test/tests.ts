@@ -5,7 +5,6 @@ import * as awsCloudify from "../src/aws/aws-cloudify";
 import * as cloudify from "../src/cloudify";
 import * as googleCloudify from "../src/google/google-cloudify";
 import { disableWarnings, enableWarnings, log, warn } from "../src/log";
-import { sleep } from "../src/shared";
 import * as funcs from "./functions";
 
 export function checkFunctions(
