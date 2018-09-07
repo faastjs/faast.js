@@ -818,7 +818,6 @@ async function* readCurrentLogsRaw(
         if (events) {
             const newEvents = events.filter(e => !logStitcher.has(e.eventId!));
             if (newEvents.length > 0) {
-                log(`yielding log events`);
                 yield newEvents;
             }
             logStitcher.updateEvents(events, e => e.timestamp, e => e.eventId);
@@ -834,11 +833,8 @@ async function outputCurrentLogs(state: State) {
         state.metrics
     );
     for await (const entries of logStream) {
-        log(`Read log stream`);
         const newEntries = entries.filter(entry => entry.message);
         for (const entry of newEntries) {
-            log(`Read log stream entries`);
-
             if (!state.logger) {
                 return;
             }
