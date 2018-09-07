@@ -792,7 +792,7 @@ function addSnsInvokePermissionsToFunction(
         .promise();
 }
 
-async function* readCurrentLogsRaw(
+async function* readLogsRaw(
     logGroupName: string,
     cloudwatch: AWS.CloudWatchLogs,
     logStitcher: LogStitcher,
@@ -826,7 +826,7 @@ async function* readCurrentLogsRaw(
 }
 
 async function outputCurrentLogs(state: State) {
-    const logStream = readCurrentLogsRaw(
+    const logStream = readLogsRaw(
         state.resources.logGroupName,
         state.services.cloudwatch,
         state.logStitcher,
