@@ -26,7 +26,12 @@ import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import { sleep, computeHttpResponseBytes } from "../shared";
-import { FunctionCall, FunctionReturn, serializeCall } from "../trampoline";
+import {
+    FunctionCall,
+    FunctionReturn,
+    serializeCall,
+    FunctionReturnWithMetrics
+} from "../trampoline";
 import { Mutable } from "../type-helpers";
 import {
     getMessageBody,
@@ -85,7 +90,7 @@ export interface State {
     resources: GoogleResources;
     services: GoogleServices;
     queueState?: GoogleCloudQueueState;
-    callFunnel: Funnel<FunctionReturn>;
+    callFunnel: Funnel<FunctionReturnWithMetrics>;
     url?: string;
     project: string;
     functionName: string;
@@ -405,6 +410,7 @@ async function initializeGoogleQueue(
         pollResponseQueueMessages: () =>
             receiveMessages(pubsub, resources.responseSubscription!, metrics),
         getMessageBody: received => getMessageBody(received),
+        getMessageSentTimestamp: message => parseTimestamp(message.message!.publishTime!),
         description: () => state.resources.responseQueueTopic!,
         publishRequestMessage: (body, attributes) =>
             publish(pubsub, resources.requestQueueTopic!, body, attributes, metrics),
@@ -425,14 +431,21 @@ async function callFunctionHttps(
     url: string,
     callArgs: FunctionCall,
     costMetrics: GoogleMetrics
-) {
+): Promise<FunctionReturnWithMetrics> {
     // only for validation
     serializeCall(callArgs);
+    const localRequestSentTime = Date.now();
     const rawResponse = await Axios.put<FunctionReturn>(url!, callArgs);
+    const localEndTime = Date.now();
     const returned: FunctionReturn = rawResponse.data;
-    returned.rawResponse = rawResponse;
     costMetrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
-    return returned;
+    return {
+        returned,
+        rawResponse,
+        localRequestSentTime,
+        remoteResponseSentTime: returned.remoteExecutionEndTime!,
+        localEndTime
+    };
 }
 
 async function callFunction(state: State, callRequest: FunctionCall) {

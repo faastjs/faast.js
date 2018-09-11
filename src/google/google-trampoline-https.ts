@@ -7,7 +7,7 @@ export async function trampoline(request: Request, response: Response) {
     const executionStart = Date.now();
     const call: FunctionCall = request.body;
     try {
-        const returned = await moduleWrapper.execute(call);
+        const returned = await moduleWrapper.execute(call, executionStart);
         response.send(returned);
     } catch (err) {
         response.send(moduleWrapper.createErrorResponse(err, call, executionStart));

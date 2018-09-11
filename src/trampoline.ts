@@ -10,16 +10,22 @@ export interface FunctionCall extends CallId {
     name: string;
     args: any[];
     ResponseQueueId?: string;
-    start: number;
 }
 
 export interface FunctionReturn extends CallId {
     type: "returned" | "error";
     value?: any;
-    executionStart?: number;
-    executionEnd?: number;
+    remoteExecutionStartTime?: number;
+    remoteExecutionEndTime?: number;
+}
+
+export interface FunctionReturnWithMetrics {
+    returned: FunctionReturn;
+    rawResponse: any;
+    localRequestSentTime: number;
+    remoteResponseSentTime: number;
+    localEndTime: number;
     retries?: number;
-    rawResponse?: any;
 }
 
 export interface ModuleType {
@@ -33,7 +39,7 @@ export class ModuleWrapper {
         this.funcs = moduleObj;
     }
 
-    validate(request: object): AnyFunction {
+    lookupFunction(request: object): AnyFunction {
         const { name, args } = request as FunctionCall;
         if (!name) {
             throw new Error("Invalid function call request: no name");
@@ -61,26 +67,28 @@ export class ModuleWrapper {
             type: "error",
             value: errObj,
             CallId: call.CallId || "",
-            executionStart: start,
-            executionEnd: Date.now()
+            remoteExecutionStartTime: start,
+            remoteExecutionEndTime: Date.now()
         };
     }
 
-    async execute(call: FunctionCall): Promise<FunctionReturn> {
-        const executionStart = Date.now();
-        const func = this.validate(call);
+    async execute(
+        call: FunctionCall,
+        remoteExecutionStartTime: number
+    ): Promise<FunctionReturn> {
+        const func = this.lookupFunction(call);
         try {
             const returned = await func.apply(undefined, call.args);
             const rv: FunctionReturn = {
                 type: "returned",
                 value: returned,
                 CallId: call.CallId,
-                executionStart,
-                executionEnd: Date.now()
+                remoteExecutionStartTime,
+                remoteExecutionEndTime: Date.now()
             };
             return rv;
         } catch (err) {
-            return this.createErrorResponse(err, call, executionStart);
+            return this.createErrorResponse(err, call, remoteExecutionStartTime);
         }
     }
 }

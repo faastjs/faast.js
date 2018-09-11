@@ -6,12 +6,12 @@ import {
     FunctionCall,
     FunctionReturn,
     ModuleWrapper,
-    serializeCall
+    serializeCall,
+    FunctionReturnWithMetrics
 } from "../trampoline";
-import * as process from "process";
 
 export interface State {
-    callFunnel: Funnel<FunctionReturn>;
+    callFunnel: Funnel<FunctionReturnWithMetrics>;
     moduleWrapper: ModuleWrapper;
     options: Options;
 }
@@ -46,7 +46,7 @@ async function initialize(serverModule: string, options: Options = {}): Promise<
     }
 
     return {
-        callFunnel: new Funnel<FunctionReturn>(),
+        callFunnel: new Funnel<FunctionReturnWithMetrics>(),
         moduleWrapper,
         options
     };
@@ -62,15 +62,26 @@ function getFunctionImpl(): CloudFunctionImpl<State> {
     return FunctionImpl;
 }
 
-function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn> {
+function callFunction(
+    state: State,
+    call: FunctionCall
+): Promise<FunctionReturnWithMetrics> {
     const scall = JSON.parse(serializeCall(call));
     return state.callFunnel.push(async () => {
         const start = Date.now();
+        let returned: FunctionReturn;
         try {
-            return state.moduleWrapper.execute(scall);
+            returned = await state.moduleWrapper.execute(scall, start);
         } catch (err) {
-            return state.moduleWrapper.createErrorResponse(err, scall, start);
+            returned = state.moduleWrapper.createErrorResponse(err, scall, start);
         }
+        return {
+            returned,
+            rawResponse: {},
+            localRequestSentTime: start,
+            remoteResponseSentTime: returned.remoteExecutionEndTime!,
+            localEndTime: Date.now()
+        };
     });
 }
 

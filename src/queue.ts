@@ -2,7 +2,12 @@ import debug from "debug";
 import { Deferred, Pump } from "./funnel";
 import { sleep } from "./shared";
 import { warn } from "./log";
-import { FunctionReturn, FunctionCall, serializeCall } from "./trampoline";
+import {
+    FunctionCall,
+    serializeCall,
+    FunctionReturnWithMetrics,
+    FunctionReturn
+} from "./trampoline";
 import { Attributes } from "./type-helpers";
 const log = debug("cloudify:collector");
 
@@ -13,7 +18,7 @@ export interface ReceivedMessages<M> {
     isFullMessageBatch: boolean;
 }
 
-export class PendingRequest extends Deferred<FunctionReturn> {
+export class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
     created: number = Date.now();
     executing?: boolean;
     constructor(readonly callArgsStr: string) {
@@ -44,6 +49,7 @@ export interface QueueImpl<M> {
     pollResponseQueueMessages(): Promise<ReceivedMessages<M>>;
     getMessageAttribute(message: M, attribute: string): string | undefined;
     getMessageBody(message: M): string;
+    getMessageSentTimestamp(message: M): number;
     description(): string;
     publishReceiveQueueControlMessage(type: CommandMessageType): Promise<any>;
     isControlMessage(message: M, type: ControlMessageType): boolean;
@@ -104,6 +110,7 @@ async function resultCollector<M>(state: StateWithMessageType<M>) {
     );
 
     const { Messages, isFullMessageBatch } = await state.pollResponseQueueMessages();
+    const localEndTime = Date.now();
     log(`Result collector received ${Messages.length} messages.`);
     adjustConcurrencyLevel(state, isFullMessageBatch);
 
@@ -138,13 +145,19 @@ async function resultCollector<M>(state: StateWithMessageType<M>) {
                 if (CallId) {
                     try {
                         const body = state.getMessageBody(m);
+                        const remoteResponseSentTime = state.getMessageSentTimestamp(m);
                         const returned: FunctionReturn = JSON.parse(body);
                         const deferred = callResultsPending.get(CallId);
                         log(`Resolving CallId: ${CallId}`);
                         callResultsPending.delete(CallId);
-                        returned.rawResponse = m;
                         if (deferred) {
-                            deferred.resolve(returned);
+                            deferred.resolve({
+                                returned,
+                                rawResponse: m,
+                                remoteResponseSentTime,
+                                localRequestSentTime: deferred.created,
+                                localEndTime
+                            });
                         } else {
                             log(`Deferred promise not found for CallId: ${CallId}`);
                         }

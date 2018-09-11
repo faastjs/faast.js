@@ -2,7 +2,7 @@ import * as childProcess from "child_process";
 import { CloudFunctionImpl, CloudImpl, CommonOptions, Logger } from "../cloudify";
 import { Funnel } from "../funnel";
 import { PackerResult } from "../packer";
-import { FunctionCall, FunctionReturn } from "../trampoline";
+import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "../trampoline";
 
 export interface ProcessResources {
     childProcesses: Set<childProcess.ChildProcess>;
@@ -10,7 +10,7 @@ export interface ProcessResources {
 
 export interface State {
     resources: ProcessResources;
-    callFunnel: Funnel<FunctionReturn>;
+    callFunnel: Funnel<FunctionReturnWithMetrics>;
     serverModule: string;
     options: Options;
     logger?: Logger;
@@ -43,7 +43,7 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
 async function initialize(serverModule: string, options: Options = {}): Promise<State> {
     return {
         resources: { childProcesses: new Set() },
-        callFunnel: new Funnel<FunctionReturn>(),
+        callFunnel: new Funnel<FunctionReturnWithMetrics>(),
         serverModule,
         options
     };
@@ -67,7 +67,10 @@ export interface ProcessFunctionCall {
 
 const oomPattern = /Allocation failed - JavaScript heap out of memory/;
 
-function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn> {
+function callFunction(
+    state: State,
+    call: FunctionCall
+): Promise<FunctionReturnWithMetrics> {
     let oom: string;
 
     function setupLoggers(child: childProcess.ChildProcess) {
@@ -112,9 +115,18 @@ function callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>
                     timeout
                 };
 
+                const localRequestSentTime = Date.now();
                 child.send(pfCall);
 
-                child.on("message", resolve);
+                child.on("message", (returned: FunctionReturn) =>
+                    resolve({
+                        returned,
+                        localRequestSentTime,
+                        rawResponse: {},
+                        remoteResponseSentTime: returned.remoteExecutionEndTime!,
+                        localEndTime: Date.now()
+                    })
+                );
                 child.on("error", err => {
                     state.resources.childProcesses.delete(child);
                     reject(err);

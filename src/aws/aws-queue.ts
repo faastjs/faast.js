@@ -115,7 +115,8 @@ export async function receiveMessages(
             QueueUrl: ResponseQueueUrl!,
             WaitTimeSeconds: 20,
             MaxNumberOfMessages,
-            MessageAttributeNames: ["All"]
+            MessageAttributeNames: ["All"],
+            AttributeNames: ["SentTimestamp"]
         })
         .promise();
     const { Messages = [] } = response;

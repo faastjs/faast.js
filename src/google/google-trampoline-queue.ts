@@ -42,7 +42,7 @@ export async function trampoline(
     );
 
     try {
-        const returned = await moduleWrapper.execute(call);
+        const returned = await moduleWrapper.execute(call, start);
         clearTimeout(startedMessageTimer);
         await publish(pubsub, call.ResponseQueueId!, JSON.stringify(returned), {
             CallId

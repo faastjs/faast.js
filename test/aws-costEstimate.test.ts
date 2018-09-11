@@ -29,25 +29,29 @@ export function checkCosts(description: string, cloudProvider: cloudify.CloudPro
         }, 90 * 1000);
 
         afterAll(async () => {
-            // await lambda.cleanup();
-            await lambda.stop();
+            await lambda.cleanup();
+            // await lambda.stop();
         }, 60 * 1000);
 
         test(
             "costs",
             async () => {
                 await remote.hello("there");
+                await remote.hello("there");
+                await remote.hello("there");
+                await remote.hello("there");
+                await remote.hello("there");
+
                 const costs = await lambda.costEstimate();
                 console.log(`${costs}`);
                 console.log(`total: ${costs.estimateTotal()}`);
-                lambda.functionStats.log();
             },
             120 * 1000
         );
     });
 }
 
-checkCosts("AWS costs", "aws");
-// checkCosts("Google costs", "google");
+// checkCosts("AWS costs", "aws");
+checkCosts("Google costs", "google");
 // checkCosts("immediate", "immediate");
 // checkCosts("childprocess", "childprocess");

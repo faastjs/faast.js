@@ -1,4 +1,5 @@
 import * as aws from "aws-sdk";
+import { NumberOfBytesType } from "aws-sdk/clients/kms";
 import { PromiseResult } from "aws-sdk/lib/request";
 import { createHash } from "crypto";
 import * as fs from "fs";
@@ -9,31 +10,36 @@ import {
     CloudFunctionImpl,
     CloudImpl,
     CommonOptions,
-    Logger,
-    FunctionCounters,
-    FunctionStats,
     CostBreakdown,
     CostMetric,
-    CostMetric2
+    CostMetric2,
+    FunctionCounters,
+    FunctionStats,
+    Logger
 } from "../cloudify";
 import { Funnel, MemoFunnel, retry } from "../funnel";
-import { log, warn, logPricing } from "../log";
+import { log, logPricing, warn } from "../log";
 import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { chomp, sleep, computeHttpResponseBytes } from "../shared";
-import { FunctionCall, FunctionReturn, serializeCall } from "../trampoline";
+import { chomp, computeHttpResponseBytes, sleep } from "../shared";
+import {
+    FunctionCall,
+    FunctionReturn,
+    FunctionReturnWithMetrics,
+    serializeCall
+} from "../trampoline";
 import * as awsNpm from "./aws-npm";
 import {
     createSNSTopic,
     createSQSQueue,
+    deadLetterMessages,
     isControlMessage,
     processAWSErrorMessage,
     publishSNS,
-    receiveMessages,
-    sqsMessageAttribute,
     publishSQSControlMessage,
-    deadLetterMessages
+    receiveMessages,
+    sqsMessageAttribute
 } from "./aws-queue";
 
 export interface Options extends CommonOptions {
@@ -394,18 +400,17 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     } = options;
     log(`Creating AWS APIs`);
     const services = createAWSApis(region);
-    const { lambda, sqs, s3, iam } = services;
+    const { lambda, s3, iam } = services;
     const FunctionName = `cloudify-${nonce}`;
     const logGroupName = `/aws/lambda/${FunctionName}`;
 
     async function createFunction(Code: aws.Lambda.FunctionCode, Role: string) {
         const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
             FunctionName,
-            // Role: roleResponse.Role.Arn,
             Role,
             // Runtime: "nodejs6.10",
             Runtime: "nodejs8.10",
-            Handler: useQueue ? "index.snsTrampoline" : "index.trampoline",
+            Handler: "index.trampoline",
             Code,
             Description: "cloudify trampoline function",
             Timeout,
@@ -525,35 +530,47 @@ async function callFunctionHttps(
     callRequest: FunctionCall,
     callFunnel: Funnel<AWSInvocationResponse>,
     metrics: AWSMetrics
-) {
+): Promise<FunctionReturnWithMetrics> {
     let returned: FunctionReturn;
     let rawResponse: AWSInvocationResponse;
 
     const request: aws.Lambda.Types.InvocationRequest = {
         FunctionName,
-        Payload: serializeCall(callRequest)
+        Payload: serializeCall(callRequest),
+        LogType: "None"
     };
-    rawResponse = await callFunnel.push(() => lambda.invoke(request).promise());
+    let localRequestSentTime!: NumberOfBytesType;
+    rawResponse = await callFunnel.push(() => {
+        const awsRequest = lambda.invoke(request);
+        localRequestSentTime = awsRequest.startTime.getTime();
+        return awsRequest.promise();
+    });
+    const localEndTime = Date.now();
+
+    if (rawResponse.LogResult) {
+        log(Buffer.from(rawResponse.LogResult!, "base64").toString());
+    }
     if (rawResponse.FunctionError) {
-        if (rawResponse.LogResult) {
-            log(Buffer.from(rawResponse.LogResult!, "base64").toString());
-        }
         const message = processAWSErrorMessage(rawResponse.Payload as string);
         returned = {
             type: "error",
             CallId: callRequest.CallId,
-            rawResponse,
             value: new Error(message)
         };
     } else {
         const payload = rawResponse.Payload! as string;
         returned = JSON.parse(payload);
-        returned.rawResponse = rawResponse;
     }
     metrics.outboundBytes += computeHttpResponseBytes(
         rawResponse.$response.httpResponse.headers
     );
-    return returned;
+    return {
+        returned,
+        localRequestSentTime,
+        remoteResponseSentTime: returned.remoteExecutionEndTime!,
+        localEndTime,
+        rawResponse
+    };
 }
 
 async function callFunction(state: State, callRequest: FunctionCall) {
@@ -611,7 +628,7 @@ export async function cleanup(state: PartialState) {
     } = state.resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
 
-    const { cloudwatch, iam, lambda, sqs, sns, s3 } = state.services;
+    const { cloudwatch, lambda, sqs, sns, s3 } = state.services;
     log(`Cleaning up cloudify state`);
     if (SNSLambdaSubscriptionArn) {
         log(`Deleting request queue subscription to lambda`);
@@ -767,6 +784,7 @@ export async function createQueueImpl(
         pollResponseQueueMessages: () =>
             receiveMessages(sqs, resources.ResponseQueueUrl!, metrics),
         getMessageBody: message => message.Body || "",
+        getMessageSentTimestamp: message => Number(message.Attributes!.SentTimestamp),
         description: () => resources.ResponseQueueUrl!,
         publishRequestMessage: call =>
             publishSNS(sns, resources.RequestTopicArn!, call, metrics),
@@ -846,7 +864,10 @@ async function outputCurrentLogs(state: State) {
 async function outputLogs(state: State) {
     while (state.logger) {
         const start = Date.now();
-        await outputCurrentLogs(state).catch();
+        await outputCurrentLogs(state).catch(_ => {});
+        if (!state.logger) {
+            break;
+        }
         const delay = 1000 - (Date.now() - start);
         if (delay > 0) {
             await sleep(delay);

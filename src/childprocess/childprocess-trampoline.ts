@@ -24,7 +24,7 @@ process.on("message", async ({ call, serverModule, timeout }: ProcessFunctionCal
             throw new Error(`Could not find module '${serverModule}'`);
         }
         moduleWrapper.register(mod);
-        const ret = await moduleWrapper.execute(call);
+        const ret = await moduleWrapper.execute(call, executionStart);
         process.send!(ret);
     } catch (err) {
         console.error(err);

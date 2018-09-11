@@ -7,7 +7,7 @@ import * as immediate from "./immediate/immediate-cloudify";
 import { log, stats, warn } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import { assertNever, FactoryMap, Statistics, sum } from "./shared";
-import { FunctionCall, FunctionReturn } from "./trampoline";
+import { FunctionCall, FunctionReturnWithMetrics, FunctionReturn } from "./trampoline";
 import { NonFunctionProperties, Unpacked } from "./type-helpers";
 import Module = require("module");
 
@@ -24,8 +24,10 @@ export interface ResponseDetails<D> {
     value?: D;
     error?: Error;
     rawResponse: any;
-    startLatency?: number;
+    localStartLatency?: number;
+    remoteStartLatency?: number;
     executionLatency?: number;
+    sendResponseLatency?: number;
     returnLatency?: number;
 }
 
@@ -196,11 +198,12 @@ export class FunctionCounters {
 }
 
 export class FunctionStats {
-    startLatencyMs = new Statistics();
+    localStartLatencyMs = new Statistics();
+    remoteStartLatencyMs = new Statistics();
     executionLatencyMs = new Statistics();
+    sendResponseLatencyMs = new Statistics();
     returnLatencyMs = new Statistics();
     estimatedBilledTimeMs = new Statistics();
-    estimatedDataOutBytes = new Statistics();
 }
 
 export class FunctionCountersMap {
@@ -284,12 +287,14 @@ export class FunctionStatsMap {
     }
 }
 
-export function processResponse<R>(
-    returned: FunctionReturn,
+function processResponse<R>(
+    returnedMetrics: FunctionReturnWithMetrics,
     callRequest: FunctionCall,
+    localStartTime: number,
     fcounters: FunctionCountersMap,
     fstats: FunctionStatsMap
 ) {
+    const returned = returnedMetrics.returned;
     let error: Error | undefined;
     if (returned.type === "error") {
         const errValue = returned.value;
@@ -306,21 +311,44 @@ export function processResponse<R>(
     let rv: Response<R> = {
         value,
         error,
-        rawResponse: returned.rawResponse
+        rawResponse: returnedMetrics.rawResponse
     };
     const fn = callRequest.name;
     fcounters.incr(fn, "completed");
-    if (returned.executionStart && returned.executionEnd) {
-        const executionLatency = returned.executionEnd - returned.executionStart;
-        const startLatency = returned.executionStart - callRequest.start;
-        const returnLatency = Date.now() - returned.executionEnd;
-        fstats.update(fn, "startLatencyMs", startLatency);
+    const {
+        localRequestSentTime,
+        remoteResponseSentTime,
+        localEndTime,
+        returned: { remoteExecutionStartTime, remoteExecutionEndTime }
+    } = returnedMetrics;
+    if (remoteExecutionStartTime && remoteExecutionEndTime) {
+        const localStartLatency = localRequestSentTime - localStartTime;
+        const roundTripLatency = localEndTime - localRequestSentTime;
+        const executionLatency = remoteExecutionEndTime - remoteExecutionStartTime;
+        const sendResponseLatency = remoteResponseSentTime - remoteExecutionEndTime;
+        const networkLatency = roundTripLatency - executionLatency - sendResponseLatency;
+        const estimatedRemoteStartTime = localRequestSentTime + networkLatency / 2;
+        const skew = estimatedRemoteStartTime - remoteExecutionStartTime;
+
+        const remoteStartLatency = remoteExecutionStartTime + skew - localRequestSentTime;
+        const returnLatency = localEndTime - (remoteExecutionEndTime + skew);
+        fstats.update(fn, "localStartLatencyMs", localStartLatency);
+        fstats.update(fn, "remoteStartLatencyMs", remoteStartLatency);
         fstats.update(fn, "executionLatencyMs", executionLatency);
+        fstats.update(fn, "sendResponseLatencyMs", sendResponseLatency);
         fstats.update(fn, "returnLatencyMs", returnLatency);
-        const billed = (executionLatency || 0) + (returnLatency || 0);
+
+        const billed = (executionLatency || 0) + (sendResponseLatency || 0);
         const estimatedBilledTime = Math.ceil(billed / 100) * 100;
         fstats.update(fn, "estimatedBilledTimeMs", estimatedBilledTime);
-        rv = { ...rv, executionLatency, startLatency, returnLatency };
+        rv = {
+            ...rv,
+            localStartLatency,
+            remoteStartLatency,
+            executionLatency,
+            sendResponseLatency,
+            returnLatency
+        };
     }
 
     if (error) {
@@ -379,23 +407,30 @@ export class CloudFunction<O extends CommonOptions, S> {
     ): ResponsifiedFunction<A, R> {
         const responsifedFunc = async (...args: A) => {
             const CallId = uuidv4();
-            const start = Date.now();
-            const callRequest: FunctionCall = { name: fn.name, args, CallId, start };
-            const rv = await this.impl
+            const startTime = Date.now();
+            const callRequest: FunctionCall = { name: fn.name, args, CallId };
+            const rv: FunctionReturnWithMetrics = await this.impl
                 .callFunction(this.state, callRequest)
                 .catch(value => {
-                    const err: FunctionReturn = {
+                    const returned: FunctionReturn = {
                         type: "error",
                         value,
                         CallId,
-                        executionStart: start,
-                        executionEnd: Date.now()
+                        remoteExecutionStartTime: startTime,
+                        remoteExecutionEndTime: Date.now()
                     };
-                    return err;
+                    return {
+                        returned,
+                        rawResponse: {},
+                        localRequestSentTime: startTime,
+                        remoteResponseSentTime: returned.remoteExecutionEndTime!,
+                        localEndTime: Date.now()
+                    };
                 });
             return processResponse<R>(
                 rv,
                 callRequest,
+                startTime,
                 this.functionCounters,
                 this.functionStats
             );
@@ -542,7 +577,7 @@ export interface CloudFunctionImpl<State> {
         counters: FunctionCounters,
         stats: FunctionStats
     ) => Promise<CostBreakdown>;
-    callFunction(state: State, call: FunctionCall): Promise<FunctionReturn>;
+    callFunction(state: State, call: FunctionCall): Promise<FunctionReturnWithMetrics>;
     cleanup(state: State): Promise<void>;
     stop(state: State): Promise<string>;
     setConcurrency(state: State, maxConcurrentExecutions: number): Promise<void>;
