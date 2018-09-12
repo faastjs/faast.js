@@ -979,50 +979,61 @@ export function costEstimate(
     statistics: FunctionStats
 ): Promise<CostBreakdown> {
     const prices = state.prices!;
+    const costs = new CostBreakdown();
 
     const { memorySize = defaults.memorySize } = state.options;
     const billedTimeStats = statistics.estimatedBilledTimeMs;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
     const provisionedGb = memorySize / 1024;
     const functionCallDuration = new CostMetric({
+        name: "functionCallDuration",
         pricing: prices.lambdaPerGbSecond * provisionedGb,
         unit: "second",
         measured: seconds,
-        comment: ` // ${provisionedGb} GB`
+        comment: `https://aws.amazon.com/lambda/pricing (rate = ${prices.lambdaPerGbSecond.toFixed(
+            8
+        )}/(GB*second) * ${provisionedGb} GB = ${(
+            prices.lambdaPerGbSecond * provisionedGb
+        ).toFixed(8)}/second)`
     });
+    costs.push(functionCallDuration);
 
     const functionCallRequests = new CostMetric({
+        name: "functionCallRequests",
         pricing: prices.lambdaPerRequest,
         measured: counters.completed + counters.retries + counters.errors,
-        unit: "request"
+        unit: "request",
+        comment: "https://aws.amazon.com/lambda/pricing"
     });
+    costs.push(functionCallRequests);
 
     const { metrics } = state;
     const outboundDataTransfer = new CostMetric({
+        name: "outboundDataTransfer",
         pricing: prices.dataOutPerGb,
         measured: metrics.outboundBytes / 2 ** 30,
-        unit: "GB"
+        unit: "GB",
+        comment: "https://aws.amazon.com/ec2/pricing/on-demand/#Data_Transfer"
     });
+    costs.push(outboundDataTransfer);
 
     const sqs: CostMetric = new CostMetric({
+        name: "sqs",
         pricing: prices.sqsPer64kRequest,
         measured: metrics.sqs64kRequests,
-        unit: "request"
+        unit: "request",
+        comment: "https://aws.amazon.com/sqs/pricing"
     });
+    costs.push(sqs);
 
     const sns: CostMetric = new CostMetric({
+        name: "sns",
         pricing: prices.snsPer64kPublish,
         measured: metrics.sns64kRequests,
-        unit: "request"
+        unit: "request",
+        comment: "https://aws.amazon.com/sns/pricing"
     });
+    costs.push(sns);
 
-    return Promise.resolve(
-        new CostBreakdown({
-            functionCallDuration,
-            functionCallRequests,
-            outboundDataTransfer,
-            sns,
-            sqs
-        })
-    );
+    return Promise.resolve(costs);
 }

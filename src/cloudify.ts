@@ -97,9 +97,10 @@ export class Cloud<O extends CommonOptions, S> {
 export type AnyCloud = Cloud<any, any>;
 
 export class CostMetric {
-    pricing = 0;
-    unit = "";
-    measured = 0;
+    name!: string;
+    pricing!: number;
+    unit!: string;
+    measured!: number;
     comment?: string;
 
     constructor(opts?: NonFunctionProperties<CostMetric>) {
@@ -110,63 +111,76 @@ export class CostMetric {
         return this.pricing * this.measured;
     }
 
-    toString() {
-        return `$${this.p(this.pricing)}/${this.unit} x ${this.describe(
-            this.measured,
-            this.unit
-        )} = $${this.p(this.cost())}${this.comment || ""}`;
+    describeCostOnly() {
+        const p = (n: number) => (Number.isInteger(n) ? n : n.toFixed(8));
+        const addPlural = (n: number, str: string) =>
+            n > 1 && !str.match(/[A-Z]$/) ? "s" : "";
+
+        const cost = `$${p(this.cost())}`;
+        const pricing = `$${p(this.pricing)}/${this.unit}`;
+        const metric = `${p(this.measured)}`;
+        const unit = `${this.unit + addPlural(this.measured, this.unit)}`;
+
+        return `${this.name.padEnd(21)} ${pricing.padEnd(20)} ${metric.padStart(
+            12
+        )} ${unit.padEnd(10)} ${cost.padEnd(14)}`;
     }
 
-    protected p = (n: number) => (Number.isInteger(n) ? n : n.toFixed(8));
-    protected addPlural = (n: number, str: string) =>
-        n > 1 && !str.match(/[A-Z]$/) ? "s" : "";
-    protected describe = (measured: number, unit: string) =>
-        `${this.p(measured)} ${unit + this.addPlural(measured, unit)}`;
+    toString() {
+        return `${this.describeCostOnly()}${(this.comment && `// ${this.comment}`) ||
+            ""}`;
+    }
 }
 
-export class CostBreakdown {
-    costs: { [metric: string]: CostMetric } = {};
-
-    constructor(metrics?: { [metric: string]: CostMetric }) {
-        Object.assign(this.costs, metrics);
+export class CostBreakdown extends Array<CostMetric> {
+    constructor(...costs: CostMetric[]) {
+        super(...costs);
     }
 
     estimateTotal() {
-        return sum(Object.values(this.costs || {}).map(metric => metric.cost()));
+        return sum(this.map(metric => metric.cost()));
     }
 
     toString() {
         let rv = "";
-        const costs = [];
-
-        for (const [name, metric] of Object.entries(this.costs || {})) {
-            costs.push({
-                metric: name,
-                cost: metric.cost(),
-                description: metric.toString()
-            });
-        }
-
-        costs.sort((a, b) => b.cost - a.cost);
+        this.sort((a, b) => b.cost() - a.cost());
         const total = this.estimateTotal();
-
-        for (const entry of costs) {
-            rv += `${((entry.cost / total) * 100).toFixed(1).padStart(5)}% ${
-                entry.metric
-            }: ${entry.description}\n`;
+        const comments = [];
+        const percent = (entry: CostMetric) =>
+            ((entry.cost() / total) * 100).toFixed(1).padStart(5) + "% ";
+        for (const entry of this) {
+            let commentIndex = "";
+            if (entry.comment) {
+                comments.push(entry.comment);
+                commentIndex = ` [${comments.length}]`;
+            }
+            rv += `${entry.describeCostOnly()}${percent(entry)}${commentIndex}\n`;
         }
-
-        rv += `estimated total: $${this.estimateTotal().toFixed(8)}\n`;
-        rv += `(Estimated using highest pricing tier for each service. Does not account for free tier. Limitations apply.)`;
+        rv +=
+            "---------------------------------------------------------------------------------------\n";
+        rv += `$${this.estimateTotal().toFixed(8)}`.padStart(78) + " (USD)\n\n";
+        rv += `  * Estimated using highest pricing tier for each service. Limitations apply.\n`;
+        rv += ` ** Does not account for free tier.\n`;
+        rv += comments.map((c, i) => `[${i + 1}]: ${c}`).join("\n");
         return rv;
     }
 
-    [Symbol.iterator]() {
-        return Object.entries(this.costs)[Symbol.iterator]();
-    }
-
-    get(metric: string) {
-        return this.costs[metric];
+    toCSV() {
+        let rv = "";
+        rv += "metric,unit,pricing,measured,cost,percentage,comment\n";
+        const total = this.estimateTotal();
+        const p = (n: number) => (Number.isInteger(n) ? n : n.toFixed(8));
+        const percent = (entry: CostMetric) =>
+            ((entry.cost() / total) * 100).toFixed(1) + "% ";
+        for (const entry of this) {
+            rv += `${entry.name},${entry.unit},${p(entry.pricing)},${p(
+                entry.measured
+            )},${p(entry.cost())},${percent(entry)},"${entry.comment!.replace(
+                '"',
+                '""'
+            )}"\n`;
+        }
+        return rv;
     }
 }
 

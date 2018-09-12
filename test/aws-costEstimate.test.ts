@@ -37,26 +37,22 @@ export function checkCosts(description: string, cloudProvider: cloudify.CloudPro
             "costs",
             async () => {
                 await remote.hello("there");
-                await remote.hello("there");
-                await remote.hello("there");
-                await remote.hello("there");
-                await remote.hello("there");
-
                 const costs = await lambda.costEstimate();
                 console.log(`${costs}`);
+                console.log(`${costs.toCSV()}`);
                 console.log(`total: ${costs.estimateTotal()}`);
 
                 const { estimatedBilledTimeMs } = lambda.functionStats.aggregate;
-                expect(estimatedBilledTimeMs.mean * estimatedBilledTimeMs.samples).toBe(
-                    costs.get("functionCallDuration").measured
-                );
+                expect(
+                    (estimatedBilledTimeMs.mean * estimatedBilledTimeMs.samples) / 1000
+                ).toBe(costs.find(m => m.name === "functionCallDuration")!.measured);
             },
             120 * 1000
         );
     });
 }
 
-// checkCosts("AWS costs", "aws");
-checkCosts("Google costs", "google");
+checkCosts("AWS costs", "aws");
+// checkCosts("Google costs", "google");
 // checkCosts("immediate", "immediate");
 // checkCosts("childprocess", "childprocess");

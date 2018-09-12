@@ -807,6 +807,7 @@ async function costEstimate(
     counters: FunctionCounters,
     stats: FunctionStats
 ): Promise<CostBreakdown> {
+    const costs = new CostBreakdown();
     const { memorySize = defaults.memorySize } = state.options;
     const provisionableSizes = Object.keys(gcfProvisonableMemoryTable)
         .map(n => Number(n))
@@ -825,35 +826,41 @@ async function costEstimate(
     const prices = state.pricing!;
     const provisionedGb = provisionedMb! / 1024;
     const functionCallDuration = new CostMetric({
+        name: "functionCallDuration",
         pricing:
             prices.perGbSecond * provisionedGb + prices.perGhzSecond * provisionedGhz,
         unit: "second",
         measured: seconds,
-        comment: ` // ${provisionedGb} GB, ${provisionedGhz} GHz`
+        comment: `https://cloud.google.com/functions/pricing#compute_time (${provisionedGb} GB, ${provisionedGhz} GHz)`
     });
+    costs.push(functionCallDuration);
 
     const functionCallRequests = new CostMetric({
+        name: "functionCallRequests",
         pricing: prices.perInvocation,
         measured: counters.completed + counters.retries + counters.errors,
-        unit: "request"
+        unit: "request",
+        comment: "https://cloud.google.com/functions/pricing#invocations"
     });
+    costs.push(functionCallRequests);
 
     const outboundDataTransfer = new CostMetric({
+        name: "outboundDataTransfer",
         pricing: prices.perGbOutboundData,
         measured: state.metrics.outboundBytes / 2 ** 30,
-        unit: "GB"
+        unit: "GB",
+        comment: "https://cloud.google.com/functions/pricing#networking"
     });
+    costs.push(outboundDataTransfer);
 
     const pubsub = new CostMetric({
+        name: "pubsub",
         pricing: prices.perGbPubSub,
         measured: state.metrics.pubSubBytes / 2 ** 30,
-        unit: "GB"
+        unit: "GB",
+        comment: "https://cloud.google.com/pubsub/pricing"
     });
+    costs.push(pubsub);
 
-    return new CostBreakdown({
-        functionCallDuration,
-        functionCallRequests,
-        outboundDataTransfer,
-        pubsub
-    });
+    return costs;
 }
