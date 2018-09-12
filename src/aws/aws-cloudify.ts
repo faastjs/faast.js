@@ -12,7 +12,6 @@ import {
     CommonOptions,
     CostBreakdown,
     CostMetric,
-    CostMetric2,
     FunctionCounters,
     FunctionStats,
     Logger
@@ -984,14 +983,12 @@ export function costEstimate(
     const { memorySize = defaults.memorySize } = state.options;
     const billedTimeStats = statistics.estimatedBilledTimeMs;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
-
-    const functionCallDuration = new CostMetric2({
-        pricing: prices.lambdaPerGbSecond,
-        unit: "(GB*second)",
-        measured: memorySize / 1024,
-        measuredUnit: "GB",
-        measured2: seconds,
-        measured2Unit: "second"
+    const provisionedGb = memorySize / 1024;
+    const functionCallDuration = new CostMetric({
+        pricing: prices.lambdaPerGbSecond * provisionedGb,
+        unit: "second",
+        measured: seconds,
+        comment: ` // ${provisionedGb} GB`
     });
 
     const functionCallRequests = new CostMetric({

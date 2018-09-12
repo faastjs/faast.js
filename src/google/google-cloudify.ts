@@ -17,8 +17,7 @@ import {
     CostBreakdown,
     FunctionCounters,
     FunctionStats,
-    CostMetric,
-    CostMetric2
+    CostMetric
 } from "../cloudify";
 import { Funnel } from "../funnel";
 import { log, warn, logPricing } from "../log";
@@ -699,6 +698,9 @@ async function outputLogs(state: State) {
     while (state.logger) {
         const start = Date.now();
         await outputCurrentLogs(state);
+        if (!state.logger) {
+            return;
+        }
         const delay = 1000 - (Date.now() - start);
         if (delay > 0) {
             await sleep(delay);
@@ -747,7 +749,7 @@ async function getGoogleCloudFunctionsPricing(
                 const prices = pexp.tieredRates!.map(
                     rate =>
                         Number(rate.unitPrice!.units || "0") +
-                        rate.unitPrice!.nanos! / 10e9
+                        rate.unitPrice!.nanos! / 1e9
                 );
                 const price =
                     Math.max(...prices) *
@@ -808,7 +810,7 @@ async function costEstimate(
     const { memorySize = defaults.memorySize } = state.options;
     const provisionableSizes = Object.keys(gcfProvisonableMemoryTable)
         .map(n => Number(n))
-        .sort();
+        .sort((a, b) => a - b);
     const provisionedMb = provisionableSizes.find(size => memorySize <= size);
     logPricing(`For memory size ${memorySize}, provisioned: ${provisionedMb}`);
     if (!provisionedMb) {
@@ -821,15 +823,13 @@ async function costEstimate(
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
 
     const prices = state.pricing!;
-    const functionCallDuration = new CostMetric2({
+    const provisionedGb = provisionedMb! / 1024;
+    const functionCallDuration = new CostMetric({
         pricing:
-            prices.perGbSecond * (provisionedMb! / 1024) +
-            prices.perGhzSecond * provisionedGhz,
-        unit: "(GB*second)",
-        measured: provisionedMb! / 1024,
-        measuredUnit: "GB",
-        measured2: seconds,
-        measured2Unit: "second"
+            prices.perGbSecond * provisionedGb + prices.perGhzSecond * provisionedGhz,
+        unit: "second",
+        measured: seconds,
+        comment: ` // ${provisionedGb} GB, ${provisionedGhz} GHz`
     });
 
     const functionCallRequests = new CostMetric({

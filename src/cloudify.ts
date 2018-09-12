@@ -100,6 +100,7 @@ export class CostMetric {
     pricing = 0;
     unit = "";
     measured = 0;
+    comment?: string;
 
     constructor(opts?: NonFunctionProperties<CostMetric>) {
         Object.assign(this, opts);
@@ -113,7 +114,7 @@ export class CostMetric {
         return `$${this.p(this.pricing)}/${this.unit} x ${this.describe(
             this.measured,
             this.unit
-        )} = $${this.p(this.cost())}`;
+        )} = $${this.p(this.cost())}${this.comment || ""}`;
     }
 
     protected p = (n: number) => (Number.isInteger(n) ? n : n.toFixed(8));
@@ -123,34 +124,10 @@ export class CostMetric {
         `${this.p(measured)} ${unit + this.addPlural(measured, unit)}`;
 }
 
-export class CostMetric2 extends CostMetric {
-    measuredUnit = "";
-    measured2 = 0;
-    measured2Unit = "";
-
-    constructor(opts?: NonFunctionProperties<CostMetric2>) {
-        super();
-        Object.assign(this, opts);
-    }
-
-    cost() {
-        return super.cost() * this.measured2;
-    }
-
-    toString() {
-        return `$${this.p(this.pricing)}/${this.unit} x ${this.describe(
-            this.measured,
-            this.measuredUnit
-        )} x ${this.describe(this.measured2, this.measured2Unit)} = $${this.p(
-            this.cost()
-        )}`;
-    }
-}
-
 export class CostBreakdown {
-    costs: { [metric: string]: CostMetric | CostMetric2 } = {};
+    costs: { [metric: string]: CostMetric } = {};
 
-    constructor(metrics?: { [metric: string]: CostMetric | CostMetric2 }) {
+    constructor(metrics?: { [metric: string]: CostMetric }) {
         Object.assign(this.costs, metrics);
     }
 
@@ -182,6 +159,14 @@ export class CostBreakdown {
         rv += `estimated total: $${this.estimateTotal().toFixed(8)}\n`;
         rv += `(Estimated using highest pricing tier for each service. Does not account for free tier. Limitations apply.)`;
         return rv;
+    }
+
+    [Symbol.iterator]() {
+        return Object.entries(this.costs)[Symbol.iterator]();
+    }
+
+    get(metric: string) {
+        return this.costs[metric];
     }
 }
 

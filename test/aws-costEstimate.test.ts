@@ -26,7 +26,7 @@ export function checkCosts(description: string, cloudProvider: cloudify.CloudPro
             } catch (err) {
                 warn(err);
             }
-        }, 90 * 1000);
+        }, 120 * 1000);
 
         afterAll(async () => {
             await lambda.cleanup();
@@ -45,6 +45,11 @@ export function checkCosts(description: string, cloudProvider: cloudify.CloudPro
                 const costs = await lambda.costEstimate();
                 console.log(`${costs}`);
                 console.log(`total: ${costs.estimateTotal()}`);
+
+                const { estimatedBilledTimeMs } = lambda.functionStats.aggregate;
+                expect(estimatedBilledTimeMs.mean * estimatedBilledTimeMs.samples).toBe(
+                    costs.get("functionCallDuration").measured
+                );
             },
             120 * 1000
         );
