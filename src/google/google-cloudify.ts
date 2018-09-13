@@ -602,6 +602,7 @@ export async function cleanupResources(resourcesString: string) {
 
 export async function stop(state: Partial<State>) {
     const { callFunnel } = state;
+    state.logger = undefined;
     callFunnel &&
         callFunnel
             .pendingFutures()
