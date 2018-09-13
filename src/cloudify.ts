@@ -6,7 +6,13 @@ import * as google from "./google/google-cloudify";
 import * as immediate from "./immediate/immediate-cloudify";
 import { log, stats, warn } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
-import { assertNever, FactoryMap, Statistics, sum } from "./shared";
+import {
+    assertNever,
+    FactoryMap,
+    Statistics,
+    sum,
+    ExponentiallyDecayingAverageValue
+} from "./shared";
 import { FunctionCall, FunctionReturnWithMetrics, FunctionReturn } from "./trampoline";
 import { NonFunctionProperties, Unpacked } from "./type-helpers";
 import Module = require("module");
@@ -112,14 +118,15 @@ export class CostMetric {
     }
 
     describeCostOnly() {
-        const p = (n: number) => (Number.isInteger(n) ? n : n.toFixed(8));
+        const p = (n: number, precision = 8) =>
+            Number.isInteger(n) ? String(n) : n.toFixed(precision);
         const addPlural = (n: number, str: string) =>
             n > 1 && !str.match(/[A-Z]$/) ? "s" : "";
 
         const cost = `$${p(this.cost())}`;
         const pricing = `$${p(this.pricing)}/${this.unit}`;
-        const metric = `${p(this.measured)}`;
-        const unit = `${this.unit + addPlural(this.measured, this.unit)}`;
+        const metric = p(this.measured, this.unit === "second" ? 1 : 8);
+        const unit = this.unit + addPlural(this.measured, this.unit);
 
         return `${this.name.padEnd(21)} ${pricing.padEnd(20)} ${metric.padStart(
             12
@@ -132,23 +139,21 @@ export class CostMetric {
     }
 }
 
-export class CostBreakdown extends Array<CostMetric> {
-    constructor(...costs: CostMetric[]) {
-        super(...costs);
-    }
+export class CostBreakdown {
+    metrics: CostMetric[] = [];
 
     estimateTotal() {
-        return sum(this.map(metric => metric.cost()));
+        return sum(this.metrics.map(metric => metric.cost()));
     }
 
     toString() {
         let rv = "";
-        this.sort((a, b) => b.cost() - a.cost());
+        this.metrics.sort((a, b) => b.cost() - a.cost());
         const total = this.estimateTotal();
         const comments = [];
         const percent = (entry: CostMetric) =>
             ((entry.cost() / total) * 100).toFixed(1).padStart(5) + "% ";
-        for (const entry of this) {
+        for (const entry of this.metrics) {
             let commentIndex = "";
             if (entry.comment) {
                 comments.push(entry.comment);
@@ -165,14 +170,14 @@ export class CostBreakdown extends Array<CostMetric> {
         return rv;
     }
 
-    toCSV() {
+    csv() {
         let rv = "";
         rv += "metric,unit,pricing,measured,cost,percentage,comment\n";
         const total = this.estimateTotal();
         const p = (n: number) => (Number.isInteger(n) ? n : n.toFixed(8));
         const percent = (entry: CostMetric) =>
             ((entry.cost() / total) * 100).toFixed(1) + "% ";
-        for (const entry of this) {
+        for (const entry of this.metrics) {
             rv += `${entry.name},${entry.unit},${p(entry.pricing)},${p(
                 entry.measured
             )},${p(entry.cost())},${percent(entry)},"${entry.comment!.replace(
@@ -181,6 +186,14 @@ export class CostBreakdown extends Array<CostMetric> {
             )}"\n`;
         }
         return rv;
+    }
+
+    push(metric: CostMetric) {
+        this.metrics.push(metric);
+    }
+
+    find(name: string) {
+        return this.metrics.find(m => m.name === name);
     }
 }
 
@@ -213,7 +226,7 @@ export class FunctionCountersMap {
     incr(fn: string, key: keyof NonFunctionProperties<FunctionCounters>) {
         this.fIncremental.getOrCreate(fn)[key]++;
         this.fAggregate.getOrCreate(fn)[key]++;
-        this.aggregate[key]++;
+        return ++this.aggregate[key];
     }
 
     resetIncremental() {
@@ -291,7 +304,8 @@ function processResponse<R>(
     callRequest: FunctionCall,
     localStartTime: number,
     fcounters: FunctionCountersMap,
-    fstats: FunctionStatsMap
+    fstats: FunctionStatsMap,
+    prevSkew: ExponentiallyDecayingAverageValue
 ) {
     const returned = returnedMetrics.returned;
     let error: Error | undefined;
@@ -313,7 +327,7 @@ function processResponse<R>(
         rawResponse: returnedMetrics.rawResponse
     };
     const fn = callRequest.name;
-    fcounters.incr(fn, "completed");
+    const totalCompleted = fcounters.incr(fn, "completed");
     const {
         localRequestSentTime,
         remoteResponseSentTime,
@@ -327,10 +341,29 @@ function processResponse<R>(
         const sendResponseLatency = remoteResponseSentTime - remoteExecutionEndTime;
         const networkLatency = roundTripLatency - executionLatency - sendResponseLatency;
         const estimatedRemoteStartTime = localRequestSentTime + networkLatency / 2;
-        const skew = estimatedRemoteStartTime - remoteExecutionStartTime;
+        const estimatedSkew = estimatedRemoteStartTime - remoteExecutionStartTime;
+        let skew = estimatedSkew;
+        if (totalCompleted > 1) {
+            prevSkew.update(skew);
+            skew = prevSkew.value;
+        }
 
-        const remoteStartLatency = remoteExecutionStartTime + skew - localRequestSentTime;
-        const returnLatency = localEndTime - (remoteExecutionEndTime + skew);
+        // log(`%O`, {
+        //     localStartLatency,
+        //     roundTripLatency,
+        //     executionLatency,
+        //     sendResponseLatency,
+        //     networkLatency,
+        //     estimatedRemoteStartTime,
+        //     estimatedSkew,
+        //     prevSkew
+        // });
+
+        const remoteStartLatency = Math.max(
+            1,
+            remoteExecutionStartTime + skew - localRequestSentTime
+        );
+        const returnLatency = Math.max(1, localEndTime - (remoteExecutionEndTime + skew));
         fstats.update(fn, "localStartLatencyMs", localStartLatency);
         fstats.update(fn, "remoteStartLatencyMs", remoteStartLatency);
         fstats.update(fn, "executionLatencyMs", executionLatency);
@@ -338,7 +371,7 @@ function processResponse<R>(
         fstats.update(fn, "returnLatencyMs", returnLatency);
 
         const billed = (executionLatency || 0) + (sendResponseLatency || 0);
-        const estimatedBilledTime = Math.ceil(billed / 100) * 100;
+        const estimatedBilledTime = Math.max(100, Math.ceil(billed / 100) * 100);
         fstats.update(fn, "estimatedBilledTimeMs", estimatedBilledTime);
         rv = {
             ...rv,
@@ -360,6 +393,7 @@ export class CloudFunction<O extends CommonOptions, S> {
     cloudName = this.impl.name;
     functionCounters = new FunctionCountersMap();
     functionStats = new FunctionStatsMap();
+    skew = new ExponentiallyDecayingAverageValue(0.3);
     protected logger?: Logger;
     protected timer?: NodeJS.Timer;
 
@@ -431,7 +465,8 @@ export class CloudFunction<O extends CommonOptions, S> {
                 callRequest,
                 startTime,
                 this.functionCounters,
-                this.functionStats
+                this.functionStats,
+                this.skew
             );
         };
         return responsifedFunc;

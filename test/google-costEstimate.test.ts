@@ -1,3 +1,3 @@
 import { checkCosts } from "./tests";
 
-checkCosts("AWS costs", "aws");
+checkCosts("Google costs", "google");

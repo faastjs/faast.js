@@ -218,3 +218,65 @@ export function checkLogs(description: string, cloudProvider: cloudify.CloudProv
         );
     });
 }
+
+export function checkCosts(
+    description: string,
+    cloudProvider: cloudify.CloudProvider,
+    options: cloudify.CommonOptions = {}
+) {
+    describe(description, () => {
+        let remote: cloudify.Promisified<typeof funcs>;
+        let lambda: cloudify.AnyCloudFunction;
+
+        beforeAll(async () => {
+            try {
+                const cloud = cloudify.create(cloudProvider);
+                lambda = await cloud.createFunction("./functions", {
+                    timeout: 30,
+                    memorySize: 512,
+                    ...options
+                });
+                remote = lambda.cloudifyAll(funcs);
+                lambda.setLogger(console.log);
+            } catch (err) {
+                warn(err);
+            }
+        }, 120 * 1000);
+
+        afterAll(async () => {
+            await lambda.cleanup();
+            // await lambda.stop();
+        }, 60 * 1000);
+
+        test(
+            "cost for basic call",
+            async () => {
+                await remote.hello("there");
+                const costs = await lambda.costEstimate();
+                log(`${costs}`);
+                log(`CSV costs:\n${costs.csv()}`);
+
+                const { estimatedBilledTimeMs } = lambda.functionStats.aggregate;
+                expect(
+                    (estimatedBilledTimeMs.mean * estimatedBilledTimeMs.samples) / 1000
+                ).toBe(
+                    costs.metrics.find(m => m.name === "functionCallDuration")!.measured
+                );
+
+                expect(costs.metrics.length).toBeGreaterThan(1);
+                expect(costs.find("functionCallRequests")!.measured).toBe(1);
+                for (const metric of costs.metrics) {
+                    expect(metric.cost()).toBeGreaterThan(0);
+                    expect(metric.cost()).toBeLessThan(0.00001);
+                    expect(metric.measured).toBeGreaterThan(0);
+                    expect(metric.name.length).toBeGreaterThan(0);
+                    expect(metric.pricing).toBeGreaterThan(0);
+                    expect(metric.unit.length).toBeGreaterThan(0);
+                    expect(metric.cost()).toBe(metric.pricing * metric.measured);
+                }
+                expect(costs.estimateTotal()).toBeGreaterThan(0);
+            },
+            30 * 1000
+        );
+    });
+}

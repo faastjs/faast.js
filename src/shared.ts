@@ -69,6 +69,24 @@ export class FactoryMap<K, V> extends Map<K, V> {
     }
 }
 
+export class ExponentiallyDecayingAverageValue {
+    samples = 0;
+    value = 0;
+    constructor(public smoothingFactor: number) {}
+    update(n: number) {
+        // tslint:disable-next-line:prefer-conditional-expression
+        if (this.samples++ === 0) {
+            this.value = n;
+        } else {
+            this.value =
+                this.smoothingFactor * n + (1 - this.smoothingFactor) * this.value;
+        }
+    }
+    toString() {
+        return this.value;
+    }
+}
+
 export function sleep(ms: number) {
     return new Promise<void>(resolve => setTimeout(resolve, ms));
 }

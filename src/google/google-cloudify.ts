@@ -831,7 +831,7 @@ async function costEstimate(
             prices.perGbSecond * provisionedGb + prices.perGhzSecond * provisionedGhz,
         unit: "second",
         measured: seconds,
-        comment: `https://cloud.google.com/functions/pricing#compute_time (${provisionedGb} GB, ${provisionedGhz} GHz)`
+        comment: `https://cloud.google.com/functions/pricing#compute_time (${provisionedMb} MB, ${provisionedGhz} GHz)`
     });
     costs.push(functionCallDuration);
 
