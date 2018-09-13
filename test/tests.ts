@@ -231,9 +231,13 @@ export function checkCosts(
         beforeAll(async () => {
             try {
                 const cloud = cloudify.create(cloudProvider);
-                lambda = await cloud.createFunction("./functions", {
+                const args: cloudify.CommonOptions = {
                     timeout: 30,
                     memorySize: 512,
+                    useQueue: true
+                };
+                lambda = await cloud.createFunction("./functions", {
+                    ...args,
                     ...options
                 });
                 remote = lambda.cloudifyAll(funcs);
