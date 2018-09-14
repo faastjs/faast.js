@@ -22,6 +22,7 @@ interface CostEstimatorConfiguration {
     repetitions: number;
     memorySizes: number[];
     options: Options[];
+    concurrency: number;
 }
 
 export const AWSLambdaMemorySizes = (() => {
@@ -43,7 +44,8 @@ export const defaultAwsConfiguration: CostEstimatorConfiguration = {
     useQueue: [true, false],
     repetitions: 1,
     memorySizes: AWSLambdaMemorySizes,
-    options: [{}]
+    options: [{}],
+    concurrency: 1
 };
 
 export const defaulGoogleConfiguration: CostEstimatorConfiguration = {
@@ -51,7 +53,8 @@ export const defaulGoogleConfiguration: CostEstimatorConfiguration = {
     useQueue: [true, false],
     repetitions: 1,
     memorySizes: GoogleCloudFunctionsMemorySizes,
-    options: [{}]
+    options: [{}],
+    concurrency: 1
 };
 
 interface CostEstimateProfile {
@@ -66,16 +69,19 @@ async function estimate<T>(
     fmodule: string,
     workload: (module: Promisified<T>) => Promise<void>,
     repetitions: number,
+    concurrency: number,
     options: Options
 ): Promise<CostEstimateProfile> {
     const cloud = create(cloudProvider);
     const cloudFunction = await cloud.createFunction(fmodule, options);
     const remote = cloudFunction.cloudifyAll(require(fmodule)) as Promisified<T>;
+    const funnel = new BoundedFunnel({ maxConcurrency: concurrency });
     const results = [];
     for (let i = 0; i < repetitions; i++) {
-        results.push(workload(remote));
+        // results.push(workload(remote));
+        await workload(remote);
     }
-    await Promise.all(results);
+    // await Promise.all(results);
     await cloudFunction.cleanup();
     return {
         cloudProvider,
@@ -104,6 +110,7 @@ async function runConfig<T>(
                         fmodule,
                         workload,
                         config.repetitions,
+                        config.concurrency,
                         {
                             memorySize,
                             useQueue,
@@ -159,7 +166,7 @@ async function main() {
     // costEstimator("../test-slow/functions", work);
 
     const profile = await costEstimator("../test-slow/functions", work, [
-        { ...defaultAwsConfiguration, repetitions: 10 }
+        { ...defaultAwsConfiguration, repetitions: 100 }
     ]);
 
     console.log(toCSV(profile));
