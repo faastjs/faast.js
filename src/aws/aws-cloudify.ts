@@ -49,13 +49,16 @@ export interface Options extends CommonOptions {
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
 }
 
-export interface AWSLambdaPrices {
+export interface AWSPrices {
     lambdaPerRequest: number;
     lambdaPerGbSecond: number;
     snsPer64kPublish: number;
     sqsPer64kRequest: number;
     dataOutPerGb: number;
 }
+
+type Region = string;
+export let awsPricesCache: Map<Region, AWSPrices> = new Map();
 
 export class AWSMetrics {
     outboundBytes = 0;
@@ -98,7 +101,6 @@ export interface State {
     logStitcher: LogStitcher;
     logger?: Logger;
     options: Options;
-    prices?: AWSLambdaPrices;
     metrics: AWSMetrics;
 }
 
@@ -476,10 +478,13 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             }
         );
 
-        const pricingPromise = awsPrices(services.pricing, region).then(prices => {
-            state.prices = prices;
-            logPricing("AWS prices: %O", prices);
-        });
+        let pricingPromise = Promise.resolve();
+        if (!awsPricesCache.get(region)) {
+            pricingPromise = requestAwsPrices(services.pricing, region).then(prices => {
+                awsPricesCache.set(region, prices);
+                logPricing(`AWS prices for '${region}': %O`, prices);
+            });
+        }
 
         const promises: Promise<any>[] = [
             logGroupPromise,
@@ -943,10 +948,10 @@ export async function awsPrice(
     }
 }
 
-export async function awsPrices(
+export async function requestAwsPrices(
     pricing: aws.Pricing,
     region: string
-): Promise<AWSLambdaPrices> {
+): Promise<AWSPrices> {
     const location = locations[region];
     return {
         lambdaPerRequest: await awsPrice(pricing, "AWSLambda", {
@@ -978,9 +983,8 @@ export function costEstimate(
     counters: FunctionCounters,
     statistics: FunctionStats
 ): Promise<CostBreakdown> {
-    const prices = state.prices!;
     const costs = new CostBreakdown();
-
+    const prices = awsPricesCache.get(state.resources.region)!;
     const { memorySize = defaults.memorySize } = state.options;
     const billedTimeStats = statistics.estimatedBilledTimeMs;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;

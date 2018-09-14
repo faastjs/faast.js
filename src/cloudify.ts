@@ -81,7 +81,7 @@ function resolve(fmodule: string) {
 export class Cloud<O extends CommonOptions, S> {
     name: string = this.impl.name;
 
-    constructor(protected impl: CloudImpl<O, S>) {}
+    protected constructor(protected impl: CloudImpl<O, S>) {}
 
     cleanupResources(resources: string): Promise<void> {
         return this.impl.cleanupResources(resources);
@@ -484,7 +484,7 @@ export class CloudFunction<O extends CommonOptions, S> {
         return cloudifiedFunc as any;
     }
 
-    cloudifyAll<M>(fmodule: M): Promisified<M> {
+    cloudifyAll<M extends object>(fmodule: M): Promisified<M> {
         const rv: any = {};
         for (const name of Object.keys(fmodule)) {
             if (typeof fmodule[name] === "function") {
