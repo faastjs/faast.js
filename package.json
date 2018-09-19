@@ -78,6 +78,7 @@
         ],
         "testPathIgnorePatterns": [
             "<rootDir>/node_modules"
-        ]
+        ],
+        "testEnvironment": "node"
     }
 }
