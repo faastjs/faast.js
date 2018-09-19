@@ -242,6 +242,9 @@ export class FunctionCountersMap {
     }
 
     protected print(prefix: string = "", counters: FactoryMap<string, FunctionCounters>) {
+        if (counters.size === 0) {
+            return;
+        }
         prefix = prefix === "" ? "" : prefix.trim() + " ";
         stats(
             `${prefix}${[...counters]
