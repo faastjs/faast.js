@@ -47,7 +47,7 @@ export async function retry<T>(n: number, fn: (retries: number) => Promise<T>) {
     return fn(n - 1);
 }
 
-export class Funnel<T> {
+export class Funnel<T = void> {
     protected pendingQueue: Set<Future<T>> = new Set();
     protected executingQueue: Set<Future<T>> = new Set();
 
@@ -160,7 +160,7 @@ export class Pump<T> extends Funnel<T | void> {
     }
 }
 
-export class MemoFunnel<A, T> extends Funnel<T> {
+export class MemoFunnel<A, T = void> extends Funnel<T> {
     memoized: Map<A, T> = new Map();
     constructor(public maxConcurrency: number) {
         super(maxConcurrency);
@@ -295,22 +295,5 @@ export class RateLimitedFunnel<T> {
 
     allFutures() {
         return this.funnel.allFutures();
-    }
-}
-
-export class BoundedFunnel<T> extends RateLimitedFunnel<T> {
-    protected elems: Array<Promise<T>> = [];
-    constructor(limits: Limits) {
-        super(limits);
-    }
-
-    push(worker: () => Promise<T>) {
-        const promise = super.push(worker);
-        this.elems.push(promise);
-        return promise;
-    }
-
-    all() {
-        return Promise.all(this.elems);
     }
 }

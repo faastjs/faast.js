@@ -17,11 +17,10 @@ import {
     Logger
 } from "../cloudify";
 import { Funnel, MemoFunnel, retry } from "../funnel";
-import { log, logPricing, warn } from "../log";
-import { LogStitcher } from "../logging";
+import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { chomp, computeHttpResponseBytes, sleep } from "../shared";
+import { chomp, computeHttpResponseBytes, LogStitcher, sleep } from "../shared";
 import {
     FunctionCall,
     FunctionReturn,
@@ -56,9 +55,6 @@ export interface AWSPrices {
     sqsPer64kRequest: number;
     dataOutPerGb: number;
 }
-
-type Region = string;
-export let awsPricesCache: Map<Region, AWSPrices> = new Map();
 
 export class AWSMetrics {
     outboundBytes = 0;
@@ -304,7 +300,7 @@ async function createCacheBucket(s3: aws.S3, Bucket: string, region: string) {
     }
 }
 
-const createBucketFunnel = new MemoFunnel<string, void>(1);
+const createBucketFunnel = new MemoFunnel<string>(1);
 
 export async function buildModulesOnLambda(
     s3: aws.S3,
@@ -383,6 +379,8 @@ export async function buildModulesOnLambda(
         // await lambda.stop();
     }
 }
+
+const priceRequestFunnel = new MemoFunnel<string, AWSPrices>(1);
 
 export async function initialize(fModule: string, options: Options = {}): Promise<State> {
     const nonce = uuidv4();
@@ -478,13 +476,9 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             }
         );
 
-        let pricingPromise = Promise.resolve();
-        if (!awsPricesCache.get(region)) {
-            pricingPromise = requestAwsPrices(services.pricing, region).then(prices => {
-                awsPricesCache.set(region, prices);
-                logPricing(`AWS prices for '${region}': %O`, prices);
-            });
-        }
+        const pricingPromise = priceRequestFunnel.pushMemoized(region, () =>
+            requestAwsPrices(services.pricing, region)
+        );
 
         const promises: Promise<any>[] = [
             logGroupPromise,
@@ -978,13 +972,16 @@ export async function requestAwsPrices(
     };
 }
 
-export function costEstimate(
+export async function costEstimate(
     state: State,
     counters: FunctionCounters,
     statistics: FunctionStats
 ): Promise<CostBreakdown> {
     const costs = new CostBreakdown();
-    const prices = awsPricesCache.get(state.resources.region)!;
+    const { region } = state.resources;
+    const prices = await priceRequestFunnel.pushMemoized(region, () =>
+        requestAwsPrices(state.services.pricing, region)
+    );
     const { memorySize = defaults.memorySize } = state.options;
     const billedTimeStats = statistics.estimatedBilledTimeMs;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;

@@ -1,8 +1,8 @@
 import * as cloudify from "../src/cloudify";
 import { Pump } from "../src/funnel";
+import { log, warn } from "../src/log";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
-import { warn, log } from "../src/log";
 
 export function coldStartTest(
     description: string,

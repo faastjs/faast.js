@@ -19,12 +19,11 @@ import {
     FunctionStats,
     CostMetric
 } from "../cloudify";
-import { Funnel } from "../funnel";
+import { Funnel, MemoFunnel } from "../funnel";
 import { log, warn, logPricing } from "../log";
-import { LogStitcher } from "../logging";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { sleep, computeHttpResponseBytes } from "../shared";
+import { sleep, computeHttpResponseBytes, LogStitcher } from "../shared";
 import {
     FunctionCall,
     FunctionReturn,
@@ -57,6 +56,7 @@ export interface GoogleResources {
     responseQueueTopic?: string;
     responseSubscription?: string;
     isEmulator: boolean;
+    region: string;
 }
 
 export interface GoogleCloudPricing {
@@ -168,6 +168,7 @@ async function poll<T>({
     while (true) {
         log(`Polling...`);
         const result = await request();
+        // XXX catch ETIMEOUT errors?
         if (checkDone(result)) {
             log(`Done.`);
             return result;
@@ -262,6 +263,8 @@ export const defaults: Required<Options> = {
     webpackOptions: {}
 };
 
+const priceRequestFunnel = new MemoFunnel<string, GoogleCloudPricing>(1);
+
 async function initializeWithApi(
     services: GoogleServices,
     serverModule: string,
@@ -294,7 +297,8 @@ async function initializeWithApi(
 
     const resources: Mutable<GoogleResources> = {
         trampoline,
-        isEmulator
+        isEmulator,
+        region
     };
     const state: State = {
         resources,
@@ -307,13 +311,9 @@ async function initializeWithApi(
         options
     };
 
-    const pricingPromise = getGoogleCloudFunctionsPricing(
-        services.cloudBilling,
-        region
-    ).then(pricing => {
-        state.pricing = pricing;
-        logPricing(`Pricing: %O`, state.pricing);
-    });
+    const pricingPromise = priceRequestFunnel.pushMemoized(region, () =>
+        getGoogleCloudFunctionsPricing(services.cloudBilling, region)
+    );
 
     if (useQueue) {
         log(`Initializing queue`);
@@ -495,6 +495,7 @@ export async function cleanup(state: PartialState) {
         responseSubscription,
         responseQueueTopic,
         isEmulator,
+        region,
         ...rest
     } = state.resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
@@ -824,7 +825,11 @@ async function costEstimate(
     const billedTimeStats = stats.estimatedBilledTimeMs;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
 
-    const prices = state.pricing!;
+    const { region } = state.resources;
+    const prices = await priceRequestFunnel.pushMemoized(region, () =>
+        getGoogleCloudFunctionsPricing(state.services.cloudBilling, region)
+    );
+
     const provisionedGb = provisionedMb! / 1024;
     const functionCallDuration = new CostMetric({
         name: "functionCallDuration",
