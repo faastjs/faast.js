@@ -151,7 +151,7 @@ export function checkCodeBundle(
                     expect(fs.statSync(zipFile).size).toBeLessThan(maxZipFileSize);
                 unzipInDir(tmpDir, zipFile);
                 expect(exec(`cd ${tmpDir} && node index.js`)).toMatch(
-                    "Successfully loaded cloudify trampoline function."
+                    "Successful cold start."
                 );
                 expectations && expectations(tmpDir);
             },

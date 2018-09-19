@@ -420,6 +420,11 @@ export class CloudFunction<O extends CommonOptions, S> {
         this.functionStats.logIncremental();
     }
 
+    printStatistics() {
+        this.functionCounters.log();
+        this.functionStats.log();
+    }
+
     printStatisticsInterval(interval: number) {
         this.timer && clearInterval(this.timer);
         this.timer = setInterval(() => {

@@ -13,5 +13,3 @@ export async function trampoline(request: Request, response: Response) {
         response.send(moduleWrapper.createErrorResponse(err, call, executionStart));
     }
 }
-
-console.log(`Successfully loaded cloudify trampoline function.`);

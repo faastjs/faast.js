@@ -458,13 +458,14 @@ async function callFunction(state: State, callRequest: FunctionCall) {
             )
         );
     } else {
-        return callFunnel.pushRetry(3, async n => {
+        return callFunnel.pushRetry(0, async n => {
             const rv = await callFunctionHttps(
                 state.url!,
                 callRequest,
                 state.metrics
             ).catch(err => {
                 const { response } = err;
+                console.log(`ERR: ${err}`);
                 if (response) {
                     let interpretation = "";
                     if (response.statusText === "Internal Server Error") {
@@ -640,19 +641,21 @@ export async function* readLogsRaw(
 ) {
     let pageToken: string | undefined;
 
+    const filter = `resource.type="cloud_function" AND resource.labels.function_name="${functionName}" AND receiveTimestamp >= "${new Date(
+        logStitcher.lastLogEventTime
+    ).toISOString()}"`;
+    const requestBody = {
+        resourceNames: [`projects/${project}`],
+        filter
+    };
+
     do {
         let result: AxiosResponse<Logging.Schema$ListLogEntriesResponse>;
-        const filter = `resource.type="cloud_function" AND resource.labels.function_name="${functionName}" AND receiveTimestamp >= "${new Date(
-            logStitcher.lastLogEventTime
-        ).toISOString()}"`;
         try {
-            result = await logging.entries.list({
-                requestBody: {
-                    resourceNames: [`projects/${project}`],
-                    pageToken,
-                    filter
-                }
-            });
+            if (pageToken) {
+                requestBody["pageToken"] = pageToken;
+            }
+            result = await logging.entries.list({ requestBody });
         } catch (err) {
             log(err);
             await sleep(2000);

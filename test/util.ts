@@ -22,6 +22,7 @@ export async function getGoogleResources(func: cloudify.GoogleCloudFunction) {
             requestQueueTopic,
             responseQueueTopic,
             responseSubscription,
+            region,
             ...rest
         }
     } = func.state;

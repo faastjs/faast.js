@@ -1,5 +1,6 @@
-import { sleep } from "./shared";
 import * as assert from "assert";
+import { log } from "./log";
+import { sleep } from "./shared";
 
 export class Deferred<T> {
     promise: Promise<T>;

@@ -816,14 +816,15 @@ async function* readLogsRaw(
     metrics: AWSMetrics
 ) {
     let nextToken: string | undefined;
+    const request = {
+        logGroupName,
+        startTime: logStitcher.lastLogEventTime
+    };
     do {
-        const result = await cloudwatch
-            .filterLogEvents({
-                logGroupName,
-                nextToken,
-                startTime: logStitcher.lastLogEventTime
-            })
-            .promise();
+        if (nextToken) {
+            request["nextToken"] = nextToken;
+        }
+        const result = await cloudwatch.filterLogEvents(request).promise();
         metrics.outboundBytes += computeHttpResponseBytes(
             result.$response.httpResponse.headers
         );

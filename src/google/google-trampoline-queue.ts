@@ -57,5 +57,3 @@ export async function trampoline(
         }
     }
 }
-
-console.log(`Successfully loaded cloudify trampoline function.`);

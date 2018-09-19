@@ -81,12 +81,13 @@ export function throughputTest(
                 lambda = await cloud.createFunction("./functions", options);
                 lambda.printStatisticsInterval(1000);
                 remote = lambda.cloudifyAll(funcs);
+                lambda.setLogger(console.log);
             } catch (err) {
                 warn(err);
             }
-        }, 90 * 1000);
+        }, 120 * 1000);
 
-        afterAll(() => lambda.cleanup(), 30 * 1000);
+        afterAll(() => lambda.cleanup(), 60 * 1000);
         // afterAll(() => lambda.cancelAll(), 30 * 1000);
 
         test(
@@ -101,13 +102,15 @@ export function throughputTest(
                 await sleep(duration);
                 await pump.drain();
                 const cost = await lambda.costEstimate();
+                log(`Stats:`);
+                lambda.printStatistics();
                 log(`Cost:`);
                 log(`${cost}`);
                 log(
                     `Completed ${completed} calls in ${duration / (60 * 1000)} minute(s)`
                 );
             },
-            duration * 2
+            duration * 3
         );
     });
 }
