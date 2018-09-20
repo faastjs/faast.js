@@ -5,40 +5,15 @@ import { createHash } from "crypto";
 import * as fs from "fs";
 import * as uuidv4 from "uuid/v4";
 import { LocalCache } from "../cache";
-import {
-    AWS,
-    CloudFunctionImpl,
-    CloudImpl,
-    CommonOptions,
-    CostBreakdown,
-    CostMetric,
-    FunctionCounters,
-    FunctionStats,
-    Logger
-} from "../cloudify";
-import { Funnel, MemoFunnel, retry } from "../funnel";
+import { AWS, CloudFunctionImpl, CloudImpl, CommonOptions, CostBreakdown, CostMetric, FunctionCounters, FunctionStats, Logger } from "../cloudify";
+import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
 import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import { chomp, computeHttpResponseBytes, LogStitcher, sleep } from "../shared";
-import {
-    FunctionCall,
-    FunctionReturn,
-    FunctionReturnWithMetrics,
-    serializeCall
-} from "../trampoline";
+import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics, serializeCall } from "../trampoline";
 import * as awsNpm from "./aws-npm";
-import {
-    createSNSTopic,
-    createSQSQueue,
-    deadLetterMessages,
-    isControlMessage,
-    processAWSErrorMessage,
-    publishSNS,
-    publishSQSControlMessage,
-    receiveMessages,
-    sqsMessageAttribute
-} from "./aws-queue";
+import { createSNSTopic, createSQSQueue, deadLetterMessages, isControlMessage, processAWSErrorMessage, publishSNS, publishSQSControlMessage, receiveMessages, sqsMessageAttribute } from "./aws-queue";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -302,6 +277,16 @@ async function createCacheBucket(s3: aws.S3, Bucket: string, region: string) {
 
 const createBucketFunnel = new MemoFunnel<string>(1);
 
+async function getBucketName(region: string, iam: aws.IAM) {
+    const getUserResponse = await iam.getUser().promise();
+    const userId = getUserResponse.User.UserId.toLowerCase();
+    return `cloudify-cache-${region}-${userId}`;
+}
+
+function getS3Key(FunctionName: string) {
+    return FunctionName;
+}
+
 export async function buildModulesOnLambda(
     s3: aws.S3,
     iam: aws.IAM,
@@ -312,9 +297,7 @@ export async function buildModulesOnLambda(
     useDependencyCaching: boolean
 ): Promise<aws.Lambda.FunctionCode> {
     log(`Building node_modules`);
-    const getUserResponse = await iam.getUser().promise();
-    const userId = getUserResponse.User.UserId.toLowerCase();
-    const Bucket = `cloudify-cache-${region}-${userId}`;
+    const Bucket = await getBucketName(region, iam);
 
     const packageJsonContents =
         typeof packageJson === "string"
@@ -353,7 +336,7 @@ export async function buildModulesOnLambda(
     try {
         const remote = lambda.cloudifyAll(awsNpm);
         log(`package.json contents:`, packageJsonContents);
-        const Key = FunctionName;
+        const Key = getS3Key(FunctionName);
 
         const installArgs: awsNpm.NpmInstallArgs = {
             packageJsonContents,
@@ -382,6 +365,10 @@ export async function buildModulesOnLambda(
 
 const priceRequestFunnel = new MemoFunnel<string, AWSPrices>(1);
 
+function getLogGroupName(FunctionName: string) {
+    return `/aws/lambda/${FunctionName}`;
+}
+
 export async function initialize(fModule: string, options: Options = {}): Promise<State> {
     const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
@@ -401,7 +388,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     const services = createAWSApis(region);
     const { lambda, s3, iam } = services;
     const FunctionName = `cloudify-${nonce}`;
-    const logGroupName = `/aws/lambda/${FunctionName}`;
+    const logGroupName = getLogGroupName(FunctionName);
 
     async function createFunction(Code: aws.Lambda.FunctionCode, Role: string) {
         const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
@@ -667,6 +654,110 @@ export async function cleanup(state: PartialState) {
     log(`Cleanup done`);
 }
 
+const garbageCollectionFunnel = new MemoFunnel<string>(1);
+
+export async function findCloudifyLogGroups(cloudwatch: aws.CloudWatchLogs) {
+    const emptyLogGroups: aws.CloudWatchLogs.LogGroup[] = [];
+
+    await new Promise((resolve, reject) => {
+        cloudwatch
+            .describeLogGroups({ logGroupNamePrefix: "/aws/lambda/cloudify-" })
+            .eachPage((err, page) => {
+                if (err) {
+                    warn(
+                        `Could not garbage collect, failed when describing log groups: ${err}`
+                    );
+                    reject(err);
+                    return false;
+                }
+                if (page === null) {
+                    resolve(emptyLogGroups);
+                } else {
+                    emptyLogGroups.push(...(page.logGroups || []));
+                }
+                return true;
+            });
+    });
+    return emptyLogGroups;
+}
+
+async function getAccountId(iam: aws.IAM) {
+    const user = await iam.getUser().promise();
+    const arn = user.User.Arn;
+    return arn.split(":")[4];
+}
+
+export async function processLogGroups(
+    services: AWSServices,
+    logGroups: aws.CloudWatchLogs.LogGroup[],
+    retentionInDays: number,
+    region: string
+) {
+    const { cloudwatch } = services;
+    logGroups.forEach(g =>
+        log(
+            `GC: ${g.logGroupName}, created: ${new Date(
+                g.creationTime!
+            ).toLocaleString()}, bytes: ${
+                g.storedBytes
+            }, retention: ${g.retentionInDays!}`
+        )
+    );
+
+    const logGroupsMissingRetentionPolicy = logGroups.filter(
+        g => g.retentionInDays === undefined
+    );
+    const gcFunnel = new RateLimitedFunnel<void>({
+        maxConcurrency: 5,
+        targetRequestsPerSecond: 2,
+        maxBurst: 2
+    });
+    logGroupsMissingRetentionPolicy.forEach(g =>
+        gcFunnel.push(() =>
+            quietly(
+                cloudwatch.putRetentionPolicy({
+                    logGroupName: g.logGroupName!,
+                    retentionInDays
+                })
+            ).then(_ => {})
+        )
+    );
+
+    const garbage = logGroups
+        .filter(
+            g =>
+                g.creationTime! < Date.now() - retentionInDays * 24 * 60 * 60 * 1000 &&
+                g.retentionInDays !== undefined &&
+                g.storedBytes! === 0
+        )
+        .map(g => g.logGroupName!);
+
+    const garbageFunctions = garbage
+        .map(g => {
+            const match = g.match(/\/aws\/lambda\/(cloudify-[a-f0-9-]+)/);
+            return (match && match[1]) || "";
+        })
+        .filter(n => n !== "");
+
+    const accountId = await getAccountId(services.iam);
+    const s3Bucket = await getBucketName(region, services.iam);
+
+    garbageFunctions.forEach(FunctionName => {
+        const resources: AWSResources = {
+            FunctionName,
+            logGroupName: getLogGroupName(FunctionName),
+            region,
+            RoleName: "",
+            RequestTopicArn: getSNSTopicArn(region, accountId, FunctionName),
+            ResponseQueueUrl: getResponseQueueUrl(region, accountId, FunctionName),
+            s3Bucket,
+            s3Key: getS3Key(FunctionName),
+            SNSLambdaSubscriptionArn: // XXX
+        };
+        garbageCollectionFunnel.push(() => cleanup({ services, resources }));
+    });
+}
+
 export async function pack(
     functionModule: string,
     options?: Options
@@ -729,6 +820,29 @@ export function getFunctionImpl() {
     return LambdaImpl;
 }
 
+function getSNSTopicName(FunctionName: string) {
+    return `${FunctionName}-Requests`;
+}
+
+function getSNSTopicArn(region: string, accountId: string, FunctionName: string) {
+    const TopicName = getSNSTopicName(FunctionName);
+    return `arn:aws:sqs:${region}:${accountId}:${TopicName}`;
+}
+
+function getSQSName(FunctionName: string) {
+    return `${FunctionName}-Responses`;
+}
+
+function getResponseQueueUrl(region: string, accountId: string, FunctionName: string) {
+    const queueName = getSQSName(FunctionName);
+    return `https://sqs.${region}.amazonaws.com/${accountId}/${queueName}`;
+}
+
+function getSNSSubscriptionArn(region:string, accountId: string, FunctionName: string) {
+    const snsTopic = getSNSTopicName(FunctionName);
+    return `arn:aws:sns:${region}:${accountId}:${snsTopic}:13f44662-4d18-47c6-a01c-ac5826934acc`
+}
+
 export async function createQueueImpl(
     state: State,
     FunctionName: string,
@@ -737,7 +851,7 @@ export async function createQueueImpl(
     const { sqs, sns, lambda } = state.services;
     const { resources, metrics } = state;
     log(`Creating SNS request topic`);
-    const createTopicPromise = createSNSTopic(sns, `${FunctionName}-Requests`);
+    const createTopicPromise = createSNSTopic(sns, getSNSTopicName(FunctionName));
 
     const assignRequestTopicArnPromise = createTopicPromise.then(
         topic => (resources.RequestTopicArn = topic)
@@ -762,7 +876,7 @@ export async function createQueueImpl(
         snsResponse => (resources.SNSLambdaSubscriptionArn = snsResponse.SubscriptionArn!)
     );
     log(`Creating SQS response queue`);
-    const createQueuePromise = createSQSQueue(`${FunctionName}-Responses`, 60, sqs).then(
+    const createQueuePromise = createSQSQueue(getSQSName(FunctionName), 60, sqs).then(
         ({ QueueUrl, QueueArn }) => {
             resources.ResponseQueueUrl = QueueUrl;
             resources.ResponseQueueArn = QueueArn;
