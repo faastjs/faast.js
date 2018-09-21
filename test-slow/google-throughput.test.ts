@@ -1,6 +1,6 @@
 import { throughputTest } from "./tests";
 
-throughputTest("Google throughput test", "google", 60 * 1000, 1000, {
-    memorySize: 1024,
+throughputTest("Google throughput test", "google", 180 * 1000, 500, {
+    memorySize: 2048,
     useQueue: true
 });

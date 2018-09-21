@@ -5,15 +5,40 @@ import { createHash } from "crypto";
 import * as fs from "fs";
 import * as uuidv4 from "uuid/v4";
 import { LocalCache } from "../cache";
-import { AWS, CloudFunctionImpl, CloudImpl, CommonOptions, CostBreakdown, CostMetric, FunctionCounters, FunctionStats, Logger } from "../cloudify";
+import {
+    AWS,
+    CloudFunctionImpl,
+    CloudImpl,
+    CommonOptions,
+    CostBreakdown,
+    CostMetric,
+    FunctionCounters,
+    FunctionStats,
+    Logger
+} from "../cloudify";
 import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
 import { log, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import { chomp, computeHttpResponseBytes, LogStitcher, sleep } from "../shared";
-import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics, serializeCall } from "../trampoline";
+import {
+    FunctionCall,
+    FunctionReturn,
+    FunctionReturnWithMetrics,
+    serializeCall
+} from "../trampoline";
 import * as awsNpm from "./aws-npm";
-import { createSNSTopic, createSQSQueue, deadLetterMessages, isControlMessage, processAWSErrorMessage, publishSNS, publishSQSControlMessage, receiveMessages, sqsMessageAttribute } from "./aws-queue";
+import {
+    createSNSTopic,
+    createSQSQueue,
+    deadLetterMessages,
+    isControlMessage,
+    processAWSErrorMessage,
+    publishSNS,
+    publishSQSControlMessage,
+    receiveMessages,
+    sqsMessageAttribute
+} from "./aws-queue";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -752,7 +777,7 @@ export async function processLogGroups(
             ResponseQueueUrl: getResponseQueueUrl(region, accountId, FunctionName),
             s3Bucket,
             s3Key: getS3Key(FunctionName),
-            SNSLambdaSubscriptionArn: // XXX
+            SNSLambdaSubscriptionArn: "" // XXX
         };
         garbageCollectionFunnel.push(() => cleanup({ services, resources }));
     });
@@ -838,9 +863,10 @@ function getResponseQueueUrl(region: string, accountId: string, FunctionName: st
     return `https://sqs.${region}.amazonaws.com/${accountId}/${queueName}`;
 }
 
-function getSNSSubscriptionArn(region:string, accountId: string, FunctionName: string) {
+// XXX
+function getSNSSubscriptionArn(region: string, accountId: string, FunctionName: string) {
     const snsTopic = getSNSTopicName(FunctionName);
-    return `arn:aws:sns:${region}:${accountId}:${snsTopic}:13f44662-4d18-47c6-a01c-ac5826934acc`
+    return `arn:aws:sns:${region}:${accountId}:${snsTopic}:13f44662-4d18-47c6-a01c-ac5826934acc`;
 }
 
 export async function createQueueImpl(

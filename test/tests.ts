@@ -28,11 +28,15 @@ export function checkFunctions(
 
         beforeAll(async () => {
             try {
+                const start = Date.now();
                 const cloud = cloudify.create(cloudProvider);
                 options.timeout = 30;
                 options.memorySize = 512;
                 lambda = await cloud.createFunction("./functions", options);
                 remote = lambda.cloudifyAll(funcs);
+                log(
+                    `Function creation took ${((Date.now() - start) / 1000).toFixed(1)}s`
+                );
             } catch (err) {
                 warn(err);
             }
