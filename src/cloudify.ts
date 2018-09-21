@@ -456,9 +456,7 @@ export class CloudFunction<O extends CommonOptions, S> {
                     const returned: FunctionReturn = {
                         type: "error",
                         value,
-                        CallId,
-                        remoteExecutionStartTime: startTime,
-                        remoteExecutionEndTime: Date.now()
+                        CallId
                     };
                     return {
                         returned,

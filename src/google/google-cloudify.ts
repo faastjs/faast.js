@@ -147,7 +147,6 @@ interface PollOptions {
 interface PollConfig<T> extends PollOptions {
     request: () => Promise<T>;
     checkDone: (result: T) => boolean;
-    describe?: (result: T) => string;
 }
 
 async function defaultPollDelay(retries: number) {
@@ -168,7 +167,6 @@ async function poll<T>({
     while (true) {
         log(`Polling...`);
         const result = await request();
-        // XXX catch ETIMEOUT errors?
         if (checkDone(result)) {
             log(`Done.`);
             return result;
@@ -190,16 +188,25 @@ async function carefully<T>(promise: AxiosPromise<T>) {
     }
 }
 
+async function quietly<T>(promise: AxiosPromise<T>) {
+    try {
+        const result = await promise;
+        return result.data;
+    } catch (err) {
+        return;
+    }
+}
+
 async function waitFor(
     api: CloudFunctions.Cloudfunctions,
     response: AxiosPromise<CloudFunctions.Schema$Operation>
 ) {
     const operationName = (await response).data.name!;
     return poll({
-        request: () => carefully(api.operations.get({ name: operationName })),
+        request: () => quietly(api.operations.get({ name: operationName })),
         checkDone: result => {
-            if (result.error) {
-                throw result.error;
+            if (!result || result.error) {
+                return false;
             }
             return result.done || false;
         }
@@ -434,7 +441,8 @@ async function callFunctionHttps(
     // only for validation
     serializeCall(callArgs);
     const localRequestSentTime = Date.now();
-    const rawResponse = await Axios.put<FunctionReturn>(url!, callArgs);
+
+    const rawResponse = await Axios.put<FunctionReturn>(url!, callArgs, {});
     const localEndTime = Date.now();
     const returned: FunctionReturn = rawResponse.data;
     costMetrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
@@ -458,7 +466,7 @@ async function callFunction(state: State, callRequest: FunctionCall) {
             )
         );
     } else {
-        return callFunnel.pushRetry(0, async n => {
+        return callFunnel.pushRetry(3, async n => {
             const rv = await callFunctionHttps(
                 state.url!,
                 callRequest,
