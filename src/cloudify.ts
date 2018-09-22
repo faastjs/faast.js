@@ -223,10 +223,10 @@ export class FunctionCountersMap {
     fIncremental = new FactoryMap<string, FunctionCounters>(() => new FunctionCounters());
     fAggregate = new FactoryMap<string, FunctionCounters>(() => new FunctionCounters());
 
-    incr(fn: string, key: keyof NonFunctionProperties<FunctionCounters>) {
-        this.fIncremental.getOrCreate(fn)[key]++;
-        this.fAggregate.getOrCreate(fn)[key]++;
-        return ++this.aggregate[key];
+    incr(fn: string, key: keyof NonFunctionProperties<FunctionCounters>, n: number = 1) {
+        this.fIncremental.getOrCreate(fn)[key] += n;
+        this.fAggregate.getOrCreate(fn)[key] += n;
+        this.aggregate[key] += n;
     }
 
     resetIncremental() {
@@ -330,13 +330,16 @@ function processResponse<R>(
         rawResponse: returnedMetrics.rawResponse
     };
     const fn = callRequest.name;
-    const totalCompleted = fcounters.incr(fn, "completed");
     const {
         localRequestSentTime,
         remoteResponseSentTime,
         localEndTime,
+        retries,
         returned: { remoteExecutionStartTime, remoteExecutionEndTime }
     } = returnedMetrics;
+    if (retries) {
+        fcounters.incr(fn, "retries", retries);
+    }
     if (remoteExecutionStartTime && remoteExecutionEndTime) {
         const localStartLatency = localRequestSentTime - localStartTime;
         const roundTripLatency = localEndTime - localRequestSentTime;
@@ -346,7 +349,7 @@ function processResponse<R>(
         const estimatedRemoteStartTime = localRequestSentTime + networkLatency / 2;
         const estimatedSkew = estimatedRemoteStartTime - remoteExecutionStartTime;
         let skew = estimatedSkew;
-        if (totalCompleted > 1) {
+        if (fcounters.aggregate.completed > 1) {
             prevSkew.update(skew);
             skew = prevSkew.value;
         }
@@ -388,6 +391,8 @@ function processResponse<R>(
 
     if (error) {
         fcounters.incr(fn, "errors");
+    } else {
+        fcounters.incr(fn, "completed");
     }
     return rv;
 }

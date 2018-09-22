@@ -38,14 +38,14 @@ function popFirst<T>(set: Set<T>): T | undefined {
 }
 
 export async function retry<T>(n: number, fn: (retries: number) => Promise<T>) {
-    for (let i = 1; i < n; i++) {
+    for (let i = 1; i <= n; i++) {
         try {
             return await fn(i - 1);
         } catch (err) {
-            await sleep((i + Math.random()) * 1000);
+            await sleep(Math.min(30 * 1000, 1000 * i ** 2) + Math.random());
         }
     }
-    return fn(n - 1);
+    return fn(n);
 }
 
 export class Funnel<T = void> {

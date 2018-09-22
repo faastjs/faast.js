@@ -466,27 +466,9 @@ async function callFunction(state: State, callRequest: FunctionCall) {
             )
         );
     } else {
+        // XXX Need to address out of memory or other function failure case. Will fail repeatedly...
         return callFunnel.pushRetry(3, async n => {
-            const rv = await callFunctionHttps(
-                state.url!,
-                callRequest,
-                state.metrics
-            ).catch(err => {
-                const { response } = err;
-                console.log(`ERR: ${err}`);
-                if (response) {
-                    let interpretation = "";
-                    if (response.statusText === "Internal Server Error") {
-                        interpretation = `(cloudify: possibly out of memory)`;
-                    }
-                    return Promise.reject(
-                        new Error(
-                            `${response.data} (${response.statusText}) ${interpretation}`
-                        )
-                    );
-                }
-                return Promise.reject(new Error(err));
-            });
+            const rv = await callFunctionHttps(state.url!, callRequest, state.metrics);
             if (n > 0) {
                 rv.retries = n;
             }
