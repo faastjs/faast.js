@@ -466,9 +466,20 @@ async function callFunction(state: State, callRequest: FunctionCall) {
             )
         );
     } else {
-        // XXX Need to address out of memory or other function failure case. Will fail repeatedly...
         return callFunnel.pushRetry(3, async n => {
-            const rv = await callFunctionHttps(state.url!, callRequest, state.metrics);
+            const rv = await callFunctionHttps(
+                state.url!,
+                callRequest,
+                state.metrics
+            ).catch(err => {
+                const { response } = err;
+                if (!response) {
+                    throw err;
+                }
+                throw new Error(
+                    `${response.status} ${response.statusText} ${response.data}`
+                );
+            });
             if (n > 0) {
                 rv.retries = n;
             }
@@ -815,7 +826,7 @@ async function costEstimate(
         );
     }
     const provisionedGhz = gcfProvisonableMemoryTable[provisionedMb!];
-    const billedTimeStats = stats.estimatedBilledTimeMs;
+    const billedTimeStats = stats.estimatedBilledTime;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
 
     const { region } = state.resources;
