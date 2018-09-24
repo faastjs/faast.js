@@ -346,7 +346,7 @@ function processResponse<R>(
         const executionLatency = remoteExecutionEndTime - remoteExecutionStartTime;
         const sendResponseLatency = Math.max(
             0,
-            remoteResponseSentTime || 0 - remoteExecutionEndTime
+            (remoteResponseSentTime || remoteExecutionEndTime) - remoteExecutionEndTime
         );
         const networkLatency = roundTripLatency - executionLatency - sendResponseLatency;
         const estimatedRemoteStartTime = localRequestSentTime + networkLatency / 2;
