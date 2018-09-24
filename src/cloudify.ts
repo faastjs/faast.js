@@ -344,7 +344,10 @@ function processResponse<R>(
         const localStartLatency = localRequestSentTime - localStartTime;
         const roundTripLatency = localEndTime - localRequestSentTime;
         const executionLatency = remoteExecutionEndTime - remoteExecutionStartTime;
-        const sendResponseLatency = remoteResponseSentTime - remoteExecutionEndTime;
+        const sendResponseLatency = Math.max(
+            0,
+            remoteResponseSentTime || 0 - remoteExecutionEndTime
+        );
         const networkLatency = roundTripLatency - executionLatency - sendResponseLatency;
         const estimatedRemoteStartTime = localRequestSentTime + networkLatency / 2;
         const estimatedSkew = estimatedRemoteStartTime - remoteExecutionStartTime;
