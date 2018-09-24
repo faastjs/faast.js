@@ -781,8 +781,7 @@ export async function processLogGroups(
             RequestTopicArn: getSNSTopicArn(region, accountId, FunctionName),
             ResponseQueueUrl: getResponseQueueUrl(region, accountId, FunctionName),
             s3Bucket,
-            s3Key: getS3Key(FunctionName),
-            SNSLambdaSubscriptionArn: "" // XXX
+            s3Key: getS3Key(FunctionName)
         };
         garbageCollectionFunnel.push(() => cleanup({ services, resources }));
     });
@@ -868,10 +867,9 @@ function getResponseQueueUrl(region: string, accountId: string, FunctionName: st
     return `https://sqs.${region}.amazonaws.com/${accountId}/${queueName}`;
 }
 
-// XXX
-function getSNSSubscriptionArn(region: string, accountId: string, FunctionName: string) {
-    const snsTopic = getSNSTopicName(FunctionName);
-    return `arn:aws:sns:${region}:${accountId}:${snsTopic}:13f44662-4d18-47c6-a01c-ac5826934acc`;
+async function getSNSSubscriptionArns(sns: aws.SNS, TopicArn: string) {
+    const response = await sns.listSubscriptionsByTopic({ TopicArn }).promise();
+    return (response.Subscriptions || []).map(s => s.SubscriptionArn!);
 }
 
 export async function createQueueImpl(
