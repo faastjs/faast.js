@@ -498,11 +498,6 @@ async function callFunction(state: State, callRequest: FunctionCall) {
                 return callFunctionHttps(state.url!, callRequest, state.metrics, n).catch(
                     rawResponse => {
                         const { response } = rawResponse;
-                        console.log(
-                            `Error: ${response.status} ${response.statusText} ${
-                                response.data
-                            }`
-                        );
                         if (response.status === 503 || response.status === 408) {
                             return createErrorReturn(rawResponse, n);
                         }
