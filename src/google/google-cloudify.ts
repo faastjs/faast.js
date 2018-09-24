@@ -436,7 +436,8 @@ export function exec(cmd: string) {
 async function callFunctionHttps(
     url: string,
     callArgs: FunctionCall,
-    costMetrics: GoogleMetrics
+    costMetrics: GoogleMetrics,
+    retries: number
 ): Promise<FunctionReturnWithMetrics> {
     // only for validation
     serializeCall(callArgs);
@@ -451,7 +452,8 @@ async function callFunctionHttps(
         rawResponse,
         localRequestSentTime,
         remoteResponseSentTime: returned.remoteExecutionEndTime!,
-        localEndTime
+        localEndTime,
+        retries
     };
 }
 
@@ -466,25 +468,44 @@ async function callFunction(state: State, callRequest: FunctionCall) {
             )
         );
     } else {
-        return callFunnel.pushRetry(3, async n => {
-            const rv = await callFunctionHttps(
-                state.url!,
-                callRequest,
-                state.metrics
-            ).catch(err => {
-                const { response } = err;
-                if (!response) {
-                    throw err;
-                }
-                throw new Error(
-                    `${response.status} ${response.statusText} ${response.data}`
+        const localRequestSentTime = Date.now();
+        function createErrorReturn(rawResponse: any, retries: number) {
+            const { response } = rawResponse;
+            const interpretation =
+                response.status === 503
+                    ? " (cloudify: possibly out of memory error)"
+                    : "";
+            const error = new Error(
+                `${response.status} ${response.statusText} ${
+                    response.data
+                }${interpretation}`
+            );
+            const returned: FunctionReturnWithMetrics = {
+                returned: {
+                    type: "error",
+                    CallId: callRequest.CallId,
+                    value: error
+                },
+                localEndTime: Date.now(),
+                localRequestSentTime,
+                rawResponse,
+                retries
+            };
+            return Promise.resolve(returned);
+        }
+        return callFunnel
+            .pushRetry(3, async n => {
+                return callFunctionHttps(state.url!, callRequest, state.metrics, n).catch(
+                    rawResponse => {
+                        const { response } = rawResponse;
+                        if (response.status === 503) {
+                            return createErrorReturn(rawResponse, n);
+                        }
+                        throw rawResponse;
+                    }
                 );
-            });
-            if (n > 0) {
-                rv.retries = n;
-            }
-            return rv;
-        });
+            })
+            .catch(err => createErrorReturn(err, 3));
     }
 }
 

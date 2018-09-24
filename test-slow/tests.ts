@@ -133,7 +133,7 @@ export function checkTimeout(
                     timeout: 3
                 });
                 remote = lambda.cloudifyAll(funcs);
-                lambda.setLogger(console.log);
+                // lambda.setLogger(console.log);
             } catch (err) {
                 warn(err);
             }

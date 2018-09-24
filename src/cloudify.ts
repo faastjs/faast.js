@@ -408,6 +408,7 @@ export class CloudFunction<O extends CommonOptions, S> {
             const rv: FunctionReturnWithMetrics = await this.impl
                 .callFunction(this.state, callRequest)
                 .catch(value => {
+                    warn(`Exception from cloudify function implementation: ${value}`);
                     const returned: FunctionReturn = {
                         type: "error",
                         value,
@@ -417,7 +418,6 @@ export class CloudFunction<O extends CommonOptions, S> {
                         returned,
                         rawResponse: {},
                         localRequestSentTime: startTime,
-                        remoteResponseSentTime: returned.remoteExecutionEndTime!,
                         localEndTime: Date.now()
                     };
                 });
