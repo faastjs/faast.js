@@ -521,6 +521,9 @@ export async function initialize(fModule: string, options: Options = {}): Promis
                                     }
                                 })
                                 .promise();
+                        }).catch(err => {
+                            warn(err);
+                            warn(`Could not add DLQ to function, continuing without it.`);
                         });
                     }
                 })
