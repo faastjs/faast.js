@@ -48,8 +48,8 @@ export function coldStartTest(
                     samplePoints += m.samples;
                 });
 
-                lambda.functionStats.log("", { detailed: true });
-                lambda.functionCounters.log();
+                log(`Stats:\n${lambda.functionStats}`);
+                log(`Counters:\n${lambda.functionCounters}`);
 
                 log(`inside: ${insidePoints}, samples: ${samplePoints}`);
                 expect(samplePoints).toBe(nParallelFunctions * nSamplesPerFunction);
@@ -102,8 +102,9 @@ export function throughputTest(
                 await sleep(duration);
                 await pump.drain();
                 const cost = await lambda.costEstimate();
-                log(`Stats:`);
-                lambda.printStatistics();
+                log(`Stats: ${lambda.functionStats}`);
+                log(`Counters: ${lambda.functionCounters}`);
+
                 log(`Cost:`);
                 log(`${cost}`);
                 log(

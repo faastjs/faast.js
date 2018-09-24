@@ -264,9 +264,9 @@ export function checkCosts(
                 log(`${costs}`);
                 log(`CSV costs:\n${costs.csv()}`);
 
-                const { estimatedBilledTimeMs } = lambda.functionStats.aggregate;
+                const { estimatedBilledTime } = lambda.functionStats.aggregate;
                 expect(
-                    (estimatedBilledTimeMs.mean * estimatedBilledTimeMs.samples) / 1000
+                    (estimatedBilledTime.mean * estimatedBilledTime.samples) / 1000
                 ).toBe(
                     costs.metrics.find(m => m.name === "functionCallDuration")!.measured
                 );

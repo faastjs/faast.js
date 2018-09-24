@@ -41,17 +41,6 @@ export class Statistics {
     toString() {
         return `${this.mean.toFixed(this.printFixedPrecision)}`;
     }
-
-    log(prefix: string = "", detailedOpt?: { detailed: boolean }) {
-        const p = (n: number) => n.toFixed(this.printFixedPrecision);
-        if (detailedOpt && detailedOpt.detailed) {
-            const { samples, mean, stdev, min, max } = this;
-            stats(`${prefix}`);
-            stats(`%O`, { samples, mean, stdev, min, max });
-        } else {
-            stats(`${prefix}: ${p(this.mean)}`);
-        }
-    }
 }
 
 export class FactoryMap<K, V> extends Map<K, V> {

@@ -210,12 +210,18 @@ export class FunctionCounters {
 }
 
 export class FunctionStats {
-    localStartLatencyMs = new Statistics();
-    remoteStartLatencyMs = new Statistics();
-    executionLatencyMs = new Statistics();
-    sendResponseLatencyMs = new Statistics();
-    returnLatencyMs = new Statistics();
-    estimatedBilledTimeMs = new Statistics();
+    localStartLatency = new Statistics();
+    remoteStartLatency = new Statistics();
+    executionLatency = new Statistics();
+    sendResponseLatency = new Statistics();
+    returnLatency = new Statistics();
+    estimatedBilledTime = new Statistics();
+
+    toString() {
+        return Object.keys(this)
+            .map(key => `${key}: ${this[key]}`)
+            .join(", ");
+    }
 }
 
 export class FunctionCountersMap {
@@ -233,24 +239,8 @@ export class FunctionCountersMap {
         this.fIncremental.clear();
     }
 
-    logIncremental(prefix: string = "") {
-        this.print(prefix, this.fIncremental);
-    }
-
-    log(prefix: string = "") {
-        this.print(prefix, this.fAggregate);
-    }
-
-    protected print(prefix: string = "", counters: FactoryMap<string, FunctionCounters>) {
-        if (counters.size === 0) {
-            return;
-        }
-        prefix = prefix === "" ? "" : prefix.trim() + " ";
-        stats(
-            `${prefix}${[...counters]
-                .map(([key, value]) => `${key}: ${value}`)
-                .join(", ")}`
-        );
+    toString() {
+        return [...this.fAggregate].map(([key, value]) => `[${key}] ${value}`).join("\n");
     }
 }
 
@@ -259,7 +249,11 @@ export class FunctionStatsMap {
     fAggregate = new FactoryMap<string, FunctionStats>(() => new FunctionStats());
     aggregate = new FunctionStats();
 
-    update(fn: string, key: keyof FunctionStats, value: number | undefined) {
+    update(
+        fn: string,
+        key: keyof NonFunctionProperties<FunctionStats>,
+        value: number | undefined
+    ) {
         this.fIncremental.getOrCreate(fn)[key].update(value);
         this.fAggregate.getOrCreate(fn)[key].update(value);
         this.aggregate[key].update(value);
@@ -269,36 +263,8 @@ export class FunctionStatsMap {
         this.fIncremental.clear();
     }
 
-    logIncremental(prefix: string = "", detailedOpt?: { detailed: boolean }) {
-        this.print(prefix, this.fIncremental, detailedOpt);
-    }
-
-    log(prefix: string = "", detailedOpt?: { detailed: boolean }) {
-        this.print(prefix, this.fAggregate, detailedOpt);
-    }
-
-    protected print(
-        prefix: string = "",
-        map: FactoryMap<string, FunctionStats>,
-        detailedOpt?: { detailed: boolean }
-    ) {
-        prefix = prefix === "" ? "" : prefix.trim() + " ";
-        if (detailedOpt && detailedOpt.detailed) {
-            for (const [func, fstatistics] of map) {
-                for (const stat of Object.keys(fstatistics)) {
-                    const fstats = fstatistics[stat] as Statistics;
-                    fstats.log(`${prefix}${func} ${stat}`, detailedOpt);
-                }
-            }
-        } else {
-            for (const [func, fstatistics] of map) {
-                stats(
-                    `${prefix}${func}: {${Object.keys(fstatistics)
-                        .map(key => `${key}: ${fstatistics[key].mean.toFixed(1)}`)
-                        .join(", ")}}`
-                );
-            }
-        }
+    toString() {
+        return [...this.fAggregate].map(([key, value]) => `[${key}] ${value}`).join("\n");
     }
 }
 
@@ -357,31 +323,20 @@ function processResponse<R>(
             skew = prevSkew.value;
         }
 
-        // log(`%O`, {
-        //     localStartLatency,
-        //     roundTripLatency,
-        //     executionLatency,
-        //     sendResponseLatency,
-        //     networkLatency,
-        //     estimatedRemoteStartTime,
-        //     estimatedSkew,
-        //     prevSkew
-        // });
-
         const remoteStartLatency = Math.max(
             1,
             remoteExecutionStartTime + skew - localRequestSentTime
         );
         const returnLatency = Math.max(1, localEndTime - (remoteExecutionEndTime + skew));
-        fstats.update(fn, "localStartLatencyMs", localStartLatency);
-        fstats.update(fn, "remoteStartLatencyMs", remoteStartLatency);
-        fstats.update(fn, "executionLatencyMs", executionLatency);
-        fstats.update(fn, "sendResponseLatencyMs", sendResponseLatency);
-        fstats.update(fn, "returnLatencyMs", returnLatency);
+        fstats.update(fn, "localStartLatency", localStartLatency);
+        fstats.update(fn, "remoteStartLatency", remoteStartLatency);
+        fstats.update(fn, "executionLatency", executionLatency);
+        fstats.update(fn, "sendResponseLatency", sendResponseLatency);
+        fstats.update(fn, "returnLatency", returnLatency);
 
         const billed = (executionLatency || 0) + (sendResponseLatency || 0);
         const estimatedBilledTime = Math.max(100, Math.ceil(billed / 100) * 100);
-        fstats.update(fn, "estimatedBilledTimeMs", estimatedBilledTime);
+        fstats.update(fn, "estimatedBilledTime", estimatedBilledTime);
         rv = {
             ...rv,
             localStartLatency,
@@ -423,23 +378,15 @@ export class CloudFunction<O extends CommonOptions, S> {
         return this.impl.stop(this.state);
     }
 
-    printIncremental() {
-        this.functionCounters.logIncremental();
-        this.functionStats.logIncremental();
-    }
-
-    printStatistics() {
-        this.functionCounters.log();
-        this.functionStats.log();
-    }
-
-    printStatisticsInterval(interval: number) {
+    printStatisticsInterval(intervalMs: number) {
         this.timer && clearInterval(this.timer);
         this.timer = setInterval(() => {
-            this.printIncremental();
+            this.functionCounters.fIncremental.forEach((counters, fn) => {
+                stats(`[${fn}] ${counters}, ${this.functionStats.fIncremental.get(fn)}`);
+            });
             this.functionCounters.resetIncremental();
             this.functionStats.resetIncremental();
-        }, interval);
+        }, intervalMs);
     }
 
     stopPrintStatisticsInterval() {

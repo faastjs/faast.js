@@ -161,8 +161,8 @@ export function toCSV(profile: CostAnalysisProfile[]) {
         rv += `${
             r.cloudProvider
         },${memorySize},${useQueue},${options},${completed},${errors},${retries},$${cost},${p(
-            r.stats.executionLatencyMs
-        )},${p(r.stats.estimatedBilledTimeMs)}\n`;
+            r.stats.executionLatency
+        )},${p(r.stats.estimatedBilledTime)}\n`;
     });
     return rv;
 }

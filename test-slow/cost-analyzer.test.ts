@@ -38,7 +38,7 @@ test(
         profile.forEach(p => {
             expect(p.counters.completed).toBe(repetitions);
             expect(p.counters.errors).toBe(0);
-            expect(p.stats.estimatedBilledTimeMs.mean).toBeGreaterThan(0);
+            expect(p.stats.estimatedBilledTime.mean).toBeGreaterThan(0);
             expect(p.costEstimate.estimateTotal()).toBeGreaterThan(0);
         });
     },
