@@ -23,7 +23,7 @@ export interface FunctionReturnWithMetrics {
     returned: FunctionReturn;
     rawResponse: any;
     localRequestSentTime: number;
-    remoteResponseSentTime: number;
+    remoteResponseSentTime?: number;
     localEndTime: number;
     retries?: number;
 }
