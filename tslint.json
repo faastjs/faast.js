@@ -17,6 +17,7 @@
         "no-console": false,
         "array-type": false,
         "no-string-literal": false,
-        "no-empty-interface": false
+        "no-empty-interface": false,
+        "member-ordering": false
     }
 }
