@@ -511,15 +511,17 @@ export async function initialize(fModule: string, options: Options = {}): Promis
                         state.queueState = cloudqueue.initializeCloudFunctionQueue(
                             awsQueueImpl
                         );
-                        log(`Adding DLQ to function`);
-                        lambda
-                            .updateFunctionConfiguration({
-                                FunctionName,
-                                DeadLetterConfig: {
-                                    TargetArn: state.resources.ResponseQueueArn
-                                }
-                            })
-                            .promise();
+                        retry(3, () => {
+                            log(`Adding DLQ to function`);
+                            return lambda
+                                .updateFunctionConfiguration({
+                                    FunctionName,
+                                    DeadLetterConfig: {
+                                        TargetArn: state.resources.ResponseQueueArn
+                                    }
+                                })
+                                .promise();
+                        });
                     }
                 })
             );
@@ -1124,7 +1126,7 @@ export async function costEstimate(
         requestAwsPrices(state.services.pricing, region)
     );
     const { memorySize = defaults.memorySize } = state.options;
-    const billedTimeStats = statistics.estimatedBilledTimeMs;
+    const billedTimeStats = statistics.estimatedBilledTime;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
     const provisionedGb = memorySize / 1024;
     const functionCallDuration = new CostMetric({
