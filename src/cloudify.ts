@@ -300,12 +300,8 @@ function processResponse<R>(
         localRequestSentTime,
         remoteResponseSentTime,
         localEndTime,
-        retries,
         returned: { remoteExecutionStartTime, remoteExecutionEndTime }
     } = returnedMetrics;
-    if (retries) {
-        fcounters.incr(fn, "retries", retries);
-    }
     if (remoteExecutionStartTime && remoteExecutionEndTime) {
         const localStartLatency = localRequestSentTime - localStartTime;
         const roundTripLatency = localEndTime - localRequestSentTime;
@@ -382,7 +378,11 @@ export class CloudFunction<O extends CommonOptions, S> {
         this.timer && clearInterval(this.timer);
         this.timer = setInterval(() => {
             this.functionCounters.fIncremental.forEach((counters, fn) => {
-                stats(`[${fn}] ${counters}, ${this.functionStats.fIncremental.get(fn)}`);
+                const { executionLatency = 0, estimatedBilledTime = 0 } =
+                    this.functionStats.fIncremental.get(fn) || {};
+                stats(
+                    `[${fn}] ${counters}, executionLatency: ${executionLatency}, estimatedBilledTime: ${estimatedBilledTime}`
+                );
             });
             this.functionCounters.resetIncremental();
             this.functionStats.resetIncremental();
@@ -405,8 +405,12 @@ export class CloudFunction<O extends CommonOptions, S> {
             const CallId = uuidv4();
             const startTime = Date.now();
             const callRequest: FunctionCall = { name: fn.name, args, CallId };
+            const shouldRetry = (_: any, n: number) => {
+                this.functionCounters.incr(fn.name, "retries");
+                return n < 3;
+            };
             const rv: FunctionReturnWithMetrics = await this.impl
-                .callFunction(this.state, callRequest)
+                .callFunction(this.state, callRequest, shouldRetry)
                 .catch(value => {
                     warn(`Exception from cloudify function implementation: ${value}`);
                     const returned: FunctionReturn = {
@@ -567,12 +571,19 @@ export interface CloudImpl<O, S> {
 
 export interface CloudFunctionImpl<State> {
     name: string;
+
     costEstimate?: (
         state: State,
         counters: FunctionCounters,
         stats: FunctionStats
     ) => Promise<CostBreakdown>;
-    callFunction(state: State, call: FunctionCall): Promise<FunctionReturnWithMetrics>;
+
+    callFunction(
+        state: State,
+        call: FunctionCall,
+        shouldRetry: (err: Error | undefined, retries: number) => boolean
+    ): Promise<FunctionReturnWithMetrics>;
+
     cleanup(state: State): Promise<void>;
     stop(state: State): Promise<string>;
     setConcurrency(state: State, maxConcurrentExecutions: number): Promise<void>;

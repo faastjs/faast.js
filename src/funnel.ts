@@ -37,15 +37,24 @@ function popFirst<T>(set: Set<T>): T | undefined {
     return firstElem;
 }
 
-export async function retry<T>(n: number, fn: (retries: number) => Promise<T>) {
-    for (let i = 1; i <= n; i++) {
+export async function retry<T, E>(
+    shouldRetry: number | ((err: E, retries: number) => boolean),
+    fn: (retries: number) => Promise<T>
+) {
+    const retryTest =
+        typeof shouldRetry === "function"
+            ? shouldRetry
+            : (_: any, i: number) => i < shouldRetry;
+    for (let i = 0; true; i++) {
         try {
-            return await fn(i - 1);
+            return await fn(i);
         } catch (err) {
-            await sleep(Math.min(30 * 1000, 1000 * i ** 2) + Math.random());
+            if (!retryTest(err, i)) {
+                throw err;
+            }
+            await sleep(Math.min(30 * 1000, 1000 * 2 ** i) + Math.random());
         }
     }
-    return fn(n);
 }
 
 export class Funnel<T = void> {
@@ -61,8 +70,11 @@ export class Funnel<T = void> {
         return future.promise;
     }
 
-    pushRetry(n: number, worker: (retries: number) => Promise<T>) {
-        return this.push(() => retry(n, worker));
+    pushRetry<E>(
+        shouldRetry: number | ((err: E, retries: number) => boolean),
+        worker: (retries: number) => Promise<T>
+    ) {
+        return this.push(() => retry(shouldRetry, worker));
     }
 
     clearPending() {

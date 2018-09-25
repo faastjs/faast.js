@@ -543,8 +543,9 @@ async function callFunctionHttps(
     lambda: aws.Lambda,
     FunctionName: string,
     callRequest: FunctionCall,
+    metrics: AWSMetrics,
     callFunnel: Funnel<AWSInvocationResponse>,
-    metrics: AWSMetrics
+    shouldRetry: (err: Error, retries: number) => boolean
 ): Promise<FunctionReturnWithMetrics> {
     let returned: FunctionReturn;
     let rawResponse: AWSInvocationResponse;
@@ -555,7 +556,7 @@ async function callFunctionHttps(
         LogType: "None"
     };
     let localRequestSentTime!: NumberOfBytesType;
-    rawResponse = await callFunnel.push(() => {
+    rawResponse = await callFunnel.pushRetry(shouldRetry, () => {
         const awsRequest = lambda.invoke(request);
         localRequestSentTime = awsRequest.startTime.getTime();
         return awsRequest.promise();
@@ -588,7 +589,11 @@ async function callFunctionHttps(
     };
 }
 
-async function callFunction(state: State, callRequest: FunctionCall) {
+async function callFunction(
+    state: State,
+    callRequest: FunctionCall,
+    shouldRetry: (err: Error, n: number) => boolean
+) {
     if (state.queueState) {
         return cloudqueue.enqueueCallRequest(
             state.queueState,
@@ -602,7 +607,14 @@ async function callFunction(state: State, callRequest: FunctionCall) {
             resources: { FunctionName },
             metrics
         } = state;
-        return callFunctionHttps(lambda, FunctionName, callRequest, callFunnel, metrics);
+        return callFunctionHttps(
+            lambda,
+            FunctionName,
+            callRequest,
+            metrics,
+            callFunnel,
+            shouldRetry
+        );
     }
 }
 
@@ -830,19 +842,7 @@ export async function stop(state: PartialState) {
 }
 
 export async function setConcurrency(state: State, maxConcurrentExecutions: number) {
-    const { lambda } = state.services;
-    const { FunctionName } = state.resources;
-
-    if (state.queueState) {
-        await lambda
-            .putFunctionConcurrency({
-                FunctionName,
-                ReservedConcurrentExecutions: maxConcurrentExecutions
-            })
-            .promise();
-    } else {
-        state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
-    }
+    state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
 }
 
 export function getFunctionImpl() {

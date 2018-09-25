@@ -25,7 +25,6 @@ export interface FunctionReturnWithMetrics {
     localRequestSentTime: number;
     remoteResponseSentTime?: number;
     localEndTime: number;
-    retries?: number;
 }
 
 export interface ModuleType {

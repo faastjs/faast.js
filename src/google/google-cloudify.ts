@@ -1,4 +1,4 @@
-import Axios, { AxiosPromise, AxiosResponse } from "axios";
+import Axios, { AxiosPromise, AxiosResponse, AxiosError } from "axios";
 import * as sys from "child_process";
 import {
     cloudbilling_v1,
@@ -17,9 +17,10 @@ import {
     CostBreakdown,
     FunctionCounters,
     FunctionStats,
-    CostMetric
+    CostMetric,
+    FunctionCountersMap
 } from "../cloudify";
-import { Funnel, MemoFunnel } from "../funnel";
+import { Funnel, MemoFunnel, retry } from "../funnel";
 import { log, warn, logPricing } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
@@ -42,6 +43,7 @@ import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import Logging = logging_v2;
 import CloudBilling = cloudbilling_v1;
+import { ClientRequest } from "http";
 
 type Logging = logging_v2.Logging;
 
@@ -85,11 +87,13 @@ type ReceivedMessage = PubSubApi.Schema$ReceivedMessage;
 type GoogleCloudQueueState = cloudqueue.StateWithMessageType<ReceivedMessage>;
 type GoogleCloudQueueImpl = cloudqueue.QueueImpl<ReceivedMessage>;
 
+type GoogleInvocationResponse = AxiosResponse<FunctionReturn>;
+
 export interface State {
     resources: GoogleResources;
     services: GoogleServices;
     queueState?: GoogleCloudQueueState;
-    callFunnel: Funnel<FunctionReturnWithMetrics>;
+    callFunnel: Funnel<GoogleInvocationResponse>;
     url?: string;
     project: string;
     functionName: string;
@@ -436,76 +440,83 @@ export function exec(cmd: string) {
 async function callFunctionHttps(
     url: string,
     callArgs: FunctionCall,
-    costMetrics: GoogleMetrics,
-    retries: number
+    metrics: GoogleMetrics,
+    callFunnel: Funnel<GoogleInvocationResponse>,
+    shouldRetry: (err: Error, retries: number) => boolean
 ): Promise<FunctionReturnWithMetrics> {
     // only for validation
     serializeCall(callArgs);
-    const localRequestSentTime = Date.now();
 
-    const rawResponse = await Axios.put<FunctionReturn>(url!, callArgs, {});
-    const localEndTime = Date.now();
-    const returned: FunctionReturn = rawResponse.data;
-    costMetrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
-    return {
-        returned,
-        rawResponse,
-        localRequestSentTime,
-        remoteResponseSentTime: returned.remoteExecutionEndTime!,
-        localEndTime,
-        retries
+    let localRequestSentTime!: number;
+
+    const isTransientFailure = (err: AxiosError, n: number) => {
+        if (err.response) {
+            const { status } = err.response;
+            return status !== 503 && status !== 408 && shouldRetry(err, n);
+        }
+        return shouldRetry(err, n);
     };
-}
 
-async function callFunction(state: State, callRequest: FunctionCall) {
-    const { callFunnel } = state;
-    if (state.queueState) {
-        return callFunnel.push(() =>
-            cloudqueue.enqueueCallRequest(
-                state.queueState!,
-                callRequest,
-                state.resources.responseQueueTopic!
-            )
-        );
-    } else {
-        const localRequestSentTime = Date.now();
-        function createErrorReturn(rawResponse: any, retries: number) {
-            const { response } = rawResponse;
+    try {
+        const rawResponse = await callFunnel.pushRetry(isTransientFailure, () => {
+            localRequestSentTime = Date.now();
+            return Axios.put<FunctionReturn>(url!, callArgs, {});
+        });
+        const localEndTime = Date.now();
+        const returned: FunctionReturn = rawResponse.data;
+        metrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
+        return {
+            returned,
+            rawResponse,
+            localRequestSentTime,
+            remoteResponseSentTime: returned.remoteExecutionEndTime!,
+            localEndTime
+        };
+    } catch (err) {
+        const { response } = err;
+        let error = err;
+        if (response) {
             const interpretation =
-                response.status === 503
+                response && response.status === 503
                     ? " (cloudify: possibly out of memory error)"
                     : "";
-            const error = new Error(
+            error = new Error(
                 `${response.status} ${response.statusText} ${
                     response.data
                 }${interpretation}`
             );
-            const returned: FunctionReturnWithMetrics = {
-                returned: {
-                    type: "error",
-                    CallId: callRequest.CallId,
-                    value: error
-                },
-                localEndTime: Date.now(),
-                localRequestSentTime,
-                rawResponse,
-                retries
-            };
-            return Promise.resolve(returned);
         }
-        return callFunnel
-            .pushRetry(3, async n => {
-                return callFunctionHttps(state.url!, callRequest, state.metrics, n).catch(
-                    rawResponse => {
-                        const { response } = rawResponse;
-                        if (response.status === 503 || response.status === 408) {
-                            return createErrorReturn(rawResponse, n);
-                        }
-                        throw rawResponse;
-                    }
-                );
-            })
-            .catch(err => createErrorReturn(err, 3));
+        return {
+            returned: {
+                type: "error",
+                CallId: callArgs.CallId,
+                value: error
+            },
+            localEndTime: Date.now(),
+            localRequestSentTime,
+            rawResponse: err
+        };
+    }
+}
+
+async function callFunction(
+    state: State,
+    callRequest: FunctionCall,
+    shouldRetry: (err: Error, retries: number) => boolean
+) {
+    if (state.queueState) {
+        const {
+            queueState,
+            resources: { responseQueueTopic }
+        } = state;
+        return cloudqueue.enqueueCallRequest(
+            queueState!,
+            callRequest,
+            responseQueueTopic!
+        );
+    } else {
+        const { url, metrics, callFunnel } = state;
+        return callFunctionHttps(url!, callRequest, metrics, callFunnel, shouldRetry);
     }
 }
 
@@ -639,10 +650,7 @@ export async function stop(state: Partial<State>) {
     return JSON.stringify(state.resources);
 }
 
-export async function setConcurrency(
-    state: State,
-    maxConcurrentExecutions: number
-): Promise<void> {
+export async function setConcurrency(state: State, maxConcurrentExecutions: number) {
     state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
 }
 
