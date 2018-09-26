@@ -229,6 +229,7 @@ async function addNoCreateLogPolicyToRole(
         .promise();
 }
 
+// XXX Don't create log group, just apply the retention policy to it after the fact. Try to delete it at cleanup...
 async function createLogGroup(logGroupName: string, services: AWSServices) {
     const { cloudwatch } = services;
     log(`Creating log group: ${logGroupName}`);
@@ -239,7 +240,7 @@ async function createLogGroup(logGroupName: string, services: AWSServices) {
             cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 })
         );
     } else {
-        warn(`Log group could not be created, proceeding without logs.`);
+        // warn(`Log group could not be created, proceeding without logs.`);
     }
     return response;
 }
