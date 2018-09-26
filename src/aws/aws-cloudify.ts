@@ -10,8 +10,6 @@ import {
     CloudFunctionImpl,
     CloudImpl,
     CommonOptions,
-    CostBreakdown,
-    CostMetric,
     FunctionCounters,
     FunctionStats,
     Logger
@@ -39,6 +37,7 @@ import {
     receiveMessages,
     sqsMessageAttribute
 } from "./aws-queue";
+import { CostBreakdown, CostMetric } from "../cost-analyzer";
 
 export interface Options extends CommonOptions {
     region?: string;

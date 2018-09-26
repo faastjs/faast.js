@@ -1,29 +1,121 @@
+import { inspect } from "util";
 import {
-    CloudProvider,
-    CommonOptions,
-    CostBreakdown,
-    create,
-    Promisified,
     aws,
-    google,
+    CommonOptions,
+    create,
+    FunctionCounters,
     FunctionStats,
-    FunctionCounters
+    google,
+    Promisified
 } from "./cloudify";
 import { Funnel, RateLimitedFunnel } from "./funnel";
 import { log } from "./log";
-import { inspect } from "util";
-import { Statistics } from "./shared";
+import { Statistics, sum } from "./shared";
+import { NonFunctionProperties } from "./type-helpers";
+import * as Listr from "listr";
+
+export class CostMetric {
+    name!: string;
+    pricing!: number;
+    unit!: string;
+    measured!: number;
+    comment?: string;
+
+    constructor(opts?: NonFunctionProperties<CostMetric>) {
+        Object.assign(this, opts);
+    }
+
+    cost() {
+        return this.pricing * this.measured;
+    }
+
+    describeCostOnly() {
+        const p = (n: number, precision = 8) =>
+            Number.isInteger(n) ? String(n) : n.toFixed(precision);
+        const addPlural = (n: number, str: string) =>
+            n > 1 && !str.match(/[A-Z]$/) ? "s" : "";
+
+        const cost = `$${p(this.cost())}`;
+        const pricing = `$${p(this.pricing)}/${this.unit}`;
+        const metric = p(this.measured, this.unit === "second" ? 1 : 8);
+        const unit = this.unit + addPlural(this.measured, this.unit);
+
+        return `${this.name.padEnd(21)} ${pricing.padEnd(20)} ${metric.padStart(
+            12
+        )} ${unit.padEnd(10)} ${cost.padEnd(14)}`;
+    }
+
+    toString() {
+        return `${this.describeCostOnly()}${(this.comment && `// ${this.comment}`) ||
+            ""}`;
+    }
+}
+
+export class CostBreakdown {
+    metrics: CostMetric[] = [];
+
+    total() {
+        return sum(this.metrics.map(metric => metric.cost()));
+    }
+
+    toString() {
+        let rv = "";
+        this.metrics.sort((a, b) => b.cost() - a.cost());
+        const total = this.total();
+        const comments = [];
+        const percent = (entry: CostMetric) =>
+            ((entry.cost() / total) * 100).toFixed(1).padStart(5) + "% ";
+        for (const entry of this.metrics) {
+            let commentIndex = "";
+            if (entry.comment) {
+                comments.push(entry.comment);
+                commentIndex = ` [${comments.length}]`;
+            }
+            rv += `${entry.describeCostOnly()}${percent(entry)}${commentIndex}\n`;
+        }
+        rv +=
+            "---------------------------------------------------------------------------------------\n";
+        rv += `$${this.total().toFixed(8)}`.padStart(78) + " (USD)\n\n";
+        rv += `  * Estimated using highest pricing tier for each service. Limitations apply.\n`;
+        rv += ` ** Does not account for free tier.\n`;
+        rv += comments.map((c, i) => `[${i + 1}]: ${c}`).join("\n");
+        return rv;
+    }
+
+    csv() {
+        let rv = "";
+        rv += "metric,unit,pricing,measured,cost,percentage,comment\n";
+        const total = this.total();
+        const p = (n: number) => (Number.isInteger(n) ? n : n.toFixed(8));
+        const percent = (entry: CostMetric) =>
+            ((entry.cost() / total) * 100).toFixed(1) + "% ";
+        for (const entry of this.metrics) {
+            rv += `${entry.name},${entry.unit},${p(entry.pricing)},${p(
+                entry.measured
+            )},${p(entry.cost())},${percent(entry)},"${entry.comment!.replace(
+                '"',
+                '""'
+            )}"\n`;
+        }
+        return rv;
+    }
+
+    push(metric: CostMetric) {
+        this.metrics.push(metric);
+    }
+
+    find(name: string) {
+        return this.metrics.find(m => m.name === name);
+    }
+}
 
 export type Options = CommonOptions | aws.Options | google.Options;
 
 export interface CostAnalyzerConfiguration {
     cloudProvider: "aws" | "google";
-    useQueue: boolean[];
     repetitions: number;
-    memorySizes: number[];
-    options: Options[];
+    options: Options;
     repetitionConcurrency: number;
-    memorySizeConcurrency: number;
 }
 
 export const AWSLambdaMemorySizes = (() => {
@@ -41,27 +133,37 @@ export const CommonMemorySizes = GoogleCloudFunctionsMemorySizes.filter(size =>
     AWSLambdaMemorySizes.find(asize => asize === size)
 );
 
-export const defaultAwsConfiguration: CostAnalyzerConfiguration = {
-    cloudProvider: "aws",
-    useQueue: [true, false],
-    repetitions: 10,
-    memorySizes: AWSLambdaMemorySizes,
-    options: [{}],
-    repetitionConcurrency: 10,
-    memorySizeConcurrency: 8
-};
+export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
+    const rv: CostAnalyzerConfiguration[] = [];
+    for (const useQueue of [true, false]) {
+        for (const memorySize of AWSLambdaMemorySizes) {
+            rv.push({
+                cloudProvider: "aws",
+                repetitions: 10,
+                options: { useQueue, memorySize },
+                repetitionConcurrency: 10
+            });
+        }
+    }
+    return rv;
+})();
 
-export const defaulGoogleConfiguration: CostAnalyzerConfiguration = {
-    cloudProvider: "google",
-    useQueue: [true, false],
-    repetitions: 10,
-    memorySizes: GoogleCloudFunctionsMemorySizes,
-    options: [{}],
-    repetitionConcurrency: 10,
-    memorySizeConcurrency: 5
-};
+export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
+    const rv: CostAnalyzerConfiguration[] = [];
+    for (const useQueue of [true, false]) {
+        for (const memorySize of GoogleCloudFunctionsMemorySizes) {
+            rv.push({
+                cloudProvider: "google",
+                repetitions: 10,
+                options: { useQueue, memorySize },
+                repetitionConcurrency: 10
+            });
+        }
+    }
+    return rv;
+})();
 
-interface CostAnalysisProfile {
+export interface CostAnalysisProfile {
     cloudProvider: string;
     options: Options;
     costEstimate: CostBreakdown;
@@ -69,100 +171,85 @@ interface CostAnalysisProfile {
     counters: FunctionCounters;
 }
 
+const ps = (stat: Statistics) => (stat.mean / 1000).toFixed(3);
+
 async function estimate<T>(
-    cloudProvider: CloudProvider,
     fmodule: string,
     workload: (module: Promisified<T>) => Promise<void>,
-    repetitions: number,
-    concurrency: number,
-    options: Options
+    config: CostAnalyzerConfiguration
 ): Promise<CostAnalysisProfile> {
+    const { cloudProvider, repetitions, options, repetitionConcurrency } = config;
     const cloud = create(cloudProvider);
     const cloudFunction = await cloud.createFunction(fmodule, options);
     const remote = cloudFunction.cloudifyModule(require(fmodule)) as Promisified<T>;
-    const funnel = new Funnel<void | Error>(concurrency);
+    const funnel = new Funnel<void | Error>(repetitionConcurrency);
     const results = [];
     for (let i = 0; i < repetitions; i++) {
         results.push(funnel.push(() => workload(remote).catch((err: Error) => err)));
     }
     await Promise.all(results);
     await cloudFunction.cleanup();
-    return {
-        cloudProvider,
-        options,
-        costEstimate: await cloudFunction.costEstimate(),
-        stats: cloudFunction.functionStats.aggregate,
-        counters: cloudFunction.functionCounters.aggregate
-    };
+    const costEstimate = await cloudFunction.costEstimate();
+    const stats = cloudFunction.functionStats.aggregate;
+    const counters = cloudFunction.functionCounters.aggregate;
+    return { cloudProvider, options, costEstimate, stats, counters };
 }
 
-async function runConfig<T>(
+export async function estimateWorkloadCost<T>(
     fmodule: string,
     workload: (remote: Promisified<T>) => Promise<void>,
-    config: CostAnalyzerConfiguration
+    configurations: CostAnalyzerConfiguration[] = awsConfigurations
 ) {
     const funnel = new RateLimitedFunnel<CostAnalysisProfile>({
-        maxConcurrency: config.memorySizeConcurrency,
+        maxConcurrency: 8,
         targetRequestsPerSecond: 4,
         maxBurst: 1
     });
-    const promises: Array<Promise<CostAnalysisProfile>> = [];
-    config.memorySizes.forEach(memorySize =>
-        config.useQueue.forEach(useQueue =>
-            config.options.forEach(options =>
-                promises.push(
-                    funnel.push(() =>
-                        estimate(
-                            config.cloudProvider,
-                            fmodule,
-                            workload,
-                            config.repetitions,
-                            config.repetitionConcurrency,
-                            {
-                                memorySize,
-                                useQueue,
-                                ...(options as any)
-                            }
-                        )
-                    )
-                )
-            )
-        )
+
+    const promises = configurations.map(config =>
+        funnel.push(() => estimate(fmodule, workload, config))
     );
+
+    const list = new Listr(
+        promises.map((promise, i) => {
+            const {
+                cloudProvider,
+                options: { memorySize, useQueue }
+            } = configurations[i];
+
+            return {
+                title: `${cloudProvider} ${memorySize}MB ${useQueue ? "queue" : "https"}`,
+                task: async (_: any, task: Listr.ListrTaskWrapper) => {
+                    const est = await promise;
+                    task.title = `${task.title} ${ps(
+                        est.stats.executionLatency
+                    )}s $${est.costEstimate.total().toFixed(8)}`;
+                }
+            };
+        }),
+        { concurrent: 8 }
+    );
+
+    await list.run();
     const results = await Promise.all(promises);
-    results.forEach(result => log(`${result.costEstimate}`));
-    return results;
-}
-
-export async function costAnalyzer<T>(
-    fmodule: string,
-    workload: (remote: Promisified<T>) => Promise<void>,
-    configurations: CostAnalyzerConfiguration[] = [defaultAwsConfiguration]
-) {
-    const allConfigs = await Promise.all(
-        configurations.map(config => runConfig(fmodule, workload, config))
-    );
-    let results: CostAnalysisProfile[] = [];
-    results = results.concat(...allConfigs);
     results.sort((a, b) => a.options.memorySize! - b.options.memorySize!);
-
     return results;
 }
 
 export function toCSV(profile: CostAnalysisProfile[]) {
-    const p = (stat: Statistics) => (stat.mean / 1000).toFixed(3);
     let rv = "";
     rv += `cloud,memory,useQueue,options,completed,errors,retries,cost,executionLatency,billedTime\n`;
     profile.forEach(r => {
         const { memorySize, useQueue, ...rest } = r.options;
-        const cost = r.costEstimate.estimateTotal().toFixed(8);
+        const cost = r.costEstimate.total().toFixed(8);
         const options = `"${inspect(rest).replace('"', '""')}"`;
         const { completed, errors, retries } = r.counters;
+
         rv += `${
             r.cloudProvider
-        },${memorySize},${useQueue},${options},${completed},${errors},${retries},$${cost},${p(
+        },${memorySize},${useQueue},${options},${completed},${errors},${retries},$${cost},${ps(
             r.stats.executionLatency
-        )},${p(r.stats.estimatedBilledTime)}\n`;
+        )},${ps(r.stats.estimatedBilledTime)}\n`;
     });
     return rv;
 }

@@ -29,7 +29,7 @@ async function deleteResources(
 ) {
     if (matchingResources.length > 0) {
         const timeEstimate = (resources: any[]) =>
-            resources.length <= 5 ? "" : `(est: ${(resources.length / 5).toFixed(1)}s)`;
+            resources.length <= 5 ? "" : `(est: ${(resources.length / 5).toFixed(0)}s)`;
         const updateSpinnerText = (resources: any[] = []) =>
             `Deleting ${matchingResources.length} ${name} ${timeEstimate(resources)}`;
         const spinner = ora(updateSpinnerText(matchingResources)).start();

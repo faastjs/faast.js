@@ -1,4 +1,4 @@
-import Axios, { AxiosPromise, AxiosResponse, AxiosError } from "axios";
+import Axios, { AxiosError, AxiosPromise, AxiosResponse } from "axios";
 import * as sys from "child_process";
 import {
     cloudbilling_v1,
@@ -13,23 +13,20 @@ import {
     CloudFunctionImpl,
     CloudImpl,
     CommonOptions,
-    Logger,
-    CostBreakdown,
     FunctionCounters,
     FunctionStats,
-    CostMetric,
-    FunctionCountersMap
+    Logger
 } from "../cloudify";
-import { Funnel, MemoFunnel, retry } from "../funnel";
-import { log, warn, logPricing } from "../log";
+import { Funnel, MemoFunnel } from "../funnel";
+import { log, logPricing, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { sleep, computeHttpResponseBytes, LogStitcher } from "../shared";
+import { computeHttpResponseBytes, LogStitcher, sleep } from "../shared";
 import {
     FunctionCall,
     FunctionReturn,
-    serializeCall,
-    FunctionReturnWithMetrics
+    FunctionReturnWithMetrics,
+    serializeCall
 } from "../trampoline";
 import { Mutable } from "../type-helpers";
 import {
@@ -43,7 +40,7 @@ import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import Logging = logging_v2;
 import CloudBilling = cloudbilling_v1;
-import { ClientRequest } from "http";
+import { CostBreakdown, CostMetric } from "../cost-analyzer";
 
 type Logging = logging_v2.Logging;
 

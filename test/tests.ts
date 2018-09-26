@@ -282,7 +282,7 @@ export function checkCosts(
                     expect(metric.unit.length).toBeGreaterThan(0);
                     expect(metric.cost()).toBe(metric.pricing * metric.measured);
                 }
-                expect(costs.estimateTotal()).toBeGreaterThan(0);
+                expect(costs.total()).toBeGreaterThan(0);
             },
             30 * 1000
         );

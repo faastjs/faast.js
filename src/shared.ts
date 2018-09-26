@@ -1,6 +1,4 @@
 import { Readable } from "stream";
-import { stats } from "./log";
-import { content } from "googleapis/build/src/apis/content";
 
 export class Statistics {
     samples = 0;

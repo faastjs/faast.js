@@ -2,22 +2,22 @@ import * as path from "path";
 import * as uuidv4 from "uuid/v4";
 import * as aws from "./aws/aws-cloudify";
 import * as childprocess from "./childprocess/childprocess-cloudify";
+import * as costAnalyzer from "./cost-analyzer";
 import * as google from "./google/google-cloudify";
 import * as immediate from "./immediate/immediate-cloudify";
 import { log, stats, warn } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import {
     assertNever,
+    ExponentiallyDecayingAverageValue,
     FactoryMap,
-    Statistics,
-    sum,
-    ExponentiallyDecayingAverageValue
+    Statistics
 } from "./shared";
-import { FunctionCall, FunctionReturnWithMetrics, FunctionReturn } from "./trampoline";
+import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "./trampoline";
 import { NonFunctionProperties, Unpacked } from "./type-helpers";
 import Module = require("module");
 
-export { aws, google, childprocess, immediate };
+export { aws, google, childprocess, immediate, costAnalyzer };
 
 if (!Symbol.asyncIterator) {
     (Symbol as any).asyncIterator =
@@ -101,101 +101,6 @@ export class Cloud<O extends CommonOptions, S> {
 }
 
 export type AnyCloud = Cloud<any, any>;
-
-export class CostMetric {
-    name!: string;
-    pricing!: number;
-    unit!: string;
-    measured!: number;
-    comment?: string;
-
-    constructor(opts?: NonFunctionProperties<CostMetric>) {
-        Object.assign(this, opts);
-    }
-
-    cost() {
-        return this.pricing * this.measured;
-    }
-
-    describeCostOnly() {
-        const p = (n: number, precision = 8) =>
-            Number.isInteger(n) ? String(n) : n.toFixed(precision);
-        const addPlural = (n: number, str: string) =>
-            n > 1 && !str.match(/[A-Z]$/) ? "s" : "";
-
-        const cost = `$${p(this.cost())}`;
-        const pricing = `$${p(this.pricing)}/${this.unit}`;
-        const metric = p(this.measured, this.unit === "second" ? 1 : 8);
-        const unit = this.unit + addPlural(this.measured, this.unit);
-
-        return `${this.name.padEnd(21)} ${pricing.padEnd(20)} ${metric.padStart(
-            12
-        )} ${unit.padEnd(10)} ${cost.padEnd(14)}`;
-    }
-
-    toString() {
-        return `${this.describeCostOnly()}${(this.comment && `// ${this.comment}`) ||
-            ""}`;
-    }
-}
-
-export class CostBreakdown {
-    metrics: CostMetric[] = [];
-
-    estimateTotal() {
-        return sum(this.metrics.map(metric => metric.cost()));
-    }
-
-    toString() {
-        let rv = "";
-        this.metrics.sort((a, b) => b.cost() - a.cost());
-        const total = this.estimateTotal();
-        const comments = [];
-        const percent = (entry: CostMetric) =>
-            ((entry.cost() / total) * 100).toFixed(1).padStart(5) + "% ";
-        for (const entry of this.metrics) {
-            let commentIndex = "";
-            if (entry.comment) {
-                comments.push(entry.comment);
-                commentIndex = ` [${comments.length}]`;
-            }
-            rv += `${entry.describeCostOnly()}${percent(entry)}${commentIndex}\n`;
-        }
-        rv +=
-            "---------------------------------------------------------------------------------------\n";
-        rv += `$${this.estimateTotal().toFixed(8)}`.padStart(78) + " (USD)\n\n";
-        rv += `  * Estimated using highest pricing tier for each service. Limitations apply.\n`;
-        rv += ` ** Does not account for free tier.\n`;
-        rv += comments.map((c, i) => `[${i + 1}]: ${c}`).join("\n");
-        return rv;
-    }
-
-    csv() {
-        let rv = "";
-        rv += "metric,unit,pricing,measured,cost,percentage,comment\n";
-        const total = this.estimateTotal();
-        const p = (n: number) => (Number.isInteger(n) ? n : n.toFixed(8));
-        const percent = (entry: CostMetric) =>
-            ((entry.cost() / total) * 100).toFixed(1) + "% ";
-        for (const entry of this.metrics) {
-            rv += `${entry.name},${entry.unit},${p(entry.pricing)},${p(
-                entry.measured
-            )},${p(entry.cost())},${percent(entry)},"${entry.comment!.replace(
-                '"',
-                '""'
-            )}"\n`;
-        }
-        return rv;
-    }
-
-    push(metric: CostMetric) {
-        this.metrics.push(metric);
-    }
-
-    find(name: string) {
-        return this.metrics.find(m => m.name === name);
-    }
-}
 
 export class FunctionCounters {
     completed = 0;
@@ -466,7 +371,7 @@ export class CloudFunction<O extends CommonOptions, S> {
         this.impl.setLogger(this.state, logger);
     }
 
-    costEstimate(): Promise<CostBreakdown> {
+    costEstimate(): Promise<costAnalyzer.CostBreakdown> {
         if (this.impl.costEstimate) {
             return this.impl.costEstimate(
                 this.state,
@@ -474,7 +379,7 @@ export class CloudFunction<O extends CommonOptions, S> {
                 this.functionStats.aggregate
             );
         } else {
-            return Promise.resolve(new CostBreakdown());
+            return Promise.resolve(new costAnalyzer.CostBreakdown());
         }
     }
 }
@@ -615,7 +520,7 @@ export interface CloudFunctionImpl<State> {
         state: State,
         counters: FunctionCounters,
         stats: FunctionStats
-    ) => Promise<CostBreakdown>;
+    ) => Promise<costAnalyzer.CostBreakdown>;
 
     callFunction(
         state: State,
