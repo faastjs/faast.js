@@ -135,12 +135,12 @@ export const CommonMemorySizes = GoogleCloudFunctionsMemorySizes.filter(size =>
 
 export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
     const rv: CostAnalyzerConfiguration[] = [];
-    for (const useQueue of [true, false]) {
-        for (const memorySize of AWSLambdaMemorySizes) {
+    for (const memorySize of AWSLambdaMemorySizes) {
+        for (const useQueue of [true, false]) {
             rv.push({
                 cloudProvider: "aws",
                 repetitions: 10,
-                options: { useQueue, memorySize },
+                options: { useQueue, memorySize, timeout: 120 },
                 repetitionConcurrency: 10
             });
         }
@@ -150,12 +150,12 @@ export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
 
 export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
     const rv: CostAnalyzerConfiguration[] = [];
-    for (const useQueue of [true, false]) {
-        for (const memorySize of GoogleCloudFunctionsMemorySizes) {
+    for (const memorySize of GoogleCloudFunctionsMemorySizes) {
+        for (const useQueue of [true, false]) {
             rv.push({
                 cloudProvider: "google",
                 repetitions: 10,
-                options: { useQueue, memorySize },
+                options: { useQueue, memorySize, timeout: 120 },
                 repetitionConcurrency: 10
             });
         }
@@ -169,6 +169,7 @@ export interface CostAnalysisProfile {
     costEstimate: CostBreakdown;
     stats: FunctionStats;
     counters: FunctionCounters;
+    config: CostAnalyzerConfiguration;
 }
 
 const ps = (stat: Statistics) => (stat.mean / 1000).toFixed(3);
@@ -192,7 +193,7 @@ async function estimate<T>(
     const costEstimate = await cloudFunction.costEstimate();
     const stats = cloudFunction.functionStats.aggregate;
     const counters = cloudFunction.functionCounters.aggregate;
-    return { cloudProvider, options, costEstimate, stats, counters };
+    return { cloudProvider, options, costEstimate, stats, counters, config };
 }
 
 export async function estimateWorkloadCost<T>(
@@ -214,16 +215,20 @@ export async function estimateWorkloadCost<T>(
         promises.map((promise, i) => {
             const {
                 cloudProvider,
-                options: { memorySize, useQueue }
+                options: { memorySize, useQueue },
+                repetitions
             } = configurations[i];
 
             return {
                 title: `${cloudProvider} ${memorySize}MB ${useQueue ? "queue" : "https"}`,
                 task: async (_: any, task: Listr.ListrTaskWrapper) => {
                     const est = await promise;
-                    task.title = `${task.title} ${ps(
-                        est.stats.executionLatency
-                    )}s $${est.costEstimate.total().toFixed(8)}`;
+                    const total = (est.costEstimate.total() / repetitions).toFixed(8);
+                    const { errors } = est.counters;
+                    const message = `${ps(est.stats.executionLatency)}s $${total}`;
+                    const errMessage = errors > 0 ? ` (${errors} errors)` : "";
+
+                    task.title = `${task.title} ${message}${errMessage}`;
                 }
             };
         }),
@@ -241,9 +246,9 @@ export function toCSV(profile: CostAnalysisProfile[]) {
     rv += `cloud,memory,useQueue,options,completed,errors,retries,cost,executionLatency,billedTime\n`;
     profile.forEach(r => {
         const { memorySize, useQueue, ...rest } = r.options;
-        const cost = r.costEstimate.total().toFixed(8);
         const options = `"${inspect(rest).replace('"', '""')}"`;
         const { completed, errors, retries } = r.counters;
+        const cost = (r.costEstimate.total() / r.config.repetitions).toFixed(8);
 
         rv += `${
             r.cloudProvider

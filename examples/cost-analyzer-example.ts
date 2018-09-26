@@ -8,10 +8,11 @@ async function workload(remote: Promisified<typeof m>) {
 
 async function compareIntersection() {
     costAnalyzer.estimateWorkloadCost(require.resolve("./module"), workload, [
-        ...costAnalyzer.awsConfigurations.filter(c =>
-            costAnalyzer.GoogleCloudFunctionsMemorySizes.find(
-                sz => c.options.memorySize === sz
-            )
+        ...costAnalyzer.awsConfigurations.filter(
+            c =>
+                costAnalyzer.GoogleCloudFunctionsMemorySizes.find(
+                    sz => c.options.memorySize === sz
+                ) || c.options.memorySize === 1728
         ),
         ...costAnalyzer.googleConfigurations
     ]);
