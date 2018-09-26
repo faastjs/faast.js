@@ -15,7 +15,7 @@ beforeAll(async () => {
             memorySize: 1024
         });
         await func.setConcurrency(1);
-        remote = func.cloudifyAll(funcs);
+        remote = func.cloudifyModule(funcs);
     } catch (err) {
         warn(err);
     }

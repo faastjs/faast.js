@@ -91,10 +91,10 @@ export class Cloud<O extends CommonOptions, S> {
         return this.impl.pack(resolve(fmodule), options);
     }
 
-    async createFunction(fmodule: string, options?: O): Promise<CloudFunction<O, S>> {
+    async createFunction(modulePath: string, options?: O): Promise<CloudFunction<O, S>> {
         return new CloudFunction(
             this.impl.getFunctionImpl(),
-            await this.impl.initialize(resolve(fmodule), options),
+            await this.impl.initialize(resolve(modulePath), options),
             options
         );
     }
@@ -398,6 +398,16 @@ export class CloudFunction<O extends CommonOptions, S> {
         return this.impl.setConcurrency(this.state, maxConcurrentExecutions);
     }
 
+    cloudifyModule<M>(fmodule: M): Promisified<M> {
+        const rv: any = {};
+        for (const name of Object.keys(fmodule)) {
+            if (typeof fmodule[name] === "function") {
+                rv[name] = this.cloudifyFunction(fmodule[name]);
+            }
+        }
+        return rv;
+    }
+
     cloudifyWithResponse<A extends any[], R>(
         fn: (...args: A) => R
     ): ResponsifiedFunction<A, R> {
@@ -437,7 +447,9 @@ export class CloudFunction<O extends CommonOptions, S> {
         return responsifedFunc;
     }
 
-    cloudify<A extends any[], R>(fn: (...args: A) => R): PromisifiedFunction<A, R> {
+    cloudifyFunction<A extends any[], R>(
+        fn: (...args: A) => R
+    ): PromisifiedFunction<A, R> {
         const cloudifiedFunc = async (...args: A) => {
             const cfn = this.cloudifyWithResponse(fn);
             const response: Response<R> = await cfn(...args);
@@ -447,26 +459,6 @@ export class CloudFunction<O extends CommonOptions, S> {
             return response.value;
         };
         return cloudifiedFunc as any;
-    }
-
-    cloudifyAll<M extends object>(fmodule: M): Promisified<M> {
-        const rv: any = {};
-        for (const name of Object.keys(fmodule)) {
-            if (typeof fmodule[name] === "function") {
-                rv[name] = this.cloudify(fmodule[name]);
-            }
-        }
-        return rv;
-    }
-
-    cloudifyAllWithResponse<M>(fmodule: M): Responsified<M> {
-        const rv: any = {};
-        for (const name of Object.keys(fmodule)) {
-            if (typeof fmodule[name] === "function") {
-                rv[name] = this.cloudifyWithResponse(fmodule[name]);
-            }
-        }
-        return rv;
     }
 
     setLogger(logger: Logger | undefined) {
@@ -559,6 +551,53 @@ export function create(cloudName: CloudProvider): Cloud<any, any> {
         return new Immediate();
     }
     return assertNever(cloudName);
+}
+
+export type Cloudified<O extends CommonOptions, S, M extends object> = Promisified<M> & {
+    __cloudify: CloudFunction<O, S>;
+};
+
+export function cloudify<M extends object>(
+    cloudName: "aws",
+    fmodule: M,
+    modulePath: string,
+    options?: aws.Options
+): Promise<Cloudified<aws.Options, aws.State, M>>;
+export function cloudify<M extends object>(
+    cloudName: "google" | "google-emulator",
+    fmodule: M,
+    modulePath: string,
+    options?: google.Options
+): Promise<Cloudified<google.Options, google.State, M>>;
+export function cloudify<M extends object>(
+    cloudName: "childprocess",
+    fmodule: M,
+    modulePath: string,
+    options?: google.Options
+): Promise<Cloudified<childprocess.Options, childprocess.State, M>>;
+export function cloudify<M extends object>(
+    cloudName: "immediate",
+    fmodule: M,
+    modulePath: string,
+    options?: google.Options
+): Promise<Cloudified<immediate.Options, immediate.State, M>>;
+export function cloudify<O extends CommonOptions, S, M extends object>(
+    cloudName: CloudProvider,
+    fmodule: M,
+    modulePath: string,
+    options?: google.Options
+): Promise<Cloudified<O, S, M>>;
+export async function cloudify<O extends CommonOptions, S, M extends object>(
+    cloudProvider: CloudProvider,
+    fmodule: M,
+    modulePath: string,
+    options?: O
+): Promise<Cloudified<O, S, M>> {
+    const cloud = create(cloudProvider);
+    const func = await cloud.createFunction(modulePath, options);
+    const remote: any = func.cloudifyModule(fmodule);
+    remote["__cloudify"] = func;
+    return remote;
 }
 
 export interface CloudImpl<O, S> {

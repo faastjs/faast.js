@@ -79,7 +79,7 @@ async function estimate<T>(
 ): Promise<CostAnalysisProfile> {
     const cloud = create(cloudProvider);
     const cloudFunction = await cloud.createFunction(fmodule, options);
-    const remote = cloudFunction.cloudifyAll(require(fmodule)) as Promisified<T>;
+    const remote = cloudFunction.cloudifyModule(require(fmodule)) as Promisified<T>;
     const funnel = new Funnel<void | Error>(concurrency);
     const results = [];
     for (let i = 0; i < repetitions; i++) {

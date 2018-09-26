@@ -7,7 +7,7 @@ checkFunctions("cloudify-immediate basic functions", "immediate", {});
 test("cloudify-immediate cleanup waits for all executions to exit", async () => {
     const cloud = cloudify.create("immediate");
     const func = await cloud.createFunction("./functions");
-    const immediate = func.cloudifyAll(funcs);
+    const immediate = func.cloudifyModule(funcs);
     let done = 0;
     immediate.hello("there").then(_ => done++);
     immediate.delay(10).then(_ => done++);

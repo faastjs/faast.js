@@ -359,7 +359,7 @@ export async function buildModulesOnLambda(
         useQueue: false
     });
     try {
-        const remote = lambda.cloudifyAll(awsNpm);
+        const remote = lambda.cloudifyModule(awsNpm);
         log(`package.json contents:`, packageJsonContents);
         const Key = getS3Key(FunctionName);
 

@@ -33,7 +33,7 @@ export function checkFunctions(
                 options.timeout = 30;
                 options.memorySize = 512;
                 lambda = await cloud.createFunction("./functions", options);
-                remote = lambda.cloudifyAll(funcs);
+                remote = lambda.cloudifyModule(funcs);
                 log(
                     `Function creation took ${((Date.now() - start) / 1000).toFixed(1)}s`
                 );
@@ -177,7 +177,7 @@ export function checkLogs(description: string, cloudProvider: cloudify.CloudProv
                     memorySize: 512
                 };
                 lambda = await cloud.createFunction("./functions", options);
-                remote = lambda.cloudifyAll(funcs);
+                remote = lambda.cloudifyModule(funcs);
             } catch (err) {
                 warn(err);
             }
@@ -244,7 +244,7 @@ export function checkCosts(
                     ...args,
                     ...options
                 });
-                remote = lambda.cloudifyAll(funcs);
+                remote = lambda.cloudifyModule(funcs);
                 lambda.setLogger(console.log);
             } catch (err) {
                 warn(err);

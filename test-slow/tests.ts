@@ -20,7 +20,7 @@ export function coldStartTest(
                 lambda = await cloud.createFunction("./functions", options);
                 lambda.setConcurrency(maxConcurrency);
                 lambda.printStatisticsInterval(1000);
-                remote = lambda.cloudifyAll(funcs);
+                remote = lambda.cloudifyModule(funcs);
             } catch (err) {
                 warn(err);
             }
@@ -80,7 +80,7 @@ export function throughputTest(
                 const cloud = cloudify.create(cloudProvider);
                 lambda = await cloud.createFunction("./functions", options);
                 lambda.printStatisticsInterval(1000);
-                remote = lambda.cloudifyAll(funcs);
+                remote = lambda.cloudifyModule(funcs);
                 // lambda.setLogger(console.log);
             } catch (err) {
                 warn(err);
@@ -132,7 +132,7 @@ export function checkTimeout(
                     ...options,
                     timeout: 3
                 });
-                remote = lambda.cloudifyAll(funcs);
+                remote = lambda.cloudifyModule(funcs);
                 // lambda.setLogger(console.log);
             } catch (err) {
                 warn(err);
@@ -171,7 +171,7 @@ export function checkMemoryLimit(
                     timeout: 200,
                     memorySize: 256
                 });
-                remote = lambda.cloudifyAll(funcs);
+                remote = lambda.cloudifyModule(funcs);
             } catch (err) {
                 warn(err);
             }
