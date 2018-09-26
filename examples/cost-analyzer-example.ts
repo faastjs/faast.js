@@ -6,7 +6,7 @@ async function workload(remote: Promisified<typeof m>) {
     await remote.randomNumbers(20000000);
 }
 
-async function main() {
+async function compareIntersection() {
     costAnalyzer.estimateWorkloadCost(require.resolve("./module"), workload, [
         ...costAnalyzer.awsConfigurations.filter(c =>
             costAnalyzer.GoogleCloudFunctionsMemorySizes.find(
@@ -17,4 +17,12 @@ async function main() {
     ]);
 }
 
-main();
+async function compareAws() {
+    costAnalyzer.estimateWorkloadCost(require.resolve("./module"), workload, [
+        ...costAnalyzer.awsConfigurations.filter(c => c.options.useQueue === false)
+    ]);
+}
+
+compareAws();
+
+// compareIntersection();
