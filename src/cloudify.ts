@@ -553,9 +553,10 @@ export function create(cloudName: CloudProvider): Cloud<any, any> {
     return assertNever(cloudName);
 }
 
-export type Cloudified<O extends CommonOptions, S, M extends object> = Promisified<M> & {
-    __cloudify: CloudFunction<O, S>;
-};
+export interface Cloudified<O extends CommonOptions, S, M extends object> {
+    remote: Promisified<M>;
+    cloudFunc: CloudFunction<O, S>;
+}
 
 export function cloudify<M extends object>(
     cloudName: "aws",
@@ -594,10 +595,9 @@ export async function cloudify<O extends CommonOptions, S, M extends object>(
     options?: O
 ): Promise<Cloudified<O, S, M>> {
     const cloud = create(cloudProvider);
-    const func = await cloud.createFunction(modulePath, options);
-    const remote: any = func.cloudifyModule(fmodule);
-    remote["__cloudify"] = func;
-    return remote;
+    const cloudFunc = await cloud.createFunction(modulePath, options);
+    const remote = cloudFunc.cloudifyModule(fmodule);
+    return { remote, cloudFunc };
 }
 
 export interface CloudImpl<O, S> {
