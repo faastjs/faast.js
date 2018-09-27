@@ -5,8 +5,10 @@ async function main() {
     const { cloudFunc, remote } = await cloudify("aws", m, "./module");
 
     const result = await remote.hello("there");
+    const cost = await cloudFunc.costEstimate();
 
-    console.log(`Result: ${result}`);
+    console.log(`Result: ${result}\n`);
+    console.log(`${cost}`);
     await cloudFunc.cleanup();
 }
 
