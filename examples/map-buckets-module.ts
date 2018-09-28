@@ -8,7 +8,7 @@ export async function processBucketObject(Bucket: string, Key: string) {
     const result = await s3.getObject({ Bucket, Key }).promise();
     const extract: tarstream.Extract = tarstream.extract();
     const headers: tarstream.Headers[] = [];
-    extract.on("entry", (header, strm, next) => {
+    extract.on("entry", (header, _strm, _next) => {
         headers.push(header);
     });
     const readable = new stream.Readable();

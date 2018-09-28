@@ -309,4 +309,8 @@ export class RateLimitedFunnel<T> {
     allFutures() {
         return this.funnel.allFutures();
     }
+
+    all() {
+        return this.funnel.all();
+    }
 }

@@ -64,7 +64,6 @@ export class AWSMetrics {
 export interface AWSResources {
     FunctionName: string;
     RoleName: string;
-    logGroupName: string;
     region: string;
     ResponseQueueUrl?: string;
     ResponseQueueArn?: string;
@@ -197,52 +196,18 @@ async function createLambdaRole(
     const roleResponse = await iam.createRole(roleParams).promise();
     log(`Attaching role policy`);
     await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
-    // const noCreateLogGroupPolicy = `cloudify-deny-create-log-group-policy`;
-    // await addNoCreateLogPolicyToRole(RoleName, noCreateLogGroupPolicy, services);
     return roleResponse.Role.Arn;
 }
 
-async function addNoCreateLogPolicyToRole(
-    RoleName: string,
-    PolicyName: string,
-    services: AWSServices
+async function addLogRetentionPolicy(
+    FunctionName: string,
+    cloudwatch: aws.CloudWatchLogs
 ) {
-    const { iam } = services;
-    log(`Adding inline policy to not allow log group creation to role "${RoleName}"`);
-    const NoCreateLogGroupPolicy = JSON.stringify({
-        Version: "2012-10-17",
-        Statement: [
-            {
-                Resource: "*",
-                Action: "logs:CreateLogGroup",
-                Effect: "Deny"
-            }
-        ]
-    });
-
-    await iam
-        .putRolePolicy({
-            RoleName,
-            PolicyName,
-            PolicyDocument: NoCreateLogGroupPolicy
-        })
-        .promise();
-}
-
-// XXX Don't create log group, just apply the retention policy to it after the fact. Try to delete it at cleanup...
-async function createLogGroup(logGroupName: string, services: AWSServices) {
-    const { cloudwatch } = services;
-    log(`Creating log group: ${logGroupName}`);
-    const response = await quietly(cloudwatch.createLogGroup({ logGroupName }));
-    if (response) {
-        log(`Adding retention policy to log group`);
-        await carefully(
-            cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 })
-        );
-    } else {
-        // warn(`Log group could not be created, proceeding without logs.`);
-    }
-    return response;
+    const logGroupName = getLogGroupName(FunctionName);
+    const response = quietly(
+        cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 })
+    );
+    return response !== undefined;
 }
 
 export async function pollAWSRequest<T>(
@@ -413,7 +378,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     const services = createAWSApis(region);
     const { lambda, s3, iam } = services;
     const FunctionName = `cloudify-${nonce}`;
-    const logGroupName = getLogGroupName(FunctionName);
 
     async function createFunction(Code: aws.Lambda.FunctionCode, Role: string) {
         const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
@@ -460,7 +424,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         resources: {
             FunctionName,
             RoleName,
-            logGroupName,
             region
         },
         services,
@@ -471,8 +434,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
     };
 
     try {
-        const logGroupPromise = createLogGroup(logGroupName, services);
-
         log(`Creating function`);
         const rolePromise = createRoleFunnel.pushMemoizedRetry(3, RoleName, () =>
             createLambdaRole(RoleName, PolicyArn, services)
@@ -492,11 +453,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             requestAwsPrices(services.pricing, region)
         );
 
-        const promises: Promise<any>[] = [
-            logGroupPromise,
-            createFunctionPromise,
-            pricingPromise
-        ];
+        const promises: Promise<any>[] = [createFunctionPromise, pricingPromise];
 
         if (useQueue) {
             promises.push(
@@ -643,7 +600,6 @@ export async function cleanup(state: PartialState) {
     const {
         FunctionName,
         RoleName,
-        logGroupName,
         region,
         RequestTopicArn,
         ResponseQueueUrl,
@@ -665,10 +621,6 @@ export async function cleanup(state: PartialState) {
     if (FunctionName) {
         log(`Deleting function: ${FunctionName}`);
         await quietly(lambda.deleteFunction({ FunctionName }));
-    }
-    if (logGroupName) {
-        log(`Deleting log group: ${logGroupName}`);
-        await quietly(cloudwatch.deleteLogGroup({ logGroupName }));
     }
     if (RoleName) {
         // Don't delete cached role. It may be in use by other instances of cloudify.
@@ -695,8 +647,6 @@ export async function cleanup(state: PartialState) {
     await stopPromise;
     log(`Cleanup done`);
 }
-
-const garbageCollectionFunnel = new MemoFunnel<string>(1);
 
 export async function findCloudifyLogGroups(cloudwatch: aws.CloudWatchLogs) {
     const emptyLogGroups: aws.CloudWatchLogs.LogGroup[] = [];
@@ -729,6 +679,15 @@ async function getAccountId(iam: aws.IAM) {
     return arn.split(":")[4];
 }
 
+const garbageCollectionFunnel = new MemoFunnel<string>(1);
+
+const logRetentionFunnel = new RateLimitedFunnel<void>({
+    maxConcurrency: 5,
+    targetRequestsPerSecond: 2,
+    maxBurst: 2
+});
+
+// XXX need to stop garbage collection if cloudify ends? Split the work up into pieces and clear -- when?
 export async function processLogGroups(
     services: AWSServices,
     logGroups: aws.CloudWatchLogs.LogGroup[],
@@ -749,20 +708,15 @@ export async function processLogGroups(
     const logGroupsMissingRetentionPolicy = logGroups.filter(
         g => g.retentionInDays === undefined
     );
-    const gcFunnel = new RateLimitedFunnel<void>({
-        maxConcurrency: 5,
-        targetRequestsPerSecond: 2,
-        maxBurst: 2
-    });
     logGroupsMissingRetentionPolicy.forEach(g =>
-        gcFunnel.push(() =>
-            quietly(
+        logRetentionFunnel.push(async () => {
+            await quietly(
                 cloudwatch.putRetentionPolicy({
                     logGroupName: g.logGroupName!,
                     retentionInDays
                 })
-            ).then(_ => {})
-        )
+            );
+        })
     );
 
     const garbage = logGroups
@@ -774,11 +728,13 @@ export async function processLogGroups(
         )
         .map(g => g.logGroupName!);
 
+    function functionNameFromLogGroup(logGroupName: string) {
+        const match = logGroupName.match(/\/aws\/lambda\/(cloudify-[a-f0-9-]+)/);
+        return match && match[1];
+    }
+
     const garbageFunctions = garbage
-        .map(g => {
-            const match = g.match(/\/aws\/lambda\/(cloudify-[a-f0-9-]+)/);
-            return (match && match[1]) || "";
-        })
+        .map(g => functionNameFromLogGroup(g)!)
         .filter(n => n !== "");
 
     const accountId = await getAccountId(services.iam);
@@ -787,7 +743,6 @@ export async function processLogGroups(
     garbageFunctions.forEach(FunctionName => {
         const resources: AWSResources = {
             FunctionName,
-            logGroupName: getLogGroupName(FunctionName),
             region,
             RoleName: "",
             RequestTopicArn: getSNSTopicArn(region, accountId, FunctionName),
@@ -795,7 +750,11 @@ export async function processLogGroups(
             s3Bucket,
             s3Key: getS3Key(FunctionName)
         };
-        garbageCollectionFunnel.push(() => cleanup({ services, resources }));
+        garbageCollectionFunnel.push(async () => {
+            await cleanup({ services, resources });
+            const logGroupName = getLogGroupName(FunctionName);
+            await quietly(cloudwatch.deleteLogGroup({ logGroupName }));
+        });
     });
 }
 
@@ -986,7 +945,7 @@ async function* readLogsRaw(
 
 async function outputCurrentLogs(state: State) {
     const logStream = readLogsRaw(
-        state.resources.logGroupName,
+        getLogGroupName(state.resources.FunctionName),
         state.services.cloudwatch,
         state.logStitcher,
         state.metrics
@@ -1007,7 +966,9 @@ async function outputCurrentLogs(state: State) {
 async function outputLogs(state: State) {
     while (state.logger) {
         const start = Date.now();
-        await outputCurrentLogs(state).catch(_ => {});
+        try {
+            await outputCurrentLogs(state);
+        } catch (err) {}
         if (!state.logger) {
             break;
         }
