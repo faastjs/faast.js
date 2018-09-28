@@ -6,9 +6,11 @@ async function workload(remote: Promisified<typeof m>) {
 }
 
 async function compareAws() {
-    costAnalyzer.estimateWorkloadCost(require.resolve("./module"), workload, [
-        ...costAnalyzer.awsConfigurations.filter(c => c.options.useQueue === false)
-    ]);
+    costAnalyzer.estimateWorkloadCost(
+        require.resolve("./module"),
+        workload,
+        costAnalyzer.awsConfigurations
+    );
 }
 
 compareAws();

@@ -136,14 +136,12 @@ export const CommonMemorySizes = GoogleCloudFunctionsMemorySizes.filter(size =>
 export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
     const rv: CostAnalyzerConfiguration[] = [];
     for (const memorySize of AWSLambdaMemorySizes) {
-        for (const useQueue of [true, false]) {
-            rv.push({
-                cloudProvider: "aws",
-                repetitions: 10,
-                options: { useQueue, memorySize, timeout: 120 },
-                repetitionConcurrency: 10
-            });
-        }
+        rv.push({
+            cloudProvider: "aws",
+            repetitions: 10,
+            options: { useQueue: false, memorySize, timeout: 120 },
+            repetitionConcurrency: 10
+        });
     }
     return rv;
 })();
@@ -151,14 +149,12 @@ export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
 export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
     const rv: CostAnalyzerConfiguration[] = [];
     for (const memorySize of GoogleCloudFunctionsMemorySizes) {
-        for (const useQueue of [true, false]) {
-            rv.push({
-                cloudProvider: "google",
-                repetitions: 10,
-                options: { useQueue, memorySize, timeout: 120 },
-                repetitionConcurrency: 10
-            });
-        }
+        rv.push({
+            cloudProvider: "google",
+            repetitions: 10,
+            options: { useQueue: false, memorySize, timeout: 120 },
+            repetitionConcurrency: 10
+        });
     }
     return rv;
 })();
