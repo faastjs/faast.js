@@ -94,7 +94,7 @@ export function throughputTest(
             "sustained load test",
             async () => {
                 let completed = 0;
-                const nSamplesPerFunction = 2000000;
+                const nSamplesPerFunction = 100000000;
                 const pump = new Pump(concurrency, () =>
                     remote.monteCarloPI(nSamplesPerFunction).then(_ => completed++)
                 );
