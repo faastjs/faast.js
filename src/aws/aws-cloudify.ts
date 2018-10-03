@@ -901,15 +901,17 @@ function addSnsInvokePermissionsToFunction(
     RequestTopicArn: string,
     lambda: aws.Lambda
 ) {
-    return lambda
-        .addPermission({
-            FunctionName,
-            Action: "lambda:invokeFunction",
-            Principal: "sns.amazonaws.com",
-            StatementId: `${FunctionName}-Invoke`,
-            SourceArn: RequestTopicArn
-        })
-        .promise();
+    return retry(3, () =>
+        lambda
+            .addPermission({
+                FunctionName,
+                Action: "lambda:InvokeFunction",
+                Principal: "sns.amazonaws.com",
+                StatementId: `${FunctionName}-Invoke`,
+                SourceArn: RequestTopicArn
+            })
+            .promise()
+    );
 }
 
 async function* readLogsRaw(
