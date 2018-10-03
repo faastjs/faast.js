@@ -91,6 +91,7 @@ export interface State {
     resources: AWSResources;
     services: AWSServices;
     callFunnel: Funnel<AWSInvocationResponse>;
+    gcFunnel: Funnel;
     queueState?: AWSCloudQueueState;
     logStitcher: LogStitcher;
     logger?: Logger;
@@ -648,29 +649,41 @@ export async function cleanup(state: PartialState) {
     log(`Cleanup done`);
 }
 
-export async function findCloudifyLogGroups(cloudwatch: aws.CloudWatchLogs) {
-    const emptyLogGroups: aws.CloudWatchLogs.LogGroup[] = [];
+let garbageCollectorRunning = false;
 
-    await new Promise((resolve, reject) => {
-        cloudwatch
+async function gc(state: State) {
+    const promises: Promise<void>[] = [];
+    if (garbageCollectorRunning) {
+        return;
+    }
+    garbageCollectorRunning = true;
+    const {
+        services,
+        resources: { region },
+        gcFunnel
+    } = state;
+    await new Promise((resolve, reject) =>
+        state.services.cloudwatch
             .describeLogGroups({ logGroupNamePrefix: "/aws/lambda/cloudify-" })
             .eachPage((err, page) => {
                 if (err) {
-                    warn(
-                        `Could not garbage collect, failed when describing log groups: ${err}`
-                    );
+                    warn(`Error when describing log groups ${err}`);
                     reject(err);
                     return false;
                 }
                 if (page === null) {
-                    resolve(emptyLogGroups);
-                } else {
-                    emptyLogGroups.push(...(page.logGroups || []));
+                    resolve();
+                } else if (page.logGroups) {
+                    promises.push(
+                        gcFunnel.push(() =>
+                            collectGarbage(services, page.logGroups!, 1, region)
+                        )
+                    );
                 }
                 return true;
-            });
-    });
-    return emptyLogGroups;
+            })
+    );
+    return Promise.all(promises);
 }
 
 async function getAccountId(iam: aws.IAM) {
@@ -687,8 +700,7 @@ const logRetentionFunnel = new RateLimitedFunnel<void>({
     maxBurst: 2
 });
 
-// XXX need to stop garbage collection if cloudify ends? Split the work up into pieces and clear -- when?
-export async function processLogGroups(
+export async function collectGarbage(
     services: AWSServices,
     logGroups: aws.CloudWatchLogs.LogGroup[],
     retentionInDays: number,
