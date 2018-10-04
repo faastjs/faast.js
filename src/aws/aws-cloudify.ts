@@ -15,7 +15,7 @@ import {
     Logger
 } from "../cloudify";
 import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
-import { log, warn } from "../log";
+import { log, warn, gc } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import { chomp, computeHttpResponseBytes, LogStitcher, sleep } from "../shared";
@@ -97,6 +97,7 @@ export interface State {
     logger?: Logger;
     options: Options;
     metrics: AWSMetrics;
+    gcPromise?: Promise<void>;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -429,6 +430,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         },
         services,
         callFunnel: new Funnel(),
+        gcFunnel: new Funnel(),
         logStitcher: new LogStitcher(),
         metrics: new AWSMetrics(),
         options
@@ -489,6 +491,8 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         }
         await Promise.all(promises);
         log(`Lambda function initialization complete.`);
+        gc(`Starting garbage collector`);
+        state.gcPromise = collectGarbage(state);
         return state;
     } catch (err) {
         warn(`ERROR: ${err}`);
@@ -597,7 +601,7 @@ export async function deleteRole(RoleName: string, iam: aws.IAM) {
 
 export type PartialState = Partial<State> & Pick<State, "services" | "resources">;
 
-export async function cleanup(state: PartialState) {
+async function deleteResources(resources: AWSResources, services: AWSServices) {
     const {
         FunctionName,
         RoleName,
@@ -609,16 +613,14 @@ export async function cleanup(state: PartialState) {
         s3Bucket,
         s3Key,
         ...rest
-    } = state.resources;
+    } = resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
 
-    const { cloudwatch, lambda, sqs, sns, s3 } = state.services;
-    log(`Cleaning up cloudify state`);
+    const { lambda, sqs, sns, s3 } = services;
     if (SNSLambdaSubscriptionArn) {
         log(`Deleting request queue subscription to lambda`);
         await quietly(sns.unsubscribe({ SubscriptionArn: SNSLambdaSubscriptionArn }));
     }
-    const stopPromise = stop(state);
     if (FunctionName) {
         log(`Deleting function: ${FunctionName}`);
         await quietly(lambda.deleteFunction({ FunctionName }));
@@ -644,14 +646,21 @@ export async function cleanup(state: PartialState) {
             })
         );
     }
+}
+
+export async function cleanup(state: PartialState) {
+    log(`Cleaning up cloudify state`);
+    const stopPromise = stop(state);
+    const deletePromise = deleteResources(state.resources, state.services);
     log(`Awaiting stop promise`);
     await stopPromise;
+    await deletePromise;
     log(`Cleanup done`);
 }
 
 let garbageCollectorRunning = false;
 
-async function gc(state: State) {
+async function collectGarbage(state: State) {
     const promises: Promise<void>[] = [];
     if (garbageCollectorRunning) {
         return;
@@ -676,14 +685,19 @@ async function gc(state: State) {
                 } else if (page.logGroups) {
                     promises.push(
                         gcFunnel.push(() =>
-                            collectGarbage(services, page.logGroups!, 1, region)
+                            collectGarbageForLogGroups(
+                                services,
+                                page.logGroups!,
+                                1,
+                                region
+                            )
                         )
                     );
                 }
                 return true;
             })
     );
-    return Promise.all(promises);
+    await Promise.all(promises);
 }
 
 async function getAccountId(iam: aws.IAM) {
@@ -700,7 +714,7 @@ const logRetentionFunnel = new RateLimitedFunnel<void>({
     maxBurst: 2
 });
 
-export async function collectGarbage(
+export async function collectGarbageForLogGroups(
     services: AWSServices,
     logGroups: aws.CloudWatchLogs.LogGroup[],
     retentionInDays: number,
@@ -708,7 +722,7 @@ export async function collectGarbage(
 ) {
     const { cloudwatch } = services;
     logGroups.forEach(g =>
-        log(
+        gc(
             `GC: ${g.logGroupName}, created: ${new Date(
                 g.creationTime!
             ).toLocaleString()}, bytes: ${
@@ -727,6 +741,9 @@ export async function collectGarbage(
                     logGroupName: g.logGroupName!,
                     retentionInDays
                 })
+            );
+            gc(
+                `Added retention policy of ${retentionInDays} day(s) to ${g.logGroupName}`
             );
         })
     );
@@ -763,9 +780,9 @@ export async function collectGarbage(
             s3Key: getS3Key(FunctionName)
         };
         garbageCollectionFunnel.push(async () => {
-            await cleanup({ services, resources });
+            await deleteResources(resources, services);
             const logGroupName = getLogGroupName(FunctionName);
-            await quietly(cloudwatch.deleteLogGroup({ logGroupName }));
+            await carefully(cloudwatch.deleteLogGroup({ logGroupName }));
         });
     });
 }
@@ -808,6 +825,9 @@ export async function stop(state: PartialState) {
             .forEach(p => p.reject(new Error("Rejected pending request")));
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
+    }
+    if (state.gcPromise) {
+        await state.gcPromise;
     }
     return JSON.stringify(state.resources);
 }
