@@ -201,17 +201,6 @@ async function createLambdaRole(
     return roleResponse.Role.Arn;
 }
 
-async function addLogRetentionPolicy(
-    FunctionName: string,
-    cloudwatch: aws.CloudWatchLogs
-) {
-    const logGroupName = getLogGroupName(FunctionName);
-    const response = quietly(
-        cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 })
-    );
-    return response !== undefined;
-}
-
 export async function pollAWSRequest<T>(
     n: number,
     description: string,
@@ -601,7 +590,11 @@ export async function deleteRole(RoleName: string, iam: aws.IAM) {
 
 export type PartialState = Partial<State> & Pick<State, "services" | "resources">;
 
-async function deleteResources(resources: AWSResources, services: AWSServices) {
+async function deleteResources(
+    resources: AWSResources,
+    services: AWSServices,
+    output: (msg: string) => void = log
+) {
     const {
         FunctionName,
         RoleName,
@@ -618,44 +611,63 @@ async function deleteResources(resources: AWSResources, services: AWSServices) {
 
     const { lambda, sqs, sns, s3 } = services;
     if (SNSLambdaSubscriptionArn) {
-        log(`Deleting request queue subscription to lambda`);
-        await quietly(sns.unsubscribe({ SubscriptionArn: SNSLambdaSubscriptionArn }));
+        if (
+            await quietly(sns.unsubscribe({ SubscriptionArn: SNSLambdaSubscriptionArn }))
+        ) {
+            output(`Deleted request queue subscription to lambda`);
+        }
     }
     if (FunctionName) {
-        log(`Deleting function: ${FunctionName}`);
-        await quietly(lambda.deleteFunction({ FunctionName }));
+        if (await quietly(lambda.deleteFunction({ FunctionName }))) {
+            output(`Deleted function: ${FunctionName}`);
+        }
     }
     if (RoleName) {
         // Don't delete cached role. It may be in use by other instances of cloudify.
         // await deleteRole(RoleName, iam);
     }
     if (RequestTopicArn) {
-        log(`Deleting request queue topic: ${RequestTopicArn}`);
-        await quietly(sns.deleteTopic({ TopicArn: RequestTopicArn }));
+        if (await quietly(sns.deleteTopic({ TopicArn: RequestTopicArn }))) {
+            output(`Deleted request queue topic: ${RequestTopicArn}`);
+        }
     }
     if (ResponseQueueUrl) {
-        log(`Deleting response queue: ${ResponseQueueUrl}`);
-        await quietly(sqs.deleteQueue({ QueueUrl: ResponseQueueUrl }));
+        if (await quietly(sqs.deleteQueue({ QueueUrl: ResponseQueueUrl }))) {
+            output(`Deleted response queue: ${ResponseQueueUrl}`);
+        }
     }
     if (s3Bucket && s3Key) {
-        log(`Deleting S3 Key: ${s3Key} in Bucket: ${s3Bucket}`);
-        await quietly(
-            s3.deleteObject({
-                Bucket: s3Bucket,
-                Key: s3Key
-            })
-        );
+        const deleteKey = quietly(s3.deleteObject({ Bucket: s3Bucket, Key: s3Key }));
+        if (await deleteKey) {
+            output(`Deleted S3 Key: ${s3Key} in Bucket: ${s3Bucket}`);
+        }
+    }
+}
+
+async function addLogRetentionPolicy(
+    FunctionName: string,
+    cloudwatch: aws.CloudWatchLogs
+) {
+    const logGroupName = getLogGroupName(FunctionName);
+    const response = carefully(
+        cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 })
+    );
+    if (response !== undefined) {
+        log(`Added 1 day retention policy to log group ${logGroupName}`);
     }
 }
 
 export async function cleanup(state: PartialState) {
-    log(`Cleaning up cloudify state`);
-    const stopPromise = stop(state);
-    const deletePromise = deleteResources(state.resources, state.services);
-    log(`Awaiting stop promise`);
-    await stopPromise;
-    await deletePromise;
-    log(`Cleanup done`);
+    await stop(state);
+    log(`Cleaning up cloudify infrastructure for ${state.resources.FunctionName}...`);
+    await deleteResources(state.resources, state.services);
+    await addLogRetentionPolicy(state.resources.FunctionName, state.services.cloudwatch);
+    log(`Cleanup done.`);
+    if (state.gcPromise) {
+        log(`Waiting for garbage collection...`);
+        await state.gcPromise;
+        log(`Garbage collection done.`);
+    }
 }
 
 let garbageCollectorRunning = false;
@@ -706,9 +718,7 @@ async function getAccountId(iam: aws.IAM) {
     return arn.split(":")[4];
 }
 
-const garbageCollectionFunnel = new MemoFunnel<string>(1);
-
-const logRetentionFunnel = new RateLimitedFunnel<void>({
+const garbageCollectionFunnel = new RateLimitedFunnel({
     maxConcurrency: 5,
     targetRequestsPerSecond: 2,
     maxBurst: 2
@@ -721,31 +731,26 @@ export async function collectGarbageForLogGroups(
     region: string
 ) {
     const { cloudwatch } = services;
-    logGroups.forEach(g =>
-        gc(
-            `GC: ${g.logGroupName}, created: ${new Date(
-                g.creationTime!
-            ).toLocaleString()}, bytes: ${
-                g.storedBytes
-            }, retention: ${g.retentionInDays!}`
-        )
-    );
-
     const logGroupsMissingRetentionPolicy = logGroups.filter(
         g => g.retentionInDays === undefined
     );
-    logGroupsMissingRetentionPolicy.forEach(g =>
-        logRetentionFunnel.push(async () => {
-            await quietly(
-                cloudwatch.putRetentionPolicy({
-                    logGroupName: g.logGroupName!,
-                    retentionInDays
-                })
-            );
-            gc(
-                `Added retention policy of ${retentionInDays} day(s) to ${g.logGroupName}`
-            );
-        })
+
+    await Promise.all(
+        logGroupsMissingRetentionPolicy.map(g =>
+            garbageCollectionFunnel.push(async () => {
+                await carefully(
+                    cloudwatch.putRetentionPolicy({
+                        logGroupName: g.logGroupName!,
+                        retentionInDays
+                    })
+                );
+                gc(
+                    `Added retention policy of ${retentionInDays} day(s) to ${
+                        g.logGroupName
+                    }`
+                );
+            })
+        )
     );
 
     const garbage = logGroups
@@ -769,22 +774,26 @@ export async function collectGarbageForLogGroups(
     const accountId = await getAccountId(services.iam);
     const s3Bucket = await getBucketName(region, services.iam);
 
-    garbageFunctions.forEach(FunctionName => {
-        const resources: AWSResources = {
-            FunctionName,
-            region,
-            RoleName: "",
-            RequestTopicArn: getSNSTopicArn(region, accountId, FunctionName),
-            ResponseQueueUrl: getResponseQueueUrl(region, accountId, FunctionName),
-            s3Bucket,
-            s3Key: getS3Key(FunctionName)
-        };
-        garbageCollectionFunnel.push(async () => {
-            await deleteResources(resources, services);
-            const logGroupName = getLogGroupName(FunctionName);
-            await carefully(cloudwatch.deleteLogGroup({ logGroupName }));
-        });
-    });
+    await Promise.all(
+        garbageFunctions.map(FunctionName => {
+            const resources: AWSResources = {
+                FunctionName,
+                region,
+                RoleName: "",
+                RequestTopicArn: getSNSTopicArn(region, accountId, FunctionName),
+                ResponseQueueUrl: getResponseQueueUrl(region, accountId, FunctionName),
+                s3Bucket,
+                s3Key: getS3Key(FunctionName)
+            };
+            return garbageCollectionFunnel.push(async () => {
+                await deleteResources(resources, services, gc);
+                const logGroupName = getLogGroupName(FunctionName);
+                if (await carefully(cloudwatch.deleteLogGroup({ logGroupName }))) {
+                    gc(`Deleted log group ${logGroupName}`);
+                }
+            });
+        })
+    );
 }
 
 export async function pack(
@@ -825,9 +834,6 @@ export async function stop(state: PartialState) {
             .forEach(p => p.reject(new Error("Rejected pending request")));
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
-    }
-    if (state.gcPromise) {
-        await state.gcPromise;
     }
     return JSON.stringify(state.resources);
 }

@@ -1,8 +1,7 @@
 import * as assert from "assert";
-import { log } from "./log";
 import { sleep } from "./shared";
 
-export class Deferred<T> {
+export class Deferred<T = void> {
     promise: Promise<T>;
     resolve!: (arg?: T) => void;
     reject!: (err?: any) => void;
@@ -14,7 +13,7 @@ export class Deferred<T> {
     }
 }
 
-export class Future<T> extends Deferred<T> {
+export class Future<T = void> extends Deferred<T> {
     constructor(private fn: () => Promise<T>) {
         super();
     }
@@ -130,7 +129,7 @@ export class Funnel<T = void> {
     }
 }
 
-export class Pump<T> extends Funnel<T | void> {
+export class Pump<T = void> extends Funnel<T | void> {
     stopped: boolean = false;
     constructor(maxConcurrency: number, protected worker: () => Promise<T>) {
         super(maxConcurrency);
@@ -208,7 +207,7 @@ export class MemoFunnel<A, T = void> extends Funnel<T> {
     }
 }
 
-export class RateLimiter<T> {
+export class RateLimiter<T = void> {
     protected lastTick = 0;
     protected bucket = 0;
     protected queue: Set<Future<T>> = new Set();
@@ -281,7 +280,7 @@ interface Limits {
     maxBurst?: number;
 }
 
-export class RateLimitedFunnel<T> {
+export class RateLimitedFunnel<T = void> {
     protected funnel: Funnel<T>;
     protected rateLimiter: RateLimiter<T>;
 

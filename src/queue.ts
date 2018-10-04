@@ -85,19 +85,19 @@ export function enqueueCallRequest(
 }
 
 export async function stop(state: State) {
-    log(`Stopping result collector`);
+    log(`Stopping result collectors...`);
     state.collectorPump.stop();
-    log(`Stopping error collector`);
     clearInterval(state.retryTimer);
+
     rejectAll(state.callResultsPending);
     let count = 0;
     const tasks = [];
-    log(`Sending stopqueue messages to collectors`);
     while (state.collectorPump.getConcurrency() > 0 && count++ < 100) {
         tasks.push(state.publishReceiveQueueControlMessage("stopqueue"));
         await sleep(100);
     }
     await Promise.all(tasks);
+    log(`Result collectors stopped.`);
 }
 
 async function resultCollector<M>(state: StateWithMessageType<M>) {
