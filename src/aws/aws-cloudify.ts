@@ -91,7 +91,6 @@ export interface State {
     resources: AWSResources;
     services: AWSServices;
     callFunnel: Funnel<AWSInvocationResponse>;
-    gcFunnel: Funnel;
     queueState?: AWSCloudQueueState;
     logStitcher: LogStitcher;
     logger?: Logger;
@@ -419,11 +418,13 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         },
         services,
         callFunnel: new Funnel(),
-        gcFunnel: new Funnel(),
         logStitcher: new LogStitcher(),
         metrics: new AWSMetrics(),
         options
     };
+
+    log(`Starting garbage collector`);
+    state.gcPromise = collectGarbage(state);
 
     try {
         log(`Creating function`);
@@ -480,8 +481,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         }
         await Promise.all(promises);
         log(`Lambda function initialization complete.`);
-        gc(`Starting garbage collector`);
-        state.gcPromise = collectGarbage(state);
         return state;
     } catch (err) {
         warn(`ERROR: ${err}`);
@@ -609,7 +608,7 @@ async function deleteResources(
     } = resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
 
-    const { lambda, sqs, sns, s3 } = services;
+    const { lambda, sqs, sns, s3, cloudwatch } = services;
     if (SNSLambdaSubscriptionArn) {
         if (
             await quietly(sns.unsubscribe({ SubscriptionArn: SNSLambdaSubscriptionArn }))
@@ -680,37 +679,62 @@ async function collectGarbage(state: State) {
     garbageCollectorRunning = true;
     const {
         services,
-        resources: { region },
-        gcFunnel
+        resources: { region }
     } = state;
-    await new Promise((resolve, reject) =>
-        state.services.cloudwatch
-            .describeLogGroups({ logGroupNamePrefix: "/aws/lambda/cloudify-" })
-            .eachPage((err, page) => {
+    const gcFunnel = new Funnel(1);
+    try {
+        await new Promise((resolve, reject) =>
+            state.services.cloudwatch
+                .describeLogGroups({ logGroupNamePrefix: "/aws/lambda/cloudify-" })
+                .eachPage((err, page) => {
+                    if (err) {
+                        warn(`GC: Error when describing log groups: ${err}`);
+                        reject(err);
+                        return false;
+                    }
+                    if (page === null) {
+                        resolve();
+                    } else if (page.logGroups) {
+                        promises.push(
+                            gcFunnel.push(() =>
+                                collectGarbageForLogGroups(
+                                    services,
+                                    page.logGroups!,
+                                    1,
+                                    region
+                                )
+                            )
+                        );
+                    }
+                    return true;
+                })
+        );
+        await new Promise((resolve, reject) =>
+            state.services.lambda.listFunctions().eachPage((err, page) => {
                 if (err) {
-                    warn(`Error when describing log groups ${err}`);
+                    warn(`GC: Error listing lambda functions: ${err}`);
                     reject(err);
                     return false;
                 }
                 if (page === null) {
                     resolve();
-                } else if (page.logGroups) {
-                    promises.push(
-                        gcFunnel.push(() =>
-                            collectGarbageForLogGroups(
-                                services,
-                                page.logGroups!,
-                                1,
-                                region
-                            )
-                        )
+                } else {
+                    const funcs = (page.Functions || []).filter(
+                        fn =>
+                            fn.FunctionName!.match(/^cloudify-/) &&
+                            Date.parse(fn.LastModified!) <
+                                Date.now() - 24 * 60 * 60 * 1000
                     );
+                    await deleteGarbageFunctions(services, region, funcs);
+                    // xxx
+                    promises.push(gcFunnel.push(() => page.Functions![0].FunctionName));
                 }
-                return true;
             })
-    );
-    await Promise.all(promises);
-    garbageCollectorRunning = false;
+        );
+        await Promise.all(promises);
+    } finally {
+        garbageCollectorRunning = false;
+    }
 }
 
 async function getAccountId(iam: aws.IAM) {
@@ -775,9 +799,16 @@ export async function collectGarbageForLogGroups(
         .map(g => functionNameFromLogGroup(g)!)
         .filter(n => n !== "");
 
+    await deleteGarbageFunctions(services, region, garbageFunctions);
+}
+
+async function deleteGarbageFunctions(
+    services: AWSServices,
+    region: string,
+    garbageFunctions: string[]
+) {
     const accountId = await getAccountId(services.iam);
     const s3Bucket = await getBucketName(region, services.iam);
-
     await Promise.all(
         garbageFunctions.map(FunctionName => {
             const resources: AWSResources = {
@@ -792,7 +823,9 @@ export async function collectGarbageForLogGroups(
             return garbageCollectionFunnel.push(async () => {
                 await deleteResources(resources, services, gc);
                 const logGroupName = getLogGroupName(FunctionName);
-                if (await carefully(cloudwatch.deleteLogGroup({ logGroupName }))) {
+                if (
+                    await carefully(services.cloudwatch.deleteLogGroup({ logGroupName }))
+                ) {
                     gc(`Deleted log group ${logGroupName}`);
                 }
             });
