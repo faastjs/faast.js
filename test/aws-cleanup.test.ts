@@ -1,5 +1,6 @@
 import * as aws from "aws-sdk";
 import * as cloudify from "../src/cloudify";
+import { getLogGroupName } from "../src/aws/aws-cloudify";
 
 // Avoid dependency on aws-cloudify module, which can cause a circular
 // dependency on cloudify, and from there, problems with module resolution.
@@ -12,7 +13,6 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
         services: { lambda, iam, cloudwatch, sns, sqs, s3 },
         resources: {
             FunctionName,
-            logGroupName,
             RoleName,
             region,
             SNSLambdaSubscriptionArn,
@@ -32,10 +32,12 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
     );
     expect(functionResult).toBeUndefined();
 
+    const logGroupName = getLogGroupName(FunctionName);
     const logResult = await quietly(
         cloudwatch.describeLogGroups({ logGroupNamePrefix: logGroupName })
     );
-    expect(logResult && logResult.logGroups).toEqual([]);
+    expect(logResult && logResult.logGroups![0].retentionInDays).toEqual(1);
+    await cloudwatch.deleteLogGroup({ logGroupName }).promise();
 
     const roleResult = await quietly(iam.getRole({ RoleName }));
     expect(roleResult && roleResult.Role.RoleName).toBe(RoleName);

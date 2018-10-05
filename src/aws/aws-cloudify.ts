@@ -346,7 +346,7 @@ export async function buildModulesOnLambda(
 
 const priceRequestFunnel = new MemoFunnel<string, AWSPrices>(1);
 
-function getLogGroupName(FunctionName: string) {
+export function getLogGroupName(FunctionName: string) {
     return `/aws/lambda/${FunctionName}`;
 }
 
@@ -649,7 +649,7 @@ async function addLogRetentionPolicy(
     cloudwatch: aws.CloudWatchLogs
 ) {
     const logGroupName = getLogGroupName(FunctionName);
-    const response = carefully(
+    const response = quietly(
         cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 })
     );
     if (response !== undefined) {
@@ -710,6 +710,7 @@ async function collectGarbage(state: State) {
             })
     );
     await Promise.all(promises);
+    garbageCollectorRunning = false;
 }
 
 async function getAccountId(iam: aws.IAM) {
@@ -720,8 +721,8 @@ async function getAccountId(iam: aws.IAM) {
 
 const garbageCollectionFunnel = new RateLimitedFunnel({
     maxConcurrency: 5,
-    targetRequestsPerSecond: 2,
-    maxBurst: 2
+    targetRequestsPerSecond: 5,
+    maxBurst: 5
 });
 
 export async function collectGarbageForLogGroups(
@@ -731,6 +732,7 @@ export async function collectGarbageForLogGroups(
     region: string
 ) {
     const { cloudwatch } = services;
+
     const logGroupsMissingRetentionPolicy = logGroups.filter(
         g => g.retentionInDays === undefined
     );
@@ -738,17 +740,20 @@ export async function collectGarbageForLogGroups(
     await Promise.all(
         logGroupsMissingRetentionPolicy.map(g =>
             garbageCollectionFunnel.push(async () => {
-                await carefully(
-                    cloudwatch.putRetentionPolicy({
-                        logGroupName: g.logGroupName!,
-                        retentionInDays
-                    })
-                );
-                gc(
-                    `Added retention policy of ${retentionInDays} day(s) to ${
-                        g.logGroupName
-                    }`
-                );
+                if (
+                    await quietly(
+                        cloudwatch.putRetentionPolicy({
+                            logGroupName: g.logGroupName!,
+                            retentionInDays
+                        })
+                    )
+                ) {
+                    gc(
+                        `Added retention policy of ${retentionInDays} day(s) to ${
+                            g.logGroupName
+                        }`
+                    );
+                }
             })
         )
     );
@@ -757,7 +762,6 @@ export async function collectGarbageForLogGroups(
         .filter(
             g =>
                 g.creationTime! < Date.now() - retentionInDays * 24 * 60 * 60 * 1000 &&
-                g.retentionInDays !== undefined &&
                 g.storedBytes! === 0
         )
         .map(g => g.logGroupName!);
