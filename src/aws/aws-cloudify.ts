@@ -671,8 +671,12 @@ export async function cleanup(state: PartialState) {
 
 let garbageCollectorRunning = false;
 
+function functionNameFromLogGroup(logGroupName: string) {
+    const match = logGroupName.match(/\/aws\/lambda\/(cloudify-[a-f0-9-]+)/);
+    return match && match[1];
+}
+
 async function collectGarbage(state: State) {
-    const promises: Promise<void>[] = [];
     if (garbageCollectorRunning) {
         return;
     }
@@ -681,8 +685,10 @@ async function collectGarbage(state: State) {
         services,
         resources: { region }
     } = state;
-    const gcFunnel = new Funnel(1);
     try {
+        const gcFunnel = new Funnel(1);
+        const promises: Promise<void>[] = [];
+        const functionsWithLogGroups = new Set();
         await new Promise((resolve, reject) =>
             state.services.cloudwatch
                 .describeLogGroups({ logGroupNamePrefix: "/aws/lambda/cloudify-" })
@@ -695,6 +701,11 @@ async function collectGarbage(state: State) {
                     if (page === null) {
                         resolve();
                     } else if (page.logGroups) {
+                        page.logGroups.forEach(g =>
+                            functionsWithLogGroups.add(
+                                functionNameFromLogGroup(g.logGroupName!)
+                            )
+                        );
                         promises.push(
                             gcFunnel.push(() =>
                                 collectGarbageForLogGroups(
@@ -723,6 +734,7 @@ async function collectGarbage(state: State) {
                         .filter(
                             fn =>
                                 fn.FunctionName!.match(/^cloudify-/) &&
+                                !functionsWithLogGroups.has(fn.FunctionName) &&
                                 Date.parse(fn.LastModified!) <
                                     Date.now() - 24 * 60 * 60 * 1000
                         )
@@ -798,11 +810,6 @@ export async function collectGarbageForLogGroups(
                 g.storedBytes! === 0
         )
         .map(g => g.logGroupName!);
-
-    function functionNameFromLogGroup(logGroupName: string) {
-        const match = logGroupName.match(/\/aws\/lambda\/(cloudify-[a-f0-9-]+)/);
-        return match && match[1];
-    }
 
     const garbageFunctions = garbage
         .map(g => functionNameFromLogGroup(g)!)
