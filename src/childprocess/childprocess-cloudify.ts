@@ -106,7 +106,7 @@ function callFunction(
     const trampolineModule = require.resolve("./childprocess-trampoline");
     return state.callFunnel.push(
         () =>
-            new Promise((resolve, reject) => {
+            new Promise(resolve => {
                 const child = childProcess.fork(trampolineModule, [], {
                     silent: true,
                     execArgv
