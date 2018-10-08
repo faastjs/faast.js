@@ -30,9 +30,8 @@ export function checkFunctions(
             try {
                 const start = Date.now();
                 const cloud = cloudify.create(cloudProvider);
-                options.timeout = 30;
-                options.memorySize = 512;
-                lambda = await cloud.createFunction("./functions", options);
+                const opts = { timeout: 30, memorySize: 512, ...options };
+                lambda = await cloud.createFunction("./functions", opts);
                 remote = lambda.cloudifyModule(funcs);
                 log(
                     `Function creation took ${((Date.now() - start) / 1000).toFixed(1)}s`

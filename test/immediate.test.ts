@@ -2,7 +2,11 @@ import * as cloudify from "../src/cloudify";
 import * as funcs from "./functions";
 import { checkFunctions } from "./tests";
 
-checkFunctions("cloudify-immediate basic functions", "immediate", {});
+checkFunctions("cloudify-immediate basic functions", "immediate", {
+    // Remove these options to avoid unsupported warning.
+    memorySize: undefined,
+    timeout: undefined
+});
 
 test("cloudify-immediate cleanup waits for all executions to exit", async () => {
     const cloud = cloudify.create("immediate");
