@@ -34,8 +34,10 @@ export interface ModuleType {
 export class ModuleWrapper {
     funcs: ModuleType = {};
 
-    constructor() {
-        console.log(`Successful cold start.`);
+    constructor({ logColdStart = true } = {}) {
+        if (logColdStart) {
+            console.log(`Successful cold start.`);
+        }
     }
 
     register(moduleObj: ModuleType) {
