@@ -282,7 +282,7 @@ async function cleanupGoogle({ execute }: CleanupGoogleOptions) {
         }
     }
     const { cloudFunctions, pubsub } = await googleCloudify.initializeGoogleServices();
-    const project = await google.auth.getDefaultProjectId();
+    const project = await google.auth.getProjectId();
     log(`Default project: ${project}`);
 
     output(`Cloud functions`);

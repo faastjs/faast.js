@@ -226,7 +226,7 @@ async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) 
 
 export async function initialize(fmodule: string, options: Options = {}): Promise<State> {
     const services = await initializeGoogleServices();
-    const project = await google.auth.getDefaultProjectId();
+    const project = await google.auth.getProjectId();
     return initializeWithApi(services, fmodule, options, project, false);
 }
 
@@ -246,7 +246,7 @@ async function getEmulator(): Promise<CloudFunctions.Cloudfunctions> {
 
 export async function initializeEmulator(fmodule: string, options: Options = {}) {
     const services = await initializeGoogleServices(true);
-    const project = await google.auth.getDefaultProjectId();
+    const project = await google.auth.getProjectId();
     return initializeWithApi(
         services,
         fmodule,
