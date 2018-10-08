@@ -616,11 +616,6 @@ async function deleteResources(
             output(`Deleted request queue subscription to lambda`);
         }
     }
-    if (FunctionName) {
-        if (await quietly(lambda.deleteFunction({ FunctionName }))) {
-            output(`Deleted function: ${FunctionName}`);
-        }
-    }
     if (RoleName) {
         // Don't delete cached role. It may be in use by other instances of cloudify.
         // await deleteRole(RoleName, iam);
@@ -639,6 +634,11 @@ async function deleteResources(
         const deleteKey = quietly(s3.deleteObject({ Bucket: s3Bucket, Key: s3Key }));
         if (await deleteKey) {
             output(`Deleted S3 Key: ${s3Key} in Bucket: ${s3Bucket}`);
+        }
+    }
+    if (FunctionName) {
+        if (await quietly(lambda.deleteFunction({ FunctionName }))) {
+            output(`Deleted function: ${FunctionName}`);
         }
     }
 }
@@ -719,18 +719,27 @@ async function collectGarbage(state: State) {
                 if (page === null) {
                     resolve();
                 } else {
-                    const funcs = (page.Functions || []).filter(
-                        fn =>
-                            fn.FunctionName!.match(/^cloudify-/) &&
-                            Date.parse(fn.LastModified!) <
-                                Date.now() - 24 * 60 * 60 * 1000
+                    const funcs = (page.Functions || [])
+                        .filter(
+                            fn =>
+                                fn.FunctionName!.match(/^cloudify-/) &&
+                                Date.parse(fn.LastModified!) <
+                                    Date.now() - 24 * 60 * 60 * 1000
+                        )
+                        .map(fn => fn.FunctionName!);
+
+                    promises.push(
+                        gcFunnel.push(() =>
+                            deleteGarbageFunctions(services, region, funcs)
+                        )
                     );
-                    await deleteGarbageFunctions(services, region, funcs);
-                    // xxx
-                    promises.push(gcFunnel.push(() => page.Functions![0].FunctionName));
                 }
+                return true;
             })
         );
+
+        // xxx erase sns topics, subscriptions.
+        // xxx erase any stray resources, with no functions attached. (maybe unnecessary, now func deleted last)
         await Promise.all(promises);
     } finally {
         garbageCollectorRunning = false;
@@ -823,9 +832,7 @@ async function deleteGarbageFunctions(
             return garbageCollectionFunnel.push(async () => {
                 await deleteResources(resources, services, gc);
                 const logGroupName = getLogGroupName(FunctionName);
-                if (
-                    await carefully(services.cloudwatch.deleteLogGroup({ logGroupName }))
-                ) {
+                if (await quietly(services.cloudwatch.deleteLogGroup({ logGroupName }))) {
                     gc(`Deleted log group ${logGroupName}`);
                 }
             });
