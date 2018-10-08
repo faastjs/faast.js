@@ -1,6 +1,6 @@
 import { google, pubsub_v1 } from "googleapis";
 import { publish, publishControlMessage } from "./google-queue";
-import { ModuleWrapper, FunctionCall } from "../trampoline";
+import { ModuleWrapper, FunctionCall, createErrorResponse } from "../trampoline";
 import PubSubApi = pubsub_v1;
 
 export const moduleWrapper = new ModuleWrapper();
@@ -50,7 +50,7 @@ export async function trampoline(
     } catch (err) {
         console.error(err);
         if (ResponseQueueId) {
-            const response = moduleWrapper.createErrorResponse(err, call, start);
+            const response = createErrorResponse(err, call, start);
             await publish(pubsub, ResponseQueueId!, JSON.stringify(response), {
                 CallId
             });

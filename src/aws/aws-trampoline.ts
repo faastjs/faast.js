@@ -1,6 +1,11 @@
 import { SNSEvent } from "aws-lambda";
 import * as aws from "aws-sdk";
-import { FunctionCall, FunctionReturn, ModuleWrapper } from "../trampoline";
+import {
+    FunctionCall,
+    FunctionReturn,
+    ModuleWrapper,
+    createErrorResponse
+} from "../trampoline";
 import { publishSQS, publishSQSControlMessage } from "./aws-queue";
 
 const awsSqs = new aws.SQS({ apiVersion: "2012-11-05" });
@@ -65,7 +70,7 @@ async function sendError(
 
     const errorResponse = {
         QueueUrl: ResponseQueueUrl,
-        MessageBody: JSON.stringify(moduleWrapper.createErrorResponse(err, call, start))
+        MessageBody: JSON.stringify(createErrorResponse(err, call, start))
     };
     return ignore(
         publishSQS(awsSqs, ResponseQueueUrl, JSON.stringify(errorResponse), {

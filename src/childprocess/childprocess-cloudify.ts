@@ -2,7 +2,12 @@ import * as childProcess from "child_process";
 import { CloudFunctionImpl, CloudImpl, CommonOptions, Logger } from "../cloudify";
 import { Funnel } from "../funnel";
 import { PackerResult } from "../packer";
-import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "../trampoline";
+import {
+    FunctionCall,
+    FunctionReturn,
+    FunctionReturnWithMetrics,
+    createErrorResponse
+} from "../trampoline";
 
 export interface ProcessResources {
     childProcesses: Set<childProcess.ChildProcess>;
@@ -129,18 +134,36 @@ function callFunction(
                 );
                 child.on("error", err => {
                     state.resources.childProcesses.delete(child);
-                    reject(err);
+                    resolve({
+                        returned: createErrorResponse(err, call, localRequestSentTime),
+                        rawResponse: {},
+                        localRequestSentTime,
+                        localEndTime: Date.now()
+                    });
                 });
                 child.on("exit", (code, signal) => {
                     state.resources.childProcesses.delete(child);
+                    let err;
                     if (code) {
-                        reject(new Error(`Exited with error code ${code}`));
+                        err = new Error(`Exited with error code ${code}`);
                     } else if (signal) {
                         let errorMessage = `Aborted with signal ${signal}`;
                         if (signal === "SIGABRT" && oom) {
                             errorMessage += ` (${oom})`;
                         }
-                        reject(new Error(errorMessage));
+                        err = new Error(errorMessage);
+                    }
+                    if (err) {
+                        resolve({
+                            returned: createErrorResponse(
+                                err,
+                                call,
+                                localRequestSentTime
+                            ),
+                            rawResponse: {},
+                            localRequestSentTime,
+                            localEndTime: Date.now()
+                        });
                     }
                 });
             })

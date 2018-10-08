@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ModuleWrapper, FunctionCall } from "../trampoline";
+import { ModuleWrapper, FunctionCall, createErrorResponse } from "../trampoline";
 
 export const moduleWrapper = new ModuleWrapper();
 
@@ -10,6 +10,6 @@ export async function trampoline(request: Request, response: Response) {
         const returned = await moduleWrapper.execute(call, executionStart);
         response.send(returned);
     } catch (err) {
-        response.send(moduleWrapper.createErrorResponse(err, call, executionStart));
+        response.send(createErrorResponse(err, call, executionStart));
     }
 }

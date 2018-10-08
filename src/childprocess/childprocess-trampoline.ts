@@ -1,5 +1,5 @@
 import * as process from "process";
-import { ModuleWrapper, FunctionReturn } from "../trampoline";
+import { ModuleWrapper, FunctionReturn, createErrorResponse } from "../trampoline";
 import { ProcessFunctionCall } from "./childprocess-cloudify";
 
 export const moduleWrapper = new ModuleWrapper();
@@ -8,7 +8,7 @@ process.on("message", async ({ call, serverModule, timeout }: ProcessFunctionCal
     const executionStart = Date.now();
 
     const timer = setTimeout(() => {
-        const timeoutReturn: FunctionReturn = moduleWrapper.createErrorResponse(
+        const timeoutReturn: FunctionReturn = createErrorResponse(
             new Error(`Function timed out after ${timeout}s`),
             call,
             executionStart

@@ -7,7 +7,8 @@ import {
     FunctionReturn,
     ModuleWrapper,
     serializeCall,
-    FunctionReturnWithMetrics
+    FunctionReturnWithMetrics,
+    createErrorResponse
 } from "../trampoline";
 
 export interface State {
@@ -73,7 +74,7 @@ function callFunction(
         try {
             returned = await state.moduleWrapper.execute(scall, start);
         } catch (err) {
-            returned = state.moduleWrapper.createErrorResponse(err, scall, start);
+            returned = createErrorResponse(err, scall, start);
         }
         return {
             returned,

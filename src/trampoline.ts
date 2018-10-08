@@ -31,6 +31,26 @@ export interface ModuleType {
     [name: string]: AnyFunction;
 }
 
+export function createErrorResponse(
+    err: Error,
+    call: FunctionCall,
+    start: number
+): FunctionReturn {
+    const errObj = {};
+    Object.getOwnPropertyNames(err).forEach(name => {
+        if (typeof err[name] === "string") {
+            errObj[name] = err[name];
+        }
+    });
+    return {
+        type: "error",
+        value: errObj,
+        CallId: call.CallId || "",
+        remoteExecutionStartTime: start,
+        remoteExecutionEndTime: Date.now()
+    };
+}
+
 export class ModuleWrapper {
     funcs: ModuleType = {};
 
@@ -61,22 +81,6 @@ export class ModuleWrapper {
         return func;
     }
 
-    createErrorResponse(err: Error, call: FunctionCall, start: number): FunctionReturn {
-        const errObj = {};
-        Object.getOwnPropertyNames(err).forEach(name => {
-            if (typeof err[name] === "string") {
-                errObj[name] = err[name];
-            }
-        });
-        return {
-            type: "error",
-            value: errObj,
-            CallId: call.CallId || "",
-            remoteExecutionStartTime: start,
-            remoteExecutionEndTime: Date.now()
-        };
-    }
-
     async execute(
         call: FunctionCall,
         remoteExecutionStartTime: number
@@ -93,7 +97,7 @@ export class ModuleWrapper {
             };
             return rv;
         } catch (err) {
-            return this.createErrorResponse(err, call, remoteExecutionStartTime);
+            return createErrorResponse(err, call, remoteExecutionStartTime);
         }
     }
 }
