@@ -161,7 +161,7 @@ test(
     120 * 1000
 );
 
-test.only(
+test(
     "garbage collector works for functions that are never called",
     async () => {
         const cloud = cloudify.create("aws");

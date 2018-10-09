@@ -677,13 +677,7 @@ export async function cleanup(state: PartialState) {
     await stop(state);
     log(`Cleaning up cloudify infrastructure for ${state.resources.FunctionName}...`);
     await deleteResources(state.resources, state.services);
-    await addLogRetentionPolicy(state.resources.FunctionName, state.services.cloudwatch);
     log(`Cleanup done.`);
-    if (state.gcPromise) {
-        log(`Waiting for garbage collection...`);
-        await state.gcPromise;
-        log(`Garbage collection done.`);
-    }
 }
 
 let garbageCollectorRunning = false;
@@ -901,6 +895,12 @@ export async function stop(state: PartialState) {
             .forEach(p => p.reject(new Error("Rejected pending request")));
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
+    }
+    await addLogRetentionPolicy(state.resources.FunctionName, state.services.cloudwatch);
+    if (state.gcPromise) {
+        log(`Waiting for garbage collection...`);
+        await state.gcPromise;
+        log(`Garbage collection done.`);
     }
     return JSON.stringify(state.resources);
 }
