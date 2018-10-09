@@ -209,11 +209,8 @@ export async function estimateWorkloadCost<T>(
 
     const list = new Listr(
         promises.map((promise, i) => {
-            const {
-                cloudProvider,
-                options: { memorySize, useQueue },
-                repetitions
-            } = configurations[i];
+            const { cloudProvider, repetitions, options } = configurations[i];
+            const { memorySize, useQueue } = options;
 
             return {
                 title: `${cloudProvider} ${memorySize}MB ${useQueue ? "queue" : "https"}`,

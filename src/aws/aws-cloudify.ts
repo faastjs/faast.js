@@ -563,12 +563,10 @@ async function callFunction(
             state.resources.ResponseQueueUrl!
         );
     } else {
-        const {
-            callFunnel,
-            services: { lambda },
-            resources: { FunctionName },
-            metrics
-        } = state;
+        const { callFunnel, metrics } = state;
+        const { lambda } = state.services;
+        const { FunctionName } = state.resources;
+
         return callFunctionHttps(
             lambda,
             FunctionName,

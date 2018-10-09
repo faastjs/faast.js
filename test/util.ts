@@ -14,18 +14,16 @@ export function quietly<T>(p: Promise<T>) {
 }
 
 export async function getGoogleResources(func: cloudify.GoogleCloudFunction) {
+    const { cloudFunctions, pubsub } = func.state.services;
     const {
-        services: { cloudFunctions, pubsub },
-        resources: {
-            trampoline,
-            isEmulator,
-            requestQueueTopic,
-            responseQueueTopic,
-            responseSubscription,
-            region,
-            ...rest
-        }
-    } = func.state;
+        trampoline,
+        isEmulator,
+        requestQueueTopic,
+        responseQueueTopic,
+        responseSubscription,
+        region,
+        ...rest
+    } = func.state.resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
 
     const functionResult = await quietly(

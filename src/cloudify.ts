@@ -207,8 +207,10 @@ function processResponse<R>(
         localRequestSentTime,
         remoteResponseSentTime,
         localEndTime,
-        returned: { remoteExecutionStartTime, remoteExecutionEndTime }
+        rawResponse
     } = returnedMetrics;
+    const { remoteExecutionStartTime, remoteExecutionEndTime } = rawResponse;
+
     if (remoteExecutionStartTime && remoteExecutionEndTime) {
         const localStartLatency = localRequestSentTime - localStartTime;
         const roundTripLatency = localEndTime - localRequestSentTime;

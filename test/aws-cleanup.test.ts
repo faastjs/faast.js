@@ -9,22 +9,20 @@ function quietly<D, E>(request: aws.Request<D, E>) {
 }
 
 async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
+    const { lambda, iam, sns, sqs, s3 } = func.state.services;
     const {
-        services: { lambda, iam, sns, sqs, s3 },
-        resources: {
-            FunctionName,
-            RoleName,
-            region,
-            SNSLambdaSubscriptionArn,
-            RequestTopicArn,
-            ResponseQueueUrl,
-            ResponseQueueArn,
-            s3Bucket,
-            s3Key,
-            logGroupName,
-            ...rest
-        }
-    } = func.state;
+        FunctionName,
+        RoleName,
+        region,
+        SNSLambdaSubscriptionArn,
+        RequestTopicArn,
+        ResponseQueueUrl,
+        ResponseQueueArn,
+        s3Bucket,
+        s3Key,
+        logGroupName,
+        ...rest
+    } = func.state.resources;
 
     const _exhaustiveCheck: Required<typeof rest> = {};
 
@@ -68,10 +66,8 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
 }
 
 async function checkLogGroupCleanedUp(func: cloudify.AWSLambda) {
-    const {
-        services: { cloudwatch },
-        resources: { FunctionName }
-    } = func.state;
+    const { cloudwatch } = func.state.services;
+    const { FunctionName } = func.state.resources;
 
     const logGroupResult = await quietly(
         cloudwatch.describeLogGroups({
