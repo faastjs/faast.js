@@ -15,7 +15,7 @@ import {
     Logger
 } from "../cloudify";
 import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
-import { log, warn, gc } from "../log";
+import { log, warn, logGc } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import { chomp, computeHttpResponseBytes, LogStitcher, sleep } from "../shared";
@@ -71,6 +71,7 @@ export interface AWSResources {
     SNSLambdaSubscriptionArn?: string;
     s3Bucket?: string;
     s3Key?: string;
+    logGroupName: string;
 }
 
 export interface AWSServices {
@@ -141,6 +142,8 @@ export let defaults: Required<Options> = {
     timeout: 60,
     memorySize: 256,
     useQueue: true,
+    gc: true,
+    retentionInDays: 1,
     useDependencyCaching: true,
     awsLambdaOptions: {},
     addDirectory: [],
@@ -360,6 +363,8 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         timeout: Timeout = defaults.timeout,
         memorySize: MemorySize = defaults.memorySize,
         useQueue = defaults.useQueue,
+        gc = defaults.gc,
+        retentionInDays = defaults.retentionInDays,
         awsLambdaOptions = defaults.awsLambdaOptions,
         useDependencyCaching = defaults.useDependencyCaching,
         packageJson = defaults.packageJson
@@ -414,7 +419,8 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         resources: {
             FunctionName,
             RoleName,
-            region
+            region,
+            logGroupName: getLogGroupName(FunctionName)
         },
         services,
         callFunnel: new Funnel(),
@@ -423,8 +429,14 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         options
     };
 
-    log(`Starting garbage collector`);
-    state.gcPromise = collectGarbage(state);
+    logGc(`Starting garbage collector`);
+    if (gc) {
+        state.gcPromise = collectGarbage(
+            services,
+            state.resources.region,
+            retentionInDays
+        );
+    }
 
     try {
         log(`Creating function`);
@@ -604,11 +616,12 @@ async function deleteResources(
         SNSLambdaSubscriptionArn,
         s3Bucket,
         s3Key,
+        logGroupName,
         ...rest
     } = resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
 
-    const { lambda, sqs, sns, s3, cloudwatch } = services;
+    const { lambda, sqs, sns, s3 } = services;
     if (SNSLambdaSubscriptionArn) {
         if (
             await quietly(sns.unsubscribe({ SubscriptionArn: SNSLambdaSubscriptionArn }))
@@ -640,6 +653,10 @@ async function deleteResources(
         if (await quietly(lambda.deleteFunction({ FunctionName }))) {
             output(`Deleted function: ${FunctionName}`);
         }
+    }
+    if (logGroupName) {
+        // Don't delete logs. They are often useful. By default retention will
+        // be 1 day, and gc will clean it out.
     }
 }
 
@@ -676,21 +693,21 @@ function functionNameFromLogGroup(logGroupName: string) {
     return match && match[1];
 }
 
-async function collectGarbage(state: State) {
+export async function collectGarbage(
+    services: AWSServices,
+    region: string,
+    retentionInDays: number
+) {
     if (garbageCollectorRunning) {
         return;
     }
     garbageCollectorRunning = true;
-    const {
-        services,
-        resources: { region }
-    } = state;
     try {
         const gcFunnel = new Funnel(1);
         const promises: Promise<void>[] = [];
         const functionsWithLogGroups = new Set();
         await new Promise((resolve, reject) =>
-            state.services.cloudwatch
+            services.cloudwatch
                 .describeLogGroups({ logGroupNamePrefix: "/aws/lambda/cloudify-" })
                 .eachPage((err, page) => {
                     if (err) {
@@ -711,7 +728,7 @@ async function collectGarbage(state: State) {
                                 collectGarbageForLogGroups(
                                     services,
                                     page.logGroups!,
-                                    1,
+                                    retentionInDays,
                                     region
                                 )
                             )
@@ -721,7 +738,7 @@ async function collectGarbage(state: State) {
                 })
         );
         await new Promise((resolve, reject) =>
-            state.services.lambda.listFunctions().eachPage((err, page) => {
+            services.lambda.listFunctions().eachPage((err, page) => {
                 if (err) {
                     warn(`GC: Error listing lambda functions: ${err}`);
                     reject(err);
@@ -736,7 +753,7 @@ async function collectGarbage(state: State) {
                                 fn.FunctionName!.match(/^cloudify-/) &&
                                 !functionsWithLogGroups.has(fn.FunctionName) &&
                                 Date.parse(fn.LastModified!) <
-                                    Date.now() - 24 * 60 * 60 * 1000
+                                    Date.now() - retentionInDays * 24 * 60 * 60 * 1000
                         )
                         .map(fn => fn.FunctionName!);
 
@@ -750,8 +767,6 @@ async function collectGarbage(state: State) {
             })
         );
 
-        // xxx erase sns topics, subscriptions.
-        // xxx erase any stray resources, with no functions attached. (maybe unnecessary, now func deleted last)
         await Promise.all(promises);
     } finally {
         garbageCollectorRunning = false;
@@ -793,7 +808,7 @@ export async function collectGarbageForLogGroups(
                         })
                     )
                 ) {
-                    gc(
+                    logGc(
                         `Added retention policy of ${retentionInDays} day(s) to ${
                             g.logGroupName
                         }`
@@ -834,13 +849,14 @@ async function deleteGarbageFunctions(
                 RequestTopicArn: getSNSTopicArn(region, accountId, FunctionName),
                 ResponseQueueUrl: getResponseQueueUrl(region, accountId, FunctionName),
                 s3Bucket,
-                s3Key: getS3Key(FunctionName)
+                s3Key: getS3Key(FunctionName),
+                logGroupName: getLogGroupName(FunctionName)
             };
             return garbageCollectionFunnel.push(async () => {
-                await deleteResources(resources, services, gc);
+                await deleteResources(resources, services, logGc);
                 const logGroupName = getLogGroupName(FunctionName);
                 if (await quietly(services.cloudwatch.deleteLogGroup({ logGroupName }))) {
-                    gc(`Deleted log group ${logGroupName}`);
+                    logGc(`Deleted log group ${logGroupName}`);
                 }
             });
         })
@@ -903,7 +919,7 @@ function getSNSTopicName(FunctionName: string) {
 
 function getSNSTopicArn(region: string, accountId: string, FunctionName: string) {
     const TopicName = getSNSTopicName(FunctionName);
-    return `arn:aws:sqs:${region}:${accountId}:${TopicName}`;
+    return `arn:aws:sns:${region}:${accountId}:${TopicName}`;
 }
 
 function getSQSName(FunctionName: string) {
@@ -913,12 +929,6 @@ function getSQSName(FunctionName: string) {
 function getResponseQueueUrl(region: string, accountId: string, FunctionName: string) {
     const queueName = getSQSName(FunctionName);
     return `https://sqs.${region}.amazonaws.com/${accountId}/${queueName}`;
-}
-
-// XXX Don't technically need this, but it might be good to proactively clean up subscriptions.
-async function getSNSSubscriptionArns(sns: aws.SNS, TopicArn: string) {
-    const response = await sns.listSubscriptionsByTopic({ TopicArn }).promise();
-    return (response.Subscriptions || []).map(s => s.SubscriptionArn!);
 }
 
 export async function createQueueImpl(

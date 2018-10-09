@@ -36,3 +36,9 @@
 //             .promise()
 //     );
 // }
+
+// XXX Don't technically need this, but it might be good to proactively clean up subscriptions.
+// async function getSNSSubscriptionArns(sns: aws.SNS, TopicArn: string) {
+//     const response = await sns.listSubscriptionsByTopic({ TopicArn }).promise();
+//     return (response.Subscriptions || []).map(s => s.SubscriptionArn!);
+// }

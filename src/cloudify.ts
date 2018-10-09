@@ -63,6 +63,8 @@ export interface CommonOptions extends PackerOptions {
     timeout?: number;
     memorySize?: number;
     useQueue?: boolean;
+    gc?: boolean;
+    retentionInDays?: number;
 }
 
 function resolve(fmodule: string) {
@@ -260,7 +262,7 @@ export class CloudFunction<O extends CommonOptions, S> {
     cloudName = this.impl.name;
     functionCounters = new FunctionCountersMap();
     functionStats = new FunctionStatsMap();
-    skew = new ExponentiallyDecayingAverageValue(0.3);
+    protected skew = new ExponentiallyDecayingAverageValue(0.3);
     protected logger?: Logger;
     protected timer?: NodeJS.Timer;
 
