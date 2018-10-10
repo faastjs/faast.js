@@ -280,17 +280,12 @@ interface Limits {
     maxBurst?: number;
 }
 
-export class RateLimitedFunnel<T = void> {
-    protected funnel: Funnel<T>;
+export class RateLimitedFunnel<T = void> extends Funnel<T> {
     protected rateLimiter: RateLimiter<T>;
 
     constructor({ maxConcurrency, targetRequestsPerSecond, maxBurst }: Limits) {
-        this.funnel = new Funnel<T>(maxConcurrency);
+        super(maxConcurrency);
         this.rateLimiter = new RateLimiter<T>(targetRequestsPerSecond, maxBurst);
-    }
-
-    setMaxConcurrency(maxConcurrency: number) {
-        this.funnel.setMaxConcurrency(maxConcurrency);
     }
 
     setRateLimit(maxRequestsPerSecond: number) {
@@ -298,18 +293,15 @@ export class RateLimitedFunnel<T = void> {
     }
 
     push(worker: () => Promise<T>) {
-        return this.funnel.push(() => this.rateLimiter.push(worker));
+        return super.push(() => this.rateLimiter.push(worker));
     }
 
-    pushRetry(n: number, worker: () => Promise<T>) {
-        return this.funnel.pushRetry(n, () => this.rateLimiter.push(worker));
-    }
-
-    allFutures() {
-        return this.funnel.allFutures();
-    }
-
-    all() {
-        return this.funnel.all();
+    pushRetry<E>(
+        shouldRetry: number | ((err: E, retries: number) => boolean),
+        worker: (retries: number) => Promise<T>
+    ) {
+        return super.pushRetry(shouldRetry, retries =>
+            this.rateLimiter.push(() => worker(retries))
+        );
     }
 }
