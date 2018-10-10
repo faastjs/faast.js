@@ -115,14 +115,14 @@ describe("Funnel", () => {
 describe("Pump", () => {
     test("Works for concurrency level 1", async () => {
         let executed = 0;
-        let executing = false;
         const pump = new Pump(1, () => {
             executed++;
-            return sleep(100).then(_ => (executing = false));
+            return sleep(100);
         });
         pump.start();
         expect(executed).toBe(1);
         await sleep(300);
+        pump.stop();
         expect(executed).toBeGreaterThan(1);
     });
 
