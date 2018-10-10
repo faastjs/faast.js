@@ -163,3 +163,8 @@ export class LogStitcher {
         return typeof id === "string" && this.seenIds.has(id);
     }
 }
+
+export function hasExpired(date: string | number | undefined, retentionInDays: number) {
+    const timestamp = typeof date === "string" ? Date.parse(date) : date || 0;
+    return timestamp < Date.now() - retentionInDays * 24 * 60 * 60 * 1000;
+}

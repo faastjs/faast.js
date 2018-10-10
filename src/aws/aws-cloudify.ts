@@ -18,7 +18,13 @@ import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
 import { log, warn, logGc } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { chomp, computeHttpResponseBytes, LogStitcher, sleep } from "../shared";
+import {
+    chomp,
+    computeHttpResponseBytes,
+    LogStitcher,
+    sleep,
+    hasExpired
+} from "../shared";
 import {
     FunctionCall,
     FunctionReturn,
@@ -747,8 +753,7 @@ export async function collectGarbage(
                             fn =>
                                 fn.FunctionName!.match(/^cloudify-/) &&
                                 !functionsWithLogGroups.has(fn.FunctionName) &&
-                                Date.parse(fn.LastModified!) <
-                                    Date.now() - retentionInDays * 24 * 60 * 60 * 1000
+                                hasExpired(fn.LastModified, retentionInDays)
                         )
                         .map(fn => fn.FunctionName!);
 
@@ -812,11 +817,7 @@ export async function collectGarbageForLogGroups(
     );
 
     const garbage = logGroups
-        .filter(
-            g =>
-                g.creationTime! < Date.now() - retentionInDays * 24 * 60 * 60 * 1000 &&
-                g.storedBytes! === 0
-        )
+        .filter(g => hasExpired(g.creationTime, retentionInDays) && g.storedBytes! === 0)
         .map(g => g.logGroupName!);
 
     const garbageFunctions = garbage

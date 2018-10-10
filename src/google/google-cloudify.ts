@@ -17,11 +17,11 @@ import {
     FunctionStats,
     Logger
 } from "../cloudify";
-import { Funnel, MemoFunnel } from "../funnel";
-import { log, logPricing, warn } from "../log";
+import { Funnel, MemoFunnel, retry, RateLimitedFunnel } from "../funnel";
+import { log, logPricing, warn, logGc } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { computeHttpResponseBytes, LogStitcher, sleep } from "../shared";
+import { computeHttpResponseBytes, LogStitcher, sleep, hasExpired } from "../shared";
 import {
     FunctionCall,
     FunctionReturn,
@@ -41,6 +41,7 @@ import PubSubApi = pubsub_v1;
 import Logging = logging_v2;
 import CloudBilling = cloudbilling_v1;
 import { CostBreakdown, CostMetric } from "../cost-analyzer";
+import { isControlMessage } from "../aws/aws-queue";
 
 type Logging = logging_v2.Logging;
 
@@ -264,6 +265,8 @@ export const defaults: Required<Options> = {
     timeout: 60,
     memorySize: 256,
     useQueue: false,
+    gc: true,
+    retentionInDays: 1,
     googleCloudFunctionOptions: {},
     addZipFile: [],
     addDirectory: [],
@@ -287,6 +290,8 @@ async function initializeWithApi(
         timeout = defaults.timeout,
         memorySize = defaults.memorySize,
         useQueue = defaults.useQueue,
+        gc = defaults.gc,
+        retentionInDays = defaults.retentionInDays,
         googleCloudFunctionOptions
     } = options;
     const nonce = uuidv4();
@@ -386,6 +391,18 @@ async function initializeWithApi(
     return state;
 }
 
+function getRequestQueueTopic(project: string, functionName: string) {
+    return `projects/${project}/topics/${functionName}-Requests`;
+}
+
+function getResponseQueueTopic(project: string, functionName: string) {
+    return `projects/${project}/topics/${functionName}-Responses`;
+}
+
+function getResponseSubscription(project: string, functionName: string) {
+    return `projects/${project}/subscriptions/${functionName}-Responses`;
+}
+
 async function initializeGoogleQueue(
     state: State,
     project: string,
@@ -393,15 +410,18 @@ async function initializeGoogleQueue(
 ): Promise<GoogleCloudQueueImpl> {
     const { resources, metrics } = state;
     const { pubsub } = state.services;
-    resources.requestQueueTopic = `projects/${project}/topics/${functionName}-Requests`;
+    resources.requestQueueTopic = getRequestQueueTopic(project, functionName);
     const requestPromise = pubsub.projects.topics.create({
         name: resources.requestQueueTopic
     });
-    resources.responseQueueTopic = `projects/${project}/topics/${functionName}-Responses`;
+    resources.responseQueueTopic = getResponseQueueTopic(project, functionName);
     const responsePromise = pubsub.projects.topics
         .create({ name: resources.responseQueueTopic })
         .then(_ => {
-            resources.responseSubscription = `projects/${project}/subscriptions/${functionName}-Responses`;
+            resources.responseSubscription = getResponseSubscription(
+                project,
+                functionName
+            );
             log(`Creating response queue subscription`);
             return pubsub.projects.subscriptions.create({
                 name: resources.responseSubscription,
@@ -519,7 +539,11 @@ async function callFunction(
 
 type PartialState = Partial<State> & Pick<State, "services" | "resources">;
 
-export async function cleanup(state: PartialState) {
+async function deleteResources(
+    services: GoogleServices,
+    resources: GoogleResources,
+    output: (msg: string) => void = log
+) {
     const {
         trampoline,
         requestQueueTopic,
@@ -528,28 +552,144 @@ export async function cleanup(state: PartialState) {
         isEmulator,
         region,
         ...rest
-    } = state.resources;
+    } = resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
-    log(`cleanup`);
-    const { cloudFunctions, pubsub } = state.services;
-    const cancelPromise = stop(state);
-    if (trampoline) {
-        await deleteFunction(cloudFunctions, trampoline).catch(warn);
-    }
+    const { cloudFunctions, pubsub } = services;
+
     if (responseSubscription) {
-        await pubsub.projects.subscriptions
-            .delete({
-                subscription: responseSubscription
-            })
-            .catch(warn);
+        if (
+            await quietly(
+                pubsub.projects.subscriptions.delete({
+                    subscription: responseSubscription
+                })
+            )
+        ) {
+            output(`Deleted response subscription: ${responseSubscription}`);
+        }
     }
     if (responseQueueTopic) {
-        await pubsub.projects.topics.delete({ topic: responseQueueTopic }).catch(warn);
+        if (await quietly(pubsub.projects.topics.delete({ topic: responseQueueTopic }))) {
+            output(`Deleted response queue topic: ${responseQueueTopic}`);
+        }
     }
     if (requestQueueTopic) {
-        await pubsub.projects.topics.delete({ topic: requestQueueTopic }).catch(warn);
+        if (await quietly(pubsub.projects.topics.delete({ topic: requestQueueTopic }))) {
+            output(`Deleted request queue topic: ${requestQueueTopic}`);
+        }
     }
-    await cancelPromise;
+    if (trampoline) {
+        if (await deleteFunction(cloudFunctions, trampoline)) {
+            output(`Deleted function ${trampoline}`);
+        }
+    }
+}
+
+export async function cleanup(state: PartialState) {
+    log(`cleanup`);
+    await stop(state);
+    await deleteResources(state.services, state.resources);
+}
+
+async function collectGarbage(
+    services: GoogleServices,
+    project: string,
+    retentionInDays: number
+) {
+    const { cloudFunctions } = services;
+
+    let pageToken: string | undefined;
+
+    const gcFunnel = new RateLimitedFunnel({
+        maxConcurrency: 2,
+        maxBurst: 1,
+        targetRequestsPerSecond: 2
+    });
+
+    const pageFunnel = new Funnel(1);
+
+    do {
+        const funcListResponse = await retry(3, () =>
+            cloudFunctions.projects.locations.functions.list({
+                parent: `projects/${project}/locations/-`,
+                pageToken
+            })
+        );
+        pageToken = funcListResponse.data.nextPageToken;
+        const cloudifyFunctions = (funcListResponse.data.functions || []).filter(f =>
+            f.name!.match(
+                /projects\/${project}\/locations\/.*\/functions\/cloudify-[a-f0-9-]+$/
+            )
+        );
+        pageFunnel.push(() =>
+            deleteGarbageFunctions(
+                services,
+                project,
+                cloudifyFunctions,
+                retentionInDays,
+                gcFunnel
+            )
+        );
+    } while (pageToken);
+
+    await Promise.all(pageFunnel.all());
+}
+
+async function deleteGarbageFunctions(
+    services: GoogleServices,
+    project: string,
+    functions: CloudFunctions.Schema$CloudFunction[],
+    retentionInDays: number,
+    gcFunnel: Funnel
+) {
+    const { logging } = services;
+
+    await Promise.all(
+        functions.map(async fn => {
+            if (hasExpired(fn.updateTime, retentionInDays)) {
+                const filter = `resource.type="cloud_function" AND resource.labels.function_name="${
+                    fn.name
+                }" AND receiveTimestamp >= "${new Date(
+                    Date.now() - retentionInDays * 24 * 60 * 60 * 1000
+                ).toISOString()}"`;
+
+                const requestBody = {
+                    resourceNames: [`projects/${project}`],
+                    pageSize: 1,
+                    // xxx need to consider if nextPage is there - may indicate there is more logs?
+                    filter
+                };
+                await gcFunnel.push(async () => {
+                    const result = await quietly(logging.entries.list({ requestBody }));
+                    if (result && (!result.entries || result.entries.length === 0)) {
+                        await deleteFunctionResources(services, fn);
+                    }
+                });
+            }
+        })
+    );
+}
+
+function parseFunctionName(path: string) {
+    const match = path.match(/^projects\/(.*)\/locations\/(.*)\/functions\/(.*)$/);
+    return match && { project: match[1], region: match[2], name: match[3] };
+}
+
+async function deleteFunctionResources(
+    services: GoogleServices,
+    fn: CloudFunctions.Schema$CloudFunction
+) {
+    const { region, name, project } = parseFunctionName(fn.name!)!;
+
+    const resources: GoogleResources = {
+        isEmulator: false,
+        region,
+        trampoline: fn.name!,
+        requestQueueTopic: getRequestQueueTopic(project, name),
+        responseQueueTopic: getResponseQueueTopic(project, name),
+        responseSubscription: getResponseSubscription(project, name)
+    };
+
+    await deleteResources(services, resources, logGc);
 }
 
 /**
