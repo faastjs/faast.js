@@ -695,8 +695,12 @@ export async function collectGarbage(
     }
     garbageCollectorRunning = true;
     try {
-        const gcFunnel = new Funnel(1);
-        const promises: Promise<void>[] = [];
+        const resourcePageFunnel = new Funnel(1);
+        const garbageCollectionFunnel = new RateLimitedFunnel({
+            maxConcurrency: 5,
+            targetRequestsPerSecond: 5,
+            maxBurst: 5
+        });
         const functionsWithLogGroups = new Set();
         await new Promise((resolve, reject) =>
             services.cloudwatch
@@ -715,14 +719,13 @@ export async function collectGarbage(
                                 functionNameFromLogGroup(g.logGroupName!)
                             )
                         );
-                        promises.push(
-                            gcFunnel.push(() =>
-                                collectGarbageForLogGroups(
-                                    services,
-                                    page.logGroups!,
-                                    retentionInDays,
-                                    region
-                                )
+                        resourcePageFunnel.push(() =>
+                            collectGarbageForLogGroups(
+                                services,
+                                page.logGroups!,
+                                retentionInDays,
+                                region,
+                                garbageCollectionFunnel
                             )
                         );
                     }
@@ -749,9 +752,12 @@ export async function collectGarbage(
                         )
                         .map(fn => fn.FunctionName!);
 
-                    promises.push(
-                        gcFunnel.push(() =>
-                            deleteGarbageFunctions(services, region, funcs)
+                    resourcePageFunnel.push(() =>
+                        deleteGarbageFunctions(
+                            services,
+                            region,
+                            funcs,
+                            garbageCollectionFunnel
                         )
                     );
                 }
@@ -759,7 +765,7 @@ export async function collectGarbage(
             })
         );
 
-        await Promise.all(promises);
+        await Promise.all(resourcePageFunnel.all());
     } finally {
         garbageCollectorRunning = false;
     }
@@ -771,17 +777,12 @@ async function getAccountId(iam: aws.IAM) {
     return arn.split(":")[4];
 }
 
-const garbageCollectionFunnel = new RateLimitedFunnel({
-    maxConcurrency: 5,
-    targetRequestsPerSecond: 5,
-    maxBurst: 5
-});
-
 export async function collectGarbageForLogGroups(
     services: AWSServices,
     logGroups: aws.CloudWatchLogs.LogGroup[],
     retentionInDays: number,
-    region: string
+    region: string,
+    garbageCollectionFunnel: Funnel
 ) {
     const { cloudwatch } = services;
 
@@ -822,13 +823,19 @@ export async function collectGarbageForLogGroups(
         .map(g => functionNameFromLogGroup(g)!)
         .filter(n => n !== "");
 
-    await deleteGarbageFunctions(services, region, garbageFunctions);
+    await deleteGarbageFunctions(
+        services,
+        region,
+        garbageFunctions,
+        garbageCollectionFunnel
+    );
 }
 
 async function deleteGarbageFunctions(
     services: AWSServices,
     region: string,
-    garbageFunctions: string[]
+    garbageFunctions: string[],
+    garbageCollectionFunnel: Funnel
 ) {
     const accountId = await getAccountId(services.iam);
     const s3Bucket = await getBucketName(region, services.iam);
