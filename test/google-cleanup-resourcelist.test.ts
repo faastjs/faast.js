@@ -11,5 +11,5 @@ test(
         await cloud.cleanupResources(resourceList);
         checkResourcesCleanedUp(await getGoogleResources(func));
     },
-    120 * 1000
+    180 * 1000
 );

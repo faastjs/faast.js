@@ -41,7 +41,6 @@ import PubSubApi = pubsub_v1;
 import Logging = logging_v2;
 import CloudBilling = cloudbilling_v1;
 import { CostBreakdown, CostMetric } from "../cost-analyzer";
-import { isControlMessage } from "../aws/aws-queue";
 
 type Logging = logging_v2.Logging;
 
@@ -100,6 +99,7 @@ export interface State {
     pricing?: GoogleCloudPricing;
     metrics: GoogleMetrics;
     options: Options;
+    gcPromise?: Promise<void>;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -162,7 +162,7 @@ async function poll<T>({
     request,
     checkDone,
     delay = defaultPollDelay,
-    maxRetries = 30
+    maxRetries = 50
 }: PollConfig<T>): Promise<T | undefined> {
     let retries = 0;
     await delay(retries);
@@ -216,7 +216,6 @@ async function waitFor(
 }
 
 async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) {
-    log(`delete function ${path}`);
     return waitFor(
         api,
         api.projects.locations.functions.delete({
@@ -296,15 +295,20 @@ async function initializeWithApi(
     } = options;
     const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
-    const { archive } = await pack(serverModule, options);
     const location = `projects/${project}/locations/${region}`;
-    const uploadUrlResponse = await carefully(
-        cloudFunctions.projects.locations.functions.generateUploadUrl({
-            parent: location
-        })
-    );
-    const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, archive);
-    log(`Upload zip file response: ${uploadResult.statusText}`);
+
+    async function createCodeBundle() {
+        const { archive } = await pack(serverModule, options);
+        const uploadUrlResponse = await carefully(
+            cloudFunctions.projects.locations.functions.generateUploadUrl({
+                parent: location
+            })
+        );
+        const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, archive);
+        log(`Upload zip file response: ${uploadResult.statusText}`);
+        return uploadUrlResponse.uploadUrl;
+    }
+
     const functionName = "cloudify-" + nonce;
     const trampoline = `projects/${project}/locations/${region}/functions/${functionName}`;
 
@@ -324,6 +328,11 @@ async function initializeWithApi(
         options
     };
 
+    if (gc) {
+        logGc(`Starting garbage collector`);
+        state.gcPromise = collectGarbage(services, project, retentionInDays);
+    }
+
     const pricingPromise = priceRequestFunnel.pushMemoized(region, () =>
         getGoogleCloudFunctionsPricing(services.cloudBilling, region)
     );
@@ -334,12 +343,14 @@ async function initializeWithApi(
         state.queueState = cloudqueue.initializeCloudFunctionQueue(googleQueueImpl);
     }
 
+    const sourceUploadUrl = await createCodeBundle();
+
     const requestBody: CloudFunctions.Schema$CloudFunction = {
         name: trampoline,
         entryPoint: "trampoline",
         timeout: `${timeout}s`,
         availableMemoryMb: memorySize,
-        sourceUploadUrl: uploadUrlResponse.uploadUrl,
+        sourceUploadUrl,
         runtime: "nodejs8",
         ...googleCloudFunctionOptions
     };
@@ -365,12 +376,8 @@ async function initializeWithApi(
         );
     } catch (err) {
         warn(`createFunction error: ${err.stack}`);
-        try {
-            await deleteFunction(cloudFunctions, trampoline);
-        } catch (deleteErr) {
-            warn(`Could not clean up after failed create function. Possible leak.`);
-            warn(deleteErr);
-        }
+        log(`delete function ${trampoline}`);
+        await deleteFunction(cloudFunctions, trampoline).catch();
         throw err;
     }
     if (!state.queueState) {
@@ -590,83 +597,49 @@ export async function cleanup(state: PartialState) {
     await deleteResources(state.services, state.resources);
 }
 
+let garbageCollectorRunning = false;
+
 async function collectGarbage(
     services: GoogleServices,
     project: string,
     retentionInDays: number
 ) {
-    const { cloudFunctions } = services;
+    if (garbageCollectorRunning) {
+        return;
+    }
+    garbageCollectorRunning = true;
+    try {
+        const { cloudFunctions } = services;
 
-    let pageToken: string | undefined;
+        let pageToken: string | undefined;
 
-    const gcFunnel = new RateLimitedFunnel({
-        maxConcurrency: 2,
-        maxBurst: 1,
-        targetRequestsPerSecond: 2
-    });
+        const gcFunnel = new RateLimitedFunnel({
+            maxConcurrency: 5,
+            targetRequestsPerSecond: 5,
+            maxBurst: 2
+        });
 
-    const pageFunnel = new Funnel(1);
+        do {
+            const funcListResponse = await retry(3, () =>
+                cloudFunctions.projects.locations.functions.list({
+                    parent: `projects/${project}/locations/-`,
+                    pageToken
+                })
+            );
+            pageToken = funcListResponse.data.nextPageToken;
+            const garbageFunctions = (funcListResponse.data.functions || [])
+                .filter(fn => hasExpired(fn.updateTime, retentionInDays))
+                .filter(fn => fn.name!.match(`/functions/cloudify-[a-f0-9-]+$`));
 
-    do {
-        const funcListResponse = await retry(3, () =>
-            cloudFunctions.projects.locations.functions.list({
-                parent: `projects/${project}/locations/-`,
-                pageToken
-            })
-        );
-        pageToken = funcListResponse.data.nextPageToken;
-        const cloudifyFunctions = (funcListResponse.data.functions || []).filter(f =>
-            f.name!.match(
-                /projects\/${project}\/locations\/.*\/functions\/cloudify-[a-f0-9-]+$/
-            )
-        );
-        pageFunnel.push(() =>
-            deleteGarbageFunctions(
-                services,
-                project,
-                cloudifyFunctions,
-                retentionInDays,
-                gcFunnel
-            )
-        );
-    } while (pageToken);
+            garbageFunctions.forEach(fn =>
+                gcFunnel.push(() => deleteFunctionResources(services, fn))
+            );
+        } while (pageToken);
 
-    await Promise.all(pageFunnel.all());
-}
-
-async function deleteGarbageFunctions(
-    services: GoogleServices,
-    project: string,
-    functions: CloudFunctions.Schema$CloudFunction[],
-    retentionInDays: number,
-    gcFunnel: Funnel
-) {
-    const { logging } = services;
-
-    await Promise.all(
-        functions.map(async fn => {
-            if (hasExpired(fn.updateTime, retentionInDays)) {
-                const filter = `resource.type="cloud_function" AND resource.labels.function_name="${
-                    fn.name
-                }" AND receiveTimestamp >= "${new Date(
-                    Date.now() - retentionInDays * 24 * 60 * 60 * 1000
-                ).toISOString()}"`;
-
-                const requestBody = {
-                    resourceNames: [`projects/${project}`],
-                    pageSize: 1,
-                    // xxx need to consider if nextPage is there - may indicate there is more logs?
-                    filter
-                };
-                await gcFunnel.push(async () => {
-                    const result = await quietly(logging.entries.list({ requestBody }));
-                    if (result && (!result.entries || result.entries.length === 0)) {
-                        await deleteFunctionResources(services, fn);
-                    }
-                });
-            }
-        })
-    );
+        await Promise.all(gcFunnel.all());
+    } finally {
+        garbageCollectorRunning = false;
+    }
 }
 
 function parseFunctionName(path: string) {
@@ -783,6 +756,11 @@ export async function stop(state: Partial<State>) {
             );
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
+    }
+    if (state.gcPromise) {
+        log(`Waiting for garbage collection...`);
+        await state.gcPromise;
+        log(`Garbage collection done.`);
     }
     return JSON.stringify(state.resources);
 }

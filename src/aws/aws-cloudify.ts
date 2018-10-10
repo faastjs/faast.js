@@ -435,13 +435,9 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         options
     };
 
-    logGc(`Starting garbage collector`);
     if (gc) {
-        state.gcPromise = collectGarbage(
-            services,
-            state.resources.region,
-            retentionInDays
-        );
+        logGc(`Starting garbage collector`);
+        state.gcPromise = collectGarbage(services, region, retentionInDays);
     }
 
     try {
@@ -701,11 +697,12 @@ export async function collectGarbage(
     }
     garbageCollectorRunning = true;
     try {
-        const resourcePageFunnel = new Funnel(1);
-        const garbageCollectionFunnel = new RateLimitedFunnel({
+        const accountId = await getAccountId(services.iam);
+        const s3Bucket = await getBucketName(region, services.iam);
+        const gcFunnel = new RateLimitedFunnel({
             maxConcurrency: 5,
             targetRequestsPerSecond: 5,
-            maxBurst: 5
+            maxBurst: 2
         });
         const functionsWithLogGroups = new Set();
         await new Promise((resolve, reject) =>
@@ -725,14 +722,14 @@ export async function collectGarbage(
                                 functionNameFromLogGroup(g.logGroupName!)
                             )
                         );
-                        resourcePageFunnel.push(() =>
-                            collectGarbageForLogGroups(
-                                services,
-                                page.logGroups!,
-                                retentionInDays,
-                                region,
-                                garbageCollectionFunnel
-                            )
+                        garbageCollectLogGroups(
+                            services,
+                            page.logGroups!,
+                            retentionInDays,
+                            region,
+                            accountId,
+                            s3Bucket,
+                            gcFunnel
                         );
                     }
                     return true;
@@ -749,28 +746,25 @@ export async function collectGarbage(
                     resolve();
                 } else {
                     const funcs = (page.Functions || [])
-                        .filter(
-                            fn =>
-                                fn.FunctionName!.match(/^cloudify-/) &&
-                                !functionsWithLogGroups.has(fn.FunctionName) &&
-                                hasExpired(fn.LastModified, retentionInDays)
-                        )
+                        .filter(fn => fn.FunctionName!.match(/^cloudify-/))
+                        .filter(fn => !functionsWithLogGroups.has(fn.FunctionName))
+                        .filter(fn => hasExpired(fn.LastModified, retentionInDays))
                         .map(fn => fn.FunctionName!);
 
-                    resourcePageFunnel.push(() =>
-                        deleteGarbageFunctions(
-                            services,
-                            region,
-                            funcs,
-                            garbageCollectionFunnel
-                        )
+                    deleteGarbageFunctions(
+                        services,
+                        region,
+                        accountId,
+                        s3Bucket,
+                        funcs,
+                        gcFunnel
                     );
                 }
                 return true;
             })
         );
 
-        await Promise.all(resourcePageFunnel.all());
+        await Promise.all(gcFunnel.all());
     } finally {
         garbageCollectorRunning = false;
     }
@@ -782,11 +776,13 @@ async function getAccountId(iam: aws.IAM) {
     return arn.split(":")[4];
 }
 
-export async function collectGarbageForLogGroups(
+function garbageCollectLogGroups(
     services: AWSServices,
     logGroups: aws.CloudWatchLogs.LogGroup[],
     retentionInDays: number,
     region: string,
+    accountId: string,
+    s3Bucket: string,
     garbageCollectionFunnel: Funnel
 ) {
     const { cloudwatch } = services;
@@ -795,72 +791,68 @@ export async function collectGarbageForLogGroups(
         g => g.retentionInDays === undefined
     );
 
-    await Promise.all(
-        logGroupsMissingRetentionPolicy.map(g =>
-            garbageCollectionFunnel.push(async () => {
-                if (
-                    await quietly(
-                        cloudwatch.putRetentionPolicy({
-                            logGroupName: g.logGroupName!,
-                            retentionInDays
-                        })
-                    )
-                ) {
-                    logGc(
-                        `Added retention policy of ${retentionInDays} day(s) to ${
-                            g.logGroupName
-                        }`
-                    );
-                }
-            })
-        )
+    logGroupsMissingRetentionPolicy.forEach(g =>
+        garbageCollectionFunnel.push(async () => {
+            if (
+                await quietly(
+                    cloudwatch.putRetentionPolicy({
+                        logGroupName: g.logGroupName!,
+                        retentionInDays
+                    })
+                )
+            ) {
+                logGc(
+                    `Added retention policy of ${retentionInDays} day(s) to ${
+                        g.logGroupName
+                    }`
+                );
+            }
+        })
     );
 
-    const garbage = logGroups
-        .filter(g => hasExpired(g.creationTime, retentionInDays) && g.storedBytes! === 0)
-        .map(g => g.logGroupName!);
+    const garbageFunctions = logGroups
+        .filter(g => hasExpired(g.creationTime, retentionInDays))
+        .filter(g => g.storedBytes! === 0)
+        .map(g => functionNameFromLogGroup(g.logGroupName!)!)
+        .filter(n => n);
 
-    const garbageFunctions = garbage
-        .map(g => functionNameFromLogGroup(g)!)
-        .filter(n => n !== "");
-
-    await deleteGarbageFunctions(
+    deleteGarbageFunctions(
         services,
         region,
+        accountId,
+        s3Bucket,
         garbageFunctions,
         garbageCollectionFunnel
     );
 }
 
-async function deleteGarbageFunctions(
+function deleteGarbageFunctions(
     services: AWSServices,
     region: string,
+    accountId: string,
+    s3Bucket: string,
     garbageFunctions: string[],
     garbageCollectionFunnel: Funnel
 ) {
-    const accountId = await getAccountId(services.iam);
-    const s3Bucket = await getBucketName(region, services.iam);
-    await Promise.all(
-        garbageFunctions.map(FunctionName => {
-            const resources: AWSResources = {
-                FunctionName,
-                region,
-                RoleName: "",
-                RequestTopicArn: getSNSTopicArn(region, accountId, FunctionName),
-                ResponseQueueUrl: getResponseQueueUrl(region, accountId, FunctionName),
-                s3Bucket,
-                s3Key: getS3Key(FunctionName),
-                logGroupName: getLogGroupName(FunctionName)
-            };
-            return garbageCollectionFunnel.push(async () => {
-                await deleteResources(resources, services, logGc);
-                const logGroupName = getLogGroupName(FunctionName);
-                if (await quietly(services.cloudwatch.deleteLogGroup({ logGroupName }))) {
-                    logGc(`Deleted log group ${logGroupName}`);
-                }
-            });
-        })
-    );
+    garbageFunctions.forEach(FunctionName => {
+        const resources: AWSResources = {
+            FunctionName,
+            region,
+            RoleName: "",
+            RequestTopicArn: getSNSTopicArn(region, accountId, FunctionName),
+            ResponseQueueUrl: getResponseQueueUrl(region, accountId, FunctionName),
+            s3Bucket,
+            s3Key: getS3Key(FunctionName),
+            logGroupName: getLogGroupName(FunctionName)
+        };
+        garbageCollectionFunnel.push(async () => {
+            await deleteResources(resources, services, logGc);
+            const logGroupName = getLogGroupName(FunctionName);
+            if (await quietly(services.cloudwatch.deleteLogGroup({ logGroupName }))) {
+                logGc(`Deleted log group ${logGroupName}`);
+            }
+        });
+    });
 }
 
 export async function pack(

@@ -1,6 +1,8 @@
 import * as aws from "aws-sdk";
 import * as cloudify from "../src/cloudify";
 import { getLogGroupName } from "../src/aws/aws-cloudify";
+import * as functions from "./functions";
+import { checkResourcesCleanedUp } from "./util";
 
 // Avoid dependency on aws-cloudify module, which can cause a circular
 // dependency on cloudify, and from there, problems with module resolution.
@@ -8,8 +10,8 @@ function quietly<D, E>(request: aws.Request<D, E>) {
     return request.promise().catch(_ => {});
 }
 
-async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
-    const { lambda, iam, sns, sqs, s3 } = func.state.services;
+export async function getAWSResources(func: cloudify.AWSLambda) {
+    const { lambda, sns, sqs, s3 } = func.state.services;
     const {
         FunctionName,
         RoleName,
@@ -29,40 +31,38 @@ async function checkResourcesCleanedUp(func: cloudify.AWSLambda) {
     const functionResult = await quietly(
         lambda.getFunctionConfiguration({ FunctionName })
     );
-    expect(functionResult).toBeUndefined();
 
-    const roleResult = await quietly(iam.getRole({ RoleName }));
-    expect(roleResult && roleResult.Role.RoleName).toBe(RoleName);
+    const snsResult = await quietly(
+        sns.getTopicAttributes({ TopicArn: RequestTopicArn! })
+    );
 
-    if (RequestTopicArn) {
-        const snsResult = await quietly(
-            sns.getTopicAttributes({ TopicArn: RequestTopicArn })
-        );
-        expect(snsResult).toBeUndefined();
-    }
+    const sqsResult = await quietly(
+        sqs.getQueueAttributes({ QueueUrl: ResponseQueueUrl! })
+    );
 
-    if (ResponseQueueUrl) {
-        const sqsResult = await quietly(
-            sqs.getQueueAttributes({ QueueUrl: ResponseQueueUrl })
-        );
-        expect(sqsResult).toBeUndefined();
-    }
+    const subscriptionResult = await quietly(
+        sns.listSubscriptionsByTopic({ TopicArn: RequestTopicArn! })
+    );
 
-    if (SNSLambdaSubscriptionArn) {
-        const snsResult = await quietly(
-            sns.listSubscriptionsByTopic({ TopicArn: RequestTopicArn! })
-        );
-        expect(snsResult).toBeUndefined();
-    }
+    const s3Result = await quietly(s3.getObject({ Bucket: s3Bucket!, Key: s3Key! }));
 
-    if (s3Bucket && s3Key) {
-        const s3Result = await quietly(s3.getObject({ Bucket: s3Bucket, Key: s3Key }));
-        expect(s3Result).toBeUndefined();
-    }
-
-    if (logGroupName) {
+    if (
+        logGroupName ||
+        RoleName ||
+        SNSLambdaSubscriptionArn ||
+        region ||
+        ResponseQueueArn
+    ) {
         // ignore
     }
+
+    return {
+        functionResult,
+        snsResult,
+        sqsResult,
+        subscriptionResult,
+        s3Result
+    };
 }
 
 async function checkLogGroupCleanedUp(func: cloudify.AWSLambda) {
@@ -83,7 +83,7 @@ test(
         const cloud = cloudify.create("aws");
         const func = await cloud.createFunction("./functions", { useQueue: true });
         await func.cleanup();
-        await checkResourcesCleanedUp(func);
+        await checkResourcesCleanedUp(await getAWSResources(func));
     },
     30 * 1000
 );
@@ -95,7 +95,7 @@ test(
         const func = await cloud.createFunction("./functions", { useQueue: true });
         const resourceList = await func.stop();
         await cloud.cleanupResources(resourceList);
-        await checkResourcesCleanedUp(func);
+        await checkResourcesCleanedUp(await getAWSResources(func));
     },
     30 * 1000
 );
@@ -108,12 +108,10 @@ test(
             packageJson: "test/package.json"
         });
         await func.cleanup();
-        await checkResourcesCleanedUp(func);
+        await checkResourcesCleanedUp(await getAWSResources(func));
     },
     90 * 1000
 );
-
-import * as functions from "./functions";
 
 test(
     "garbage collector works for functions that are called",
@@ -151,7 +149,7 @@ test(
         }
 
         await func2.cleanup();
-        await checkResourcesCleanedUp(func);
+        await checkResourcesCleanedUp(await getAWSResources(func));
         await checkLogGroupCleanedUp(func);
     },
     120 * 1000
@@ -169,7 +167,7 @@ test(
         });
 
         await func2.cleanup();
-        await checkResourcesCleanedUp(func);
+        await checkResourcesCleanedUp(await getAWSResources(func));
         await checkLogGroupCleanedUp(func);
     },
     90 * 1000
