@@ -8,10 +8,12 @@ async function main() {
     });
     cloudFunc.setLogger(console.log);
 
+    const promises = [];
     for (let i = 0; i < 5; i++) {
-        console.log(await remote.hello("world"));
+        promises.push(remote.hello("world"));
     }
 
+    await Promise.all(promises);
     console.log(`Cost estimate:`);
     console.log(`${await cloudFunc.costEstimate()}`);
 

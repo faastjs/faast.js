@@ -26,6 +26,10 @@ export function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+export function echo(n: number) {
+    return n;
+}
+
 export async function async() {
     await delay(200);
     return "returned successfully from async function";

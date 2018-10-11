@@ -219,6 +219,41 @@ export function checkLogs(description: string, cloudProvider: cloudify.CloudProv
             },
             120 * 1000
         );
+
+        test.only(
+            "concurrent logs",
+            async () => {
+                let logger;
+                const N = 10;
+                const received = {};
+                const logPromise = new Promise(resolve => {
+                    logger = (msg: string) => {
+                        console.log(msg);
+                        const result = msg.match(/(\d+)/);
+                        if (result && result[1]) {
+                            received[result[1]] = true;
+                        }
+                        if (Object.keys(received).length === N) {
+                            resolve();
+                        }
+                    };
+                });
+
+                lambda.setLogger(logger);
+                const promises = [];
+                for (let i = 0; i < N; i++) {
+                    promises.push(remote.echo(i));
+                }
+                await Promise.all(promises);
+                await logPromise;
+                lambda.setLogger(undefined);
+
+                for (let i = 0; i < N; i++) {
+                    expect(received[i]).toBe(true);
+                }
+            },
+            120 * 1000
+        );
     });
 }
 
