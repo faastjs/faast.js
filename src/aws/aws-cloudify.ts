@@ -93,13 +93,20 @@ export interface AWSServices {
 type AWSCloudQueueState = cloudqueue.StateWithMessageType<aws.SQS.Message>;
 type AWSCloudQueueImpl = cloudqueue.QueueImpl<aws.SQS.Message>;
 type AWSInvocationResponse = PromiseResult<aws.Lambda.InvocationResponse, aws.AWSError>;
+type LogStreamName = string;
+
+interface LogStreamState {
+    lastIngestionTime: number;
+    checked: boolean;
+    nextToken?: string;
+}
 
 export interface State {
     resources: AWSResources;
     services: AWSServices;
     callFunnel: Funnel<AWSInvocationResponse>;
     queueState?: AWSCloudQueueState;
-    logStitcher: LogStitcher;
+    logStitchers: Map<LogStreamName, LogStreamState>;
     logger?: Logger;
     options: Options;
     metrics: AWSMetrics;
@@ -430,7 +437,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         },
         services,
         callFunnel: new Funnel(),
-        logStitcher: new LogStitcher(),
+        logStitchers: new Map(),
         metrics: new AWSMetrics(),
         options
     };
@@ -705,6 +712,7 @@ export async function collectGarbage(
             maxBurst: 2
         });
         const functionsWithLogGroups = new Set();
+
         await new Promise((resolve, reject) =>
             services.cloudwatch
                 .describeLogGroups({ logGroupNamePrefix: "/aws/lambda/cloudify-" })
@@ -1011,47 +1019,98 @@ function addSnsInvokePermissionsToFunction(
     );
 }
 
-async function* readLogsRaw(
-    logGroupName: string,
+async function readLogsRaw(
     cloudwatch: AWS.CloudWatchLogs,
-    logStitcher: LogStitcher,
+    logGroupName: string,
+    logStreamStates: Map<LogStreamName, LogStreamState>,
+    handler: (events: aws.CloudWatchLogs.OutputLogEvent[]) => void,
     metrics: AWSMetrics
 ) {
     let nextToken: string | undefined;
-    const request = {
-        logGroupName,
-        startTime: logStitcher.lastLogEventTime
-    };
     do {
-        if (nextToken) {
-            request["nextToken"] = nextToken;
-        }
-        const result = await cloudwatch.filterLogEvents(request).promise();
-        metrics.outboundBytes += computeHttpResponseBytes(
-            result.$response.httpResponse.headers
-        );
-        nextToken = result.nextToken;
-        const { events } = result;
-        if (events) {
-            const newEvents = events.filter(e => !logStitcher.has(e.eventId!));
-            if (newEvents.length > 0) {
-                yield newEvents;
+        const logStreamsResponse = await cloudwatch
+            .describeLogStreams({ logGroupName, nextToken })
+            .promise()
+            .catch(err => {
+                warn(err);
+                throw err;
+            });
+        nextToken = logStreamsResponse.nextToken;
+        (logStreamsResponse.logStreams || []).forEach(stream => {
+            let logStreamState = logStreamStates.get(stream.logStreamName!);
+            const { lastIngestionTime } = stream;
+
+            if (logStreamState) {
+                if (lastIngestionTime! > logStreamState.lastIngestionTime) {
+                    logStreamState.lastIngestionTime = lastIngestionTime!;
+                    logStreamState.checked = false;
+                    log(`New ingestion time for stream ${stream.logStreamName}`);
+                } else if (lastIngestionTime! < logStreamState.lastIngestionTime) {
+                    warn(`Log ingestion time moving backwards.`);
+                } else if (logStreamState.checked === false) {
+                    logStreamState.checked = true;
+                    log(`Checked for stream ${stream.logStreamName}`);
+                } else {
+                    return;
+                }
+            } else {
+                log(`New stream: ${stream.logStreamName}`);
+                logStreamState = {
+                    checked: false,
+                    lastIngestionTime: stream.lastIngestionTime!
+                };
+                logStreamStates.set(stream.logStreamName!, logStreamState);
             }
-            logStitcher.updateEvents(events, e => e.timestamp, e => e.eventId);
-        }
+
+            readLogStream(
+                cloudwatch,
+                logGroupName,
+                stream.logStreamName!,
+                logStreamState,
+                handler,
+                metrics
+            );
+        });
     } while (nextToken);
 }
 
+async function readLogStream(
+    cloudwatch: AWS.CloudWatchLogs,
+    logGroupName: string,
+    logStreamName: string,
+    logStreamState: LogStreamState,
+    handler: (events: aws.CloudWatchLogs.OutputLogEvent[]) => void,
+    metrics: AWSMetrics
+) {
+    const request: aws.CloudWatchLogs.GetLogEventsRequest = {
+        logGroupName,
+        logStreamName,
+        startTime: 0,
+        startFromHead: true
+    };
+
+    do {
+        if (logStreamState.nextToken) {
+            request["nextToken"] = logStreamState.nextToken;
+        }
+        const result = await cloudwatch.getLogEvents(request).promise();
+        metrics.outboundBytes += computeHttpResponseBytes(
+            result.$response.httpResponse.headers
+        );
+        const { events } = result;
+        if (events && events.length > 0) {
+            handler(events);
+        }
+        if (logStreamState.nextToken === result.nextForwardToken) {
+            break;
+        }
+        logStreamState.nextToken = result.nextForwardToken;
+    } while (logStreamState.nextToken);
+}
+
 async function outputCurrentLogs(state: State) {
-    const logStream = readLogsRaw(
-        getLogGroupName(state.resources.FunctionName),
-        state.services.cloudwatch,
-        state.logStitcher,
-        state.metrics
-    );
-    for await (const entries of logStream) {
-        const newEntries = entries.filter(entry => entry.message);
-        for (const entry of newEntries) {
+    function handleEntries(entries: aws.CloudWatchLogs.OutputLogEvent[]) {
+        for (const entry of entries) {
             if (!state.logger) {
                 return;
             }
@@ -1060,6 +1119,14 @@ async function outputCurrentLogs(state: State) {
             );
         }
     }
+
+    await readLogsRaw(
+        state.services.cloudwatch,
+        getLogGroupName(state.resources.FunctionName),
+        state.logStitchers,
+        handleEntries,
+        state.metrics
+    );
 }
 
 async function outputLogs(state: State) {

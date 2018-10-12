@@ -225,15 +225,16 @@ export function checkLogs(description: string, cloudProvider: cloudify.CloudProv
             async () => {
                 let logger;
                 const N = 10;
-                const received = {};
+                let coldStart = 0;
+
                 const logPromise = new Promise(resolve => {
                     logger = (msg: string) => {
                         console.log(msg);
-                        const result = msg.match(/(\d+)/);
-                        if (result && result[1]) {
-                            received[result[1]] = true;
+                        if (msg.match(/Successful cold start/)) {
+                            coldStart++;
                         }
-                        if (Object.keys(received).length === N) {
+
+                        if (coldStart === N) {
                             resolve();
                         }
                     };
@@ -247,10 +248,6 @@ export function checkLogs(description: string, cloudProvider: cloudify.CloudProv
                 await Promise.all(promises);
                 await logPromise;
                 lambda.setLogger(undefined);
-
-                for (let i = 0; i < N; i++) {
-                    expect(received[i]).toBe(true);
-                }
             },
             120 * 1000
         );
