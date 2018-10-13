@@ -1019,7 +1019,15 @@ function addSnsInvokePermissionsToFunction(
     );
 }
 
-async function readLogsRaw(
+const logFunnel = new RateLimitedFunnel<
+    PromiseResult<aws.CloudWatchLogs.GetLogEventsResponse, Error>
+>({
+    maxConcurrency: 10,
+    targetRequestsPerSecond: 10,
+    maxBurst: 1
+});
+
+async function readLogGroup(
     cloudwatch: AWS.CloudWatchLogs,
     logGroupName: string,
     logStreamStates: Map<LogStreamName, LogStreamState>,
@@ -1027,51 +1035,51 @@ async function readLogsRaw(
     metrics: AWSMetrics
 ) {
     let nextToken: string | undefined;
+    const promises: Promise<void>[] = [];
     do {
         const logStreamsResponse = await cloudwatch
             .describeLogStreams({ logGroupName, nextToken })
-            .promise()
-            .catch(err => {
-                warn(err);
-                throw err;
-            });
+            .promise();
+        metrics.outboundBytes += computeHttpResponseBytes(
+            logStreamsResponse.$response.httpResponse.headers
+        );
         nextToken = logStreamsResponse.nextToken;
-        (logStreamsResponse.logStreams || []).forEach(stream => {
-            let logStreamState = logStreamStates.get(stream.logStreamName!);
-            const { lastIngestionTime } = stream;
+        for (const stream of logStreamsResponse.logStreams || []) {
+            const { lastIngestionTime, logStreamName } = stream;
+            let logStreamState = logStreamStates.get(logStreamName!);
 
             if (logStreamState) {
                 if (lastIngestionTime! > logStreamState.lastIngestionTime) {
                     logStreamState.lastIngestionTime = lastIngestionTime!;
                     logStreamState.checked = false;
-                    log(`New ingestion time for stream ${stream.logStreamName}`);
                 } else if (lastIngestionTime! < logStreamState.lastIngestionTime) {
                     warn(`Log ingestion time moving backwards.`);
                 } else if (logStreamState.checked === false) {
                     logStreamState.checked = true;
-                    log(`Checked for stream ${stream.logStreamName}`);
                 } else {
                     return;
                 }
             } else {
-                log(`New stream: ${stream.logStreamName}`);
                 logStreamState = {
                     checked: false,
-                    lastIngestionTime: stream.lastIngestionTime!
+                    lastIngestionTime: lastIngestionTime!
                 };
-                logStreamStates.set(stream.logStreamName!, logStreamState);
+                logStreamStates.set(logStreamName!, logStreamState);
             }
 
-            readLogStream(
-                cloudwatch,
-                logGroupName,
-                stream.logStreamName!,
-                logStreamState,
-                handler,
-                metrics
+            promises.push(
+                readLogStream(
+                    cloudwatch,
+                    logGroupName,
+                    logStreamName!,
+                    logStreamState,
+                    handler,
+                    metrics
+                ).catch(_ => {})
             );
-        });
+        }
     } while (nextToken);
+    await Promise.all(promises);
 }
 
 async function readLogStream(
@@ -1093,7 +1101,9 @@ async function readLogStream(
         if (logStreamState.nextToken) {
             request["nextToken"] = logStreamState.nextToken;
         }
-        const result = await cloudwatch.getLogEvents(request).promise();
+        const result = await logFunnel.push(() =>
+            cloudwatch.getLogEvents(request).promise()
+        );
         metrics.outboundBytes += computeHttpResponseBytes(
             result.$response.httpResponse.headers
         );
@@ -1108,7 +1118,7 @@ async function readLogStream(
     } while (logStreamState.nextToken);
 }
 
-async function outputCurrentLogs(state: State) {
+async function outputLogs(state: State) {
     function handleEntries(entries: aws.CloudWatchLogs.OutputLogEvent[]) {
         for (const entry of entries) {
             if (!state.logger) {
@@ -1120,20 +1130,16 @@ async function outputCurrentLogs(state: State) {
         }
     }
 
-    await readLogsRaw(
-        state.services.cloudwatch,
-        getLogGroupName(state.resources.FunctionName),
-        state.logStitchers,
-        handleEntries,
-        state.metrics
-    );
-}
-
-async function outputLogs(state: State) {
     while (state.logger) {
         const start = Date.now();
         try {
-            await outputCurrentLogs(state);
+            await readLogGroup(
+                state.services.cloudwatch,
+                getLogGroupName(state.resources.FunctionName),
+                state.logStitchers,
+                handleEntries,
+                state.metrics
+            );
         } catch (err) {}
         if (!state.logger) {
             break;
@@ -1150,6 +1156,9 @@ function setLogger(state: State, logger: Logger | undefined) {
     state.logger = logger;
     if (!prev) {
         outputLogs(state);
+    }
+    if (!logger) {
+        logFunnel.clearPending();
     }
 }
 

@@ -188,7 +188,7 @@ export function checkLogs(description: string, cloudProvider: cloudify.CloudProv
         }, 60 * 1000);
 
         test(
-            "logs",
+            "logs console.*",
             async () => {
                 const received = {};
                 let logger;
@@ -220,21 +220,21 @@ export function checkLogs(description: string, cloudProvider: cloudify.CloudProv
             120 * 1000
         );
 
-        test.only(
+        test(
             "concurrent logs",
             async () => {
                 let logger;
-                const N = 10;
-                let coldStart = 0;
+                const N = 100;
+                let executions = 0;
 
                 const logPromise = new Promise(resolve => {
                     logger = (msg: string) => {
-                        console.log(msg);
-                        if (msg.match(/Successful cold start/)) {
-                            coldStart++;
+                        log(msg);
+                        if (msg.match(/Executed call [0-9]+/)) {
+                            executions++;
                         }
 
-                        if (coldStart === N) {
+                        if (executions === N) {
                             resolve();
                         }
                     };
@@ -243,7 +243,7 @@ export function checkLogs(description: string, cloudProvider: cloudify.CloudProv
                 lambda.setLogger(logger);
                 const promises = [];
                 for (let i = 0; i < N; i++) {
-                    promises.push(remote.echo(i));
+                    promises.push(remote.consoleLog(`Executed call ${i}`));
                 }
                 await Promise.all(promises);
                 await logPromise;
