@@ -229,7 +229,7 @@ export function checkLogs(description: string, cloudProvider: cloudify.CloudProv
 
                 const logPromise = new Promise(resolve => {
                     logger = (msg: string) => {
-                        log(msg);
+                        // log(msg);
                         if (msg.match(/Executed call [0-9]+/)) {
                             executions++;
                         }

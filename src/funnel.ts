@@ -14,13 +14,18 @@ export class Deferred<T = void> {
 }
 
 export class Future<T = void> extends Deferred<T> {
-    constructor(private fn: () => Promise<T>) {
+    constructor(private fn: () => Promise<T>, private cancel?: () => string | undefined) {
         super();
     }
     execute(): void {
-        this.fn()
-            .then(x => this.resolve(x))
-            .catch(err => this.reject(err));
+        const cancelMessage = this.cancel && this.cancel();
+        if (cancelMessage) {
+            this.reject(new Error(cancelMessage));
+        } else {
+            this.fn()
+                .then(x => this.resolve(x))
+                .catch(err => this.reject(err));
+        }
     }
 }
 
@@ -62,8 +67,8 @@ export class Funnel<T = void> {
 
     constructor(public maxConcurrency: number = 0) {}
 
-    push(worker: () => Promise<T>) {
-        const future = new Future(worker);
+    push(worker: () => Promise<T>, cancel?: () => string | undefined) {
+        const future = new Future(worker, cancel);
         this.pendingQueue.add(future);
         this.doWork();
         return future.promise;
@@ -76,32 +81,21 @@ export class Funnel<T = void> {
         return this.push(() => retry(shouldRetry, worker));
     }
 
-    clearPending() {
+    clear(msg: string = "Execution cancelled by funnel clearing") {
+        this.pendingQueue.forEach(p => p.reject(new Error(msg)));
         this.pendingQueue.clear();
-    }
-
-    pendingFutures() {
-        return Array.from(this.pendingQueue.values());
-    }
-
-    pending() {
-        return this.pendingFutures().map(p => p.promise);
-    }
-
-    executingFutures() {
-        return Array.from(this.executingQueue.values());
-    }
-
-    executing() {
-        return this.executingFutures().map(p => p.promise);
-    }
-
-    allFutures() {
-        return [...this.pendingFutures(), ...this.executingFutures()];
+        this.executingQueue.forEach(p => p.reject(new Error(msg)));
+        this.executingQueue.clear();
     }
 
     all() {
-        return this.allFutures().map(p => p.promise);
+        return Promise.all(
+            [...this.pendingQueue, ...this.executingQueue].map(p => p.promise)
+        );
+    }
+
+    size() {
+        return this.pendingQueue.size + this.executingQueue.size;
     }
 
     setMaxConcurrency(maxConcurrency: number) {
@@ -161,7 +155,7 @@ export class Pump<T = void> extends Funnel<T | void> {
 
     drain() {
         this.stop();
-        return Promise.all(this.executing());
+        return this.all();
     }
 
     setMaxConcurrency(concurrency: number) {
@@ -220,14 +214,14 @@ export class RateLimiter<T = void> {
         assert(this.maxBurst >= 1);
     }
 
-    push(worker: () => Promise<T>) {
+    push(worker: () => Promise<T>, cancel?: () => string | undefined) {
         this.updateBucket();
         if (this.queue.size === 0 && this.bucket <= this.maxBurst - 1) {
             this.bucket++;
             return worker();
         }
 
-        const future = new Future(worker);
+        const future = new Future(worker, cancel);
         this.queue.add(future);
         if (this.queue.size === 1) {
             this.drainQueue();
@@ -292,8 +286,8 @@ export class RateLimitedFunnel<T = void> extends Funnel<T> {
         this.rateLimiter.setTargetRateLimit(maxRequestsPerSecond);
     }
 
-    push(worker: () => Promise<T>) {
-        return super.push(() => this.rateLimiter.push(worker));
+    push(worker: () => Promise<T>, cancel?: () => string | undefined) {
+        return super.push(() => this.rateLimiter.push(worker, cancel), cancel);
     }
 
     pushRetry<E>(

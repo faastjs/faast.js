@@ -636,7 +636,7 @@ async function collectGarbage(
             );
         } while (pageToken);
 
-        await Promise.all(gcFunnel.all());
+        await gcFunnel.all();
     } finally {
         garbageCollectorRunning = false;
     }
@@ -748,12 +748,7 @@ export async function cleanupResources(resourcesString: string) {
 export async function stop(state: Partial<State>) {
     const { callFunnel } = state;
     state.logger = undefined;
-    callFunnel &&
-        callFunnel
-            .pendingFutures()
-            .forEach(p =>
-                p.reject(new Error("Rejected promise because of queue cancellation"))
-            );
+    callFunnel && callFunnel.clear();
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
     }

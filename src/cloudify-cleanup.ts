@@ -28,18 +28,18 @@ async function deleteResources(
     { maxConcurrency = 10, targetRequestsPerSecond = 5, maxBurst = 5 } = {}
 ) {
     if (matchingResources.length > 0) {
-        const timeEstimate = (resources: any[]) =>
-            resources.length <= 5 ? "" : `(est: ${(resources.length / 5).toFixed(0)}s)`;
-        const updateSpinnerText = (resources: any[] = []) =>
-            `Deleting ${matchingResources.length} ${name} ${timeEstimate(resources)}`;
-        const spinner = ora(updateSpinnerText(matchingResources)).start();
+        const timeEstimate = (nResources: number) =>
+            nResources <= 5 ? "" : `(est: ${(nResources / 5).toFixed(0)}s)`;
+        const updateSpinnerText = (nResources: number = 0) =>
+            `Deleting ${matchingResources.length} ${name} ${timeEstimate(nResources)}`;
+        const spinner = ora(updateSpinnerText(matchingResources.length)).start();
         const funnel = new RateLimitedFunnel({
             maxConcurrency,
             targetRequestsPerSecond,
             maxBurst
         });
         const timer = setInterval(
-            () => (spinner.text = updateSpinnerText(funnel.allFutures())),
+            () => (spinner.text = updateSpinnerText(funnel.size())),
             1000
         );
         try {

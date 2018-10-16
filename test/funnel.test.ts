@@ -79,23 +79,27 @@ describe("Funnel", () => {
     test("clears funnel", async () => {
         const funnel = new Funnel<number>(1);
         let count = 0;
-        const promise = funnel.push(async () => count++);
-        funnel.push(async () => count++);
-        funnel.push(async () => count++);
-        funnel.clearPending();
-        await promise;
+        const promise0 = funnel.push(async () => count++);
+        const promise1 = funnel.push(async () => count++);
+        const promise2 = funnel.push(async () => count++);
+        funnel.clear();
+        await expect(promise0).rejects.toThrowError();
+        await expect(promise1).rejects.toThrowError();
+        await expect(promise2).rejects.toThrowError();
         expect(count).toBe(1);
     });
     test("handles promise rejections without losing concurrency", async () => {
         const funnel = new Funnel<void>(1);
         let executed = false;
-        expect(funnel.push(() => Promise.reject("message"))).rejects.toBe("message");
+        await expect(funnel.push(() => Promise.reject("message"))).rejects.toBe(
+            "message"
+        );
         await funnel.push(async () => {
             executed = true;
         });
         expect(executed).toBe(true);
     });
-    test("pending waits for all pending requests to finish", async () => {
+    test("funnel.all() waits for all requests to finish", async () => {
         const funnel = new Funnel<string>(1);
         let executed = false;
         funnel.push(async () => {
@@ -105,10 +109,23 @@ describe("Funnel", () => {
         });
         funnel.push(async () => "second");
         expect(executed).toBe(false);
-        const result = await Promise.all(funnel.pending());
-        expect(result.length).toBe(1);
+        const result = await funnel.all();
+        expect(result.length).toBe(2);
         expect(result[0]).toBe("second");
         expect(executed).toBe(true);
+    });
+    test("Funnel cancellation", async () => {
+        const funnel = new Funnel(1);
+        let executed = 0;
+
+        const promise = funnel.push(
+            async () => {
+                executed++;
+            },
+            () => "cancelled"
+        );
+        await expect(promise).rejects.toThrowError();
+        expect(executed).toBe(0);
     });
 });
 

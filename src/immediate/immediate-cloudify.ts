@@ -91,8 +91,7 @@ async function cleanup(state: State): Promise<void> {
 }
 
 async function stop(state: State): Promise<string> {
-    state.callFunnel.clearPending();
-    await Promise.all(state.callFunnel.executing());
+    state.callFunnel.clear();
     return "";
 }
 

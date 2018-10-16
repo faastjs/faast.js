@@ -175,7 +175,7 @@ async function cleanup(state: State): Promise<void> {
 }
 
 async function stop(state: State): Promise<string> {
-    state.callFunnel.clearPending();
+    state.callFunnel.clear();
     const childProcesses = state.resources.childProcesses;
     const completed = Promise.all(
         [...childProcesses].map(p => new Promise(resolve => p.on("exit", resolve)))
