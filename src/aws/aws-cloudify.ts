@@ -14,17 +14,12 @@ import {
     FunctionStats,
     Logger
 } from "../cloudify";
+import { CostBreakdown, CostMetric } from "../cost-analyzer";
 import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
-import { log, warn, logGc } from "../log";
+import { log, logGc, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import {
-    chomp,
-    computeHttpResponseBytes,
-    LogStitcher,
-    sleep,
-    hasExpired
-} from "../shared";
+import { chomp, computeHttpResponseBytes, hasExpired, sleep } from "../shared";
 import {
     FunctionCall,
     FunctionReturn,
@@ -43,7 +38,6 @@ import {
     receiveMessages,
     sqsMessageAttribute
 } from "./aws-queue";
-import { CostBreakdown, CostMetric } from "../cost-analyzer";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -1041,12 +1035,12 @@ async function readLogGroup(
     cloudwatch: AWS.CloudWatchLogs,
     logGroupName: string,
     logStreamStates: Map<LogStreamName, LogStreamState>,
-    activeLogStreams: Set<LogStreamName>,
     handler: (events: aws.CloudWatchLogs.OutputLogEvent[]) => void,
     metrics: AWSMetrics,
     cancel: () => string | undefined
 ) {
     let nextToken: string | undefined;
+    const promises: Promise<void>[] = [];
     do {
         const logStreamsResponse = await logGroupFunnel.push(
             () => cloudwatch.describeLogStreams({ logGroupName, nextToken }).promise(),
@@ -1072,8 +1066,7 @@ async function readLogGroup(
                 logStreamStates.set(logStreamName!, logStreamState);
             }
 
-            if (!activeLogStreams.has(logStreamName!)) {
-                activeLogStreams.add(logStreamName!);
+            promises.push(
                 readLogStream(
                     cloudwatch,
                     logGroupName,
@@ -1082,15 +1075,12 @@ async function readLogGroup(
                     handler,
                     metrics,
                     cancel
-                )
-                    .catch(_ => {})
-                    .then(v => {
-                        activeLogStreams.delete(logStreamName!);
-                        return v;
-                    });
-            }
+                ).catch(_ => {})
+            );
         }
     } while (nextToken && !cancel());
+
+    await Promise.all(promises);
 }
 
 async function readLogStream(
@@ -1148,8 +1138,6 @@ async function outputLogs(state: State) {
         }
     }
 
-    const activeLogStreams = new Set<LogStreamName>();
-
     while (state.logger) {
         try {
             await state.readLogFunnel.push(() =>
@@ -1157,7 +1145,6 @@ async function outputLogs(state: State) {
                     state.services.cloudwatch,
                     getLogGroupName(state.resources.FunctionName),
                     state.logStitchers,
-                    activeLogStreams,
                     handleEntries,
                     state.metrics,
                     () => (state.logger ? undefined : "Logging cancelled")

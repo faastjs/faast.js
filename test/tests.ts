@@ -225,16 +225,17 @@ export function checkLogs(description: string, cloudProvider: cloudify.CloudProv
             async () => {
                 let logger;
                 const N = 100;
-                let executions = 0;
+                const logEntries = {};
 
                 const logPromise = new Promise(resolve => {
                     logger = (msg: string) => {
-                        // log(msg);
-                        if (msg.match(/Executed call [0-9]+/)) {
-                            executions++;
+                        log(msg);
+                        const match = msg.match(/Executed call ([0-9]+)/);
+                        if (match) {
+                            logEntries[match[1]] = (logEntries[match[1]] || 0) + 1;
                         }
 
-                        if (executions === N) {
+                        if (Object.keys(logEntries).length === N) {
                             resolve();
                         }
                     };
@@ -247,6 +248,9 @@ export function checkLogs(description: string, cloudProvider: cloudify.CloudProv
                 }
                 await Promise.all(promises);
                 await logPromise;
+                for (let i = 0; i < N; i++) {
+                    expect(logEntries[i]).toBe(1);
+                }
                 lambda.setLogger(undefined);
             },
             120 * 1000
