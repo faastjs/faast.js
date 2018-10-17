@@ -781,9 +781,8 @@ export async function* readLogsRaw(
 ) {
     let pageToken: string | undefined;
 
-    const filter = `resource.type="cloud_function" AND resource.labels.function_name="${functionName}" AND receiveTimestamp >= "${new Date(
-        logStitcher.lastLogEventTime
-    ).toISOString()}"`;
+    const lastLogEventISO = new Date(logStitcher.lastLogEventTime).toISOString();
+    const filter = `resource.type="cloud_function" AND resource.labels.function_name="${functionName}" AND receiveTimestamp >= "${lastLogEventISO}"`;
     const requestBody = {
         resourceNames: [`projects/${project}`],
         filter

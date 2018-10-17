@@ -220,7 +220,7 @@ export function checkLogs(description: string, cloudProvider: cloudify.CloudProv
             120 * 1000
         );
 
-        test(
+        test.only(
             "concurrent logs",
             async () => {
                 let logger;
@@ -247,13 +247,28 @@ export function checkLogs(description: string, cloudProvider: cloudify.CloudProv
                     promises.push(remote.consoleLog(`Executed call ${i}`));
                 }
                 await Promise.all(promises);
+                const timer = setInterval(() => {
+                    const missing = [];
+                    const duplicate = [];
+                    for (let i = 0; i < N; i++) {
+                        if (!logEntries[i]) {
+                            missing.push(i);
+                        } else if (logEntries[i] > 1) {
+                            duplicate.push(i);
+                        }
+                    }
+                    log(`missing: ${missing}, duplicate: ${duplicate}`);
+                }, 1000);
+
                 await logPromise;
+
                 for (let i = 0; i < N; i++) {
                     expect(logEntries[i]).toBe(1);
                 }
+                clearInterval(timer);
                 lambda.setLogger(undefined);
             },
-            120 * 1000
+            180 * 1000
         );
     });
 }
