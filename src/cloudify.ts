@@ -207,7 +207,7 @@ function processResponse<R>(
         localEndTime,
         rawResponse
     } = returnedMetrics;
-    const { remoteExecutionStartTime, remoteExecutionEndTime } = rawResponse;
+    const { remoteExecutionStartTime, remoteExecutionEndTime } = returnedMetrics.returned;
 
     if (remoteExecutionStartTime && remoteExecutionEndTime) {
         const localStartLatency = localRequestSentTime - localStartTime;
