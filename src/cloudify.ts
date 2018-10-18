@@ -269,7 +269,9 @@ export class CloudFunction<O extends CommonOptions, S> {
         protected impl: CloudFunctionImpl<S>,
         readonly state: S,
         readonly options?: O
-    ) {}
+    ) {
+        this.impl.logUrl && log(`Log URL: ${this.impl.logUrl(state)}`);
+    }
 
     cleanup() {
         this.stopPrintStatisticsInterval();
