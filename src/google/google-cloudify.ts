@@ -761,6 +761,8 @@ function parseTimestamp(timestampStr: string | undefined) {
     return Date.parse(timestampStr || "") || 0;
 }
 
+import * as util from "util";
+
 async function getGoogleCloudFunctionsPricing(
     cloudBilling: CloudBilling.Cloudbilling,
     region: string
@@ -781,11 +783,10 @@ async function getGoogleCloudFunctionsPricing(
                 });
                 const { skus = [] } = skusResponse.data;
                 const matchingSkus = skus.filter(sku => sku.description === description);
-                logPricing(`matching SKUs: %O`, matchingSkus);
                 logPricing(
-                    `  Pricing info: %O`,
-                    matchingSkus.map(s => s.pricingInfo![0].pricingExpression)
+                    `matching SKUs: ${util.inspect(matchingSkus, { depth: null })}`
                 );
+
                 const regionOrGlobalSku =
                     matchingSkus.find(sku => sku.serviceRegions![0] === region) ||
                     matchingSkus.find(sku => sku.serviceRegions![0] === "global");
