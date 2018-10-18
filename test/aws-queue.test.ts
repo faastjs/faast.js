@@ -1,3 +1,3 @@
 import { checkFunctions } from "./tests";
 
-checkFunctions("Queue trigger", "aws", { useQueue: true });
+checkFunctions("Queue trigger", "aws", { mode: "queue" });

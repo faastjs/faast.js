@@ -178,7 +178,7 @@ export function checkCosts(
                 const args: cloudify.CommonOptions = {
                     timeout: 30,
                     memorySize: 512,
-                    useQueue: true
+                    mode: "queue"
                 };
                 lambda = await cloud.createFunction("./functions", {
                     ...args,

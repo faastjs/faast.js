@@ -5,7 +5,7 @@ test(
     "removes ephemeral resources",
     async () => {
         const cloud = cloudify.create("aws");
-        const func = await cloud.createFunction("./functions", { useQueue: true });
+        const func = await cloud.createFunction("./functions", { mode: "queue" });
         await func.cleanup();
         await checkResourcesCleanedUp(await getAWSResources(func));
     },
@@ -16,7 +16,7 @@ test(
     "removes ephemeral resources from a resource list",
     async () => {
         const cloud = cloudify.create("aws");
-        const func = await cloud.createFunction("./functions", { useQueue: true });
+        const func = await cloud.createFunction("./functions", { mode: "queue" });
         const resourceList = await func.stop();
         await cloud.cleanupResources(resourceList);
         await checkResourcesCleanedUp(await getAWSResources(func));

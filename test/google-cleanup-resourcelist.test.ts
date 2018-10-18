@@ -5,7 +5,7 @@ test(
     "removes ephemeral resources from a resource list",
     async () => {
         const cloud = cloudify.create("google");
-        const func = await cloud.createFunction("./functions", { useQueue: true });
+        const func = await cloud.createFunction("./functions", { mode: "queue" });
         checkResourcesExist(await getGoogleResources(func));
         const resourceList = await func.stop();
         await cloud.cleanupResources(resourceList);

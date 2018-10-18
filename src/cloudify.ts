@@ -60,7 +60,7 @@ export type Responsified<M> = {
 export interface CommonOptions extends PackerOptions {
     timeout?: number;
     memorySize?: number;
-    useQueue?: boolean;
+    mode?: "https" | "queue";
     gc?: boolean;
     retentionInDays?: number;
 }

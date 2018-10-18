@@ -138,7 +138,7 @@ export let defaults: Required<Options> = {
     RoleName: "cloudify-cached-lambda-role",
     timeout: 60,
     memorySize: 256,
-    useQueue: true,
+    mode: "https",
     gc: true,
     retentionInDays: 1,
     useDependencyCaching: true,
@@ -311,7 +311,7 @@ export async function buildModulesOnLambda(
     const lambda = await cloud.createFunction(require.resolve("./aws-npm"), {
         timeout: 300,
         memorySize: 2048,
-        useQueue: false
+        mode: "https"
     });
     try {
         const remote = lambda.cloudifyModule(awsNpm);
@@ -365,7 +365,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         RoleName = defaults.RoleName,
         timeout: Timeout = defaults.timeout,
         memorySize: MemorySize = defaults.memorySize,
-        useQueue = defaults.useQueue,
+        mode = defaults.mode,
         gc = defaults.gc,
         retentionInDays = defaults.retentionInDays,
         awsLambdaOptions = defaults.awsLambdaOptions,
@@ -458,34 +458,32 @@ export async function initialize(fModule: string, options: Options = {}): Promis
 
         const promises: Promise<any>[] = [createFunctionPromise, pricingPromise];
 
-        if (useQueue) {
+        if (mode === "queue") {
             promises.push(
                 createFunctionPromise.then(async func => {
-                    if (useQueue) {
-                        log(`Adding queue implementation`);
-                        const awsQueueImpl = await createQueueImpl(
-                            state,
-                            FunctionName,
-                            func.FunctionArn!
-                        );
-                        state.queueState = cloudqueue.initializeCloudFunctionQueue(
-                            awsQueueImpl
-                        );
-                        retry(3, () => {
-                            log(`Adding DLQ to function`);
-                            return lambda
-                                .updateFunctionConfiguration({
-                                    FunctionName,
-                                    DeadLetterConfig: {
-                                        TargetArn: state.resources.ResponseQueueArn
-                                    }
-                                })
-                                .promise();
-                        }).catch(err => {
-                            warn(err);
-                            warn(`Could not add DLQ to function, continuing without it.`);
-                        });
-                    }
+                    log(`Adding queue implementation`);
+                    const awsQueueImpl = await createQueueImpl(
+                        state,
+                        FunctionName,
+                        func.FunctionArn!
+                    );
+                    state.queueState = cloudqueue.initializeCloudFunctionQueue(
+                        awsQueueImpl
+                    );
+                    retry(3, () => {
+                        log(`Adding DLQ to function`);
+                        return lambda
+                            .updateFunctionConfiguration({
+                                FunctionName,
+                                DeadLetterConfig: {
+                                    TargetArn: state.resources.ResponseQueueArn
+                                }
+                            })
+                            .promise();
+                    }).catch(err => {
+                        warn(err);
+                        warn(`Could not add DLQ to function, continuing without it.`);
+                    });
                 })
             );
         }

@@ -5,11 +5,11 @@ import { join } from "path";
 const kb = 1024;
 
 checkCodeBundle("Package AWS queue bundle", "aws", "https-bundle", 50 * kb, {
-    useQueue: false
+    mode: "queue"
 });
 
 checkCodeBundle("Package AWS https bundle", "aws", "queue-bundle", 50 * kb, {
-    useQueue: true
+    mode: "https"
 });
 
 checkCodeBundle(

@@ -139,7 +139,7 @@ export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
         rv.push({
             cloudProvider: "aws",
             repetitions: 10,
-            options: { useQueue: false, memorySize, timeout: 120 },
+            options: { mode: "https", memorySize, timeout: 120 },
             repetitionConcurrency: 10
         });
     }
@@ -152,7 +152,7 @@ export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
         rv.push({
             cloudProvider: "google",
             repetitions: 10,
-            options: { useQueue: false, memorySize, timeout: 120 },
+            options: { mode: "https", memorySize, timeout: 120 },
             repetitionConcurrency: 10
         });
     }
@@ -210,10 +210,10 @@ export async function estimateWorkloadCost<T>(
     const list = new Listr(
         promises.map((promise, i) => {
             const { cloudProvider, repetitions, options } = configurations[i];
-            const { memorySize, useQueue } = options;
+            const { memorySize, mode } = options;
 
             return {
-                title: `${cloudProvider} ${memorySize}MB ${useQueue ? "queue" : "https"}`,
+                title: `${cloudProvider} ${memorySize}MB ${mode}`,
                 task: async (_: any, task: Listr.ListrTaskWrapper) => {
                     const est = await promise;
                     const total = (est.costEstimate.total() / repetitions).toFixed(8);
@@ -238,14 +238,14 @@ export function toCSV(profile: CostAnalysisProfile[]) {
     let rv = "";
     rv += `cloud,memory,useQueue,options,completed,errors,retries,cost,executionLatency,billedTime\n`;
     profile.forEach(r => {
-        const { memorySize, useQueue, ...rest } = r.options;
+        const { memorySize, mode, ...rest } = r.options;
         const options = `"${inspect(rest).replace('"', '""')}"`;
         const { completed, errors, retries } = r.counters;
         const cost = (r.costEstimate.total() / r.config.repetitions).toFixed(8);
 
         rv += `${
             r.cloudProvider
-        },${memorySize},${useQueue},${options},${completed},${errors},${retries},$${cost},${ps(
+        },${memorySize},${mode},${options},${completed},${errors},${retries},$${cost},${ps(
             r.stats.executionLatency
         )},${ps(r.stats.estimatedBilledTime)}\n`;
     });

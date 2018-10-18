@@ -243,7 +243,7 @@ export async function initializeEmulator(fmodule: string, options: Options = {})
         fmodule,
         {
             ...options,
-            useQueue: false
+            mode: "https"
         },
         project,
         true
@@ -254,7 +254,7 @@ export const defaults: Required<Options> = {
     region: "us-central1",
     timeout: 60,
     memorySize: 256,
-    useQueue: false,
+    mode: "https",
     gc: true,
     retentionInDays: 1,
     googleCloudFunctionOptions: {},
@@ -279,7 +279,7 @@ async function initializeWithApi(
         region = defaults.region,
         timeout = defaults.timeout,
         memorySize = defaults.memorySize,
-        useQueue = defaults.useQueue,
+        mode = defaults.mode,
         gc = defaults.gc,
         retentionInDays = defaults.retentionInDays,
         googleCloudFunctionOptions
@@ -327,7 +327,7 @@ async function initializeWithApi(
         getGoogleCloudFunctionsPricing(services.cloudBilling, region)
     );
 
-    if (useQueue) {
+    if (mode === "queue") {
         log(`Initializing queue`);
         const googleQueueImpl = await initializeGoogleQueue(state, project, functionName);
         state.queueState = cloudqueue.initializeCloudFunctionQueue(googleQueueImpl);
@@ -344,7 +344,7 @@ async function initializeWithApi(
         runtime: "nodejs8",
         ...googleCloudFunctionOptions
     };
-    if (useQueue) {
+    if (mode === "queue") {
         requestBody.eventTrigger = {
             eventType: "providers/cloud.pubsub/eventTypes/topic.publish",
             resource: resources.requestQueueTopic
@@ -712,10 +712,9 @@ export async function pack(
     functionModule: string,
     options: Options = {}
 ): Promise<PackerResult> {
-    const { useQueue = false } = options;
-    const trampolineModule = useQueue
-        ? "./google-trampoline-queue"
-        : "./google-trampoline-https";
+    const { mode = "https" } = options;
+    const trampolineModule =
+        mode === "queue" ? "./google-trampoline-queue" : "./google-trampoline-https";
     const packerOptions: PackerOptions = options;
     return packer(
         {
@@ -723,7 +722,7 @@ export async function pack(
             functionModule
         },
         {
-            packageJson: useQueue ? "package.json" : undefined,
+            packageJson: mode === "queue" ? "package.json" : undefined,
             ...packerOptions
         }
     );

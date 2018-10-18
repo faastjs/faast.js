@@ -1,3 +1,3 @@
 import { checkFunctions } from "./tests";
 
-checkFunctions("Https trigger", "google", { useQueue: false });
+checkFunctions("Https trigger", "google", { mode: "https" });

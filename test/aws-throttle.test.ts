@@ -11,7 +11,7 @@ beforeAll(async () => {
         cloud = cloudify.create("aws");
         func = await cloud.createFunction("./functions", {
             // Timeout: 120
-            useQueue: false,
+            mode: "https",
             memorySize: 1024
         });
         await func.setConcurrency(1);

@@ -24,7 +24,7 @@ checkCodeBundle(
     "queue-bundle",
     700 * kb,
     {
-        useQueue: true
+        mode: "queue"
     }
 );
 
@@ -34,7 +34,7 @@ checkCodeBundle(
     "queue-package",
     20 * kb,
     {
-        useQueue: true,
+        mode: "queue",
         packageJson: "test/package.json"
     }
 );

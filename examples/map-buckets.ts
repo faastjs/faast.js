@@ -8,14 +8,12 @@ export async function mapBucket(Bucket: string) {
     const { cloudFunc, remote } = await cloudify("aws", m, "./module");
     try {
         const objects = await s3.listObjectsV2({ Bucket }).promise();
-        for (const p of objects.Contents!) {
-            console.log(`${Bucket}: ${p.Key}`);
-        }
+        console.log(`Bucket ${Bucket} contains ${objects.Contents!.length} objects`);
         await remote.processBucketObject(Bucket, objects.Contents![0].Key!);
     } finally {
         const cost = await cloudFunc.costEstimate();
         console.log(`${cost}`);
-        await cloudFunc.cleanup();
+        await cloudFunc.stop();
     }
 }
 

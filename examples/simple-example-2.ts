@@ -4,7 +4,7 @@ import { sleep } from "../src/shared";
 
 async function main() {
     const { cloudFunc, remote } = await cloudify("aws", m, "./module", {
-        useQueue: false
+        mode: "https"
     });
 
     const promises = [];

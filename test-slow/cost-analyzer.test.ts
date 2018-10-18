@@ -14,12 +14,8 @@ async function work(remote: cloudify.Promisified<typeof funcs>) {
 const repetitions = 10;
 
 const configs = [
-    ...googleConfigurations
-        .filter(c => c.options.useQueue === false)
-        .map(c => ({ ...c, repetitions })),
-    ...awsConfigurations
-        .filter(c => c.options.useQueue === false)
-        .map(c => ({ ...c, repetitions }))
+    ...googleConfigurations.map(c => ({ ...c, repetitions })),
+    ...awsConfigurations.map(c => ({ ...c, repetitions }))
 ];
 
 test(
