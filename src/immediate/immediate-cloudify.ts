@@ -1,4 +1,4 @@
-import { CloudFunctionImpl, CloudImpl, CommonOptions, Logger } from "../cloudify";
+import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
 import { Funnel } from "../funnel";
 import { warn } from "../log";
 import { PackerResult } from "../packer";
@@ -10,6 +10,7 @@ import {
     FunctionReturnWithMetrics,
     createErrorResponse
 } from "../trampoline";
+import { sleep } from "../shared";
 
 export interface State {
     callFunnel: Funnel<FunctionReturnWithMetrics>;
@@ -32,8 +33,7 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
     callFunction,
     cleanup,
     stop,
-    setConcurrency,
-    setLogger
+    setConcurrency
 };
 
 async function initialize(serverModule: string, options: Options = {}): Promise<State> {
@@ -92,6 +92,7 @@ async function cleanup(state: State): Promise<void> {
 
 async function stop(state: State): Promise<string> {
     state.callFunnel.clear();
+    await sleep(0);
     return "";
 }
 
@@ -101,5 +102,3 @@ async function setConcurrency(
 ): Promise<void> {
     state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
 }
-
-function setLogger(_state: State, _logger: Logger | undefined) {}

@@ -1,5 +1,5 @@
 import * as childProcess from "child_process";
-import { CloudFunctionImpl, CloudImpl, CommonOptions, Logger } from "../cloudify";
+import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
 import { Funnel } from "../funnel";
 import { PackerResult } from "../packer";
 import {
@@ -18,10 +18,13 @@ export interface State {
     callFunnel: Funnel<FunctionReturnWithMetrics>;
     serverModule: string;
     options: Options;
-    logger?: Logger;
 }
 
-export interface Options extends CommonOptions {}
+export type Logger = (msg: string) => void;
+
+export interface Options extends CommonOptions {
+    logger?: Logger;
+}
 
 export const defaults = {
     timeout: 60,
@@ -41,8 +44,7 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
     callFunction,
     cleanup,
     stop,
-    setConcurrency,
-    setLogger
+    setConcurrency
 };
 
 async function initialize(serverModule: string, options: Options = {}): Promise<State> {
@@ -89,9 +91,9 @@ function callFunction(
 
         child.stderr.on("data", detectOom);
 
-        if (state.logger) {
-            child.stdout.on("data", state.logger);
-            child.stderr.on("data", state.logger);
+        if (state.options.logger) {
+            child.stdout.on("data", state.options.logger);
+            child.stderr.on("data", state.options.logger);
         }
     }
 
@@ -182,7 +184,6 @@ async function stop(state: State): Promise<string> {
     );
     childProcesses.forEach(p => p.kill());
     await completed;
-    state.logger = undefined;
     return "";
 }
 
@@ -191,18 +192,4 @@ async function setConcurrency(
     maxConcurrentExecutions: number
 ): Promise<void> {
     state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
-}
-
-function setLogger(state: State, logger: Logger | undefined) {
-    state.resources.childProcesses.forEach(p => {
-        p.stdout.removeAllListeners("data");
-        p.stderr.removeAllListeners("data");
-    });
-    if (logger) {
-        state.resources.childProcesses.forEach(p => {
-            p.stdout.on("data", logger);
-            p.stderr.on("data", logger);
-        });
-    }
-    state.logger = logger;
 }

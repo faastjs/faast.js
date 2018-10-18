@@ -11,15 +11,14 @@ import {
     CloudImpl,
     CommonOptions,
     FunctionCounters,
-    FunctionStats,
-    Logger
+    FunctionStats
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost-analyzer";
 import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
 import { log, logGc, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { chomp, computeHttpResponseBytes, hasExpired, sleep } from "../shared";
+import { computeHttpResponseBytes, hasExpired, sleep } from "../shared";
 import {
     FunctionCall,
     FunctionReturn,
@@ -87,24 +86,15 @@ export interface AWSServices {
 type AWSCloudQueueState = cloudqueue.StateWithMessageType<aws.SQS.Message>;
 type AWSCloudQueueImpl = cloudqueue.QueueImpl<aws.SQS.Message>;
 type AWSInvocationResponse = PromiseResult<aws.Lambda.InvocationResponse, aws.AWSError>;
-type LogStreamName = string;
-
-interface LogStreamState {
-    lastIngestionTime: number;
-    nextToken?: string;
-}
 
 export interface State {
     resources: AWSResources;
     services: AWSServices;
     callFunnel: Funnel<AWSInvocationResponse>;
     queueState?: AWSCloudQueueState;
-    logStitchers: Map<LogStreamName, LogStreamState>;
-    logger?: Logger;
     options: Options;
     metrics: AWSMetrics;
     gcPromise?: Promise<void>;
-    readLogFunnel: Funnel;
 }
 
 export const Impl: CloudImpl<Options, State> = {
@@ -121,8 +111,8 @@ export const LambdaImpl: CloudFunctionImpl<State> = {
     cleanup,
     stop,
     setConcurrency,
-    setLogger,
-    costEstimate
+    costEstimate,
+    logUrl
 };
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
@@ -359,6 +349,12 @@ export function getLogGroupName(FunctionName: string) {
     return `/aws/lambda/${FunctionName}`;
 }
 
+export function logUrl(state: State) {
+    const { region, FunctionName } = state.resources;
+    const logGroupName = getLogGroupName(FunctionName);
+    return `https://${region}.console.aws.amazon.com/cloudwatch/home?region=${region}#logStream:group=${logGroupName}`;
+}
+
 export async function initialize(fModule: string, options: Options = {}): Promise<State> {
     const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
@@ -431,12 +427,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         },
         services,
         callFunnel: new Funnel(),
-        logStitchers: new Map(),
-        readLogFunnel: new RateLimitedFunnel({
-            targetRequestsPerSecond: 1,
-            maxConcurrency: 1,
-            maxBurst: 1
-        }),
         metrics: new AWSMetrics(),
         options
     };
@@ -893,7 +883,6 @@ export function cleanupResources(resourceString: string) {
 
 export async function stop(state: PartialState) {
     const { callFunnel } = state;
-    state.logger = undefined;
     callFunnel && callFunnel.clear();
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
@@ -1013,156 +1002,6 @@ function addSnsInvokePermissionsToFunction(
             })
             .promise()
     );
-}
-
-const logGroupFunnel = new RateLimitedFunnel<
-    PromiseResult<aws.CloudWatchLogs.DescribeLogStreamsResponse, Error>
->({
-    maxConcurrency: 10,
-    targetRequestsPerSecond: 10,
-    maxBurst: 1
-});
-
-const logStreamFunnel = new RateLimitedFunnel<
-    PromiseResult<aws.CloudWatchLogs.GetLogEventsResponse, Error>
->({
-    maxConcurrency: 10,
-    targetRequestsPerSecond: 10,
-    maxBurst: 1
-});
-
-async function readLogGroup(
-    cloudwatch: AWS.CloudWatchLogs,
-    logGroupName: string,
-    logStreamStates: Map<LogStreamName, LogStreamState>,
-    handler: (events: aws.CloudWatchLogs.OutputLogEvent[]) => void,
-    metrics: AWSMetrics,
-    cancel: () => string | undefined
-) {
-    let nextToken: string | undefined;
-    const promises: Promise<void>[] = [];
-    do {
-        const logStreamsResponse = await logGroupFunnel.push(
-            () => cloudwatch.describeLogStreams({ logGroupName, nextToken }).promise(),
-            cancel
-        );
-
-        metrics.outboundBytes += computeHttpResponseBytes(
-            logStreamsResponse.$response.httpResponse.headers
-        );
-        nextToken = logStreamsResponse.nextToken;
-        for (const stream of logStreamsResponse.logStreams || []) {
-            const { lastIngestionTime, logStreamName } = stream;
-            let logStreamState = logStreamStates.get(logStreamName!);
-
-            if (logStreamState) {
-                if (lastIngestionTime! === logStreamState.lastIngestionTime) {
-                    continue;
-                }
-            } else {
-                logStreamState = {
-                    lastIngestionTime: lastIngestionTime!
-                };
-                logStreamStates.set(logStreamName!, logStreamState);
-            }
-
-            promises.push(
-                readLogStream(
-                    cloudwatch,
-                    logGroupName,
-                    logStreamName!,
-                    logStreamState,
-                    handler,
-                    metrics,
-                    cancel
-                ).catch(_ => {})
-            );
-        }
-    } while (nextToken && !cancel());
-
-    await Promise.all(promises);
-}
-
-async function readLogStream(
-    cloudwatch: AWS.CloudWatchLogs,
-    logGroupName: string,
-    logStreamName: string,
-    logStreamState: LogStreamState,
-    handler: (events: aws.CloudWatchLogs.OutputLogEvent[]) => void,
-    metrics: AWSMetrics,
-    cancel: () => string | undefined
-) {
-    const request: aws.CloudWatchLogs.GetLogEventsRequest = {
-        logGroupName,
-        logStreamName,
-        startTime: 0,
-        startFromHead: true
-    };
-
-    do {
-        if (logStreamState.nextToken) {
-            request["nextToken"] = logStreamState.nextToken;
-        }
-        const result = await logStreamFunnel.push(
-            () => cloudwatch.getLogEvents(request).promise(),
-            cancel
-        );
-        metrics.outboundBytes += computeHttpResponseBytes(
-            result.$response.httpResponse.headers
-        );
-        const { events } = result;
-        const done = logStreamState.nextToken === result.nextForwardToken;
-        logStreamState.nextToken = result.nextForwardToken;
-        if (events && events.length > 0) {
-            handler(events);
-            logStreamState.lastIngestionTime = Math.max(
-                logStreamState.lastIngestionTime,
-                ...events.map(e => e.ingestionTime || 0)
-            );
-        }
-        if (done) {
-            break;
-        }
-    } while (logStreamState.nextToken && !cancel());
-}
-
-async function outputLogs(state: State) {
-    function handleEntries(entries: aws.CloudWatchLogs.OutputLogEvent[]) {
-        for (const entry of entries) {
-            if (!state.logger) {
-                return;
-            }
-            state.logger(
-                `${new Date(entry.timestamp!).toLocaleString()} ${chomp(entry.message!)}`
-            );
-        }
-    }
-
-    while (state.logger) {
-        try {
-            await state.readLogFunnel.push(() =>
-                readLogGroup(
-                    state.services.cloudwatch,
-                    getLogGroupName(state.resources.FunctionName),
-                    state.logStitchers,
-                    handleEntries,
-                    state.metrics,
-                    () => (state.logger ? undefined : "Logging cancelled")
-                )
-            );
-        } catch (err) {}
-    }
-}
-
-function setLogger(state: State, logger: Logger | undefined) {
-    const prev = state.logger;
-    state.logger = logger;
-    if (!prev) {
-        outputLogs(state);
-    }
-    if (!logger) {
-        state.readLogFunnel.clear();
-    }
 }
 
 // https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html

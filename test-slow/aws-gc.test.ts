@@ -2,6 +2,7 @@ import * as cloudify from "../src/cloudify";
 import { checkResourcesCleanedUp, quietly, getAWSResources } from "../test/util";
 import { getLogGroupName } from "../src/aws/aws-cloudify";
 import * as functions from "./functions";
+import { sleep } from "../src/shared";
 
 async function checkLogGroupCleanedUp(func: cloudify.AWSLambda) {
     const { cloudwatch } = func.state.services;
@@ -28,9 +29,22 @@ test(
         const cloud = cloudify.create("aws");
         const func = await cloud.createFunction("./functions");
         const remote = func.cloudifyModule(functions);
-        await new Promise(resolve => {
-            func.setLogger(str => str.match(/REPORT RequestId/) && resolve());
+        await new Promise(async resolve => {
+            let done = false;
             remote.hello("gc-test");
+            while (!done) {
+                await sleep(1000);
+                const logResult = await cloudwatch
+                    .filterLogEvents({ logGroupName: func.state.resources.logGroupName })
+                    .promise();
+                for (const event of logResult.events || []) {
+                    if (event.message!.match(/REPORT RequestId/)) {
+                        resolve();
+                        done = true;
+                        break;
+                    }
+                }
+            }
         });
 
         await func.stop();

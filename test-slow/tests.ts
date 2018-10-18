@@ -81,7 +81,6 @@ export function throughputTest(
                 lambda = await cloud.createFunction("./functions", options);
                 lambda.printStatisticsInterval(1000);
                 remote = lambda.cloudifyModule(funcs);
-                // lambda.setLogger(console.log);
             } catch (err) {
                 warn(err);
             }
@@ -133,7 +132,6 @@ export function checkTimeout(
                     timeout: 3
                 });
                 remote = lambda.cloudifyModule(funcs);
-                // lambda.setLogger(console.log);
             } catch (err) {
                 warn(err);
             }

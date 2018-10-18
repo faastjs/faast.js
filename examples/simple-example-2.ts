@@ -6,7 +6,6 @@ async function main() {
     const { cloudFunc, remote } = await cloudify("aws", m, "./module", {
         useQueue: false
     });
-    cloudFunc.setLogger(console.log);
 
     const promises = [];
     for (let i = 0; i < 5; i++) {

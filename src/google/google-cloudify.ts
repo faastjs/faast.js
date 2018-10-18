@@ -5,7 +5,6 @@ import {
     cloudfunctions_v1,
     google,
     GoogleApis,
-    logging_v2,
     pubsub_v1
 } from "googleapis";
 import * as uuidv4 from "uuid/v4";
@@ -14,14 +13,14 @@ import {
     CloudImpl,
     CommonOptions,
     FunctionCounters,
-    FunctionStats,
-    Logger
+    FunctionStats
 } from "../cloudify";
-import { Funnel, MemoFunnel, retry, RateLimitedFunnel } from "../funnel";
-import { log, logPricing, warn, logGc } from "../log";
+import { CostBreakdown, CostMetric } from "../cost-analyzer";
+import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
+import { log, logGc, logPricing, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { computeHttpResponseBytes, LogStitcher, sleep, hasExpired } from "../shared";
+import { computeHttpResponseBytes, hasExpired, sleep } from "../shared";
 import {
     FunctionCall,
     FunctionReturn,
@@ -38,11 +37,7 @@ import {
 } from "./google-queue";
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
-import Logging = logging_v2;
 import CloudBilling = cloudbilling_v1;
-import { CostBreakdown, CostMetric } from "../cost-analyzer";
-
-type Logging = logging_v2.Logging;
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -75,7 +70,6 @@ export interface GoogleServices {
     readonly cloudFunctions: CloudFunctions.Cloudfunctions;
     readonly pubsub: PubSubApi.Pubsub;
     readonly google: GoogleApis;
-    readonly logging: Logging.Logging;
     readonly cloudBilling: CloudBilling.Cloudbilling;
 }
 
@@ -94,8 +88,6 @@ export interface State {
     url?: string;
     project: string;
     functionName: string;
-    logStitcher: LogStitcher;
-    logger?: Logger;
     pricing?: GoogleCloudPricing;
     metrics: GoogleMetrics;
     options: Options;
@@ -116,8 +108,8 @@ export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
     cleanup,
     stop,
     setConcurrency,
-    setLogger,
-    costEstimate
+    costEstimate,
+    logUrl
 };
 
 export const EmulatorImpl: CloudImpl<Options, State> = {
@@ -135,7 +127,6 @@ export async function initializeGoogleServices(
     return {
         cloudFunctions: useEmulator ? await getEmulator() : google.cloudfunctions("v1"),
         pubsub: google.pubsub("v1"),
-        logging: google.logging("v2"),
         cloudBilling: google.cloudbilling("v1"),
         google
     };
@@ -323,7 +314,6 @@ async function initializeWithApi(
         callFunnel: new Funnel(),
         project,
         functionName,
-        logStitcher: new LogStitcher(),
         metrics: new GoogleMetrics(),
         options
     };
@@ -747,7 +737,6 @@ export async function cleanupResources(resourcesString: string) {
 
 export async function stop(state: Partial<State>) {
     const { callFunnel } = state;
-    state.logger = undefined;
     callFunnel && callFunnel.clear();
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
@@ -770,94 +759,6 @@ export function getFunctionImpl() {
 
 function parseTimestamp(timestampStr: string | undefined) {
     return Date.parse(timestampStr || "") || 0;
-}
-
-export async function* readLogsRaw(
-    logging: Logging,
-    project: string,
-    functionName: string,
-    logStitcher: LogStitcher,
-    metrics: GoogleMetrics
-) {
-    let pageToken: string | undefined;
-
-    const lastLogEventISO = new Date(logStitcher.lastLogEventTime).toISOString();
-    const filter = `resource.type="cloud_function" AND resource.labels.function_name="${functionName}" AND receiveTimestamp >= "${lastLogEventISO}"`;
-    const requestBody = {
-        resourceNames: [`projects/${project}`],
-        filter
-    };
-
-    do {
-        let result: AxiosResponse<Logging.Schema$ListLogEntriesResponse>;
-        try {
-            if (pageToken) {
-                requestBody["pageToken"] = pageToken;
-            }
-            result = await logging.entries.list({ requestBody });
-        } catch (err) {
-            log(err);
-            await sleep(2000);
-            continue;
-        }
-        metrics.outboundBytes += computeHttpResponseBytes(result.headers);
-        pageToken = result.data.nextPageToken;
-        const entries = result.data.entries || [];
-        const newEntries = entries.filter(entry => !logStitcher.has(entry.insertId));
-        if (newEntries.length > 0) {
-            yield newEntries;
-        }
-        logStitcher.updateEvents(
-            entries,
-            e => parseTimestamp(e.receiveTimestamp),
-            e => e.insertId
-        );
-    } while (pageToken);
-}
-
-export async function outputCurrentLogs(state: State) {
-    const logStream = readLogsRaw(
-        state.services.logging,
-        state.project,
-        state.functionName,
-        state.logStitcher,
-        state.metrics
-    );
-    for await (const entries of logStream) {
-        const newEntries = entries.filter(entry => entry.textPayload);
-        for (const entry of newEntries) {
-            if (!state.logger) {
-                return;
-            }
-            state.logger(
-                `${new Date(parseTimestamp(entry.timestamp)).toLocaleString()} ${
-                    entry.textPayload
-                }`
-            );
-        }
-    }
-}
-
-async function outputLogs(state: State) {
-    while (state.logger) {
-        const start = Date.now();
-        await outputCurrentLogs(state);
-        if (!state.logger) {
-            return;
-        }
-        const delay = 1000 - (Date.now() - start);
-        if (delay > 0) {
-            await sleep(delay);
-        }
-    }
-}
-
-function setLogger(state: State, logger: Logger | undefined) {
-    const prev = state.logger;
-    state.logger = logger;
-    if (!prev) {
-        outputLogs(state);
-    }
 }
 
 async function getGoogleCloudFunctionsPricing(
@@ -1011,4 +912,9 @@ async function costEstimate(
     costs.push(pubsub);
 
     return costs;
+}
+
+export function logUrl(state: State) {
+    const { project, functionName } = state;
+    return `https://console.cloud.google.com/logs/viewer?project=${project}&resource=cloud_function%2Ffunction_name%2F${functionName}`;
 }

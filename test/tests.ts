@@ -163,116 +163,6 @@ export function checkCodeBundle(
     });
 }
 
-export function checkLogs(description: string, cloudProvider: cloudify.CloudProvider) {
-    describe(description, () => {
-        let remote: cloudify.Promisified<typeof funcs>;
-        let lambda: cloudify.AnyCloudFunction;
-
-        beforeAll(async () => {
-            try {
-                const cloud = cloudify.create(cloudProvider);
-                const options = {
-                    timeout: 30,
-                    memorySize: 512
-                };
-                lambda = await cloud.createFunction("./functions", options);
-                remote = lambda.cloudifyModule(funcs);
-            } catch (err) {
-                warn(err);
-            }
-        }, 90 * 1000);
-
-        afterAll(async () => {
-            await lambda.cleanup();
-            // await lambda.stop();
-        }, 60 * 1000);
-
-        test(
-            "logs console.*",
-            async () => {
-                const received = {};
-                let logger;
-                const logPromise = new Promise(resolve => {
-                    logger = (msg: string) => {
-                        // log(`logger: ${msg}`);
-                        const result = msg.match(/(console.\w+) works/);
-                        if (result && result[1]) {
-                            received[result[1]] = true;
-                        }
-                        // log(`received: %O`, received);
-                        if (Object.keys(received).length === 4) {
-                            resolve();
-                        }
-                    };
-                });
-                lambda.setLogger(logger);
-                await remote.consoleLog("console.log works");
-                await remote.consoleWarn("console.warn works");
-                await remote.consoleError("console.error works");
-                await remote.consoleInfo("console.info works");
-                await logPromise;
-                lambda.setLogger(undefined);
-                expect(received["console.log"]).toBe(true);
-                expect(received["console.warn"]).toBe(true);
-                expect(received["console.error"]).toBe(true);
-                expect(received["console.info"]).toBe(true);
-            },
-            120 * 1000
-        );
-
-        test.only(
-            "concurrent logs",
-            async () => {
-                let logger;
-                const N = 100;
-                const logEntries = {};
-
-                const logPromise = new Promise(resolve => {
-                    logger = (msg: string) => {
-                        log(msg);
-                        const match = msg.match(/Executed call ([0-9]+)/);
-                        if (match) {
-                            logEntries[match[1]] = (logEntries[match[1]] || 0) + 1;
-                        }
-
-                        if (Object.keys(logEntries).length === N) {
-                            resolve();
-                        }
-                    };
-                });
-
-                lambda.setLogger(logger);
-                const promises = [];
-                for (let i = 0; i < N; i++) {
-                    promises.push(remote.consoleLog(`Executed call ${i}`));
-                }
-                await Promise.all(promises);
-                const timer = setInterval(() => {
-                    const missing = [];
-                    const duplicate = [];
-                    for (let i = 0; i < N; i++) {
-                        if (!logEntries[i]) {
-                            missing.push(i);
-                        } else if (logEntries[i] > 1) {
-                            duplicate.push(i);
-                        }
-                    }
-                    log(`missing: ${missing}, duplicate: ${duplicate}`);
-                }, 1000);
-
-                await logPromise;
-
-                for (let i = 0; i < N; i++) {
-                    expect(logEntries[i]).toBe(1);
-                }
-                clearInterval(timer);
-                lambda.setLogger(undefined);
-            },
-            180 * 1000
-        );
-    });
-}
-
 export function checkCosts(
     description: string,
     cloudProvider: cloudify.CloudProvider,
@@ -295,7 +185,6 @@ export function checkCosts(
                     ...options
                 });
                 remote = lambda.cloudifyModule(funcs);
-                lambda.setLogger(console.log);
             } catch (err) {
                 warn(err);
             }

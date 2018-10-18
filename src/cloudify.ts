@@ -24,8 +24,6 @@ if (!Symbol.asyncIterator) {
         Symbol.asyncIterator || Symbol.for("Symbol.asyncIterator");
 }
 
-export type Logger = (msg: string) => void;
-
 export interface ResponseDetails<D> {
     value?: D;
     error?: Error;
@@ -265,7 +263,6 @@ export class CloudFunction<O extends CommonOptions, S> {
     functionCounters = new FunctionCountersMap();
     functionStats = new FunctionStatsMap();
     protected skew = new ExponentiallyDecayingAverageValue(0.3);
-    protected logger?: Logger;
     protected timer?: NodeJS.Timer;
 
     constructor(
@@ -281,6 +278,10 @@ export class CloudFunction<O extends CommonOptions, S> {
 
     stop() {
         return this.impl.stop(this.state);
+    }
+
+    logUrl() {
+        return this.impl.logUrl && this.impl.logUrl(this.state);
     }
 
     printStatisticsInterval(intervalMs: number) {
@@ -331,7 +332,7 @@ export class CloudFunction<O extends CommonOptions, S> {
             const rv: FunctionReturnWithMetrics = await this.impl
                 .callFunction(this.state, callRequest, shouldRetry)
                 .catch(value => {
-                    warn(`Exception from cloudify function implementation: ${value}`);
+                    // warn(`Exception from cloudify function implementation: ${value}`);
                     const returned: FunctionReturn = {
                         type: "error",
                         value,
@@ -368,11 +369,6 @@ export class CloudFunction<O extends CommonOptions, S> {
             return response.value;
         };
         return cloudifiedFunc as any;
-    }
-
-    setLogger(logger: Logger | undefined) {
-        this.logger = logger;
-        this.impl.setLogger(this.state, logger);
     }
 
     costEstimate(): Promise<costAnalyzer.CostBreakdown> {
@@ -535,7 +531,7 @@ export interface CloudFunctionImpl<State> {
     cleanup(state: State): Promise<void>;
     stop(state: State): Promise<string>;
     setConcurrency(state: State, maxConcurrentExecutions: number): Promise<void>;
-    setLogger(state: State, logger: Logger | undefined): void;
+    logUrl?: (state: State) => string;
 }
 
 export interface LogEntry {
