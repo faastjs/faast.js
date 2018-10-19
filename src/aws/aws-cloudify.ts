@@ -138,6 +138,7 @@ export let defaults: Required<Options> = {
     RoleName: "cloudify-cached-lambda-role",
     timeout: 60,
     memorySize: 256,
+    concurrency: 500,
     mode: "https",
     gc: true,
     retentionInDays: 1,
@@ -365,6 +366,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         RoleName = defaults.RoleName,
         timeout: Timeout = defaults.timeout,
         memorySize: MemorySize = defaults.memorySize,
+        concurrency = defaults.concurrency,
         mode = defaults.mode,
         gc = defaults.gc,
         retentionInDays = defaults.retentionInDays,
@@ -426,7 +428,7 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             logGroupName: getLogGroupName(FunctionName)
         },
         services,
-        callFunnel: new Funnel(),
+        callFunnel: new Funnel(concurrency),
         metrics: new AWSMetrics(),
         options
     };

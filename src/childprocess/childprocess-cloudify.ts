@@ -28,7 +28,8 @@ export interface Options extends CommonOptions {
 
 export const defaults = {
     timeout: 60,
-    memorySize: 256
+    memorySize: 256,
+    concurrency: 500
 };
 
 export const Impl: CloudImpl<Options, State> = {
@@ -48,9 +49,10 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
 };
 
 async function initialize(serverModule: string, options: Options = {}): Promise<State> {
+    const { concurrency = defaults.concurrency } = options;
     return {
         resources: { childProcesses: new Set() },
-        callFunnel: new Funnel<FunctionReturnWithMetrics>(),
+        callFunnel: new Funnel<FunctionReturnWithMetrics>(concurrency),
         serverModule,
         options
     };

@@ -63,6 +63,7 @@ export interface CommonOptions extends PackerOptions {
     mode?: "https" | "queue";
     gc?: boolean;
     retentionInDays?: number;
+    concurrency?: number;
 }
 
 function resolve(fmodule: string) {

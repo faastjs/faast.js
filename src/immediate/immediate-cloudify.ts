@@ -11,6 +11,7 @@ import {
     createErrorResponse
 } from "../trampoline";
 import { sleep } from "../shared";
+import { defaults } from "../google/google-cloudify";
 
 export interface State {
     callFunnel: Funnel<FunctionReturnWithMetrics>;
@@ -45,9 +46,9 @@ async function initialize(serverModule: string, options: Options = {}): Promise<
     if (options.timeout) {
         warn(`cloudify type 'immediate' does not support timeout option, ignoring.`);
     }
-
+    const { concurrency = 500 } = options;
     return {
-        callFunnel: new Funnel<FunctionReturnWithMetrics>(),
+        callFunnel: new Funnel<FunctionReturnWithMetrics>(concurrency),
         moduleWrapper,
         options
     };
