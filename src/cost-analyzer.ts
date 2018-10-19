@@ -123,7 +123,6 @@ export const AWSLambdaMemorySizes = (() => {
     for (let memorySize = 128; memorySize <= 3008; memorySize += 64) {
         rv.push(memorySize);
     }
-    log(`Memory sizes count: ${rv.length}`);
     return rv;
 })();
 
