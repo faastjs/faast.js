@@ -1,48 +1,70 @@
 import { cloudify } from "../src/cloudify";
 import * as m from "./map-buckets-module";
 import * as aws from "aws-sdk";
-import * as fs from "fs";
 
 const s3 = new aws.S3();
 
+// https mode:
+// Extracted 1223514 files with 8 errors
+// functionCallDuration  $0.00004896/second        30015.6 seconds    $1.46951669   100.0%  [1]
+// functionCallRequests  $0.00000020/request          1800 requests   $0.00036000     0.0%  [2]
+// outboundDataTransfer  $0.09000000/GB         0.00082136 GB         $0.00007392     0.0%  [3]
+// sqs                   $0.00000040/request             0 request    $0              0.0%  [4]
+// sns                   $0.00000050/request             0 request    $0              0.0%  [5]
+// ---------------------------------------------------------------------------------------
+//                                                                    $1.46995061 (USD)
+
 export async function mapBucket(Bucket: string) {
     const { cloudFunc, remote } = await cloudify("aws", m, "./map-buckets-module", {
-        memorySize: 2048,
-        timeout: 300
+        memorySize: 3008,
+        timeout: 300,
+        mode: "https",
+        concurrency: 200
     });
+    cloudFunc.printStatisticsInterval(1000);
     try {
-        const objects = await s3.listObjectsV2({ Bucket }).promise();
-        console.log(`Bucket ${Bucket} contains ${objects.Contents!.length} objects`);
-        for (const Obj of objects.Contents!) {
+        const allObjects: aws.S3.Object[] = [];
+        const promises = [];
+        await new Promise(resolve =>
+            s3.listObjectsV2({ Bucket }).eachPage((err, data) => {
+                if (err) {
+                    console.warn(err);
+                    return false;
+                }
+                if (data) {
+                    allObjects.push(...data.Contents!);
+                } else {
+                    resolve();
+                }
+                return true;
+            })
+        );
+        console.log(`Bucket ${Bucket} contains ${allObjects.length} objects`);
+        for (const Obj of allObjects) {
             if (Obj.Key!.match(/^pdf\//)) {
-                await remote.processBucketObject(Bucket, Obj.Key!);
+                promises.push(
+                    remote.processBucketObject(Bucket, Obj.Key!).catch(err => {
+                        console.log(`Error processing ${Obj.Key!}`);
+                        return { nExtracted: 0, nErrors: 1 };
+                    })
+                );
             }
         }
+        const results = await Promise.all(promises);
+        let extracted = 0;
+        let errors = 0;
+        for (const result of results) {
+            extracted += result.nExtracted;
+            errors += result.nErrors;
+        }
+        console.log(`Extracted ${extracted} files with ${errors} errors`);
     } finally {
         const cost = await cloudFunc.costEstimate();
         console.log(`${cost}`);
-        await cloudFunc.stop();
+        await cloudFunc.cleanup();
     }
 }
 
 mapBucket("arxiv-derivative-west");
 
-function localMain() {
-    const file = process.argv[2];
-    console.log(`Processing tar file ${file}`);
-    m.extractTarBuffer(fs.readFileSync(file), async (header, tarstream) => {
-        if (header.type === "file") {
-            const start = Date.now();
-            console.log(`Uploading ${header.name}`);
-            await s3
-                .putObject({
-                    Bucket: "arxiv-derivative",
-                    Key: `extracted/${header.name}`,
-                    Body: tarstream,
-                    ContentLength: header.size
-                })
-                .promise();
-            console.log(`${(Date.now() - start) / 1000}s Uploaded ${header.name}`);
-        }
-    });
-}
+// m.processBucketObject("arxiv-derivative-west", "pdf/arXiv_pdf_0305_001.tar");
