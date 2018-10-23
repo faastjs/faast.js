@@ -112,7 +112,7 @@ async function resultCollector<M>(state: StateWithMessageType<M>) {
     const { Messages, isFullMessageBatch } = await state.pollResponseQueueMessages();
     const localEndTime = Date.now();
     log(`Result collector received ${Messages.length} messages.`);
-    adjustConcurrencyLevel(state, isFullMessageBatch);
+    adjustCollectorConcurrencyLevel(state, isFullMessageBatch);
 
     for (const m of Messages) {
         if (state.isControlMessage(m, "stopqueue")) {
@@ -186,7 +186,7 @@ function retryQueue(state: State) {
     }
 }
 
-function adjustConcurrencyLevel(vars: QueueState, full: boolean) {
+function adjustCollectorConcurrencyLevel(vars: QueueState, full: boolean) {
     const nPending = vars.callResultsPending.size;
     if (nPending > 0) {
         let nCollectors = full ? Math.floor(nPending / 20) + 2 : 2;
