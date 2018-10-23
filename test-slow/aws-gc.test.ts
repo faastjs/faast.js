@@ -1,6 +1,6 @@
 import * as cloudify from "../src/cloudify";
 import { checkResourcesCleanedUp, quietly, getAWSResources } from "../test/util";
-import { getLogGroupName } from "../src/aws/aws-cloudify";
+import { getLogGroupName } from "../src/aws/aws-shared";
 import * as functions from "./functions";
 import { sleep } from "../src/shared";
 

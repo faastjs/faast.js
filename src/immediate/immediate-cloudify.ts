@@ -11,7 +11,6 @@ import {
     createErrorResponse
 } from "../trampoline";
 import { sleep } from "../shared";
-import { defaults } from "../google/google-cloudify";
 
 export interface State {
     callFunnel: Funnel<FunctionReturnWithMetrics>;
@@ -70,17 +69,20 @@ function callFunction(
 ): Promise<FunctionReturnWithMetrics> {
     const scall = JSON.parse(serializeCall(call));
     return state.callFunnel.push(async () => {
-        const start = Date.now();
+        const startTime = Date.now();
         let returned: FunctionReturn;
         try {
-            returned = await state.moduleWrapper.execute(scall, start);
+            returned = await state.moduleWrapper.execute(
+                { call: scall, startTime },
+                false
+            );
         } catch (err) {
-            returned = createErrorResponse(err, scall, start);
+            returned = createErrorResponse(err, { call: scall, startTime });
         }
         return {
             returned,
             rawResponse: {},
-            localRequestSentTime: start,
+            localRequestSentTime: startTime,
             remoteResponseSentTime: returned.remoteExecutionEndTime!,
             localEndTime: Date.now()
         };

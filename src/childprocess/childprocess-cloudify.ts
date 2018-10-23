@@ -139,7 +139,10 @@ function callFunction(
                 child.on("error", err => {
                     state.resources.childProcesses.delete(child);
                     resolve({
-                        returned: createErrorResponse(err, call, localRequestSentTime),
+                        returned: createErrorResponse(err, {
+                            call,
+                            startTime: localRequestSentTime
+                        }),
                         rawResponse: {},
                         localRequestSentTime,
                         localEndTime: Date.now()
@@ -159,11 +162,10 @@ function callFunction(
                     }
                     if (err) {
                         resolve({
-                            returned: createErrorResponse(
-                                err,
+                            returned: createErrorResponse(err, {
                                 call,
-                                localRequestSentTime
-                            ),
+                                startTime: localRequestSentTime
+                            }),
                             rawResponse: {},
                             localRequestSentTime,
                             localEndTime: Date.now()

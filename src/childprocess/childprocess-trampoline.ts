@@ -5,13 +5,15 @@ import { ProcessFunctionCall } from "./childprocess-cloudify";
 export const moduleWrapper = new ModuleWrapper();
 
 process.on("message", async ({ call, serverModule, timeout }: ProcessFunctionCall) => {
-    const executionStart = Date.now();
+    const startTime = Date.now();
 
     const timer = setTimeout(() => {
         const timeoutReturn: FunctionReturn = createErrorResponse(
             new Error(`Function timed out after ${timeout}s`),
-            call,
-            executionStart
+            {
+                call,
+                startTime
+            }
         );
         process.send!(timeoutReturn);
         process.disconnect();
@@ -24,7 +26,7 @@ process.on("message", async ({ call, serverModule, timeout }: ProcessFunctionCal
             throw new Error(`Could not find module '${serverModule}'`);
         }
         moduleWrapper.register(mod);
-        const ret = await moduleWrapper.execute(call, executionStart);
+        const ret = await moduleWrapper.execute({ call, startTime });
         process.send!(ret);
     } catch (err) {
         console.error(err);

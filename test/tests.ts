@@ -59,7 +59,7 @@ export function checkFunctions(
         });
 
         test("error: string => raise exception", async () => {
-            expect(await remote.error("hey").catch(err => err.message)).toBe(
+            expect(await remote.error("hey").catch(err => err.message)).toMatch(
                 "Expected this error. Argument: hey"
             );
         });

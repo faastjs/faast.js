@@ -24,6 +24,10 @@ if (!Symbol.asyncIterator) {
         Symbol.asyncIterator || Symbol.for("Symbol.asyncIterator");
 }
 
+export class CloudifyError extends Error {
+    logUrl?: string;
+}
+
 export interface ResponseDetails<D> {
     value?: D;
     error?: Error;
@@ -33,6 +37,8 @@ export interface ResponseDetails<D> {
     executionLatency?: number;
     sendResponseLatency?: number;
     returnLatency?: number;
+    executionId?: string;
+    logUrl?: string;
 }
 
 export type Response<D> = ResponseDetails<Unpacked<D>>;
@@ -183,7 +189,8 @@ function processResponse<R>(
     prevSkew: ExponentiallyDecayingAverageValue
 ) {
     const returned = returnedMetrics.returned;
-    let error: Error | undefined;
+    let error: CloudifyError | undefined;
+    const { executionId, logUrl } = returned;
     if (returned.type === "error") {
         const errValue = returned.value;
         if (Object.keys(errValue).length === 0 && !(errValue instanceof Error)) {
@@ -191,23 +198,26 @@ function processResponse<R>(
                 `Error response object has no keys, likely a bug in cloudify (not serializing error objects)`
             );
         }
-        error = new Error(errValue.message);
+        error = new CloudifyError(errValue.message + `\n(logs: ${logUrl})`);
+        error.logUrl = logUrl;
         error.name = errValue.name;
         error.stack = errValue.stack;
     }
     const value = !error && returned.value;
-    let rv: Response<R> = {
-        value,
-        error,
-        rawResponse: returnedMetrics.rawResponse
-    };
-    const fn = callRequest.name;
     const {
         localRequestSentTime,
         remoteResponseSentTime,
         localEndTime,
         rawResponse
     } = returnedMetrics;
+    let rv: Response<R> = {
+        value,
+        error,
+        executionId,
+        logUrl,
+        rawResponse
+    };
+    const fn = callRequest.name;
     const { remoteExecutionStartTime, remoteExecutionEndTime } = returnedMetrics.returned;
 
     if (remoteExecutionStartTime && remoteExecutionEndTime) {

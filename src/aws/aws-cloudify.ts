@@ -37,6 +37,7 @@ import {
     receiveMessages,
     sqsMessageAttribute
 } from "./aws-queue";
+import { getLogGroupName, getLogUrl } from "./aws-shared";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -346,14 +347,9 @@ export async function buildModulesOnLambda(
 
 const priceRequestFunnel = new MemoFunnel<string, AWSPrices>(1);
 
-export function getLogGroupName(FunctionName: string) {
-    return `/aws/lambda/${FunctionName}`;
-}
-
 export function logUrl(state: State) {
     const { region, FunctionName } = state.resources;
-    const logGroupName = getLogGroupName(FunctionName);
-    return `https://${region}.console.aws.amazon.com/cloudwatch/home?region=${region}#logStream:group=${logGroupName}`;
+    return getLogUrl(region, FunctionName);
 }
 
 export async function initialize(fModule: string, options: Options = {}): Promise<State> {
@@ -522,7 +518,6 @@ async function callFunctionHttps(
         return awsRequest.promise();
     });
     const localEndTime = Date.now();
-
     if (rawResponse.LogResult) {
         log(Buffer.from(rawResponse.LogResult!, "base64").toString());
     }

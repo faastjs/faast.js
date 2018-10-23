@@ -17,6 +17,15 @@ export interface FunctionReturn extends CallId {
     value?: any;
     remoteExecutionStartTime?: number;
     remoteExecutionEndTime?: number;
+    logUrl?: string;
+    executionId?: string;
+}
+
+export interface CallingContext {
+    call: FunctionCall;
+    startTime: number;
+    logUrl?: string;
+    executionId?: string;
 }
 
 export interface FunctionReturnWithMetrics {
@@ -33,8 +42,7 @@ export interface ModuleType {
 
 export function createErrorResponse(
     err: Error,
-    call: FunctionCall,
-    start: number
+    { call, startTime, logUrl, executionId }: CallingContext
 ): FunctionReturn {
     const errObj = {};
     Object.getOwnPropertyNames(err).forEach(name => {
@@ -46,8 +54,10 @@ export function createErrorResponse(
         type: "error",
         value: errObj,
         CallId: call.CallId || "",
-        remoteExecutionStartTime: start,
-        remoteExecutionEndTime: Date.now()
+        remoteExecutionStartTime: startTime,
+        remoteExecutionEndTime: Date.now(),
+        logUrl,
+        executionId
     };
 }
 
@@ -82,22 +92,27 @@ export class ModuleWrapper {
     }
 
     async execute(
-        call: FunctionCall,
-        remoteExecutionStartTime: number
+        callingContext: CallingContext,
+        chatty: boolean = true
     ): Promise<FunctionReturn> {
+        const { call, startTime, logUrl, executionId } = callingContext;
         const func = this.lookupFunction(call);
+        chatty && console.log(`Invoking function '${func.name}'`);
         try {
             const returned = await func.apply(undefined, call.args);
             const rv: FunctionReturn = {
                 type: "returned",
                 value: returned,
                 CallId: call.CallId,
-                remoteExecutionStartTime,
-                remoteExecutionEndTime: Date.now()
+                remoteExecutionStartTime: startTime,
+                remoteExecutionEndTime: Date.now(),
+                logUrl,
+                executionId
             };
             return rv;
         } catch (err) {
-            return createErrorResponse(err, call, remoteExecutionStartTime);
+            chatty && console.error(err);
+            return createErrorResponse(err, callingContext);
         }
     }
 }
