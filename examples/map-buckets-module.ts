@@ -32,51 +32,64 @@ function log(msg: string) {
     console.log(`${timestamp()} ${msg}`);
 }
 
+// Error processing pdf/arXiv_pdf_1609_008.tar
+// Logs: https://us-west-2.console.aws.amazon.com/cloudwatch/home?region=us-west-2#logEventViewer:group=%2Faws%2Flambda%2Fcloudify-a0c47fc1-694b-4810-9b78-e36582ac56c9;stream=2018%2F10%2F23%2F%5B%24LATEST%5D93b0e7bbb9f3466dbcaa6a74d2cd6bca;filter=%22ea77ed84-d700-11e8-9643-25010a31b2e7%22
+
 export async function processBucketObject(Bucket: string, Key: string) {
     start = Date.now();
     log(`ProcessBucketObject called: Bucket: ${Bucket}, Key: ${Key}`);
+    if (!Key.endsWith(".tar")) {
+        log(`Skipping ${Key}`);
+        return { nExtracted: 0, nErrors: 0 };
+    }
 
     log(`Starting download`);
     const result = await s3.getObject({ Bucket, Key }).promise();
     log(`Download finished`);
     log(`Result: ${util.inspect(result)}`);
-    if (result.ContentType === "application/x-directory") {
-        log(`Directory entry. Skipping.`);
-        return { nExtracted: 0, nErrors: 0 };
-    }
     let nExtracted = 0;
     let nErrors = 0;
-    const promises: Promise<void>[] = [];
     await extractTarBuffer(result.Body! as Buffer, async (header, tarstream) => {
         if (header.type === "file") {
-            // log(`Uploading ${header.name}, size: ${header.size}`);
-            promises.push(
-                s3
-                    .putObject({
-                        Bucket: "arxiv-derivative-output",
-                        Key: header.name,
-                        Body: tarstream,
-                        ContentLength: header.size
-                    })
-                    .promise()
-                    .then(_ => {
-                        // log(`Uploaded ${header.name}`);
-                        nExtracted++;
-                    })
-                    .catch(err => {
-                        log(err);
-                        nErrors++;
-                        log(
-                            `Error uploading extracted/${header.name}, size: ${
-                                header.size
-                            }`
-                        );
-                    })
-            );
+            nExtracted++;
+            // log(`Entry ${header.name}, size: ${header.size}`);
+            // promises.push(
+            //     s3
+            //         .putObject({
+            //             Bucket: "arxiv-derivative-output",
+            //             Key: header.name,
+            //             Body: tarstream,
+            //             ContentLength: header.size
+            //         })
+            //         .promise()
+            //         .then(_ => {
+            //             // log(`Uploaded ${header.name}`);
+            //             nExtracted++;
+            //         })
+            //         .catch(err => {
+            //             log(err);
+            //             nErrors++;
+            //             log(`Error uploading ${header.name}, size: ${header.size}`);
+            //         })
+            // );
         }
+
+        await new Promise(resolve => {
+            tarstream.on("end", resolve);
+            tarstream.resume();
+        });
     });
-    await Promise.all(promises);
     log(`Extracted ${nExtracted} files from ${Bucket}, ${Key}`);
     log(`Errors uploading: ${nErrors}`);
     return { nExtracted, nErrors };
+}
+
+export async function moveObject(
+    fromBucket: string,
+    fromKey: string,
+    toBucket: string,
+    toKey: string
+) {
+    const obj = await s3.getObject({ Bucket: fromBucket, Key: fromKey }).promise();
+    await s3.putObject({ Bucket: toBucket, Key: toKey, Body: obj.Body }).promise();
 }
