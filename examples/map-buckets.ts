@@ -1,4 +1,4 @@
-import { cloudify } from "../src/cloudify";
+import { cloudify, CloudifyError } from "../src/cloudify";
 import * as m from "./map-buckets-module";
 import * as aws from "aws-sdk";
 
@@ -43,10 +43,13 @@ export async function mapBucket(Bucket: string) {
         for (const Obj of allObjects) {
             if (Obj.Key!.match(/^pdf\//)) {
                 promises.push(
-                    remote.processBucketObject(Bucket, Obj.Key!).catch(err => {
-                        console.log(`Error processing ${Obj.Key!}`);
-                        return { nExtracted: 0, nErrors: 1 };
-                    })
+                    remote
+                        .processBucketObject(Bucket, Obj.Key!)
+                        .catch((err: CloudifyError) => {
+                            console.log(`Error processing ${Obj.Key!}`);
+                            console.log(`Logs: ${err.logUrl}`);
+                            return { nExtracted: 0, nErrors: 1 };
+                        })
                 );
             }
         }
@@ -65,6 +68,21 @@ export async function mapBucket(Bucket: string) {
     }
 }
 
-mapBucket("arxiv-derivative-west");
+export async function mapObject(Bucket: string, Key: string) {
+    const { cloudFunc, remote } = await cloudify("aws", m, "./map-buckets-module", {
+        memorySize: 3008,
+        timeout: 300,
+        mode: "https",
+        concurrency: 200
+    });
+    await remote.processBucketObject(Bucket, Key).catch(err => console.error(err));
+    await cloudFunc.cleanup();
+}
+
+if (process.argv[3] === "all") {
+    mapBucket(process.argv[2]);
+} else {
+    mapObject(process.argv[2], process.argv[3]);
+}
 
 // m.processBucketObject("arxiv-derivative-west", "pdf/arXiv_pdf_0305_001.tar");
