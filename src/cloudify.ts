@@ -339,6 +339,10 @@ export class CloudFunction<O extends CommonOptions, S> {
             const startTime = Date.now();
             const callRequest: FunctionCall = { name: fn.name, args, CallId };
             const shouldRetry = (_: any, n: number) => {
+                if (this.cloudName === "aws" && this.options!.mode === "queue") {
+                    // SNS has automatic retry.
+                    return false;
+                }
                 this.functionCounters.incr(fn.name, "retries");
                 return n < 3;
             };
