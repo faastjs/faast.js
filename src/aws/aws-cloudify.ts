@@ -551,7 +551,7 @@ async function callFunction(
 ) {
     if (state.queueState) {
         return cloudqueue.enqueueCallRequest(
-            state.queueState,
+            state.queueState!,
             callRequest,
             state.resources.ResponseQueueUrl!
         );
@@ -1102,7 +1102,7 @@ export async function costEstimate(
     );
     const { memorySize = defaults.memorySize } = state.options;
     const billedTimeStats = statistics.estimatedBilledTime;
-    const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
+    const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples || 0;
     const provisionedGb = memorySize / 1024;
     const functionCallDuration = new CostMetric({
         name: "functionCallDuration",
