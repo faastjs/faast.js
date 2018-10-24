@@ -1,6 +1,6 @@
 import * as cloudify from "../src/cloudify";
 import { Pump } from "../src/funnel";
-import { log, warn } from "../src/log";
+import { log, warn, stats } from "../src/log";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
 
@@ -19,7 +19,7 @@ export function coldStartTest(
                 const cloud = cloudify.create(cloudProvider);
                 lambda = await cloud.createFunction("./functions", options);
                 lambda.setConcurrency(maxConcurrency);
-                lambda.printStatisticsInterval(1000);
+                lambda.printStatisticsInterval(1000, stats);
                 remote = lambda.cloudifyModule(funcs);
             } catch (err) {
                 warn(err);
@@ -79,7 +79,7 @@ export function throughputTest(
             try {
                 const cloud = cloudify.create(cloudProvider);
                 lambda = await cloud.createFunction("./functions", options);
-                lambda.printStatisticsInterval(1000);
+                lambda.printStatisticsInterval(1000, stats);
                 remote = lambda.cloudifyModule(funcs);
             } catch (err) {
                 warn(err);

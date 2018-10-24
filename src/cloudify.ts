@@ -297,13 +297,16 @@ export class CloudFunction<O extends CommonOptions, S> {
         return this.impl.logUrl && this.impl.logUrl(this.state);
     }
 
-    printStatisticsInterval(intervalMs: number) {
+    printStatisticsInterval(
+        intervalMs: number,
+        print: (msg: string) => void = console.log
+    ) {
         this.timer && clearInterval(this.timer);
         this.timer = setInterval(() => {
             this.functionCounters.fIncremental.forEach((counters, fn) => {
                 const { executionLatency = 0, estimatedBilledTime = 0 } =
                     this.functionStats.fIncremental.get(fn) || {};
-                stats(
+                print(
                     `[${fn}] ${counters}, executionLatency: ${executionLatency}, estimatedBilledTime: ${estimatedBilledTime}`
                 );
             });
