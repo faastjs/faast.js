@@ -6,6 +6,7 @@ export const logPricing = debug("cloudify:pricing");
 export const logGc = debug("cloudify:gc");
 
 warn.enabled = true;
+stats.enabled = true;
 
 // Returns previous value;
 export function disableWarnings(): boolean {

@@ -297,10 +297,7 @@ export class CloudFunction<O extends CommonOptions, S> {
         return this.impl.logUrl && this.impl.logUrl(this.state);
     }
 
-    printStatisticsInterval(
-        intervalMs: number,
-        print: (msg: string) => void = console.log
-    ) {
+    printStatisticsInterval(intervalMs: number, print: (msg: string) => void = stats) {
         this.timer && clearInterval(this.timer);
         this.timer = setInterval(() => {
             this.functionCounters.fIncremental.forEach((counters, fn) => {
