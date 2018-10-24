@@ -13,7 +13,7 @@ export function getLogUrl(region: string, FunctionName: string) {
         ";"
     );
     const rg = escape(region);
-    return `https://${rg}.console.aws.amazon.com/cloudwatch/home?region=${rg}#logStream:${params}}`;
+    return `https://${rg}.console.aws.amazon.com/cloudwatch/home?region=${rg}#logStream:${params}`;
 }
 
 export function getExecutionUrl(
