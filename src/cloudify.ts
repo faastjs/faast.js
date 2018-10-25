@@ -16,6 +16,7 @@ import {
 import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "./trampoline";
 import { NonFunctionProperties, Unpacked } from "./type-helpers";
 import Module = require("module");
+import { Funnel } from "./funnel";
 
 export { aws, google, childprocess, immediate, costAnalyzer };
 
@@ -219,9 +220,11 @@ export class MemoryLeakDetector {
         instanceStats.heapUsed.update(heapUsed);
         instanceStats.external.update(external);
 
-        if (counters.heapUsedGrowth > 4 || counters.externalGrowth > 4) {
-            this.warned.add(fn);
-            return true;
+        if (heapUsed > 100 * 2 ** 20 || external > 100 * 2 ** 20) {
+            if (counters.heapUsedGrowth > 4 || counters.externalGrowth > 4) {
+                this.warned.add(fn);
+                return true;
+            }
         }
         return false;
     }
@@ -337,6 +340,7 @@ export class CloudFunction<O extends CommonOptions, S> {
     functionCounters = new FunctionCountersMap();
     functionStats = new FunctionStatsMap();
     memoryLeakDetector = new MemoryLeakDetector();
+    funnel = new Funnel<any>();
 
     protected skew = new ExponentiallyDecayingAverageValue(0.3);
     protected timer?: NodeJS.Timer;
@@ -347,6 +351,9 @@ export class CloudFunction<O extends CommonOptions, S> {
         readonly options?: O
     ) {
         this.impl.logUrl && log(`Log URL: ${this.impl.logUrl(state)}`);
+        if (options && options.concurrency) {
+            this.funnel.setMaxConcurrency(options.concurrency);
+        }
     }
 
     cleanup() {
@@ -383,6 +390,7 @@ export class CloudFunction<O extends CommonOptions, S> {
     }
 
     setConcurrency(maxConcurrentExecutions: number): Promise<void> {
+        this.funnel.setMaxConcurrency(maxConcurrentExecutions);
         return this.impl.setConcurrency(this.state, maxConcurrentExecutions);
     }
 
@@ -399,45 +407,45 @@ export class CloudFunction<O extends CommonOptions, S> {
     cloudifyWithResponse<A extends any[], R>(
         fn: (...args: A) => R
     ): ResponsifiedFunction<A, R> {
-        const responsifedFunc = async (...args: A) => {
-            const CallId = uuidv4();
-            const startTime = Date.now();
-            const callRequest: FunctionCall = { name: fn.name, args, CallId };
-            const shouldRetry = (_: any, n: number) => {
-                if (this.cloudName === "aws" && this.options!.mode === "queue") {
-                    // SNS has automatic retry.
-                    return false;
-                }
-                this.functionCounters.incr(fn.name, "retries");
-                return n < 3;
-            };
-            const rv: FunctionReturnWithMetrics = await this.impl
-                .callFunction(this.state, callRequest, shouldRetry)
-                .catch(value => {
-                    // warn(`Exception from cloudify function implementation: ${value}`);
-                    const returned: FunctionReturn = {
-                        type: "error",
-                        value,
-                        CallId
-                    };
-                    return {
-                        returned,
-                        rawResponse: {},
-                        localRequestSentTime: startTime,
-                        localEndTime: Date.now()
-                    };
-                });
-            return processResponse<R>(
-                rv,
-                callRequest,
-                startTime,
-                this.functionCounters,
-                this.functionStats,
-                this.skew,
-                this.memoryLeakDetector
-            );
-        };
-        return responsifedFunc;
+        return async (...args: A) =>
+            this.funnel.push(async () => {
+                const CallId = uuidv4();
+                const startTime = Date.now();
+                const callRequest: FunctionCall = { name: fn.name, args, CallId };
+                const shouldRetry = (_: any, n: number) => {
+                    if (this.cloudName === "aws" && this.options!.mode === "queue") {
+                        // SNS has automatic retry.
+                        return false;
+                    }
+                    this.functionCounters.incr(fn.name, "retries");
+                    return n < 3;
+                };
+                const rv: FunctionReturnWithMetrics = await this.impl
+                    .callFunction(this.state, callRequest, shouldRetry)
+                    .catch(value => {
+                        // warn(`Exception from cloudify function implementation: ${value}`);
+                        const returned: FunctionReturn = {
+                            type: "error",
+                            value,
+                            CallId
+                        };
+                        return {
+                            returned,
+                            rawResponse: {},
+                            localRequestSentTime: startTime,
+                            localEndTime: Date.now()
+                        };
+                    });
+                return processResponse<R>(
+                    rv,
+                    callRequest,
+                    startTime,
+                    this.functionCounters,
+                    this.functionStats,
+                    this.skew,
+                    this.memoryLeakDetector
+                );
+            });
     }
 
     cloudifyFunction<A extends any[], R>(
