@@ -18,7 +18,9 @@ export interface FunctionReturn extends CallId {
     remoteExecutionStartTime?: number;
     remoteExecutionEndTime?: number;
     logUrl?: string;
+    instanceId?: string;
     executionId?: string;
+    memoryUsage?: NodeJS.MemoryUsage;
 }
 
 export interface CallingContext {
@@ -26,6 +28,7 @@ export interface CallingContext {
     startTime: number;
     logUrl?: string;
     executionId?: string;
+    instanceId?: string;
 }
 
 export interface FunctionReturnWithMetrics {
@@ -95,9 +98,11 @@ export class ModuleWrapper {
         callingContext: CallingContext,
         chatty: boolean = true
     ): Promise<FunctionReturn> {
-        const { call, startTime, logUrl, executionId } = callingContext;
+        const memoryUsage = process.memoryUsage();
+        const { call, startTime, logUrl, executionId, instanceId } = callingContext;
         const func = this.lookupFunction(call);
-        chatty && console.log(`Invoking function '${func.name}'`);
+        chatty &&
+            console.log(`cloudify: Invoking '${func.name}, memory: %O'`, memoryUsage);
         try {
             const returned = await func.apply(undefined, call.args);
             const rv: FunctionReturn = {
@@ -107,7 +112,9 @@ export class ModuleWrapper {
                 remoteExecutionStartTime: startTime,
                 remoteExecutionEndTime: Date.now(),
                 logUrl,
-                executionId
+                executionId,
+                memoryUsage,
+                instanceId
             };
             return rv;
         } catch (err) {

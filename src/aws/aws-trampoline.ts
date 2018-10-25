@@ -8,7 +8,7 @@ import {
     CallingContext
 } from "../trampoline";
 import { publishSQS, publishSQSControlMessage } from "./aws-queue";
-import { getExecutionUrl } from "./aws-shared";
+import { getExecutionLogUrl } from "./aws-shared";
 import { env } from "process";
 
 const awsSqs = new aws.SQS({ apiVersion: "2012-11-05" });
@@ -24,11 +24,12 @@ export async function trampoline(
     const executionId = context.awsRequestId;
     const { logGroupName, logStreamName } = context;
     const region = env.AWS_REGION!;
-    const logUrl = getExecutionUrl(region, logGroupName, logStreamName, executionId);
+    const logUrl = getExecutionLogUrl(region, logGroupName, logStreamName, executionId);
     const callingContext = {
         startTime,
         logUrl,
-        executionId
+        executionId,
+        instanceId: logStreamName
     };
     if ("CallId" in event) {
         const call = event as FunctionCall;

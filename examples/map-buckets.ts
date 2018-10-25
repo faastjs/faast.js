@@ -1,6 +1,7 @@
 import { cloudify, CloudifyError } from "../src/cloudify";
 import * as m from "./map-buckets-module";
 import * as aws from "aws-sdk";
+import { createHash } from "crypto";
 
 const s3 = new aws.S3();
 
@@ -35,15 +36,16 @@ async function listAllObjects(Bucket: string) {
 
 export async function mapBucket(Bucket: string) {
     const { cloudFunc, remote } = await cloudify("aws", m, "./map-buckets-module", {
-        memorySize: 3008,
+        memorySize: 1728,
         timeout: 300,
-        mode: "queue",
-        concurrency: 1
+        mode: "queue"
+        // concurrency: 100
+        // awsLambdaOptions: { TracingConfig: { Mode: "Active" } }
     });
     cloudFunc.printStatisticsInterval(1000);
     try {
         let allObjects = await listAllObjects(Bucket);
-        allObjects = allObjects.filter(obj => obj.Key!.match(/^pdf\/.*\.tar$/));
+        allObjects = allObjects.filter(obj => obj.Key!.match(/^.*\.tar$/));
         const promises = [];
         console.log(`Bucket ${Bucket} contains ${allObjects.length} objects`);
         for (const Obj of allObjects) {
@@ -72,14 +74,17 @@ export async function mapBucket(Bucket: string) {
     }
 }
 
-export async function mapObject(Bucket: string, Key: string) {
+export async function mapObjects(Bucket: string, Keys: string[]) {
     const { cloudFunc, remote } = await cloudify("aws", m, "./map-buckets-module", {
         memorySize: 3008,
         timeout: 300,
         mode: "https",
-        concurrency: 200
+        concurrency: 1
     });
-    await remote.processBucketObject(Bucket, Key).catch(err => console.error(err));
+    for (const Key of Keys) {
+        await remote.processBucketObject(Bucket, Key).catch(err => console.error(err));
+        console.log(`Processed ${Bucket}/${Key}`);
+    }
     await cloudFunc.cleanup();
 }
 
@@ -89,10 +94,12 @@ export async function copyObjects(
     mapper: (key: string) => string | undefined
 ) {
     const { cloudFunc, remote } = await cloudify("aws", m, "./map-buckets-module", {
-        memorySize: 1728,
+        memorySize: 256,
         timeout: 300,
         mode: "queue"
     });
+
+    cloudFunc.printStatisticsInterval(1000);
 
     const objects = await listAllObjects(fromBucket);
     const promises: Promise<void>[] = [];
@@ -100,30 +107,56 @@ export async function copyObjects(
         const toKey = mapper(obj.Key!);
         if (toKey) {
             console.log(`Copying ${fromBucket}:${obj.Key} to ${toBucket}:${toKey}`);
-            // promises.push(
-            //     remote
-            //         .moveObject(fromBucket, obj.Key!, toBucket, toKey)
-            //         .catch(err => console.error(err))
-            // );
+            promises.push(
+                remote
+                    .copyObject(fromBucket, obj.Key!, toBucket, toKey)
+                    .catch(err => console.error(err))
+            );
         } else {
-            console.log(`Skipping ${obj.Key}, no mapping.`);
+            // console.log(`Skipping ${obj.Key}, no mapping.`);
         }
     }
     await Promise.all(promises);
-    cloudFunc.cleanup();
+    await cloudFunc.cleanup();
 }
 
-// if (process.argv[3] === "all") {
-//     mapBucket(process.argv[2]);
-// } else {
-//     mapObject(process.argv[2], process.argv[3]);
-// }
-
-// m.processBucketObject("arxiv-derivative-west", "pdf/arXiv_pdf_0305_001.tar");
-
-copyObjects("arxiv-derivative-west", "arxiv-derivative-flattened", key => {
-    const match = key.match(/^pdf\/arXiv_pdf_(\d{4}_\d{3}.tar)$/);
-    if (match) {
-        return `${match[1]}`;
+export async function emptyBucket(Bucket: string) {
+    const { cloudFunc, remote } = await cloudify("aws", m, "./map-buckets-module", {
+        memorySize: 256,
+        timeout: 300,
+        mode: "https",
+        concurrency: 1
+    });
+    const objects = await listAllObjects(Bucket);
+    console.log(`Emptying Bucket ${Bucket} with ${objects.length} keys`);
+    const promises: Promise<void>[] = [];
+    while (true) {
+        const keys = objects.splice(0, 100).map(obj => obj.Key!);
+        if (keys.length === 0) {
+            break;
+        }
+        promises.push(remote.deleteObjects(Bucket, keys));
     }
-});
+    await Promise.all(promises);
+    await cloudFunc.cleanup();
+}
+
+if (process.argv[3] === "all") {
+    mapBucket(process.argv[2]);
+} else {
+    mapObjects(process.argv[2], process.argv.slice(3));
+}
+
+// copyObjects("arxiv-derivative-west", "arxiv-derivative-flattened", key => {
+//     const match = key.match(/^pdf\/(arXiv_pdf_\d{4}_\d{3}.tar)$/);
+//     if (match) {
+//         const prefix = createHash("md5")
+//             .update(match[1])
+//             .digest("hex")
+//             .slice(0, 4);
+//         return `${prefix}/${match[1]}`;
+//     }
+//     return undefined;
+// });
+
+// emptyBucket("arxiv-derivative-output");

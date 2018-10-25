@@ -41,15 +41,15 @@ export class Statistics {
     }
 }
 
-export class FactoryMap<K, V> extends Map<K, V> {
-    constructor(readonly factory: () => V) {
+export class FactoryMap<V, K = string> extends Map<K, V> {
+    constructor(readonly factory: (key: K) => V) {
         super();
     }
 
     getOrCreate(key: K) {
         let val = this.get(key);
         if (!val) {
-            val = this.factory();
+            val = this.factory(key);
             this.set(key, val);
         }
         return val;

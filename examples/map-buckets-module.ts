@@ -1,12 +1,14 @@
 import * as aws from "aws-sdk";
 import * as tar from "tar-stream";
 import * as stream from "stream";
-import * as util from "util";
+import { escape } from "querystring";
+import { RateLimitedFunnel } from "../src/funnel";
+import { createHash } from "crypto";
 
 const s3 = new aws.S3({ region: "us-west-2" });
 
-export async function extractTarBuffer(
-    content: Buffer,
+export async function extractTarStream(
+    content: stream.Readable,
     processEntry: (header: tar.Headers, tarstream: stream.Readable) => Promise<void>
 ) {
     const tarExtract: tar.Extract = tar.extract();
@@ -14,11 +16,7 @@ export async function extractTarBuffer(
         await processEntry(header, tarstream);
         next();
     });
-    const readable = new stream.Readable();
-    readable._read = () => {};
-    readable.push(content);
-    readable.push(null);
-    readable.pipe(tarExtract);
+    content.pipe(tarExtract);
     await new Promise(resolve => tarExtract.on("finish", resolve));
 }
 
@@ -44,52 +42,82 @@ export async function processBucketObject(Bucket: string, Key: string) {
     }
 
     log(`Starting download`);
-    const result = await s3.getObject({ Bucket, Key }).promise();
-    log(`Download finished`);
-    log(`Result: ${util.inspect(result)}`);
+    const result = await s3.getObject({ Bucket, Key }).createReadStream();
+
+    log(`Extracting tar file stream`);
     let nExtracted = 0;
     let nErrors = 0;
-    await extractTarBuffer(result.Body! as Buffer, async (header, tarstream) => {
+    const funnel = new RateLimitedFunnel({
+        maxConcurrency: 100,
+        targetRequestsPerSecond: 100
+    });
+    await extractTarStream(result, async (header, tarstream) => {
         if (header.type === "file") {
             nExtracted++;
             // log(`Entry ${header.name}, size: ${header.size}`);
-            // promises.push(
-            //     s3
-            //         .putObject({
-            //             Bucket: "arxiv-derivative-output",
-            //             Key: header.name,
-            //             Body: tarstream,
-            //             ContentLength: header.size
-            //         })
-            //         .promise()
-            //         .then(_ => {
-            //             // log(`Uploaded ${header.name}`);
-            //             nExtracted++;
-            //         })
-            //         .catch(err => {
-            //             log(err);
-            //             nErrors++;
-            //             log(`Error uploading ${header.name}, size: ${header.size}`);
-            //         })
-            // );
+
+            const prefix = createHash("md5")
+                .update(header.name)
+                .digest("hex")
+                .slice(0, 4);
+            const OutputKey = `${prefix}/${header.name}`;
+            funnel.push(() =>
+                s3
+                    .upload({
+                        Bucket: "arxiv-derivative-output",
+                        Key: OutputKey,
+                        Body: tarstream,
+                        ContentLength: header.size
+                    })
+                    .promise()
+                    .then(_ => {
+                        // log(`Uploaded ${header.name}`);
+                        nExtracted++;
+                    })
+                    .catch(err => {
+                        log(err);
+                        nErrors++;
+                        log(`Error uploading ${OutputKey}, size: ${header.size}`);
+                    })
+            );
         }
 
-        await new Promise(resolve => {
-            tarstream.on("end", resolve);
-            tarstream.resume();
-        });
+        // await new Promise(resolve => {
+        //     tarstream.on("end", resolve);
+        //     tarstream.resume();
+        // });
     });
+    await funnel.all();
+
     log(`Extracted ${nExtracted} files from ${Bucket}, ${Key}`);
     log(`Errors uploading: ${nErrors}`);
     return { nExtracted, nErrors };
 }
 
-export async function moveObject(
+export async function copyObject(
     fromBucket: string,
     fromKey: string,
     toBucket: string,
     toKey: string
 ) {
-    const obj = await s3.getObject({ Bucket: fromBucket, Key: fromKey }).promise();
-    await s3.putObject({ Bucket: toBucket, Key: toKey, Body: obj.Body }).promise();
+    await s3
+        .copyObject({
+            Bucket: toBucket,
+            Key: toKey,
+            CopySource: escape(fromBucket + "/" + fromKey)
+        })
+        .promise();
+}
+
+export async function deleteObjects(Bucket: string, Keys: string[]) {
+    await s3
+        .deleteObjects({
+            Bucket,
+            Delete: {
+                Objects: Keys.map(Key => ({
+                    Key
+                }))
+            }
+        })
+        .promise();
 }

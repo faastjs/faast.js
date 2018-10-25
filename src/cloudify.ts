@@ -5,7 +5,7 @@ import * as childprocess from "./childprocess/childprocess-cloudify";
 import * as costAnalyzer from "./cost-analyzer";
 import * as google from "./google/google-cloudify";
 import * as immediate from "./immediate/immediate-cloudify";
-import { log, stats, warn } from "./log";
+import { log, stats, warn, logLeaks } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import {
     assertNever,
@@ -138,8 +138,8 @@ export class FunctionStats {
 
 export class FunctionCountersMap {
     aggregate = new FunctionCounters();
-    fIncremental = new FactoryMap<string, FunctionCounters>(() => new FunctionCounters());
-    fAggregate = new FactoryMap<string, FunctionCounters>(() => new FunctionCounters());
+    fIncremental = new FactoryMap(() => new FunctionCounters());
+    fAggregate = new FactoryMap(() => new FunctionCounters());
 
     incr(fn: string, key: keyof NonFunctionProperties<FunctionCounters>, n: number = 1) {
         this.fIncremental.getOrCreate(fn)[key] += n;
@@ -157,8 +157,8 @@ export class FunctionCountersMap {
 }
 
 export class FunctionStatsMap {
-    fIncremental = new FactoryMap<string, FunctionStats>(() => new FunctionStats());
-    fAggregate = new FactoryMap<string, FunctionStats>(() => new FunctionStats());
+    fIncremental = new FactoryMap(() => new FunctionStats());
+    fAggregate = new FactoryMap(() => new FunctionStats());
     aggregate = new FunctionStats();
 
     update(
@@ -180,17 +180,65 @@ export class FunctionStatsMap {
     }
 }
 
+export class FunctionInstanceStats {
+    rss = new Statistics();
+    heapTotal = new Statistics();
+    heapUsed = new Statistics();
+    external = new Statistics();
+}
+
+export class FunctionInstanceCounters {
+    heapUsedGrowth = 0;
+    externalGrowth = 0;
+}
+
+export class MemoryLeakDetector {
+    instances = new FactoryMap(() => new FunctionInstanceStats());
+    counters = new FactoryMap(() => new FunctionInstanceCounters());
+    warned = new Set<string>();
+
+    detectedNewLeak(fn: string, instanceId: string, memoryUsage: NodeJS.MemoryUsage) {
+        if (this.warned.has(fn)) {
+            return false;
+        }
+        const { rss, heapTotal, heapUsed, external } = memoryUsage;
+        const instanceStats = this.instances.getOrCreate(instanceId);
+        const counters = this.counters.getOrCreate(instanceId);
+        if (heapUsed > instanceStats.heapUsed.max) {
+            counters.heapUsedGrowth++;
+        } else {
+            counters.heapUsedGrowth = 0;
+        }
+        if (external > instanceStats.external.max) {
+            counters.externalGrowth++;
+        } else {
+            counters.externalGrowth = 0;
+        }
+        instanceStats.rss.update(rss);
+        instanceStats.heapTotal.update(heapTotal);
+        instanceStats.heapUsed.update(heapUsed);
+        instanceStats.external.update(external);
+
+        if (counters.heapUsedGrowth > 4 || counters.externalGrowth > 4) {
+            this.warned.add(fn);
+            return true;
+        }
+        return false;
+    }
+}
+
 function processResponse<R>(
     returnedMetrics: FunctionReturnWithMetrics,
     callRequest: FunctionCall,
     localStartTime: number,
     fcounters: FunctionCountersMap,
     fstats: FunctionStatsMap,
-    prevSkew: ExponentiallyDecayingAverageValue
+    prevSkew: ExponentiallyDecayingAverageValue,
+    memoryLeakDetector: MemoryLeakDetector
 ) {
     const returned = returnedMetrics.returned;
     let error: CloudifyError | undefined;
-    const { executionId, logUrl } = returned;
+    const { executionId, logUrl, instanceId, memoryUsage } = returned;
     if (returned.type === "error") {
         const errValue = returned.value;
         if (Object.keys(errValue).length === 0 && !(errValue instanceof Error)) {
@@ -266,6 +314,21 @@ function processResponse<R>(
     } else {
         fcounters.incr(fn, "completed");
     }
+
+    if (instanceId && memoryUsage) {
+        if (memoryLeakDetector.detectedNewLeak(fn, instanceId, memoryUsage)) {
+            logLeaks(`Possible memory leak detected in function '${fn}'.`);
+            logLeaks(
+                `Memory use before execution leaked from prior calls: %O`,
+                memoryUsage
+            );
+            logLeaks(`Logs: ${logUrl}`);
+            logLeaks(
+                `These logs show only one example cloudify function invocation that may have a leak.`
+            );
+        }
+    }
+
     return rv;
 }
 
@@ -273,6 +336,8 @@ export class CloudFunction<O extends CommonOptions, S> {
     cloudName = this.impl.name;
     functionCounters = new FunctionCountersMap();
     functionStats = new FunctionStatsMap();
+    memoryLeakDetector = new MemoryLeakDetector();
+
     protected skew = new ExponentiallyDecayingAverageValue(0.3);
     protected timer?: NodeJS.Timer;
 
@@ -368,7 +433,8 @@ export class CloudFunction<O extends CommonOptions, S> {
                 startTime,
                 this.functionCounters,
                 this.functionStats,
-                this.skew
+                this.skew,
+                this.memoryLeakDetector
             );
         };
         return responsifedFunc;

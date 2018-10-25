@@ -16,7 +16,7 @@ export function getLogUrl(region: string, FunctionName: string) {
     return `https://${rg}.console.aws.amazon.com/cloudwatch/home?region=${rg}#logStream:${params}`;
 }
 
-export function getExecutionUrl(
+export function getExecutionLogUrl(
     region: string,
     logGroupName: string,
     logStreamName: string,
