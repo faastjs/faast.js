@@ -111,8 +111,23 @@ describe("Funnel", () => {
         expect(executed).toBe(false);
         const result = await funnel.all();
         expect(result.length).toBe(2);
-        expect(result[0]).toBe("second");
+        expect(result[0]).toBe("first");
+        expect(result[1]).toBe("second");
         expect(executed).toBe(true);
+    });
+    test("funnel.all() ignores errors and waits for other requests to finish", async () => {
+        const funnel = new Funnel<string>(1);
+        funnel.push(async () => {
+            throw new Error();
+        });
+        funnel.push(async () => {
+            await sleep(100);
+            return "done";
+        });
+        const result = await funnel.all().catch(_ => []);
+        expect(result.length).toBe(2);
+        expect(result[0]).toBeUndefined();
+        expect(result[1]).toBe("done");
     });
     test("Funnel cancellation", async () => {
         const funnel = new Funnel(1);

@@ -88,10 +88,12 @@ export class Funnel<T = void> {
         this.executingQueue.clear();
     }
 
+    promises() {
+        return [...this.executingQueue, ...this.pendingQueue].map(p => p.promise);
+    }
+
     all() {
-        return Promise.all(
-            [...this.pendingQueue, ...this.executingQueue].map(p => p.promise)
-        );
+        return Promise.all(this.promises().map(p => p.catch(_ => {})));
     }
 
     size() {
