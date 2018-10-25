@@ -1,4 +1,11 @@
-import { Funnel, Pump, MemoFunnel, RateLimiter, RateLimitedFunnel } from "../src/funnel";
+import {
+    Funnel,
+    Pump,
+    MemoFunnel,
+    RateLimiter,
+    RateLimitedFunnel,
+    retry
+} from "../src/funnel";
 import { sleep } from "../src/shared";
 import { delay } from "./functions";
 
@@ -124,11 +131,41 @@ describe("Funnel", () => {
             await sleep(100);
             return "done";
         });
-        const result = await funnel.all().catch(_ => []);
+        const result = await funnel.all();
         expect(result.length).toBe(2);
         expect(result[0]).toBeUndefined();
         expect(result[1]).toBe("done");
     });
+    test(
+        "retry() retries failures",
+        async () => {
+            let attempts = 0;
+            await retry(2, async () => {
+                attempts++;
+                throw new Error();
+            }).catch(_ => {});
+            expect(attempts).toBe(3);
+        },
+        10000
+    );
+    test(
+        "funnel.pushRetry() retries failures",
+        async () => {
+            const funnel = new Funnel<string>(1);
+            let attempts = 0;
+            let errors = 0;
+            funnel
+                .pushRetry(2, async () => {
+                    attempts++;
+                    throw Error();
+                })
+                .catch(_ => errors++);
+            await funnel.all();
+            expect(attempts).toBe(3);
+            expect(errors).toBe(1);
+        },
+        10000
+    );
     test("Funnel cancellation", async () => {
         const funnel = new Funnel(1);
         let executed = 0;
