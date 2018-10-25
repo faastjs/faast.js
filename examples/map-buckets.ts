@@ -38,8 +38,8 @@ export async function mapBucket(Bucket: string) {
     const { cloudFunc, remote } = await cloudify("aws", m, "./map-buckets-module", {
         memorySize: 1728,
         timeout: 300,
-        mode: "queue"
-        // concurrency: 100
+        mode: "queue",
+        concurrency: 500
         // awsLambdaOptions: { TracingConfig: { Mode: "Active" } }
     });
     cloudFunc.printStatisticsInterval(1000);

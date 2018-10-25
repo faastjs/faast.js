@@ -47,10 +47,13 @@ export async function processBucketObject(Bucket: string, Key: string) {
     log(`Extracting tar file stream`);
     let nExtracted = 0;
     let nErrors = 0;
+    let nRetry = 0;
     const funnel = new RateLimitedFunnel({
-        maxConcurrency: 100,
-        targetRequestsPerSecond: 100
+        maxConcurrency: 10,
+        targetRequestsPerSecond: 500
     });
+
+    const retries = 2;
     await extractTarStream(result, async (header, tarstream) => {
         if (header.type === "file") {
             nExtracted++;
@@ -61,25 +64,41 @@ export async function processBucketObject(Bucket: string, Key: string) {
                 .digest("hex")
                 .slice(0, 4);
             const OutputKey = `${prefix}/${header.name}`;
-            funnel.push(() =>
-                s3
-                    .upload({
-                        Bucket: "arxiv-derivative-output",
-                        Key: OutputKey,
-                        Body: tarstream,
-                        ContentLength: header.size
-                    })
-                    .promise()
-                    .then(_ => {
-                        // log(`Uploaded ${header.name}`);
-                        nExtracted++;
-                    })
-                    .catch(err => {
-                        log(err);
-                        nErrors++;
-                        log(`Error uploading ${OutputKey}, size: ${header.size}`);
-                    })
-            );
+            funnel
+                .pushRetry(retries, async () => {
+                    // log(`Trying upload ${OutputKey}, size: ${header.size}`);
+                    // if (Math.random() > 0.5) {
+                    //     console.log(`Random failure on ${OutputKey}`);
+                    //     throw new Error("Random failure");
+                    // }
+                    return s3
+                        .upload({
+                            Bucket: "arxiv-derivative-output",
+                            Key: OutputKey,
+                            Body: tarstream,
+                            ContentLength: header.size
+                        })
+                        .promise()
+                        .then(_ => {
+                            // log(`Uploaded ${header.name}`);
+                            nExtracted++;
+                        })
+                        .catch(err => {
+                            log(err);
+                            log(`Retrying ${OutputKey}, size: ${header.size}`);
+                            nRetry++;
+                            throw err;
+                        });
+                })
+                .catch(_ => {
+                    nErrors++;
+                    log(
+                        `Error uploading ${OutputKey}, size: ${
+                            header.size
+                        }, failed after ${retries} retries`
+                    );
+                    tarstream.resume();
+                });
         }
 
         // await new Promise(resolve => {
@@ -87,6 +106,8 @@ export async function processBucketObject(Bucket: string, Key: string) {
         //     tarstream.resume();
         // });
     });
+
+    log(`Promises size: ${funnel.promises().length}`);
     await funnel.all();
 
     log(`Extracted ${nExtracted} files from ${Bucket}, ${Key}`);
