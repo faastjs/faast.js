@@ -37,7 +37,7 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
 };
 
 async function initialize(serverModule: string, options: Options = {}): Promise<State> {
-    const moduleWrapper = new ModuleWrapper({ logColdStart: false });
+    const moduleWrapper = new ModuleWrapper({ verbose: false });
     moduleWrapper.register(require(serverModule));
     if (options.memorySize) {
         warn(`cloudify type 'immediate' does not support memorySize option, ignoring.`);
@@ -72,10 +72,7 @@ function callFunction(
         const startTime = Date.now();
         let returned: FunctionReturn;
         try {
-            returned = await state.moduleWrapper.execute(
-                { call: scall, startTime },
-                false
-            );
+            returned = await state.moduleWrapper.execute({ call: scall, startTime });
         } catch (err) {
             returned = createErrorResponse(err, { call: scall, startTime });
         }

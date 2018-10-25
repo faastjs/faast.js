@@ -66,10 +66,12 @@ export function createErrorResponse(
 
 export class ModuleWrapper {
     funcs: ModuleType = {};
+    verbose: boolean;
 
-    constructor({ logColdStart = true } = {}) {
-        if (logColdStart) {
-            console.log(`Successful cold start.`);
+    constructor({ verbose = true } = {}) {
+        this.verbose = verbose;
+        if (verbose) {
+            console.log(`cloudify: successful cold start.`);
         }
     }
 
@@ -94,14 +96,11 @@ export class ModuleWrapper {
         return func;
     }
 
-    async execute(
-        callingContext: CallingContext,
-        chatty: boolean = true
-    ): Promise<FunctionReturn> {
+    async execute(callingContext: CallingContext): Promise<FunctionReturn> {
         const memoryUsage = process.memoryUsage();
         const { call, startTime, logUrl, executionId, instanceId } = callingContext;
         const func = this.lookupFunction(call);
-        chatty &&
+        this.verbose &&
             console.log(`cloudify: Invoking '${func.name}, memory: %O'`, memoryUsage);
         try {
             const returned = await func.apply(undefined, call.args);
@@ -118,7 +117,7 @@ export class ModuleWrapper {
             };
             return rv;
         } catch (err) {
-            chatty && console.error(err);
+            this.verbose && console.error(err);
             return createErrorResponse(err, callingContext);
         }
     }
