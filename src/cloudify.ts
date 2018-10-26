@@ -91,6 +91,10 @@ export class Cloud<O extends CommonOptions, S> {
 
     protected constructor(protected impl: CloudImpl<O, S>) {}
 
+    get defaults() {
+        return this.impl.defaults;
+    }
+
     cleanupResources(resources: string): Promise<void> {
         return this.impl.cleanupResources(resources);
     }
@@ -101,6 +105,7 @@ export class Cloud<O extends CommonOptions, S> {
 
     async createFunction(modulePath: string, options?: O): Promise<CloudFunction<O, S>> {
         return new CloudFunction(
+            this,
             this.impl.getFunctionImpl(),
             await this.impl.initialize(resolve(modulePath), options),
             options
@@ -194,9 +199,14 @@ export class FunctionInstanceCounters {
 }
 
 export class MemoryLeakDetector {
-    instances = new FactoryMap(() => new FunctionInstanceStats());
-    counters = new FactoryMap(() => new FunctionInstanceCounters());
-    warned = new Set<string>();
+    protected instances = new FactoryMap(() => new FunctionInstanceStats());
+    protected counters = new FactoryMap(() => new FunctionInstanceCounters());
+    protected warned = new Set<string>();
+    protected memorySize: number;
+
+    constructor(memorySize?: number) {
+        this.memorySize = memorySize || 100;
+    }
 
     detectedNewLeak(fn: string, instanceId: string, memoryUsage: NodeJS.MemoryUsage) {
         if (this.warned.has(fn)) {
@@ -220,7 +230,10 @@ export class MemoryLeakDetector {
         instanceStats.heapUsed.update(heapUsed);
         instanceStats.external.update(external);
 
-        if (heapUsed > 100 * 2 ** 20 || external > 100 * 2 ** 20) {
+        if (
+            heapUsed > this.memorySize * 0.8 * 2 ** 20 ||
+            external > this.memorySize * 0.8 * 2 ** 20
+        ) {
             if (counters.heapUsedGrowth > 4 || counters.externalGrowth > 4) {
                 this.warned.add(fn);
                 return true;
@@ -339,13 +352,14 @@ export class CloudFunction<O extends CommonOptions, S> {
     cloudName = this.impl.name;
     functionCounters = new FunctionCountersMap();
     functionStats = new FunctionStatsMap();
-    memoryLeakDetector = new MemoryLeakDetector();
+    memoryLeakDetector: MemoryLeakDetector;
     funnel = new Funnel<any>();
 
     protected skew = new ExponentiallyDecayingAverageValue(0.3);
     protected timer?: NodeJS.Timer;
 
     constructor(
+        protected cloud: Cloud<O, S>,
         protected impl: CloudFunctionImpl<S>,
         readonly state: S,
         readonly options?: O
@@ -354,6 +368,8 @@ export class CloudFunction<O extends CommonOptions, S> {
         if (options && options.concurrency) {
             this.funnel.setMaxConcurrency(options.concurrency);
         }
+        const memorySize = (options && options.memorySize) || cloud.defaults.memorySize;
+        this.memoryLeakDetector = new MemoryLeakDetector(memorySize);
     }
 
     cleanup() {
@@ -602,6 +618,7 @@ export interface CloudImpl<O, S> {
     cleanupResources(resources: string): Promise<void>;
     pack(functionModule: string, options?: O): Promise<PackerResult>;
     getFunctionImpl(): CloudFunctionImpl<S>;
+    defaults: O;
 }
 
 export interface CloudFunctionImpl<State> {
