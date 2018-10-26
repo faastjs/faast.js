@@ -154,7 +154,7 @@ export function checkCodeBundle(
                     expect(fs.statSync(zipFile).size).toBeLessThan(maxZipFileSize);
                 unzipInDir(tmpDir, zipFile);
                 expect(exec(`cd ${tmpDir} && node index.js`)).toMatch(
-                    "Successful cold start."
+                    "cloudify: successful cold start."
                 );
                 expectations && expectations(tmpDir);
             },

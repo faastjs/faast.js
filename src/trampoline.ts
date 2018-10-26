@@ -97,12 +97,12 @@ export class ModuleWrapper {
     }
 
     async execute(callingContext: CallingContext): Promise<FunctionReturn> {
-        const memoryUsage = process.memoryUsage();
-        const { call, startTime, logUrl, executionId, instanceId } = callingContext;
-        const func = this.lookupFunction(call);
-        this.verbose &&
-            console.log(`cloudify: Invoking '${func.name}, memory: %O'`, memoryUsage);
         try {
+            const memoryUsage = process.memoryUsage();
+            const { call, startTime, logUrl, executionId, instanceId } = callingContext;
+            const func = this.lookupFunction(call);
+            this.verbose &&
+                console.log(`cloudify: Invoking '${func.name}, memory: %O'`, memoryUsage);
             const returned = await func.apply(undefined, call.args);
             const rv: FunctionReturn = {
                 type: "returned",

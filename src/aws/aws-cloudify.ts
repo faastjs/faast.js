@@ -91,7 +91,6 @@ type AWSInvocationResponse = PromiseResult<aws.Lambda.InvocationResponse, aws.AW
 export interface State {
     resources: AWSResources;
     services: AWSServices;
-    callFunnel: Funnel<AWSInvocationResponse>;
     queueState?: AWSCloudQueueState;
     options: Options;
     metrics: AWSMetrics;
@@ -130,7 +129,6 @@ export const LambdaImpl: CloudFunctionImpl<State> = {
     callFunction,
     cleanup,
     stop,
-    setConcurrency,
     costEstimate,
     logUrl
 };
@@ -425,7 +423,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
             logGroupName: getLogGroupName(FunctionName)
         },
         services,
-        callFunnel: new Funnel(concurrency),
         metrics: new AWSMetrics(),
         options
     };
@@ -500,9 +497,7 @@ async function callFunctionHttps(
     lambda: aws.Lambda,
     FunctionName: string,
     callRequest: FunctionCall,
-    metrics: AWSMetrics,
-    callFunnel: Funnel<AWSInvocationResponse>,
-    shouldRetry: (err: Error, retries: number) => boolean
+    metrics: AWSMetrics
 ): Promise<FunctionReturnWithMetrics> {
     let returned: FunctionReturn;
     let rawResponse: AWSInvocationResponse;
@@ -513,11 +508,9 @@ async function callFunctionHttps(
         LogType: "None"
     };
     let localRequestSentTime!: NumberOfBytesType;
-    rawResponse = await callFunnel.pushRetry(shouldRetry, () => {
-        const awsRequest = lambda.invoke(request);
-        localRequestSentTime = awsRequest.startTime.getTime();
-        return awsRequest.promise();
-    });
+    const awsRequest = lambda.invoke(request);
+    localRequestSentTime = awsRequest.startTime.getTime();
+    rawResponse = await awsRequest.promise();
     const localEndTime = Date.now();
     if (rawResponse.LogResult) {
         log(Buffer.from(rawResponse.LogResult!, "base64").toString());
@@ -545,11 +538,7 @@ async function callFunctionHttps(
     };
 }
 
-async function callFunction(
-    state: State,
-    callRequest: FunctionCall,
-    shouldRetry: (err: Error, n: number) => boolean
-) {
+async function callFunction(state: State, callRequest: FunctionCall) {
     if (state.queueState) {
         return cloudqueue.enqueueCallRequest(
             state.queueState!,
@@ -557,18 +546,11 @@ async function callFunction(
             state.resources.ResponseQueueUrl!
         );
     } else {
-        const { callFunnel, metrics } = state;
+        const { metrics } = state;
         const { lambda } = state.services;
         const { FunctionName } = state.resources;
 
-        return callFunctionHttps(
-            lambda,
-            FunctionName,
-            callRequest,
-            metrics,
-            callFunnel,
-            shouldRetry
-        );
+        return callFunctionHttps(lambda, FunctionName, callRequest, metrics);
     }
 }
 
@@ -776,7 +758,7 @@ function garbageCollectLogGroups(
     region: string,
     accountId: string,
     s3Bucket: string,
-    garbageCollectionFunnel: Funnel
+    gcFunnel: Funnel
 ) {
     const { cloudwatch } = services;
 
@@ -785,7 +767,7 @@ function garbageCollectLogGroups(
     );
 
     logGroupsMissingRetentionPolicy.forEach(g =>
-        garbageCollectionFunnel.push(async () => {
+        gcFunnel.push(async () => {
             if (
                 await quietly(
                     cloudwatch.putRetentionPolicy({
@@ -815,7 +797,7 @@ function garbageCollectLogGroups(
         accountId,
         s3Bucket,
         garbageFunctions,
-        garbageCollectionFunnel
+        gcFunnel
     );
 }
 
@@ -825,7 +807,7 @@ function deleteGarbageFunctions(
     accountId: string,
     s3Bucket: string,
     garbageFunctions: string[],
-    garbageCollectionFunnel: Funnel
+    gcFunnel: Funnel
 ) {
     garbageFunctions.forEach(FunctionName => {
         const resources: AWSResources = {
@@ -838,7 +820,7 @@ function deleteGarbageFunctions(
             s3Key: getS3Key(FunctionName),
             logGroupName: getLogGroupName(FunctionName)
         };
-        garbageCollectionFunnel.push(async () => {
+        gcFunnel.push(async () => {
             await deleteResources(resources, services, logGc);
             const logGroupName = getLogGroupName(FunctionName);
             if (await quietly(services.cloudwatch.deleteLogGroup({ logGroupName }))) {
@@ -878,8 +860,6 @@ export function cleanupResources(resourceString: string) {
 }
 
 export async function stop(state: PartialState) {
-    const { callFunnel } = state;
-    callFunnel && callFunnel.clear();
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
     }
@@ -890,10 +870,6 @@ export async function stop(state: PartialState) {
         log(`Garbage collection done.`);
     }
     return JSON.stringify(state.resources);
-}
-
-export async function setConcurrency(state: State, maxConcurrentExecutions: number) {
-    state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
 }
 
 export function getFunctionImpl() {

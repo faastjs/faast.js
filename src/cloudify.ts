@@ -365,14 +365,15 @@ export class CloudFunction<O extends CommonOptions, S> {
         readonly options?: O
     ) {
         this.impl.logUrl && log(`Log URL: ${this.impl.logUrl(state)}`);
-        if (options && options.concurrency) {
-            this.funnel.setMaxConcurrency(options.concurrency);
-        }
+        const concurrency =
+            (options && options.concurrency) || cloud.defaults.concurrency || 1;
+        this.funnel.setMaxConcurrency(concurrency);
         const memorySize = (options && options.memorySize) || cloud.defaults.memorySize;
         this.memoryLeakDetector = new MemoryLeakDetector(memorySize);
     }
 
     cleanup() {
+        this.funnel.clear();
         this.stopPrintStatisticsInterval();
         return this.impl.cleanup(this.state);
     }
@@ -389,10 +390,12 @@ export class CloudFunction<O extends CommonOptions, S> {
         this.timer && clearInterval(this.timer);
         this.timer = setInterval(() => {
             this.functionCounters.fIncremental.forEach((counters, fn) => {
-                const { executionLatency = 0, estimatedBilledTime = 0 } =
-                    this.functionStats.fIncremental.get(fn) || {};
+                const execStats = this.functionStats.fIncremental.get(fn);
+                const executionLatency = execStats ? execStats.executionLatency.mean : 0;
                 print(
-                    `[${fn}] ${counters}, executionLatency: ${executionLatency}, estimatedBilledTime: ${estimatedBilledTime}`
+                    `[${fn}] ${counters}, executionLatency: ${(
+                        executionLatency / 1000
+                    ).toFixed(2)}s`
                 );
             });
             this.functionCounters.resetIncremental();
@@ -405,9 +408,8 @@ export class CloudFunction<O extends CommonOptions, S> {
         this.timer = undefined;
     }
 
-    setConcurrency(maxConcurrentExecutions: number): Promise<void> {
+    setConcurrency(maxConcurrentExecutions: number) {
         this.funnel.setMaxConcurrency(maxConcurrentExecutions);
-        return this.impl.setConcurrency(this.state, maxConcurrentExecutions);
     }
 
     cloudifyModule<M>(fmodule: M): Promisified<M> {
@@ -423,21 +425,22 @@ export class CloudFunction<O extends CommonOptions, S> {
     cloudifyWithResponse<A extends any[], R>(
         fn: (...args: A) => R
     ): ResponsifiedFunction<A, R> {
+        const shouldRetry = (_: any, n: number) => {
+            if (this.cloudName === "aws" && this.options!.mode === "queue") {
+                // SNS has automatic retry.
+                return false;
+            }
+            this.functionCounters.incr(fn.name, "retries");
+            return n < 3;
+        };
         return async (...args: A) =>
-            this.funnel.push(async () => {
+            this.funnel.pushRetry(shouldRetry, async () => {
                 const CallId = uuidv4();
                 const startTime = Date.now();
                 const callRequest: FunctionCall = { name: fn.name, args, CallId };
-                const shouldRetry = (_: any, n: number) => {
-                    if (this.cloudName === "aws" && this.options!.mode === "queue") {
-                        // SNS has automatic retry.
-                        return false;
-                    }
-                    this.functionCounters.incr(fn.name, "retries");
-                    return n < 3;
-                };
+
                 const rv: FunctionReturnWithMetrics = await this.impl
-                    .callFunction(this.state, callRequest, shouldRetry)
+                    .callFunction(this.state, callRequest)
                     .catch(value => {
                         // warn(`Exception from cloudify function implementation: ${value}`);
                         const returned: FunctionReturn = {
@@ -630,15 +633,10 @@ export interface CloudFunctionImpl<State> {
         stats: FunctionStats
     ) => Promise<costAnalyzer.CostBreakdown>;
 
-    callFunction(
-        state: State,
-        call: FunctionCall,
-        shouldRetry: (err: Error | undefined, retries: number) => boolean
-    ): Promise<FunctionReturnWithMetrics>;
+    callFunction(state: State, call: FunctionCall): Promise<FunctionReturnWithMetrics>;
 
     cleanup(state: State): Promise<void>;
     stop(state: State): Promise<string>;
-    setConcurrency(state: State, maxConcurrentExecutions: number): Promise<void>;
     logUrl?: (state: State) => string;
 }
 

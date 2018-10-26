@@ -79,6 +79,12 @@ export async function processBucketObject(Bucket: string, Key: string) {
                 nErrors++;
             }
 
+            const contentsHash = createHash("md5")
+                .update(buf)
+                .digest("hex");
+
+            log(`${header.name} ${contentsHash}`);
+
             /*
             funnel
                 .pushRetry(retries, async () => {

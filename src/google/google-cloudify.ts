@@ -1,4 +1,4 @@
-import Axios, { AxiosError, AxiosPromise, AxiosResponse } from "axios";
+import Axios, { AxiosError, AxiosPromise } from "axios";
 import * as sys from "child_process";
 import {
     cloudbilling_v1,
@@ -7,6 +7,7 @@ import {
     GoogleApis,
     pubsub_v1
 } from "googleapis";
+import * as util from "util";
 import * as uuidv4 from "uuid/v4";
 import {
     CloudFunctionImpl,
@@ -16,7 +17,7 @@ import {
     FunctionStats
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost-analyzer";
-import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
+import { MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
 import { log, logGc, logPricing, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
@@ -78,13 +79,10 @@ type ReceivedMessage = PubSubApi.Schema$ReceivedMessage;
 type GoogleCloudQueueState = cloudqueue.StateWithMessageType<ReceivedMessage>;
 type GoogleCloudQueueImpl = cloudqueue.QueueImpl<ReceivedMessage>;
 
-type GoogleInvocationResponse = AxiosResponse<FunctionReturn>;
-
 export interface State {
     resources: GoogleResources;
     services: GoogleServices;
     queueState?: GoogleCloudQueueState;
-    callFunnel: Funnel<GoogleInvocationResponse>;
     url?: string;
     project: string;
     functionName: string;
@@ -123,7 +121,6 @@ export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
     callFunction,
     cleanup,
     stop,
-    setConcurrency,
     costEstimate,
     logUrl
 };
@@ -281,7 +278,6 @@ async function initializeWithApi(
         region = defaults.region,
         timeout = defaults.timeout,
         memorySize = defaults.memorySize,
-        concurrency = defaults.concurrency,
         mode = defaults.mode,
         gc = defaults.gc,
         retentionInDays = defaults.retentionInDays,
@@ -314,7 +310,6 @@ async function initializeWithApi(
     const state: State = {
         resources,
         services,
-        callFunnel: new Funnel(concurrency),
         project,
         functionName,
         metrics: new GoogleMetrics(),
@@ -457,25 +452,23 @@ export function exec(cmd: string) {
 async function callFunctionHttps(
     url: string,
     callArgs: FunctionCall,
-    metrics: GoogleMetrics,
-    callFunnel: Funnel<GoogleInvocationResponse>,
-    shouldRetry: (err: Error, retries: number) => boolean
+    metrics: GoogleMetrics
 ): Promise<FunctionReturnWithMetrics> {
     // only for validation
     serializeCall(callArgs);
 
     let localRequestSentTime!: number;
 
-    const isTransientFailure = (err: AxiosError, n: number) => {
+    const shouldRetry = (err: AxiosError) => {
         if (err.response) {
             const { status } = err.response;
-            return status !== 503 && status !== 408 && shouldRetry(err, n);
+            return status !== 503 && status !== 408;
         }
-        return shouldRetry(err, n);
+        return false;
     };
 
     try {
-        const rawResponse = await callFunnel.pushRetry(isTransientFailure, () => {
+        const rawResponse = await retry(shouldRetry, () => {
             localRequestSentTime = Date.now();
             return Axios.put<FunctionReturn>(url!, callArgs, {});
         });
@@ -516,11 +509,7 @@ async function callFunctionHttps(
     }
 }
 
-async function callFunction(
-    state: State,
-    callRequest: FunctionCall,
-    shouldRetry: (err: Error, retries: number) => boolean
-) {
+async function callFunction(state: State, callRequest: FunctionCall) {
     if (state.queueState) {
         const {
             queueState,
@@ -532,8 +521,8 @@ async function callFunction(
             responseQueueTopic!
         );
     } else {
-        const { url, metrics, callFunnel } = state;
-        return callFunctionHttps(url!, callRequest, metrics, callFunnel, shouldRetry);
+        const { url, metrics } = state;
+        return callFunctionHttps(url!, callRequest, metrics);
     }
 }
 
@@ -738,8 +727,6 @@ export async function cleanupResources(resourcesString: string) {
 }
 
 export async function stop(state: Partial<State>) {
-    const { callFunnel } = state;
-    callFunnel && callFunnel.clear();
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
     }
@@ -751,10 +738,6 @@ export async function stop(state: Partial<State>) {
     return JSON.stringify(state.resources);
 }
 
-export async function setConcurrency(state: State, maxConcurrentExecutions: number) {
-    state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
-}
-
 export function getFunctionImpl() {
     return GoogleFunctionImpl;
 }
@@ -762,8 +745,6 @@ export function getFunctionImpl() {
 function parseTimestamp(timestampStr: string | undefined) {
     return Date.parse(timestampStr || "") || 0;
 }
-
-import * as util from "util";
 
 async function getGoogleCloudFunctionsPricing(
     cloudBilling: CloudBilling.Cloudbilling,

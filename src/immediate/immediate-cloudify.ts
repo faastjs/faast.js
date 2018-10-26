@@ -1,28 +1,23 @@
 import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
-import { Funnel } from "../funnel";
 import { warn } from "../log";
 import { PackerResult } from "../packer";
+import { sleep } from "../shared";
 import {
     FunctionCall,
     FunctionReturn,
-    ModuleWrapper,
-    serializeCall,
     FunctionReturnWithMetrics,
-    createErrorResponse
+    ModuleWrapper,
+    serializeCall
 } from "../trampoline";
-import { sleep } from "../shared";
 
 export interface State {
-    callFunnel: Funnel<FunctionReturnWithMetrics>;
     moduleWrapper: ModuleWrapper;
     options: Options;
 }
 
 export interface Options extends CommonOptions {}
 
-export const defaults: CommonOptions = {
-    concurrency: 1
-};
+export const defaults: CommonOptions = {};
 
 export const Impl: CloudImpl<Options, State> = {
     name: "immediate",
@@ -37,8 +32,7 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
     name: "immediate",
     callFunction,
     cleanup,
-    stop,
-    setConcurrency
+    stop
 };
 
 async function initialize(serverModule: string, options: Options = {}): Promise<State> {
@@ -50,9 +44,7 @@ async function initialize(serverModule: string, options: Options = {}): Promise<
     if (options.timeout) {
         warn(`cloudify type 'immediate' does not support timeout option, ignoring.`);
     }
-    const { concurrency = defaults.concurrency } = options;
     return {
-        callFunnel: new Funnel<FunctionReturnWithMetrics>(concurrency),
         moduleWrapper,
         options
     };
@@ -68,42 +60,28 @@ function getFunctionImpl(): CloudFunctionImpl<State> {
     return FunctionImpl;
 }
 
-function callFunction(
+async function callFunction(
     state: State,
     call: FunctionCall
 ): Promise<FunctionReturnWithMetrics> {
     const scall = JSON.parse(serializeCall(call));
-    return state.callFunnel.push(async () => {
-        const startTime = Date.now();
-        let returned: FunctionReturn;
-        try {
-            returned = await state.moduleWrapper.execute({ call: scall, startTime });
-        } catch (err) {
-            returned = createErrorResponse(err, { call: scall, startTime });
-        }
-        return {
-            returned,
-            rawResponse: {},
-            localRequestSentTime: startTime,
-            remoteResponseSentTime: returned.remoteExecutionEndTime!,
-            localEndTime: Date.now()
-        };
-    });
+    const startTime = Date.now();
+    let returned: FunctionReturn;
+    returned = await state.moduleWrapper.execute({ call: scall, startTime });
+    return {
+        returned,
+        rawResponse: {},
+        localRequestSentTime: startTime,
+        remoteResponseSentTime: returned.remoteExecutionEndTime!,
+        localEndTime: Date.now()
+    };
 }
 
 async function cleanup(state: State): Promise<void> {
     await stop(state);
 }
 
-async function stop(state: State): Promise<string> {
-    state.callFunnel.clear();
+async function stop(_: State): Promise<string> {
     await sleep(0);
     return "";
-}
-
-async function setConcurrency(
-    state: State,
-    maxConcurrentExecutions: number
-): Promise<void> {
-    state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
 }

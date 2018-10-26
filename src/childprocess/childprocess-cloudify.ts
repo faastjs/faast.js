@@ -1,6 +1,5 @@
 import * as childProcess from "child_process";
 import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
-import { Funnel } from "../funnel";
 import { PackerResult } from "../packer";
 import {
     FunctionCall,
@@ -15,7 +14,6 @@ export interface ProcessResources {
 
 export interface State {
     resources: ProcessResources;
-    callFunnel: Funnel<FunctionReturnWithMetrics>;
     serverModule: string;
     options: Options;
 }
@@ -45,15 +43,12 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
     name: "process",
     callFunction,
     cleanup,
-    stop,
-    setConcurrency
+    stop
 };
 
 async function initialize(serverModule: string, options: Options = {}): Promise<State> {
-    const { concurrency = defaults.concurrency } = options;
     return {
         resources: { childProcesses: new Set() },
-        callFunnel: new Funnel<FunctionReturnWithMetrics>(concurrency),
         serverModule,
         options
     };
@@ -109,72 +104,70 @@ function callFunction(
     );
     execArgv.push(`--max-old-space-size=${memorySize}`);
     const trampolineModule = require.resolve("./childprocess-trampoline");
-    return state.callFunnel.push(
-        () =>
-            new Promise(resolve => {
-                const child = childProcess.fork(trampolineModule, [], {
-                    silent: true,
-                    execArgv
-                });
-                state.resources.childProcesses.add(child);
-                setupLoggers(child);
 
-                const pfCall: ProcessFunctionCall = {
-                    call,
-                    serverModule: state.serverModule,
-                    timeout
-                };
+    return new Promise(resolve => {
+        const child = childProcess.fork(trampolineModule, [], {
+            silent: true,
+            execArgv
+        });
+        state.resources.childProcesses.add(child);
+        setupLoggers(child);
 
-                const localRequestSentTime = Date.now();
-                child.send(pfCall);
+        const pfCall: ProcessFunctionCall = {
+            call,
+            serverModule: state.serverModule,
+            timeout
+        };
 
-                child.on("message", (returned: FunctionReturn) =>
-                    resolve({
-                        returned,
-                        localRequestSentTime,
-                        rawResponse: {},
-                        remoteResponseSentTime: returned.remoteExecutionEndTime!,
-                        localEndTime: Date.now()
-                    })
-                );
-                child.on("error", err => {
-                    state.resources.childProcesses.delete(child);
-                    resolve({
-                        returned: createErrorResponse(err, {
-                            call,
-                            startTime: localRequestSentTime
-                        }),
-                        rawResponse: {},
-                        localRequestSentTime,
-                        localEndTime: Date.now()
-                    });
-                });
-                child.on("exit", (code, signal) => {
-                    state.resources.childProcesses.delete(child);
-                    let err;
-                    if (code) {
-                        err = new Error(`Exited with error code ${code}`);
-                    } else if (signal) {
-                        let errorMessage = `Aborted with signal ${signal}`;
-                        if (signal === "SIGABRT" && oom) {
-                            errorMessage += ` (${oom})`;
-                        }
-                        err = new Error(errorMessage);
-                    }
-                    if (err) {
-                        resolve({
-                            returned: createErrorResponse(err, {
-                                call,
-                                startTime: localRequestSentTime
-                            }),
-                            rawResponse: {},
-                            localRequestSentTime,
-                            localEndTime: Date.now()
-                        });
-                    }
-                });
+        const localRequestSentTime = Date.now();
+        child.send(pfCall);
+
+        child.on("message", (returned: FunctionReturn) =>
+            resolve({
+                returned,
+                localRequestSentTime,
+                rawResponse: {},
+                remoteResponseSentTime: returned.remoteExecutionEndTime!,
+                localEndTime: Date.now()
             })
-    );
+        );
+        child.on("error", err => {
+            state.resources.childProcesses.delete(child);
+            resolve({
+                returned: createErrorResponse(err, {
+                    call,
+                    startTime: localRequestSentTime
+                }),
+                rawResponse: {},
+                localRequestSentTime,
+                localEndTime: Date.now()
+            });
+        });
+        child.on("exit", (code, signal) => {
+            state.resources.childProcesses.delete(child);
+            let err;
+            if (code) {
+                err = new Error(`Exited with error code ${code}`);
+            } else if (signal) {
+                let errorMessage = `Aborted with signal ${signal}`;
+                if (signal === "SIGABRT" && oom) {
+                    errorMessage += ` (${oom})`;
+                }
+                err = new Error(errorMessage);
+            }
+            if (err) {
+                resolve({
+                    returned: createErrorResponse(err, {
+                        call,
+                        startTime: localRequestSentTime
+                    }),
+                    rawResponse: {},
+                    localRequestSentTime,
+                    localEndTime: Date.now()
+                });
+            }
+        });
+    });
 }
 
 async function cleanup(state: State): Promise<void> {
@@ -182,7 +175,6 @@ async function cleanup(state: State): Promise<void> {
 }
 
 async function stop(state: State): Promise<string> {
-    state.callFunnel.clear();
     const childProcesses = state.resources.childProcesses;
     const completed = Promise.all(
         [...childProcesses].map(p => new Promise(resolve => p.on("exit", resolve)))
@@ -190,11 +182,4 @@ async function stop(state: State): Promise<string> {
     childProcesses.forEach(p => p.kill());
     await completed;
     return "";
-}
-
-async function setConcurrency(
-    state: State,
-    maxConcurrentExecutions: number
-): Promise<void> {
-    state.callFunnel.setMaxConcurrency(maxConcurrentExecutions);
 }
