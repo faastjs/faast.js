@@ -1,19 +1,29 @@
 import * as aws from "aws-sdk";
 import * as tar from "tar-stream";
-import * as stream from "stream";
+import { Readable } from "stream";
 import { escape } from "querystring";
 import { RateLimitedFunnel } from "../src/funnel";
 import { createHash } from "crypto";
 
 const s3 = new aws.S3({ region: "us-west-2" });
 
+function streamToBuffer(strm: Readable): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+        const buffers: Buffer[] = [];
+        strm.on("error", reject);
+        strm.on("data", data => buffers.push(data));
+        strm.on("end", () => resolve(Buffer.concat(buffers)));
+    });
+}
+
 export async function extractTarStream(
-    content: stream.Readable,
-    processEntry: (header: tar.Headers, tarstream: stream.Readable) => Promise<void>
+    content: Readable,
+    processEntry: (header: tar.Headers, buf: Buffer) => void
 ) {
     const tarExtract: tar.Extract = tar.extract();
     tarExtract.on("entry", async (header, tarstream, next) => {
-        await processEntry(header, tarstream);
+        const buf = await streamToBuffer(tarstream);
+        processEntry(header, buf);
         next();
     });
     content.pipe(tarExtract);
@@ -38,7 +48,7 @@ export async function processBucketObject(Bucket: string, Key: string) {
     log(`ProcessBucketObject called: Bucket: ${Bucket}, Key: ${Key}`);
     if (!Key.endsWith(".tar")) {
         log(`Skipping ${Key}`);
-        return { nExtracted: 0, nErrors: 0 };
+        return { nExtracted: 0, nErrors: 0, Key };
     }
 
     log(`Starting download`);
@@ -47,36 +57,36 @@ export async function processBucketObject(Bucket: string, Key: string) {
     log(`Extracting tar file stream`);
     let nExtracted = 0;
     let nErrors = 0;
-    let nRetry = 0;
     const funnel = new RateLimitedFunnel({
         maxConcurrency: 10,
-        targetRequestsPerSecond: 500
+        targetRequestsPerSecond: 200
     });
 
     const retries = 2;
-    await extractTarStream(result, async (header, tarstream) => {
+    await extractTarStream(result, (header, buf) => {
         if (header.type === "file") {
             nExtracted++;
-            // log(`Entry ${header.name}, size: ${header.size}`);
+            // log(`Entry ${header.name}, size: ${header.size}, buf: ${buf.length}`);
 
             const prefix = createHash("md5")
                 .update(header.name)
                 .digest("hex")
                 .slice(0, 4);
             const OutputKey = `${prefix}/${header.name}`;
+
+            nExtracted++;
+            if (header.size !== buf.length) {
+                nErrors++;
+            }
+
+            /*
             funnel
                 .pushRetry(retries, async () => {
-                    // log(`Trying upload ${OutputKey}, size: ${header.size}`);
-                    // if (Math.random() > 0.5) {
-                    //     console.log(`Random failure on ${OutputKey}`);
-                    //     throw new Error("Random failure");
-                    // }
                     return s3
                         .upload({
                             Bucket: "arxiv-derivative-output",
                             Key: OutputKey,
-                            Body: tarstream,
-                            ContentLength: header.size
+                            Body: buf
                         })
                         .promise()
                         .then(_ => {
@@ -86,7 +96,6 @@ export async function processBucketObject(Bucket: string, Key: string) {
                         .catch(err => {
                             log(err);
                             log(`Retrying ${OutputKey}, size: ${header.size}`);
-                            nRetry++;
                             throw err;
                         });
                 })
@@ -97,14 +106,9 @@ export async function processBucketObject(Bucket: string, Key: string) {
                             header.size
                         }, failed after ${retries} retries`
                     );
-                    tarstream.resume();
                 });
+                */
         }
-
-        // await new Promise(resolve => {
-        //     tarstream.on("end", resolve);
-        //     tarstream.resume();
-        // });
     });
 
     log(`Promises size: ${funnel.promises().length}`);
@@ -112,7 +116,7 @@ export async function processBucketObject(Bucket: string, Key: string) {
 
     log(`Extracted ${nExtracted} files from ${Bucket}, ${Key}`);
     log(`Errors uploading: ${nErrors}`);
-    return { nExtracted, nErrors };
+    return { nExtracted, nErrors, Key };
 }
 
 export async function copyObject(

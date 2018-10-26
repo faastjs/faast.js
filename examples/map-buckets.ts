@@ -34,20 +34,20 @@ async function listAllObjects(Bucket: string) {
     return allObjects;
 }
 
-export async function mapBucket(Bucket: string) {
+export async function mapBucket(Bucket: string, keyFilter: (key: string) => boolean) {
     const { cloudFunc, remote } = await cloudify("aws", m, "./map-buckets-module", {
         memorySize: 1728,
         timeout: 300,
         mode: "queue",
-        concurrency: 500
+        concurrency: 2000
         // awsLambdaOptions: { TracingConfig: { Mode: "Active" } }
     });
     cloudFunc.printStatisticsInterval(1000);
     try {
         let allObjects = await listAllObjects(Bucket);
-        allObjects = allObjects.filter(obj => obj.Key!.match(/^.*\.tar$/));
+        allObjects = allObjects.filter(obj => keyFilter(obj.Key!));
         const promises = [];
-        console.log(`Bucket ${Bucket} contains ${allObjects.length} objects`);
+        console.log(`Bucket ${Bucket} contains ${allObjects.length} matching objects`);
         for (const Obj of allObjects) {
             promises.push(
                 remote
@@ -55,7 +55,7 @@ export async function mapBucket(Bucket: string) {
                     .catch((err: CloudifyError) => {
                         console.log(`Error processing ${Obj.Key!}`);
                         console.log(`Logs: ${err.logUrl}`);
-                        return { nExtracted: 0, nErrors: 1 };
+                        return { nExtracted: 0, nErrors: 1, Key: Obj.Key! };
                     })
             );
         }
@@ -65,6 +65,9 @@ export async function mapBucket(Bucket: string) {
         for (const result of results) {
             extracted += result.nExtracted;
             errors += result.nErrors;
+            if (result.nErrors > 0) {
+                console.log(`Error uploading key: ${result.Key}`);
+            }
         }
         console.log(`Extracted ${extracted} files with ${errors} errors`);
     } finally {
@@ -76,7 +79,7 @@ export async function mapBucket(Bucket: string) {
 
 export async function mapObjects(Bucket: string, Keys: string[]) {
     const { cloudFunc, remote } = await cloudify("aws", m, "./map-buckets-module", {
-        memorySize: 3008,
+        memorySize: 1728,
         timeout: 300,
         mode: "https",
         concurrency: 1
@@ -142,7 +145,7 @@ export async function emptyBucket(Bucket: string) {
 }
 
 if (process.argv[3] === "all") {
-    mapBucket(process.argv[2]);
+    mapBucket(process.argv[2], key => key.match(/arXiv_pdf_.*\.tar$/) !== null);
 } else {
     mapObjects(process.argv[2], process.argv.slice(3));
 }
