@@ -29,7 +29,7 @@ export interface Options extends CommonOptions {
 export const defaults = {
     timeout: 60,
     memorySize: 256,
-    concurrency: 500
+    concurrency: 10
 };
 
 export const Impl: CloudImpl<Options, State> = {
@@ -37,7 +37,8 @@ export const Impl: CloudImpl<Options, State> = {
     initialize,
     cleanupResources,
     pack,
-    getFunctionImpl
+    getFunctionImpl,
+    defaults
 };
 
 export const FunctionImpl: CloudFunctionImpl<State> = {

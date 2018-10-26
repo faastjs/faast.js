@@ -98,12 +98,31 @@ export interface State {
     gcPromise?: Promise<void>;
 }
 
+export let defaults: Required<Options> = {
+    region: "us-west-2",
+    PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
+    RoleName: "cloudify-cached-lambda-role",
+    timeout: 60,
+    memorySize: 256,
+    concurrency: 500,
+    mode: "https",
+    gc: true,
+    retentionInDays: 1,
+    useDependencyCaching: true,
+    awsLambdaOptions: {},
+    addDirectory: [],
+    addZipFile: [],
+    packageJson: false,
+    webpackOptions: {}
+};
+
 export const Impl: CloudImpl<Options, State> = {
     name: "aws",
     initialize,
     cleanupResources,
     pack,
-    getFunctionImpl
+    getFunctionImpl,
+    defaults
 };
 
 export const LambdaImpl: CloudFunctionImpl<State> = {
@@ -132,24 +151,6 @@ function zipStreamToBuffer(zipStream: NodeJS.ReadableStream): Promise<Buffer> {
         zipStream.on("error", reject);
     });
 }
-
-export let defaults: Required<Options> = {
-    region: "us-west-2",
-    PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
-    RoleName: "cloudify-cached-lambda-role",
-    timeout: 60,
-    memorySize: 256,
-    concurrency: 500,
-    mode: "https",
-    gc: true,
-    retentionInDays: 1,
-    useDependencyCaching: true,
-    awsLambdaOptions: {},
-    addDirectory: [],
-    addZipFile: [],
-    packageJson: false,
-    webpackOptions: {}
-};
 
 export function createAWSApis(region: string): AWSServices {
     aws.config.update({ correctClockSkew: true });

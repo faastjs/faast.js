@@ -94,12 +94,28 @@ export interface State {
     gcPromise?: Promise<void>;
 }
 
+export const defaults: Required<Options> = {
+    region: "us-central1",
+    timeout: 60,
+    memorySize: 256,
+    concurrency: 500,
+    mode: "https",
+    gc: true,
+    retentionInDays: 1,
+    googleCloudFunctionOptions: {},
+    addZipFile: [],
+    addDirectory: [],
+    packageJson: false,
+    webpackOptions: {}
+};
+
 export const Impl: CloudImpl<Options, State> = {
     name: "google",
     initialize,
     cleanupResources,
     pack,
-    getFunctionImpl
+    getFunctionImpl,
+    defaults
 };
 
 export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
@@ -249,21 +265,6 @@ export async function initializeEmulator(fmodule: string, options: Options = {})
         true
     );
 }
-
-export const defaults: Required<Options> = {
-    region: "us-central1",
-    timeout: 60,
-    memorySize: 256,
-    concurrency: 500,
-    mode: "https",
-    gc: true,
-    retentionInDays: 1,
-    googleCloudFunctionOptions: {},
-    addZipFile: [],
-    addDirectory: [],
-    packageJson: false,
-    webpackOptions: {}
-};
 
 const priceRequestFunnel = new MemoFunnel<string, GoogleCloudPricing>(1);
 

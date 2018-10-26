@@ -20,12 +20,17 @@ export interface State {
 
 export interface Options extends CommonOptions {}
 
+export const defaults: CommonOptions = {
+    concurrency: 1
+};
+
 export const Impl: CloudImpl<Options, State> = {
     name: "immediate",
     initialize,
     cleanupResources,
     pack,
-    getFunctionImpl
+    getFunctionImpl,
+    defaults
 };
 
 export const FunctionImpl: CloudFunctionImpl<State> = {
@@ -45,7 +50,7 @@ async function initialize(serverModule: string, options: Options = {}): Promise<
     if (options.timeout) {
         warn(`cloudify type 'immediate' does not support timeout option, ignoring.`);
     }
-    const { concurrency = 500 } = options;
+    const { concurrency = defaults.concurrency } = options;
     return {
         callFunnel: new Funnel<FunctionReturnWithMetrics>(concurrency),
         moduleWrapper,
