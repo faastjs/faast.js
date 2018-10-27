@@ -64,6 +64,8 @@ export async function retry<T, E>(
 export class Funnel<T = void> {
     protected pendingQueue: Set<Future<T>> = new Set();
     protected executingQueue: Set<Future<T>> = new Set();
+    public processed = 0;
+    public errors = 0;
 
     constructor(public maxConcurrency: number = 0) {}
 
@@ -116,10 +118,13 @@ export class Funnel<T = void> {
         ) {
             const worker = popFirst(pendingQueue)!;
             this.executingQueue.add(worker);
-            worker.promise.catch(_ => {}).then(_ => {
-                this.executingQueue.delete(worker);
-                this.doWork();
-            });
+            worker.promise
+                .then(_ => this.processed++)
+                .catch(_ => this.errors++)
+                .then(_ => {
+                    this.executingQueue.delete(worker);
+                    this.doWork();
+                });
             worker.execute();
         }
     }

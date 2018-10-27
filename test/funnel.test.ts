@@ -179,6 +179,18 @@ describe("Funnel", () => {
         await expect(promise).rejects.toThrowError();
         expect(executed).toBe(0);
     });
+    test("Funnel processed and error counts", async () => {
+        const funnel = new Funnel(2);
+        funnel.push(async () => {});
+        funnel.push(async () => Promise.reject());
+        funnel.push(async () => {});
+        funnel.push(async () => Promise.reject());
+        funnel.push(async () => {});
+
+        await funnel.all();
+        expect(funnel.processed).toBe(3);
+        expect(funnel.errors).toBe(2);
+    });
 });
 
 describe("Pump", () => {
