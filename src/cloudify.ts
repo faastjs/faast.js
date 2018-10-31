@@ -73,7 +73,16 @@ export interface CommonOptions extends PackerOptions {
     gc?: boolean;
     retentionInDays?: number;
     concurrency?: number;
+    maxRetries?: number;
+    tailLatencyRetryStdev?: number;
 }
+
+export const CommonOptionDefaults = {
+    gc: true,
+    maxRetries: 3,
+    tailLatencyRetryStdev: 3,
+    retentionInDays: 1
+};
 
 function resolveModule(fmodule: string) {
     const parent = module.parent!;
@@ -249,8 +258,7 @@ function processResponse<R>(
     fcounters: FunctionCountersMap,
     fstats: FunctionStatsMap,
     prevSkew: ExponentiallyDecayingAverageValue,
-    memoryLeakDetector: MemoryLeakDetector,
-    tailLatencyRetries: number
+    memoryLeakDetector: MemoryLeakDetector
 ) {
     const returned = returnedMetrics.returned;
     let error: CloudifyError | undefined;
@@ -314,11 +322,7 @@ function processResponse<R>(
 
         const billed = (executionLatency || 0) + (sendResponseLatency || 0);
         const estimatedBilledTime = Math.max(100, Math.ceil(billed / 100) * 100);
-        fstats.update(
-            fn,
-            "estimatedBilledTime",
-            estimatedBilledTime * (1 + tailLatencyRetries)
-        );
+        fstats.update(fn, "estimatedBilledTime", estimatedBilledTime);
         rv = {
             ...rv,
             localStartLatency,
@@ -365,6 +369,8 @@ export class CloudFunction<O extends CommonOptions, S> {
     protected statsTimer?: NodeJS.Timer;
     protected timers: Set<NodeJS.Timer> = new Set();
     protected initialInvocationTime: Map<string, number> = new Map();
+    protected maxRetries = CommonOptionDefaults.maxRetries;
+    protected tailLatencyRetryStdev = CommonOptionDefaults.tailLatencyRetryStdev;
 
     constructor(
         protected cloud: Cloud<O, S>,
@@ -379,6 +385,12 @@ export class CloudFunction<O extends CommonOptions, S> {
         this.memorySize = (options && options.memorySize) || cloud.defaults.memorySize!;
         this.timeout = (options && options.timeout) || cloud.defaults.timeout;
         this.memoryLeakDetector = new MemoryLeakDetector(this.memorySize);
+        if (options && options.maxRetries !== undefined) {
+            this.maxRetries = options.maxRetries;
+        }
+        if (options && options.tailLatencyRetryStdev !== undefined) {
+            this.tailLatencyRetryStdev = Math.max(0, options.tailLatencyRetryStdev);
+        }
     }
 
     cleanup() {
@@ -440,13 +452,15 @@ export class CloudFunction<O extends CommonOptions, S> {
     cloudifyWithResponse<A extends any[], R>(
         fn: (...args: A) => R
     ): ResponsifiedFunction<A, R> {
-        const shouldRetry = (_: any, n: number) => {
-            if (this.cloudName === "aws" && this.options!.mode === "queue") {
-                // SNS has automatic retry.
-                return false;
+        let retries = 0;
+
+        const shouldRetry = (_: any) => {
+            if (retries < this.maxRetries) {
+                this.functionCounters.incr(fn.name, "retries");
+                retries++;
+                return true;
             }
-            this.functionCounters.incr(fn.name, "retries");
-            return n < 3;
+            return false;
         };
         return async (...args: A) => {
             let initialInvocationTime = this.initialInvocationTime.get(fn.name);
@@ -487,10 +501,9 @@ export class CloudFunction<O extends CommonOptions, S> {
                 };
 
                 let timer!: NodeJS.Timer;
-                let tailLatencyRetries = 0;
                 const retryFunctionIfNeededToReduceTailLatency = async () => {
                     const fnStats = this.functionStats.fAggregate.getOrCreate(fn.name);
-                    while (pending && tailLatencyRetries < 3) {
+                    while (pending && retries < this.maxRetries) {
                         const {
                             executionLatency,
                             localStartLatency,
@@ -510,9 +523,9 @@ export class CloudFunction<O extends CommonOptions, S> {
                         if (
                             latencyLimitBeforeRetry &&
                             lastInvocationLatency > latencyLimitBeforeRetry &&
-                            elapsedSinceInitialInvocation > latencyLimitBeforeRetry
+                            elapsedSinceInitialInvocation > latencyLimitBeforeRetry + 1000
                         ) {
-                            tailLatencyRetries++;
+                            retries++;
                             this.functionCounters.incr(fn.name, "retries");
                             invokeCloudFunction();
                         } else {
@@ -543,8 +556,7 @@ export class CloudFunction<O extends CommonOptions, S> {
                     this.functionCounters,
                     this.functionStats,
                     this.skew,
-                    this.memoryLeakDetector,
-                    tailLatencyRetries
+                    this.memoryLeakDetector
                 );
             });
         };
@@ -564,13 +576,27 @@ export class CloudFunction<O extends CommonOptions, S> {
         return cloudifiedFunc as any;
     }
 
-    costEstimate(): Promise<costAnalyzer.CostBreakdown> {
+    async costEstimate(): Promise<costAnalyzer.CostBreakdown> {
         if (this.impl.costEstimate) {
-            return this.impl.costEstimate(
+            const estimate = await this.impl.costEstimate(
                 this.state,
                 this.functionCounters.aggregate,
                 this.functionStats.aggregate
             );
+            if (this.functionCounters.aggregate.retries > 0) {
+                estimate.push(
+                    new costAnalyzer.CostMetric({
+                        name: "retries",
+                        pricing: 0,
+                        measured: this.functionCounters.aggregate.retries,
+                        unit: "retry",
+                        unitPlural: "retries",
+                        comment:
+                            "Some function invocations were retried and may have incurred charges not accounted for by cloudify."
+                    })
+                );
+            }
+            return estimate;
         } else {
             return Promise.resolve(new costAnalyzer.CostBreakdown());
         }

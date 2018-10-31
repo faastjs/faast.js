@@ -1,5 +1,10 @@
 import * as childProcess from "child_process";
-import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
+import {
+    CloudFunctionImpl,
+    CloudImpl,
+    CommonOptions,
+    CommonOptionDefaults
+} from "../cloudify";
 import { PackerResult } from "../packer";
 import {
     FunctionCall,
@@ -25,6 +30,7 @@ export interface Options extends CommonOptions {
 }
 
 export const defaults = {
+    ...CommonOptionDefaults,
     timeout: 60,
     memorySize: 256,
     concurrency: 10

@@ -1,4 +1,9 @@
-import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
+import {
+    CloudFunctionImpl,
+    CloudImpl,
+    CommonOptions,
+    CommonOptionDefaults
+} from "../cloudify";
 import { warn } from "../log";
 import { PackerResult } from "../packer";
 import { sleep } from "../shared";
@@ -17,7 +22,9 @@ export interface State {
 
 export interface Options extends CommonOptions {}
 
-export const defaults: CommonOptions = {};
+export const defaults: CommonOptions = {
+    ...CommonOptionDefaults
+};
 
 export const Impl: CloudImpl<Options, State> = {
     name: "immediate",

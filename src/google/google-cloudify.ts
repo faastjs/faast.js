@@ -14,7 +14,8 @@ import {
     CloudImpl,
     CommonOptions,
     FunctionCounters,
-    FunctionStats
+    FunctionStats,
+    CommonOptionDefaults
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost-analyzer";
 import { MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
@@ -93,13 +94,12 @@ export interface State {
 }
 
 export const defaults: Required<Options> = {
+    ...CommonOptionDefaults,
     region: "us-central1",
     timeout: 60,
     memorySize: 256,
     concurrency: 500,
     mode: "https",
-    gc: true,
-    retentionInDays: 1,
     googleCloudFunctionOptions: {},
     addZipFile: [],
     addDirectory: [],

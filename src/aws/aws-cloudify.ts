@@ -11,7 +11,8 @@ import {
     CloudImpl,
     CommonOptions,
     FunctionCounters,
-    FunctionStats
+    FunctionStats,
+    CommonOptionDefaults
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost-analyzer";
 import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
@@ -98,6 +99,7 @@ export interface State {
 }
 
 export let defaults: Required<Options> = {
+    ...CommonOptionDefaults,
     region: "us-west-2",
     PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
     RoleName: "cloudify-cached-lambda-role",
@@ -105,8 +107,6 @@ export let defaults: Required<Options> = {
     memorySize: 256,
     concurrency: 500,
     mode: "https",
-    gc: true,
-    retentionInDays: 1,
     useDependencyCaching: true,
     awsLambdaOptions: {},
     addDirectory: [],

@@ -18,6 +18,7 @@ export class CostMetric {
     name!: string;
     pricing!: number;
     unit!: string;
+    unitPlural?: string;
     measured!: number;
     comment?: string;
 
@@ -32,13 +33,21 @@ export class CostMetric {
     describeCostOnly() {
         const p = (n: number, precision = 8) =>
             Number.isInteger(n) ? String(n) : n.toFixed(precision);
-        const addPlural = (n: number, str: string) =>
-            n > 1 && !str.match(/[A-Z]$/) ? "s" : "";
+        const getUnit = (n: number) => {
+            if (n > 1) {
+                return (
+                    this.unitPlural ||
+                    (!this.unit.match(/[A-Z]$/) ? this.unit + "s" : this.unit)
+                );
+            } else {
+                return this.unit;
+            }
+        };
 
         const cost = `$${p(this.cost())}`;
         const pricing = `$${p(this.pricing)}/${this.unit}`;
         const metric = p(this.measured, this.unit === "second" ? 1 : 8);
-        const unit = this.unit + addPlural(this.measured, this.unit);
+        const unit = getUnit(this.measured);
 
         return `${this.name.padEnd(21)} ${pricing.padEnd(20)} ${metric.padStart(
             12
