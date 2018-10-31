@@ -11,7 +11,7 @@ export class Statistics {
     constructor(protected printFixedPrecision: number = 1) {}
 
     // https://math.stackexchange.com/questions/374881/recursive-formula-for-variance
-    update(value: number | undefined) {
+    update(value: number) {
         if (value === undefined) {
             return;
         }
@@ -132,4 +132,8 @@ export function computeHttpResponseBytes(
 export function hasExpired(date: string | number | undefined, retentionInDays: number) {
     const timestamp = typeof date === "string" ? Date.parse(date) : date || 0;
     return timestamp < Date.now() - retentionInDays * 24 * 60 * 60 * 1000;
+}
+
+export function roundTo100ms(n: number) {
+    return Math.round(n / 100) * 100;
 }

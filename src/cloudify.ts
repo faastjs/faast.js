@@ -9,14 +9,16 @@ import { log, stats, warn, logLeaks } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import {
     assertNever,
-    ExponentiallyDecayingAverageValue,
     FactoryMap,
-    Statistics
+    Statistics,
+    sleep,
+    roundTo100ms,
+    ExponentiallyDecayingAverageValue
 } from "./shared";
 import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "./trampoline";
 import { NonFunctionProperties, Unpacked } from "./type-helpers";
 import Module = require("module");
-import { Funnel } from "./funnel";
+import { Funnel, retry, Future, Deferred } from "./funnel";
 
 export { aws, google, childprocess, immediate, costAnalyzer };
 
@@ -73,7 +75,7 @@ export interface CommonOptions extends PackerOptions {
     concurrency?: number;
 }
 
-function resolve(fmodule: string) {
+function resolveModule(fmodule: string) {
     const parent = module.parent!;
     if (parent.filename.match(/aws-cloudify/)) {
         log(
@@ -100,14 +102,14 @@ export class Cloud<O extends CommonOptions, S> {
     }
 
     pack(fmodule: string, options?: O): Promise<PackerResult> {
-        return this.impl.pack(resolve(fmodule), options);
+        return this.impl.pack(resolveModule(fmodule), options);
     }
 
     async createFunction(modulePath: string, options?: O): Promise<CloudFunction<O, S>> {
         return new CloudFunction(
             this,
             this.impl.getFunctionImpl(),
-            await this.impl.initialize(resolve(modulePath), options),
+            await this.impl.initialize(resolveModule(modulePath), options),
             options
         );
     }
@@ -116,6 +118,7 @@ export class Cloud<O extends CommonOptions, S> {
 export type AnyCloud = Cloud<any, any>;
 
 export class FunctionCounters {
+    invocations = 0;
     completed = 0;
     retries = 0;
     errors = 0;
@@ -128,11 +131,11 @@ export class FunctionCounters {
 }
 
 export class FunctionStats {
-    localStartLatency = new Statistics();
-    remoteStartLatency = new Statistics();
-    executionLatency = new Statistics();
-    sendResponseLatency = new Statistics();
-    returnLatency = new Statistics();
+    localStartLatency = new Statistics(0.1);
+    remoteStartLatency = new Statistics(0.1);
+    executionLatency = new Statistics(0.1);
+    sendResponseLatency = new Statistics(0.1);
+    returnLatency = new Statistics(0.1);
     estimatedBilledTime = new Statistics();
 
     toString() {
@@ -167,11 +170,7 @@ export class FunctionStatsMap {
     fAggregate = new FactoryMap(() => new FunctionStats());
     aggregate = new FunctionStats();
 
-    update(
-        fn: string,
-        key: keyof NonFunctionProperties<FunctionStats>,
-        value: number | undefined
-    ) {
+    update(fn: string, key: keyof NonFunctionProperties<FunctionStats>, value: number) {
         this.fIncremental.getOrCreate(fn)[key].update(value);
         this.fAggregate.getOrCreate(fn)[key].update(value);
         this.aggregate[key].update(value);
@@ -250,7 +249,8 @@ function processResponse<R>(
     fcounters: FunctionCountersMap,
     fstats: FunctionStatsMap,
     prevSkew: ExponentiallyDecayingAverageValue,
-    memoryLeakDetector: MemoryLeakDetector
+    memoryLeakDetector: MemoryLeakDetector,
+    tailLatencyRetries: number
 ) {
     const returned = returnedMetrics.returned;
     let error: CloudifyError | undefined;
@@ -314,7 +314,11 @@ function processResponse<R>(
 
         const billed = (executionLatency || 0) + (sendResponseLatency || 0);
         const estimatedBilledTime = Math.max(100, Math.ceil(billed / 100) * 100);
-        fstats.update(fn, "estimatedBilledTime", estimatedBilledTime);
+        fstats.update(
+            fn,
+            "estimatedBilledTime",
+            estimatedBilledTime * (1 + tailLatencyRetries)
+        );
         rv = {
             ...rv,
             localStartLatency,
@@ -355,8 +359,12 @@ export class CloudFunction<O extends CommonOptions, S> {
     memoryLeakDetector: MemoryLeakDetector;
     funnel = new Funnel<any>();
 
+    protected memorySize: number | undefined;
+    protected timeout: number | undefined;
     protected skew = new ExponentiallyDecayingAverageValue(0.3);
-    protected timer?: NodeJS.Timer;
+    protected statsTimer?: NodeJS.Timer;
+    protected timers: Set<NodeJS.Timer> = new Set();
+    protected initialInvocationTime: Map<string, number> = new Map();
 
     constructor(
         protected cloud: Cloud<O, S>,
@@ -368,17 +376,24 @@ export class CloudFunction<O extends CommonOptions, S> {
         const concurrency =
             (options && options.concurrency) || cloud.defaults.concurrency || 1;
         this.funnel.setMaxConcurrency(concurrency);
-        const memorySize = (options && options.memorySize) || cloud.defaults.memorySize;
-        this.memoryLeakDetector = new MemoryLeakDetector(memorySize);
+        this.memorySize = (options && options.memorySize) || cloud.defaults.memorySize!;
+        this.timeout = (options && options.timeout) || cloud.defaults.timeout;
+        this.memoryLeakDetector = new MemoryLeakDetector(this.memorySize);
     }
 
     cleanup() {
         this.funnel.clear();
+        this.timers.forEach(timer => clearTimeout(timer));
+        this.timers.clear();
         this.stopPrintStatisticsInterval();
         return this.impl.cleanup(this.state);
     }
 
     stop() {
+        this.funnel.clear();
+        this.timers.forEach(timer => clearTimeout(timer));
+        this.timers.clear();
+        this.stopPrintStatisticsInterval();
         return this.impl.stop(this.state);
     }
 
@@ -387,8 +402,8 @@ export class CloudFunction<O extends CommonOptions, S> {
     }
 
     printStatisticsInterval(intervalMs: number, print: (msg: string) => void = stats) {
-        this.timer && clearInterval(this.timer);
-        this.timer = setInterval(() => {
+        this.statsTimer && clearInterval(this.statsTimer);
+        this.statsTimer = setInterval(() => {
             this.functionCounters.fIncremental.forEach((counters, fn) => {
                 const execStats = this.functionStats.fIncremental.get(fn);
                 const executionLatency = execStats ? execStats.executionLatency.mean : 0;
@@ -404,8 +419,8 @@ export class CloudFunction<O extends CommonOptions, S> {
     }
 
     stopPrintStatisticsInterval() {
-        this.timer && clearInterval(this.timer);
-        this.timer = undefined;
+        this.statsTimer && clearInterval(this.statsTimer);
+        this.statsTimer = undefined;
     }
 
     setConcurrency(maxConcurrentExecutions: number) {
@@ -433,28 +448,94 @@ export class CloudFunction<O extends CommonOptions, S> {
             this.functionCounters.incr(fn.name, "retries");
             return n < 3;
         };
-        return async (...args: A) =>
-            this.funnel.pushRetry(shouldRetry, async () => {
+        return async (...args: A) => {
+            let initialInvocationTime = this.initialInvocationTime.get(fn.name);
+            if (!initialInvocationTime) {
+                const start = Date.now();
+                this.initialInvocationTime.set(fn.name, start);
+                initialInvocationTime = start;
+            }
+            this.functionCounters.incr(fn.name, "invocations");
+            // XXX capture google retries in stats?
+            return this.funnel.pushRetry(shouldRetry, async () => {
+                const deferred = new Deferred<FunctionReturnWithMetrics>();
+                let startTime: number = Date.now();
                 const CallId = uuidv4();
-                const startTime = Date.now();
                 const callRequest: FunctionCall = { name: fn.name, args, CallId };
+                let pending = true;
 
-                const rv: FunctionReturnWithMetrics = await this.impl
-                    .callFunction(this.state, callRequest)
-                    .catch(value => {
-                        // warn(`Exception from cloudify function implementation: ${value}`);
-                        const returned: FunctionReturn = {
-                            type: "error",
-                            value,
-                            CallId
-                        };
-                        return {
-                            returned,
-                            rawResponse: {},
-                            localRequestSentTime: startTime,
-                            localEndTime: Date.now()
-                        };
-                    });
+                deferred.promise.then(_ => (pending = false));
+
+                const invokeCloudFunction = () => {
+                    startTime = Date.now();
+                    this.impl
+                        .callFunction(this.state, callRequest)
+                        .catch(value => {
+                            const returned: FunctionReturn = {
+                                type: "error",
+                                value,
+                                CallId
+                            };
+                            return {
+                                returned,
+                                rawResponse: {},
+                                localRequestSentTime: startTime,
+                                localEndTime: Date.now()
+                            };
+                        })
+                        .then(deferred.resolve);
+                };
+
+                let timer!: NodeJS.Timer;
+                let tailLatencyRetries = 0;
+                const retryFunctionIfNeededToReduceTailLatency = async () => {
+                    const fnStats = this.functionStats.fAggregate.getOrCreate(fn.name);
+                    while (pending && tailLatencyRetries < 3) {
+                        const {
+                            executionLatency,
+                            localStartLatency,
+                            remoteStartLatency,
+                            returnLatency
+                        } = fnStats;
+                        const lastInvocationLatency = Date.now() - startTime;
+                        const elapsedSinceInitialInvocation =
+                            Date.now() - initialInvocationTime!;
+
+                        const latencyLimitBeforeRetry =
+                            localStartLatency.mean +
+                            remoteStartLatency.mean +
+                            executionLatency.mean +
+                            3 * executionLatency.stdev +
+                            returnLatency.mean;
+                        if (
+                            latencyLimitBeforeRetry &&
+                            lastInvocationLatency > latencyLimitBeforeRetry &&
+                            elapsedSinceInitialInvocation > latencyLimitBeforeRetry
+                        ) {
+                            tailLatencyRetries++;
+                            this.functionCounters.incr(fn.name, "retries");
+                            invokeCloudFunction();
+                        } else {
+                            const timeout = latencyLimitBeforeRetry || 0;
+                            const waitedAlready = Date.now() - startTime;
+                            const waitTime = roundTo100ms(
+                                Math.max(timeout - waitedAlready, 5000)
+                            );
+
+                            await new Promise(resolve => {
+                                timer = setTimeout(resolve, waitTime);
+                                this.timers.add(timer);
+                            });
+                            this.timers.delete(timer);
+                        }
+                    }
+                };
+
+                invokeCloudFunction();
+                retryFunctionIfNeededToReduceTailLatency();
+
+                const rv = await deferred.promise;
+                clearTimeout(timer);
                 return processResponse<R>(
                     rv,
                     callRequest,
@@ -462,9 +543,11 @@ export class CloudFunction<O extends CommonOptions, S> {
                     this.functionCounters,
                     this.functionStats,
                     this.skew,
-                    this.memoryLeakDetector
+                    this.memoryLeakDetector,
+                    tailLatencyRetries
                 );
             });
+        };
     }
 
     cloudifyFunction<A extends any[], R>(
