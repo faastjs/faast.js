@@ -3,7 +3,7 @@ import { Readable } from "stream";
 export const CommonOptionDefaults = {
     gc: true,
     maxRetries: 3,
-    tailLatencyRetryStdev: 3,
+    speculativeRetryThreshold: 3,
     retentionInDays: 1
 };
 

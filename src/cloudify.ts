@@ -358,7 +358,7 @@ export class CloudFunction<O extends CommonOptions, S> {
     protected cleanupHooks: Set<() => void> = new Set();
     protected initialInvocationTime = new FactoryMap(() => Date.now());
     protected maxRetries = CommonOptionDefaults.maxRetries;
-    protected tailLatencyRetryStdev = CommonOptionDefaults.tailLatencyRetryStdev;
+    protected tailLatencyRetryStdev = CommonOptionDefaults.speculativeRetryThreshold;
 
     constructor(
         protected cloud: Cloud<O, S>,
