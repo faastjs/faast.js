@@ -70,7 +70,7 @@ export interface CommonOptions extends PackerOptions {
     retentionInDays?: number;
     concurrency?: number;
     maxRetries?: number;
-    tailLatencyRetryStdev?: number;
+    speculativeRetryThreshold?: number;
 }
 
 function resolveModule(fmodule: string) {
@@ -376,8 +376,8 @@ export class CloudFunction<O extends CommonOptions, S> {
         if (options && options.maxRetries !== undefined) {
             this.maxRetries = options.maxRetries;
         }
-        if (options && options.tailLatencyRetryStdev !== undefined) {
-            this.tailLatencyRetryStdev = Math.max(0, options.tailLatencyRetryStdev);
+        if (options && options.speculativeRetryThreshold !== undefined) {
+            this.tailLatencyRetryStdev = Math.max(0, options.speculativeRetryThreshold);
         }
     }
 
