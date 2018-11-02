@@ -4,8 +4,8 @@ export class Statistics {
     samples = 0;
     max = Number.NEGATIVE_INFINITY;
     min = Number.POSITIVE_INFINITY;
-    variance = NaN;
-    stdev = NaN;
+    variance = 0;
+    stdev = 0;
     mean = NaN;
 
     constructor(protected printFixedPrecision: number = 1) {}
@@ -74,8 +74,16 @@ export class ExponentiallyDecayingAverageValue {
     }
 }
 
-export function sleep(ms: number) {
-    return new Promise<void>(resolve => setTimeout(resolve, ms));
+export function sleep(ms: number, callback: (cancel: () => void) => void = () => {}) {
+    return new Promise<() => void>(resolve => {
+        const cancel = () =>
+            clearTimeout(
+                setTimeout(() => {
+                    resolve(cancel);
+                }, ms)
+            );
+        callback(cancel);
+    });
 }
 
 export function streamToBuffer(s: Readable) {

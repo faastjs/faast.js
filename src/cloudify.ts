@@ -3,29 +3,24 @@ import * as uuidv4 from "uuid/v4";
 import * as aws from "./aws/aws-cloudify";
 import * as childprocess from "./childprocess/childprocess-cloudify";
 import * as costAnalyzer from "./cost-analyzer";
+import { Deferred, Funnel } from "./funnel";
 import * as google from "./google/google-cloudify";
 import * as immediate from "./immediate/immediate-cloudify";
-import { log, stats, warn, logLeaks } from "./log";
+import { log, logLeaks, stats, warn } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import {
     assertNever,
+    ExponentiallyDecayingAverageValue,
     FactoryMap,
-    Statistics,
-    sleep,
     roundTo100ms,
-    ExponentiallyDecayingAverageValue
+    Statistics,
+    sleep
 } from "./shared";
 import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "./trampoline";
 import { NonFunctionProperties, Unpacked } from "./type-helpers";
 import Module = require("module");
-import { Funnel, retry, Future, Deferred } from "./funnel";
 
 export { aws, google, childprocess, immediate, costAnalyzer };
-
-if (!Symbol.asyncIterator) {
-    (Symbol as any).asyncIterator =
-        Symbol.asyncIterator || Symbol.for("Symbol.asyncIterator");
-}
 
 export class CloudifyError extends Error {
     logUrl?: string;
@@ -360,15 +355,14 @@ export class CloudFunction<O extends CommonOptions, S> {
     cloudName = this.impl.name;
     functionCounters = new FunctionCountersMap();
     functionStats = new FunctionStatsMap();
-    memoryLeakDetector: MemoryLeakDetector;
-    funnel = new Funnel<any>();
-
+    protected memoryLeakDetector: MemoryLeakDetector;
+    protected funnel = new Funnel<any>();
     protected memorySize: number | undefined;
     protected timeout: number | undefined;
     protected skew = new ExponentiallyDecayingAverageValue(0.3);
     protected statsTimer?: NodeJS.Timer;
-    protected timers: Set<NodeJS.Timer> = new Set();
-    protected initialInvocationTime: Map<string, number> = new Map();
+    protected cleanupHooks: Set<() => void> = new Set();
+    protected initialInvocationTime = new FactoryMap(() => Date.now());
     protected maxRetries = CommonOptionDefaults.maxRetries;
     protected tailLatencyRetryStdev = CommonOptionDefaults.tailLatencyRetryStdev;
 
@@ -395,16 +389,16 @@ export class CloudFunction<O extends CommonOptions, S> {
 
     cleanup() {
         this.funnel.clear();
-        this.timers.forEach(timer => clearTimeout(timer));
-        this.timers.clear();
+        this.cleanupHooks.forEach(hook => hook());
+        this.cleanupHooks.clear();
         this.stopPrintStatisticsInterval();
         return this.impl.cleanup(this.state);
     }
 
     stop() {
         this.funnel.clear();
-        this.timers.forEach(timer => clearTimeout(timer));
-        this.timers.clear();
+        this.cleanupHooks.forEach(hook => hook());
+        this.cleanupHooks.clear();
         this.stopPrintStatisticsInterval();
         return this.impl.stop(this.state);
     }
@@ -449,40 +443,36 @@ export class CloudFunction<O extends CommonOptions, S> {
         return rv;
     }
 
+    protected cloudifyRetryLogic() {}
+
     cloudifyWithResponse<A extends any[], R>(
         fn: (...args: A) => R
     ): ResponsifiedFunction<A, R> {
         let retries = 0;
 
-        const shouldRetry = (_: any) => {
-            if (retries < this.maxRetries) {
-                this.functionCounters.incr(fn.name, "retries");
-                retries++;
-                return true;
-            }
-            return false;
-        };
         return async (...args: A) => {
-            let initialInvocationTime = this.initialInvocationTime.get(fn.name);
-            if (!initialInvocationTime) {
-                const start = Date.now();
-                this.initialInvocationTime.set(fn.name, start);
-                initialInvocationTime = start;
-            }
+            const startTime = Date.now();
+            const initialInvocationTime = this.initialInvocationTime.getOrCreate(fn.name);
             this.functionCounters.incr(fn.name, "invocations");
+
             // XXX capture google retries in stats?
+
+            const shouldRetry = () => {
+                if (retries < this.maxRetries) {
+                    retries++;
+                    this.functionCounters.incr(fn.name, "retries");
+                    return true;
+                }
+                return false;
+            };
+
             return this.funnel.pushRetry(shouldRetry, async () => {
                 const deferred = new Deferred<FunctionReturnWithMetrics>();
-                let startTime: number = Date.now();
                 const CallId = uuidv4();
                 const callRequest: FunctionCall = { name: fn.name, args, CallId };
-                let pending = true;
-
-                deferred.promise.then(_ => (pending = false));
 
                 const invokeCloudFunction = () => {
-                    startTime = Date.now();
-                    this.impl
+                    return this.impl
                         .callFunction(this.state, callRequest)
                         .catch(value => {
                             const returned: FunctionReturn = {
@@ -500,55 +490,21 @@ export class CloudFunction<O extends CommonOptions, S> {
                         .then(deferred.resolve);
                 };
 
-                let timer!: NodeJS.Timer;
-                const retryFunctionIfNeededToReduceTailLatency = async () => {
-                    const fnStats = this.functionStats.fAggregate.getOrCreate(fn.name);
-                    while (pending && retries < this.maxRetries) {
-                        const {
-                            executionLatency,
-                            localStartLatency,
-                            remoteStartLatency,
-                            returnLatency
-                        } = fnStats;
-                        const lastInvocationLatency = Date.now() - startTime;
-                        const elapsedSinceInitialInvocation =
-                            Date.now() - initialInvocationTime!;
+                const fnStats = this.functionStats.fAggregate.getOrCreate(fn.name);
 
-                        const latencyLimitBeforeRetry =
-                            localStartLatency.mean +
-                            remoteStartLatency.mean +
-                            executionLatency.mean +
-                            3 * executionLatency.stdev +
-                            returnLatency.mean;
-                        if (
-                            latencyLimitBeforeRetry &&
-                            lastInvocationLatency > latencyLimitBeforeRetry &&
-                            elapsedSinceInitialInvocation > latencyLimitBeforeRetry + 1000
-                        ) {
-                            retries++;
-                            this.functionCounters.incr(fn.name, "retries");
-                            invokeCloudFunction();
-                        } else {
-                            const timeout = latencyLimitBeforeRetry || 0;
-                            const waitedAlready = Date.now() - startTime;
-                            const waitTime = roundTo100ms(
-                                Math.max(timeout - waitedAlready, 5000)
-                            );
+                const addHook = (f: () => void) => this.cleanupHooks.add(f);
+                const clearHook = (f: () => void) => this.cleanupHooks.delete(f);
 
-                            await new Promise(resolve => {
-                                timer = setTimeout(resolve, waitTime);
-                                this.timers.add(timer);
-                            });
-                            this.timers.delete(timer);
-                        }
-                    }
-                };
-
-                invokeCloudFunction();
-                retryFunctionIfNeededToReduceTailLatency();
+                retryFunctionIfNeededToReduceTailLatency(
+                    () => Date.now() - initialInvocationTime,
+                    () => estimateTailLatency(fnStats, this.tailLatencyRetryStdev),
+                    invokeCloudFunction,
+                    shouldRetry,
+                    ms => sleep(ms, addHook).then(clearHook)
+                );
 
                 const rv = await deferred.promise;
-                clearTimeout(timer);
+
                 return processResponse<R>(
                     rv,
                     callRequest,
@@ -752,4 +708,53 @@ export interface CloudFunctionImpl<State> {
 export interface LogEntry {
     timestamp: number;
     message: string;
+}
+
+function estimateFunctionLatency(fnStats: FunctionStats) {
+    const {
+        executionLatency,
+        localStartLatency,
+        remoteStartLatency,
+        returnLatency
+    } = fnStats;
+
+    return (
+        localStartLatency.mean +
+            remoteStartLatency.mean +
+            executionLatency.mean +
+            returnLatency.mean || 0
+    );
+}
+
+function estimateTailLatency(fnStats: FunctionStats, nStdDev: number) {
+    return estimateFunctionLatency(fnStats) + nStdDev * fnStats.executionLatency.stdev;
+}
+
+async function retryFunctionIfNeededToReduceTailLatency(
+    timeSinceInitialInvocation: () => number,
+    getTimeout: () => number,
+    worker: () => Promise<void>,
+    shouldRetry: () => boolean,
+    wait: (ms: number) => Promise<unknown>
+) {
+    let pending = true;
+    let lastInvocationTime: number = Date.now();
+    worker().then(_ => (pending = false));
+
+    while (pending) {
+        const lastLatency = Date.now() - lastInvocationTime;
+        const elapsedSinceInitialInvocation = timeSinceInitialInvocation();
+        const timeout = getTimeout();
+        if (lastLatency > timeout && elapsedSinceInitialInvocation > timeout + 1000) {
+            if (shouldRetry()) {
+                lastInvocationTime = Date.now();
+                worker();
+            } else {
+                return;
+            }
+        } else {
+            const waitTime = roundTo100ms(Math.max(timeout - lastLatency, 5000));
+            await wait(waitTime);
+        }
+    }
 }
