@@ -14,7 +14,8 @@ import {
     FactoryMap,
     roundTo100ms,
     Statistics,
-    sleep
+    sleep,
+    CommonOptionDefaults
 } from "./shared";
 import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "./trampoline";
 import { NonFunctionProperties, Unpacked } from "./type-helpers";
@@ -71,13 +72,6 @@ export interface CommonOptions extends PackerOptions {
     maxRetries?: number;
     tailLatencyRetryStdev?: number;
 }
-
-export const CommonOptionDefaults = {
-    gc: true,
-    maxRetries: 3,
-    tailLatencyRetryStdev: 3,
-    retentionInDays: 1
-};
 
 function resolveModule(fmodule: string) {
     const parent = module.parent!;
@@ -453,8 +447,6 @@ export class CloudFunction<O extends CommonOptions, S> {
         return async (...args: A) => {
             const startTime = Date.now();
             const initialInvocationTime = this.initialInvocationTime.getOrCreate(fn.name);
-            this.functionCounters.incr(fn.name, "invocations");
-
             // XXX capture google retries in stats?
 
             const shouldRetry = () => {
@@ -472,6 +464,7 @@ export class CloudFunction<O extends CommonOptions, S> {
                 const callRequest: FunctionCall = { name: fn.name, args, CallId };
 
                 const invokeCloudFunction = () => {
+                    this.functionCounters.incr(fn.name, "invocations");
                     return this.impl
                         .callFunction(this.state, callRequest)
                         .catch(value => {
@@ -497,7 +490,10 @@ export class CloudFunction<O extends CommonOptions, S> {
 
                 retryFunctionIfNeededToReduceTailLatency(
                     () => Date.now() - initialInvocationTime,
-                    () => estimateTailLatency(fnStats, this.tailLatencyRetryStdev),
+                    () =>
+                        Math.max(
+                            estimateTailLatency(fnStats, this.tailLatencyRetryStdev)
+                        ),
                     invokeCloudFunction,
                     shouldRetry,
                     ms => sleep(ms, addHook).then(clearHook)
@@ -540,15 +536,17 @@ export class CloudFunction<O extends CommonOptions, S> {
                 this.functionStats.aggregate
             );
             if (this.functionCounters.aggregate.retries > 0) {
+                const { retries, invocations } = this.functionCounters.aggregate;
+                const retryPct = ((retries / invocations) * 100).toFixed(1);
                 estimate.push(
                     new costAnalyzer.CostMetric({
                         name: "retries",
                         pricing: 0,
-                        measured: this.functionCounters.aggregate.retries,
+                        measured: retries,
                         unit: "retry",
                         unitPlural: "retries",
-                        comment:
-                            "Some function invocations were retried and may have incurred charges not accounted for by cloudify."
+                        comment: `Retries were ${retryPct}% of requests and may have incurred charges not accounted for by cloudify.`,
+                        alwaysZero: true
                     })
                 );
             }
@@ -739,22 +737,27 @@ async function retryFunctionIfNeededToReduceTailLatency(
 ) {
     let pending = true;
     let lastInvocationTime: number = Date.now();
-    worker().then(_ => (pending = false));
+
+    const doWork = async () => {
+        lastInvocationTime = Date.now();
+        await worker();
+        pending = false;
+    };
+
+    const latency = () => Date.now() - lastInvocationTime;
+
+    doWork();
 
     while (pending) {
-        const lastLatency = Date.now() - lastInvocationTime;
-        const elapsedSinceInitialInvocation = timeSinceInitialInvocation();
         const timeout = getTimeout();
-        if (lastLatency > timeout && elapsedSinceInitialInvocation > timeout + 1000) {
+        if (latency() >= timeout && timeSinceInitialInvocation() > timeout + 1000) {
             if (shouldRetry()) {
-                lastInvocationTime = Date.now();
-                worker();
+                doWork();
             } else {
                 return;
             }
-        } else {
-            const waitTime = roundTo100ms(Math.max(timeout - lastLatency, 5000));
-            await wait(waitTime);
         }
+        const waitTime = roundTo100ms(Math.max(timeout - latency(), 5000));
+        await wait(waitTime);
     }
 }

@@ -11,15 +11,19 @@ import {
     CloudImpl,
     CommonOptions,
     FunctionCounters,
-    FunctionStats,
-    CommonOptionDefaults
+    FunctionStats
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost-analyzer";
 import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
 import { log, logGc, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { computeHttpResponseBytes, hasExpired, sleep } from "../shared";
+import {
+    computeHttpResponseBytes,
+    hasExpired,
+    sleep,
+    CommonOptionDefaults
+} from "../shared";
 import {
     FunctionCall,
     FunctionReturn,
@@ -54,6 +58,7 @@ export interface AWSPrices {
     snsPer64kPublish: number;
     sqsPer64kRequest: number;
     dataOutPerGb: number;
+    logsIngestedPerGb: number;
 }
 
 export class AWSMetrics {
@@ -361,7 +366,6 @@ export async function initialize(fModule: string, options: Options = {}): Promis
         RoleName = defaults.RoleName,
         timeout: Timeout = defaults.timeout,
         memorySize: MemorySize = defaults.memorySize,
-        concurrency = defaults.concurrency,
         mode = defaults.mode,
         gc = defaults.gc,
         retentionInDays = defaults.retentionInDays,
@@ -1026,6 +1030,7 @@ export async function awsPrice(
                 `Price query returned more than one product '${ServiceCode}' ($O)`,
                 filter
             );
+            priceResult.PriceList!.forEach(p => warn(`%O`, p));
         }
         const pList: any = priceResult.PriceList![0];
         const price = extractPrice(first(pList.terms.OnDemand));
@@ -1063,6 +1068,11 @@ export async function requestAwsPrices(
         dataOutPerGb: await awsPrice(pricing, "AWSDataTransfer", {
             fromLocation: location,
             transferType: "AWS Outbound"
+        }),
+        logsIngestedPerGb: await awsPrice(pricing, "AmazonCloudWatch", {
+            location,
+            group: "Ingested Logs",
+            groupDescription: "Existing system, application, and custom log files"
         })
     };
 }
@@ -1097,7 +1107,7 @@ export async function costEstimate(
     const functionCallRequests = new CostMetric({
         name: "functionCallRequests",
         pricing: prices.lambdaPerRequest,
-        measured: counters.completed + counters.retries + counters.errors,
+        measured: counters.invocations,
         unit: "request",
         comment: "https://aws.amazon.com/lambda/pricing"
     });
@@ -1130,6 +1140,17 @@ export async function costEstimate(
         comment: "https://aws.amazon.com/sns/pricing"
     });
     costs.push(sns);
+
+    const logIngestion: CostMetric = new CostMetric({
+        name: "logIngestion",
+        pricing: prices.logsIngestedPerGb,
+        measured: 0,
+        unit: "GB",
+        comment:
+            "Log ingestion not currently included. https://aws.amazon.com/cloudwatch/pricing/",
+        alwaysZero: true
+    });
+    costs.push(logIngestion);
 
     return Promise.resolve(costs);
 }

@@ -1,10 +1,5 @@
 import * as childProcess from "child_process";
-import {
-    CloudFunctionImpl,
-    CloudImpl,
-    CommonOptions,
-    CommonOptionDefaults
-} from "../cloudify";
+import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
 import { PackerResult } from "../packer";
 import {
     FunctionCall,
@@ -12,6 +7,7 @@ import {
     FunctionReturnWithMetrics,
     createErrorResponse
 } from "../trampoline";
+import { CommonOptionDefaults } from "../shared";
 
 export interface ProcessResources {
     childProcesses: Set<childProcess.ChildProcess>;

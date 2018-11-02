@@ -1,12 +1,7 @@
-import {
-    CloudFunctionImpl,
-    CloudImpl,
-    CommonOptions,
-    CommonOptionDefaults
-} from "../cloudify";
+import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
 import { warn } from "../log";
 import { PackerResult } from "../packer";
-import { sleep } from "../shared";
+import { sleep, CommonOptionDefaults } from "../shared";
 import {
     FunctionCall,
     FunctionReturn,

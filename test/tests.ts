@@ -213,11 +213,14 @@ export function checkCosts(
                 expect(costs.metrics.length).toBeGreaterThan(1);
                 expect(costs.find("functionCallRequests")!.measured).toBe(1);
                 for (const metric of costs.metrics) {
-                    expect(metric.cost()).toBeGreaterThan(0);
+                    if (!metric.alwaysZero) {
+                        expect(metric.cost()).toBeGreaterThan(0);
+                        expect(metric.measured).toBeGreaterThan(0);
+                        expect(metric.pricing).toBeGreaterThan(0);
+                    }
+
                     expect(metric.cost()).toBeLessThan(0.00001);
-                    expect(metric.measured).toBeGreaterThan(0);
                     expect(metric.name.length).toBeGreaterThan(0);
-                    expect(metric.pricing).toBeGreaterThan(0);
                     expect(metric.unit.length).toBeGreaterThan(0);
                     expect(metric.cost()).toBe(metric.pricing * metric.measured);
                 }

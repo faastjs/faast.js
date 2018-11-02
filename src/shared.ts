@@ -1,5 +1,12 @@
 import { Readable } from "stream";
 
+export const CommonOptionDefaults = {
+    gc: true,
+    maxRetries: 3,
+    tailLatencyRetryStdev: 3,
+    retentionInDays: 1
+};
+
 export class Statistics {
     samples = 0;
     max = Number.NEGATIVE_INFINITY;
@@ -76,12 +83,11 @@ export class ExponentiallyDecayingAverageValue {
 
 export function sleep(ms: number, callback: (cancel: () => void) => void = () => {}) {
     return new Promise<() => void>(resolve => {
-        const cancel = () =>
-            clearTimeout(
-                setTimeout(() => {
-                    resolve(cancel);
-                }, ms)
-            );
+        let timer: NodeJS.Timer;
+        const cancel = () => clearTimeout(timer);
+        timer = setTimeout(() => {
+            resolve(cancel);
+        }, ms);
         callback(cancel);
     });
 }

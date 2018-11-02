@@ -9,7 +9,6 @@ import {
     Promisified
 } from "./cloudify";
 import { Funnel, RateLimitedFunnel } from "./funnel";
-import { log } from "./log";
 import { Statistics, sum } from "./shared";
 import { NonFunctionProperties } from "./type-helpers";
 import * as Listr from "listr";
@@ -21,6 +20,7 @@ export class CostMetric {
     unitPlural?: string;
     measured!: number;
     comment?: string;
+    alwaysZero?: boolean = false;
 
     constructor(opts?: NonFunctionProperties<CostMetric>) {
         Object.assign(this, opts);

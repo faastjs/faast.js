@@ -14,15 +14,19 @@ import {
     CloudImpl,
     CommonOptions,
     FunctionCounters,
-    FunctionStats,
-    CommonOptionDefaults
+    FunctionStats
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost-analyzer";
 import { MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
 import { log, logGc, logPricing, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { computeHttpResponseBytes, hasExpired, sleep } from "../shared";
+import {
+    computeHttpResponseBytes,
+    hasExpired,
+    sleep,
+    CommonOptionDefaults
+} from "../shared";
 import {
     FunctionCall,
     FunctionReturn,
@@ -157,9 +161,9 @@ interface PollConfig<T> extends PollOptions {
 
 async function defaultPollDelay(retries: number) {
     if (retries > 5) {
-        return sleep(5 * 1000);
+        await sleep(5 * 1000);
     }
-    return sleep((retries + 1) * 100);
+    await sleep((retries + 1) * 100);
 }
 
 async function poll<T>({
@@ -871,7 +875,7 @@ async function costEstimate(
     const functionCallRequests = new CostMetric({
         name: "functionCallRequests",
         pricing: prices.perInvocation,
-        measured: counters.completed + counters.retries + counters.errors,
+        measured: counters.invocations,
         unit: "request",
         comment: "https://cloud.google.com/functions/pricing#invocations"
     });
