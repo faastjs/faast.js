@@ -55,21 +55,31 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
                     .catch((err: CloudifyError) => {
                         console.log(`Error processing ${Obj.Key!}`);
                         console.log(`Logs: ${err.logUrl}`);
-                        return { nExtracted: 0, nErrors: 1, Key: Obj.Key! };
+                        return { nExtracted: 0, nErrors: 1, bytes: 0, Key: Obj.Key! };
                     })
             );
         }
         const results = await Promise.all(promises);
         let extracted = 0;
         let errors = 0;
+        let bytes = 0;
         for (const result of results) {
+            if (!result) {
+                continue;
+            }
             extracted += result.nExtracted;
             errors += result.nErrors;
+            bytes += result.bytes;
             if (result.nErrors > 0) {
                 console.log(`Error uploading key: ${result.Key}`);
             }
         }
-        console.log(`Extracted ${extracted} files with ${errors} errors`);
+        console.log(
+            `Extracted ${extracted} files with ${errors} errors, ${(
+                bytes /
+                2 ** 30
+            ).toFixed(1)}GB`
+        );
     } finally {
         const cost = await cloudFunc.costEstimate();
         console.log(`${cost}`);

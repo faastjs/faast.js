@@ -48,7 +48,7 @@ export async function processBucketObject(Bucket: string, Key: string) {
     log(`ProcessBucketObject called: Bucket: ${Bucket}, Key: ${Key}`);
     if (!Key.endsWith(".tar")) {
         log(`Skipping ${Key}`);
-        return { nExtracted: 0, nErrors: 0, Key };
+        return undefined;
     }
 
     log(`Starting download`);
@@ -57,6 +57,7 @@ export async function processBucketObject(Bucket: string, Key: string) {
     log(`Extracting tar file stream`);
     let nExtracted = 0;
     let nErrors = 0;
+    let bytes = 0;
     const funnel = new RateLimitedFunnel({
         maxConcurrency: 10,
         targetRequestsPerSecond: 200
@@ -79,11 +80,13 @@ export async function processBucketObject(Bucket: string, Key: string) {
                 nErrors++;
             }
 
-            const contentsHash = createHash("md5")
-                .update(buf)
-                .digest("hex");
+            bytes += header.size!;
 
-            log(`${header.name} ${contentsHash}`);
+            // const contentsHash = createHash("md5")
+            //     .update(buf)
+            //     .digest("hex");
+
+            // log(`${header.name} ${contentsHash}`);
 
             /*
             funnel
@@ -122,7 +125,7 @@ export async function processBucketObject(Bucket: string, Key: string) {
 
     log(`Extracted ${nExtracted} files from ${Bucket}, ${Key}`);
     log(`Errors uploading: ${nErrors}`);
-    return { nExtracted, nErrors, Key };
+    return { nExtracted, nErrors, bytes, Key };
 }
 
 export async function copyObject(
