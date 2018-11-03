@@ -129,11 +129,11 @@ export class FunctionCounters {
 }
 
 export class FunctionStats {
-    localStartLatency = new Statistics(0.1);
-    remoteStartLatency = new Statistics(0.1);
-    executionLatency = new Statistics(0.1);
-    sendResponseLatency = new Statistics(0.1);
-    returnLatency = new Statistics(0.1);
+    localStartLatency = new Statistics();
+    remoteStartLatency = new Statistics();
+    executionLatency = new Statistics();
+    sendResponseLatency = new Statistics();
+    returnLatency = new Statistics();
     estimatedBilledTime = new Statistics();
 
     toString() {
