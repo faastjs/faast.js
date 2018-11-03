@@ -13,7 +13,7 @@ describe("statistics", () => {
     test("empty values", () => {
         const emptyStat = new Statistics();
         expect(emptyStat.mean).toBeNaN();
-        expect(emptyStat.stdev).toBeNaN();
+        expect(emptyStat.stdev).toBe(0);
         expect(emptyStat.samples).toBe(0);
     });
     test("single values", () => {
