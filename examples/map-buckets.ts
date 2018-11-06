@@ -55,7 +55,6 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
                     .catch((err: CloudifyError) => {
                         console.log(`Error processing ${Obj.Key!}`);
                         console.log(`Logs: ${err.logUrl}`);
-                        return { nExtracted: 0, nErrors: 1, bytes: 0, Key: Obj.Key! };
                     })
             );
         }
@@ -63,13 +62,28 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         let extracted = 0;
         let errors = 0;
         let bytes = 0;
+        let id = 0;
+        console.log(
+            `id,executionLatency,user,system,finalExecutionLatency,finalUser,finalSystem`
+        );
         for (const result of results) {
             if (!result) {
+                errors++;
                 continue;
             }
             extracted += result.nExtracted;
             errors += result.nErrors;
             bytes += result.bytes;
+            const finalTiming = result.timings.pop();
+            const p = (n: number) => (n / 1000).toFixed(0);
+            result.timings.forEach(t => {
+                console.log(
+                    `${id},${t.time},${p(t.usage.user)},${p(t.usage.system)},${p(
+                        finalTiming!.time
+                    )},${p(finalTiming!.usage.user)},${p(finalTiming!.usage.system)}`
+                );
+            });
+            id++;
             if (result.nErrors > 0) {
                 console.log(`Error uploading key: ${result.Key}`);
             }

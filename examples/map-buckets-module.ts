@@ -4,6 +4,7 @@ import { Readable } from "stream";
 import { escape } from "querystring";
 import { RateLimitedFunnel } from "../src/funnel";
 import { createHash } from "crypto";
+import * as process from "process";
 
 const s3 = new aws.S3({ region: "us-west-2" });
 
@@ -45,6 +46,7 @@ function log(msg: string) {
 
 export async function processBucketObject(Bucket: string, Key: string) {
     start = Date.now();
+    const startCpu = process.cpuUsage();
     log(`ProcessBucketObject called: Bucket: ${Bucket}, Key: ${Key}`);
     if (!Key.endsWith(".tar")) {
         log(`Skipping ${Key}`);
@@ -62,6 +64,12 @@ export async function processBucketObject(Bucket: string, Key: string) {
         maxConcurrency: 10,
         targetRequestsPerSecond: 200
     });
+
+    const timings: Array<{ time: number; usage: NodeJS.CpuUsage }> = [];
+    const addTiming = () => {
+        timings.push({ time: Date.now() - start, usage: process.cpuUsage(startCpu) });
+    };
+    const perfTimer = setInterval(addTiming, 1000);
 
     const retries = 2;
     await extractTarStream(result, (header, buf) => {
@@ -122,10 +130,12 @@ export async function processBucketObject(Bucket: string, Key: string) {
 
     log(`Promises size: ${funnel.promises().length}`);
     await funnel.all();
+    clearInterval(perfTimer);
 
     log(`Extracted ${nExtracted} files from ${Bucket}, ${Key}`);
     log(`Errors uploading: ${nErrors}`);
-    return { nExtracted, nErrors, bytes, Key };
+    addTiming();
+    return { nExtracted, nErrors, bytes, Key, timings };
 }
 
 export async function copyObject(
