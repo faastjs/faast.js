@@ -104,10 +104,12 @@ export class Cloud<O extends CommonOptions, S> {
     }
 
     async createFunction(modulePath: string, options?: O): Promise<CloudFunction<O, S>> {
+        const resolvedModule = resolveModule(modulePath);
         return new CloudFunction(
             this,
             this.impl.getFunctionImpl(),
-            await this.impl.initialize(resolveModule(modulePath), options),
+            await this.impl.initialize(resolvedModule, options),
+            resolvedModule,
             options
         );
     }
@@ -364,6 +366,7 @@ export class CloudFunction<O extends CommonOptions, S> {
         protected cloud: Cloud<O, S>,
         protected impl: CloudFunctionImpl<S>,
         readonly state: S,
+        readonly modulePath: string,
         readonly options?: O
     ) {
         this.impl.logUrl && log(`Log URL: ${this.impl.logUrl(state)}`);
@@ -461,7 +464,12 @@ export class CloudFunction<O extends CommonOptions, S> {
             return this.funnel.pushRetry(shouldRetry, async () => {
                 const deferred = new Deferred<FunctionReturnWithMetrics>();
                 const CallId = uuidv4();
-                const callRequest: FunctionCall = { name: fn.name, args, CallId };
+                const callRequest: FunctionCall = {
+                    name: fn.name,
+                    args,
+                    CallId,
+                    modulePath: this.modulePath
+                };
 
                 const invokeCloudFunction = () => {
                     this.functionCounters.incr(fn.name, "invocations");

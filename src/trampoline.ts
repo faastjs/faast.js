@@ -8,6 +8,7 @@ export interface CallId {
 
 export interface FunctionCall extends CallId {
     name: string;
+    modulePath: string;
     args: any[];
     ResponseQueueId?: string;
 }
