@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as webpack from "webpack";
 import { CloudifyLoaderOptions } from "./cloudify-loader";
-import { log } from "./log";
+import { log, warn } from "./log";
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
 import * as JSZip from "jszip";
@@ -91,6 +91,9 @@ export function packer(
     function processAddDirectories(archive: Archiver, directories: string[]) {
         for (const dir of directories) {
             log(`Adding directory to archive: ${dir}`);
+            if (!fs.existsSync(dir)) {
+                warn(`Directory ${dir} not found`);
+            }
             archive.directory(dir, false);
         }
     }
@@ -113,6 +116,9 @@ export function packer(
 
     async function prepareZipArchive(mfs: MemoryFileSystem): Promise<PackerResult> {
         const archive = archiver("zip", { zlib: { level: 8 } });
+        archive.on("error", err => warn(err));
+        archive.on("warning", err => warn(err));
+
         addToArchive(mfs, "/", archive);
         if (typeof addDirectory === "string") {
             addDirectory = [addDirectory];
