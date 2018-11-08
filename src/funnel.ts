@@ -72,7 +72,7 @@ export class Funnel<T = void> {
     push(worker: () => Promise<T>, cancel?: () => string | undefined) {
         const future = new Future(worker, cancel);
         this.pendingQueue.add(future);
-        this.doWork();
+        setImmediate(() => this.doWork());
         return future.promise;
     }
 
@@ -141,7 +141,10 @@ export class Pump<T = void> extends Funnel<T | void> {
             if (this.stopped) {
                 return;
             }
-            while (this.executingQueue.size < this.maxConcurrency) {
+            while (
+                this.executingQueue.size + this.pendingQueue.size <
+                this.maxConcurrency
+            ) {
                 this.push(() =>
                     this.worker()
                         .catch(_ => {})

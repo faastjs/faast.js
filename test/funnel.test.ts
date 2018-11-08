@@ -93,7 +93,17 @@ describe("Funnel", () => {
         await expect(promise0).rejects.toThrowError();
         await expect(promise1).rejects.toThrowError();
         await expect(promise2).rejects.toThrowError();
-        expect(count).toBe(1);
+        expect(count).toBe(0);
+    });
+    test("Funnel gets executed asynchronously, not at the moment of push", async () => {
+        const funnel = new Funnel(1);
+        let n = 0;
+        funnel.push(async () => {
+            n++;
+        });
+        expect(n).toBe(0);
+        await funnel.all();
+        expect(n).toBe(1);
     });
     test("handles promise rejections without losing concurrency", async () => {
         const funnel = new Funnel<void>(1);
@@ -200,8 +210,8 @@ describe("Pump", () => {
             executed++;
             return sleep(100);
         });
+        expect(executed).toBe(0);
         pump.start();
-        expect(executed).toBe(1);
         await sleep(300);
         pump.stop();
         expect(executed).toBeGreaterThan(1);
@@ -241,10 +251,13 @@ describe("Pump", () => {
             finished++;
         });
 
+        expect(started).toBe(0);
+        expect(finished).toBe(0);
+
         pump.start();
-        expect(started - finished).toBe(N);
         await pump.drain();
-        expect(started - finished).toBe(0);
+        expect(started).toBe(N);
+        expect(finished).toBe(N);
     });
 });
 
