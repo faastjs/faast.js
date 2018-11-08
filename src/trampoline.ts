@@ -118,8 +118,12 @@ export class ModuleWrapper {
                     this.child.on("message", (value: FunctionReturn) =>
                         this.deferred!.resolve(value)
                     );
-                    this.child.on("error", err => this.deferred!.reject(err));
+                    this.child.on("error", err => {
+                        this.child = undefined;
+                        this.deferred!.reject(err);
+                    });
                     this.child.on("exit", (code, signal) => {
+                        this.child = undefined;
                         if (code) {
                             this.deferred!.reject(
                                 new Error(`Exited with error code ${code}`)
