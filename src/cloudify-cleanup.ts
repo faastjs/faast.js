@@ -188,7 +188,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
         Bucket => s3.deleteBucket({ Bucket }).promise()
     );
 
-    const cache = new LocalCache("aws");
+    const cache = new LocalCache(".cloudify/aws");
     output(`Local cache: ${cache.dir}`);
     const entries = cache.entries();
     if (!execute) {
