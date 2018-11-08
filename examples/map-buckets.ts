@@ -39,7 +39,8 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         memorySize: 1728,
         timeout: 300,
         mode: "queue",
-        concurrency: 2000
+        concurrency: 2000,
+        childProcess: true
         // awsLambdaOptions: { TracingConfig: { Mode: "Active" } }
     });
     cloudFunc.printStatisticsInterval(1000);

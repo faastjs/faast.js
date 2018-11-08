@@ -63,6 +63,7 @@ export type Responsified<M> = {
 };
 
 export interface CommonOptions extends PackerOptions {
+    childProcess?: boolean;
     timeout?: number;
     memorySize?: number;
     mode?: "https" | "queue";
@@ -361,6 +362,7 @@ export class CloudFunction<O extends CommonOptions, S> {
     protected initialInvocationTime = new FactoryMap(() => Date.now());
     protected maxRetries = CommonOptionDefaults.maxRetries;
     protected tailLatencyRetryStdev = CommonOptionDefaults.speculativeRetryThreshold;
+    protected childProcess = CommonOptionDefaults.childProcess;
 
     constructor(
         protected cloud: Cloud<O, S>,
@@ -381,6 +383,9 @@ export class CloudFunction<O extends CommonOptions, S> {
         }
         if (options && options.speculativeRetryThreshold !== undefined) {
             this.tailLatencyRetryStdev = Math.max(0, options.speculativeRetryThreshold);
+        }
+        if (options && options.childProcess !== undefined) {
+            this.childProcess = options.childProcess;
         }
     }
 
@@ -468,7 +473,8 @@ export class CloudFunction<O extends CommonOptions, S> {
                     name: fn.name,
                     args,
                     CallId,
-                    modulePath: this.modulePath
+                    modulePath: this.modulePath,
+                    childProcess: this.childProcess
                 };
 
                 const invokeCloudFunction = () => {

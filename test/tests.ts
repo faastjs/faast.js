@@ -95,6 +95,11 @@ export function checkFunctions(
             expect(await remote.optionalArg()).toBe("No arg");
             expect(await remote.optionalArg("has arg")).toBe("has arg");
         });
+
+        test("console", async () => {
+            await remote.consoleLog("Remote console.log message");
+            await remote.consoleWarn("Remote console.warn message");
+        });
     });
 }
 

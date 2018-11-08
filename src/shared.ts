@@ -1,6 +1,7 @@
 import { Readable } from "stream";
 
 export const CommonOptionDefaults = {
+    childProcess: false,
     gc: true,
     maxRetries: 3,
     speculativeRetryThreshold: 3,

@@ -20,6 +20,7 @@ export async function trampoline(
     context: Context,
     callback: (err: Error | null, obj: FunctionReturn | string) => void
 ) {
+    context.callbackWaitsForEmptyEventLoop = false;
     const startTime = Date.now();
     const executionId = context.awsRequestId;
     const { logGroupName, logStreamName } = context;

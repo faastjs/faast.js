@@ -1,6 +1,8 @@
 import { AnyFunction } from "./type-helpers";
 import { deepStrictEqual } from "assert";
 import { warn } from "./log";
+import * as childProcess from "child_process";
+import { Deferred } from "./funnel";
 
 export interface CallId {
     CallId: string;
@@ -11,6 +13,7 @@ export interface FunctionCall extends CallId {
     modulePath: string;
     args: any[];
     ResponseQueueId?: string;
+    childProcess?: boolean;
 }
 
 export interface FunctionReturn extends CallId {
@@ -68,6 +71,8 @@ export function createErrorResponse(
 export class ModuleWrapper {
     funcs: ModuleType = {};
     verbose: boolean;
+    child?: childProcess.ChildProcess;
+    deferred?: Deferred<FunctionReturn>;
 
     constructor({ verbose = true } = {}) {
         this.verbose = verbose;
@@ -101,23 +106,56 @@ export class ModuleWrapper {
         try {
             const memoryUsage = process.memoryUsage();
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
-            const func = this.lookupFunction(call);
             this.verbose &&
-                console.log(`cloudify: Invoking '${func.name}, memory: %O'`, memoryUsage);
-            const returned = await func.apply(undefined, call.args);
-            const rv: FunctionReturn = {
-                type: "returned",
-                value: returned,
-                CallId: call.CallId,
-                remoteExecutionStartTime: startTime,
-                remoteExecutionEndTime: Date.now(),
-                logUrl,
-                executionId,
-                memoryUsage,
-                instanceId
-            };
-            return rv;
+                console.log(`cloudify: Invoking '${call.name}', memory: %O`, memoryUsage);
+            if (call.childProcess) {
+                this.deferred = new Deferred();
+                if (!this.child) {
+                    this.verbose && console.log(`Creating child process`);
+                    this.child = childProcess.fork("./child-index.js", [], {
+                        silent: false
+                    });
+                    this.child.on("message", (value: FunctionReturn) =>
+                        this.deferred!.resolve(value)
+                    );
+                    this.child.on("error", err => this.deferred!.reject(err));
+                    this.child.on("exit", (code, signal) => {
+                        if (code) {
+                            this.deferred!.reject(
+                                new Error(`Exited with error code ${code}`)
+                            );
+                        } else if (signal) {
+                            this.deferred!.reject(
+                                new Error(`Aborted with signal ${signal}`)
+                            );
+                        }
+                    });
+                }
+                this.verbose && console.log(`Sending request to child process`);
+                this.child.send(
+                    { ...call, childProcess: false },
+                    err => err && this.deferred!.reject(err)
+                );
+                this.deferred!.promise.then(_ => (this.deferred = undefined));
+                return this.deferred.promise;
+            } else {
+                const func = this.lookupFunction(call);
+                const returned = await func.apply(undefined, call.args);
+                const rv: FunctionReturn = {
+                    type: "returned",
+                    value: returned,
+                    CallId: call.CallId,
+                    remoteExecutionStartTime: startTime,
+                    remoteExecutionEndTime: Date.now(),
+                    logUrl,
+                    executionId,
+                    memoryUsage,
+                    instanceId
+                };
+                return rv;
+            }
         } catch (err) {
+            console.error(`Caught error in moduleWrapper.execute`);
             this.verbose && console.error(err);
             return createErrorResponse(err, callingContext);
         }

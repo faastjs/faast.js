@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as webpack from "webpack";
 import { CloudifyLoaderOptions } from "./cloudify-loader";
+
 import { log, warn } from "./log";
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
@@ -43,20 +44,6 @@ export function packer(
 ): Promise<PackerResult> {
     const _exhaustiveCheck: Required<typeof otherPackerOptions> = {};
     log(`Running webpack`);
-    const loader = `cloudify-loader?${getUrlEncodedQueryParameters(loaderOptions)}!`;
-
-    const config: webpack.Configuration = {
-        entry: loader,
-        mode: "development",
-        output: {
-            path: "/",
-            filename: "index.js",
-            libraryTarget: "commonjs2"
-        },
-        target: "node",
-        resolveLoader: { modules: [__dirname, `${__dirname}/build}`] },
-        ...webpackOptions
-    };
 
     function addToArchive(mfs: MemoryFileSystem, root: string, archive: Archiver) {
         function addEntry(entry: string) {
@@ -67,6 +54,7 @@ export function packer(
                     addEntry(subEntryPath);
                 }
             } else if (stat.isFile()) {
+                log(`Adding file: ${entry}`);
                 archive.append((mfs as any).createReadStream(entry), {
                     name: path.relative(root, entry)
                 });
@@ -134,6 +122,39 @@ export function packer(
         return { archive: result, indexContents };
     }
 
+    const loader = `cloudify-loader?${getUrlEncodedQueryParameters(loaderOptions)}!`;
+
+    const config: webpack.Configuration = {
+        entry: loader,
+        mode: "development",
+        output: {
+            path: "/",
+            filename: "index.js",
+            libraryTarget: "commonjs2"
+        },
+        target: "node",
+        resolveLoader: { modules: [__dirname, `${__dirname}/build}`] },
+        ...webpackOptions
+    };
+
+    const childLoader = `cloudify-loader?${getUrlEncodedQueryParameters({
+        ...loaderOptions,
+        type: "child",
+        trampolineModule: require.resolve("./trampoline")
+    })}!`;
+    const childProcessConfig: webpack.Configuration = {
+        entry: childLoader,
+        mode: "development",
+        output: {
+            path: "/",
+            filename: "child-index.js",
+            libraryTarget: "commonjs2"
+        },
+        target: "node",
+        resolveLoader: { modules: [__dirname, `${__dirname}/build}`] },
+        ...webpackOptions
+    };
+
     return new Promise<PackerResult>((resolve, reject) => {
         const mfs = new MemoryFileSystem();
         const dependencies = (packageJson && addPackageJson(mfs, packageJson)) || [];
@@ -141,17 +162,36 @@ export function packer(
         const externalsArray = Array.isArray(externals) ? externals : [externals];
         config.externals = [...externalsArray, ...dependencies];
 
+        let finished = 0;
+
         log(`webpack config: %O`, config);
         const compiler = webpack(config);
-
         compiler.outputFileSystem = mfs as any;
         compiler.run((err, stats) => {
             if (err) {
                 reject(err);
             } else {
                 log(stats.toString());
-                log(`Memory filesystem: %O`, mfs.data);
-                resolve(prepareZipArchive(mfs));
+                if (++finished === 2) {
+                    log(`Memory filesystem: %O`, mfs.data);
+                    resolve(prepareZipArchive(mfs));
+                }
+            }
+        });
+
+        log(`webpack child config: %O`, childProcessConfig);
+        const childCompiler = webpack(childProcessConfig);
+        childCompiler.outputFileSystem = mfs as any;
+        childProcessConfig.externals = [...externalsArray, ...dependencies];
+        childCompiler.run((err, stats) => {
+            if (err) {
+                reject(err);
+            } else {
+                log(stats.toString());
+                if (++finished === 2) {
+                    log(`Memory filesystem: %O`, mfs.data);
+                    resolve(prepareZipArchive(mfs));
+                }
             }
         });
     });

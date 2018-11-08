@@ -4,11 +4,11 @@ import { join } from "path";
 
 const kb = 1024;
 
-checkCodeBundle("Package AWS queue bundle", "aws", "queue-bundle", 70 * kb, {
+checkCodeBundle("Package AWS queue bundle", "aws", "queue-bundle", 100 * kb, {
     mode: "queue"
 });
 
-checkCodeBundle("Package AWS https bundle", "aws", "https-bundle", 70 * kb, {
+checkCodeBundle("Package AWS https bundle", "aws", "https-bundle", 100 * kb, {
     mode: "https"
 });
 

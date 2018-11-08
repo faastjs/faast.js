@@ -714,6 +714,7 @@ export async function pack(
     const packerOptions: PackerOptions = options;
     return packer(
         {
+            type: "trampoline",
             trampolineModule: require.resolve(trampolineModule),
             functionModule
         },

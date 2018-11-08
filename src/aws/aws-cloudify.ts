@@ -290,7 +290,7 @@ export async function buildModulesOnLambda(
             ? fs.readFileSync(packageJson).toString()
             : JSON.stringify(packageJson);
 
-    const localCache = new LocalCache("aws");
+    const localCache = new LocalCache(".cloudify/aws");
 
     let cacheKey: string | undefined;
     if (useDependencyCaching) {
@@ -841,6 +841,7 @@ export async function pack(
     const { webpackOptions, ...rest }: PackerOptions = options || {};
     return packer(
         {
+            type: "trampoline",
             trampolineModule: require.resolve("./aws-trampoline"),
             functionModule
         },
