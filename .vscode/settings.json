@@ -6,5 +6,7 @@
     "terminal.integrated.env.windows": {
         "DEBUG": "cloudify:info,cloudify:stats"
     },
-    "debug.node.autoAttach": "off"
+    "debug.node.autoAttach": "off",
+    "docthis.includeMemberOfOnClassMembers": false,
+    "docthis.includeMemberOfOnInterfaceMembers": false
 }
