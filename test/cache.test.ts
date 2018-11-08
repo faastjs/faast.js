@@ -5,11 +5,11 @@ import { createHash } from "crypto";
 let cache: LocalCache;
 
 beforeEach(async () => {
-    cache = new LocalCache("test");
+    cache = new LocalCache(".cloudify/test");
     await cache.clear();
 });
 
-test("local cache directory is provider-specific", async () => {
+test("local cache directory respects relative path", async () => {
     expect(cache.dir).toMatch(/test/);
 });
 
@@ -23,8 +23,8 @@ test("can set and get cache entries", async () => {
     expect(result && result.toString()).toBe("bar");
 });
 
-test("cache expiration", async () => {
-    const cache2 = new LocalCache("test", 100);
+test("ignores entries after they expire", async () => {
+    const cache2 = new LocalCache(".cloudify/test", 100);
     await cache2.set("foo", "bar");
     let result = await cache2.get("foo");
     expect(result && result.toString()).toBeDefined();
@@ -50,7 +50,7 @@ test("cache value can be a Buffer", async () => {
 
 test("cache values are persistent", async () => {
     await cache.set("persistentKey", "persistent");
-    const cache2 = new LocalCache("test");
+    const cache2 = new LocalCache(".cloudify/test");
     const result2 = await cache2.get("persistentKey");
     expect(result2 && result2.toString()).toBe("persistent");
 });
