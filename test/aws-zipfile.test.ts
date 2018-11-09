@@ -13,6 +13,28 @@ checkCodeBundle("Package AWS https bundle", "aws", "https-bundle", 100 * kb, {
 });
 
 checkCodeBundle(
+    "Package AWS queue bundle with childprocess",
+    "aws",
+    "queue-bundle-childprocess",
+    100 * kb,
+    {
+        mode: "queue",
+        childProcess: true
+    }
+);
+
+checkCodeBundle(
+    "Package AWS https bundle with childprocess",
+    "aws",
+    "https-bundle-childprocess",
+    100 * kb,
+    {
+        mode: "https",
+        childProcess: true
+    }
+);
+
+checkCodeBundle(
     "Package AWS bundle with added directory",
     "aws",
     "added-directory",

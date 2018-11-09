@@ -834,22 +834,18 @@ function deleteGarbageFunctions(
     });
 }
 
+import * as trampoline from "./aws-trampoline";
+
 export async function pack(
     functionModule: string,
     options?: Options
 ): Promise<PackerResult> {
     const { webpackOptions, ...rest }: PackerOptions = options || {};
-    return packer(
-        {
-            type: "trampoline",
-            trampolineModule: require.resolve("./aws-trampoline"),
-            functionModule
-        },
-        {
-            webpackOptions: { externals: "aws-sdk", ...webpackOptions },
-            ...rest
-        }
-    );
+    const mode = options && options.childProcess ? "childprocess" : "immediate";
+    return packer(mode, trampoline, functionModule, {
+        webpackOptions: { externals: "aws-sdk", ...webpackOptions },
+        ...rest
+    });
 }
 
 export function cleanupResources(resourceString: string) {

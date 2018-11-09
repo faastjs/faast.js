@@ -3,7 +3,7 @@ import { ModuleWrapper, FunctionCall, createErrorResponse } from "../trampoline"
 import { env } from "process";
 import { getExecutionLogUrl } from "./google-shared";
 
-export const moduleWrapper = new ModuleWrapper();
+export const moduleWrapper = new ModuleWrapper(module.filename);
 
 export async function trampoline(request: Request, response: Response) {
     const startTime = Date.now();

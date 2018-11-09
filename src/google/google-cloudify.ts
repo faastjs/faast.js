@@ -704,25 +704,22 @@ async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
     });
 }
 
+import * as googleTrampolineQueue from "./google-trampoline-queue";
+import * as googleTrampolineHttps from "./google-trampoline-https";
+
 export async function pack(
     functionModule: string,
     options: Options = {}
 ): Promise<PackerResult> {
     const { mode = "https" } = options;
     const trampolineModule =
-        mode === "queue" ? "./google-trampoline-queue" : "./google-trampoline-https";
+        mode === "queue" ? googleTrampolineQueue : googleTrampolineHttps;
     const packerOptions: PackerOptions = options;
-    return packer(
-        {
-            type: "trampoline",
-            trampolineModule: require.resolve(trampolineModule),
-            functionModule
-        },
-        {
-            packageJson: mode === "queue" ? "package.json" : undefined,
-            ...packerOptions
-        }
-    );
+    const packMode = options && options.childProcess ? "childprocess" : "immediate";
+    return packer(packMode, trampolineModule, functionModule, {
+        packageJson: mode === "queue" ? "package.json" : undefined,
+        ...packerOptions
+    });
 }
 
 export async function cleanupResources(resourcesString: string) {

@@ -2,7 +2,7 @@ import { Archiver } from "archiver";
 import * as fs from "fs";
 import * as path from "path";
 import * as webpack from "webpack";
-import { CloudifyLoaderOptions } from "./cloudify-loader";
+import { LoaderOptions } from "./cloudify-loader";
 
 import { log, warn } from "./log";
 import MemoryFileSystem = require("memory-fs");
@@ -10,6 +10,7 @@ import archiver = require("archiver");
 import * as JSZip from "jszip";
 import { streamToBuffer } from "./shared";
 import { promisify } from "util";
+import { Trampoline } from "./trampoline";
 
 export interface PackerOptions {
     webpackOptions?: webpack.Configuration;
@@ -25,15 +26,17 @@ export interface PackerResult {
     indexContents: string;
 }
 
-function getUrlEncodedQueryParameters(options: CloudifyLoaderOptions) {
+function getUrlEncodedQueryParameters(options: LoaderOptions) {
     return Object.keys(options)
         .filter(key => options[key])
         .map(key => `${key}=${encodeURIComponent(options[key])}`)
         .join(`&`);
 }
 
-export function packer(
-    loaderOptions: CloudifyLoaderOptions,
+export async function packer(
+    mode: "immediate" | "childprocess",
+    trampolineModule: Trampoline,
+    functionModule: string,
     {
         webpackOptions = {},
         packageJson,
@@ -44,8 +47,9 @@ export function packer(
 ): Promise<PackerResult> {
     const _exhaustiveCheck: Required<typeof otherPackerOptions> = {};
     log(`Running webpack`);
+    const mfs = new MemoryFileSystem();
 
-    function addToArchive(mfs: MemoryFileSystem, root: string, archive: Archiver) {
+    function addToArchive(root: string, archive: Archiver) {
         function addEntry(entry: string) {
             const stat = mfs.statSync(entry);
             if (stat.isDirectory()) {
@@ -63,7 +67,7 @@ export function packer(
         addEntry(root);
     }
 
-    function addPackageJson(mfs: MemoryFileSystem, packageJsonFile: string | object) {
+    function addPackageJson(packageJsonFile: string | object) {
         const parsedPackageJson =
             typeof packageJsonFile === "string"
                 ? JSON.parse(fs.readFileSync(packageJsonFile).toString())
@@ -102,12 +106,11 @@ export function packer(
         });
     }
 
-    async function prepareZipArchive(mfs: MemoryFileSystem): Promise<PackerResult> {
+    async function prepareZipArchive(): Promise<PackerResult> {
         const archive = archiver("zip", { zlib: { level: 8 } });
         archive.on("error", err => warn(err));
         archive.on("warning", err => warn(err));
-
-        addToArchive(mfs, "/", archive);
+        addToArchive("/", archive);
         if (typeof addDirectory === "string") {
             addDirectory = [addDirectory];
         }
@@ -122,77 +125,63 @@ export function packer(
         return { archive: result, indexContents };
     }
 
-    const loader = `cloudify-loader?${getUrlEncodedQueryParameters(loaderOptions)}!`;
+    const dependencies = (packageJson && addPackageJson(packageJson)) || [];
+    const { externals = [] } = webpackOptions;
+    const externalsArray = Array.isArray(externals) ? externals : [externals];
 
-    const config: webpack.Configuration = {
-        entry: loader,
-        mode: "development",
-        output: {
-            path: "/",
-            filename: "index.js",
-            libraryTarget: "commonjs2"
-        },
-        target: "node",
-        resolveLoader: { modules: [__dirname, `${__dirname}/build}`] },
-        ...webpackOptions
-    };
-
-    const childLoader = `cloudify-loader?${getUrlEncodedQueryParameters({
-        ...loaderOptions,
-        type: "child",
-        trampolineModule: require.resolve("./trampoline")
-    })}!`;
-    const childProcessConfig: webpack.Configuration = {
-        entry: childLoader,
-        mode: "development",
-        output: {
-            path: "/",
-            filename: "child-index.js",
-            libraryTarget: "commonjs2"
-        },
-        target: "node",
-        resolveLoader: { modules: [__dirname, `${__dirname}/build}`] },
-        ...webpackOptions
-    };
-
-    return new Promise<PackerResult>((resolve, reject) => {
-        const mfs = new MemoryFileSystem();
-        const dependencies = (packageJson && addPackageJson(mfs, packageJson)) || [];
-        const { externals = [] } = webpackOptions;
-        const externalsArray = Array.isArray(externals) ? externals : [externals];
+    function runWebpack(entry: string, outputFilename: string) {
+        const config: webpack.Configuration = {
+            entry,
+            mode: "development",
+            output: {
+                path: "/",
+                filename: outputFilename,
+                libraryTarget: "commonjs2"
+            },
+            target: "node",
+            resolveLoader: { modules: [__dirname, `${__dirname}/build}`] },
+            ...webpackOptions
+        };
         config.externals = [...externalsArray, ...dependencies];
-
-        let finished = 0;
-
         log(`webpack config: %O`, config);
         const compiler = webpack(config);
         compiler.outputFileSystem = mfs as any;
-        compiler.run((err, stats) => {
-            if (err) {
-                reject(err);
-            } else {
-                log(stats.toString());
-                if (++finished === 2) {
+        return new Promise((resolve, reject) =>
+            compiler.run((err, stats) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    log(stats.toString());
                     log(`Memory filesystem: %O`, mfs.data);
-                    resolve(prepareZipArchive(mfs));
+                    resolve();
                 }
-            }
-        });
+            })
+        );
+    }
 
-        log(`webpack child config: %O`, childProcessConfig);
-        const childCompiler = webpack(childProcessConfig);
-        childCompiler.outputFileSystem = mfs as any;
-        childProcessConfig.externals = [...externalsArray, ...dependencies];
-        childCompiler.run((err, stats) => {
-            if (err) {
-                reject(err);
-            } else {
-                log(stats.toString());
-                if (++finished === 2) {
-                    log(`Memory filesystem: %O`, mfs.data);
-                    resolve(prepareZipArchive(mfs));
-                }
-            }
-        });
-    });
+    if (mode === "immediate") {
+        const loader = `cloudify-loader?${getUrlEncodedQueryParameters({
+            type: "immediate",
+            trampolineModule: trampolineModule.moduleWrapper.parentFilename!,
+            functionModule
+        })}!`;
+        await runWebpack(loader, "index.js");
+        return prepareZipArchive();
+    } else if (mode === "childprocess") {
+        const parentLoader = `cloudify-loader?${getUrlEncodedQueryParameters({
+            type: "parent",
+            trampolineModule: trampolineModule.moduleWrapper.parentFilename!
+        })}!`;
+        await runWebpack(parentLoader, "index.js");
+
+        const childLoader = `cloudify-loader?${getUrlEncodedQueryParameters({
+            type: "child",
+            moduleWrapper: require.resolve("./trampoline"),
+            functionModule
+        })}!`;
+        await runWebpack(childLoader, "child-index.js");
+        return prepareZipArchive();
+    } else {
+        throw new Error(`Unknown mode ${mode}`);
+    }
 }

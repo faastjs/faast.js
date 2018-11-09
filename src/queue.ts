@@ -1,5 +1,5 @@
 import debug from "debug";
-import { Deferred, Pump } from "./funnel";
+import { Pump, Deferred } from "./funnel";
 import { sleep } from "./shared";
 import { warn } from "./log";
 import {

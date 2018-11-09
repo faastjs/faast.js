@@ -38,7 +38,7 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
 };
 
 async function initialize(serverModule: string, options: Options = {}): Promise<State> {
-    const moduleWrapper = new ModuleWrapper({ verbose: false });
+    const moduleWrapper = new ModuleWrapper(module.filename, { verbose: false });
     moduleWrapper.register(require(serverModule));
     if (options.memorySize) {
         warn(`cloudify type 'immediate' does not support memorySize option, ignoring.`);

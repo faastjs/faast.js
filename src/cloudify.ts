@@ -3,7 +3,7 @@ import * as uuidv4 from "uuid/v4";
 import * as aws from "./aws/aws-cloudify";
 import * as childprocess from "./childprocess/childprocess-cloudify";
 import * as costAnalyzer from "./cost-analyzer";
-import { Deferred, Funnel } from "./funnel";
+import { Funnel, Deferred } from "./funnel";
 import * as google from "./google/google-cloudify";
 import * as immediate from "./immediate/immediate-cloudify";
 import { log, logLeaks, stats, warn } from "./log";

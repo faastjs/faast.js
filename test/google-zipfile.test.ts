@@ -19,6 +19,14 @@ checkCodeBundle(
 );
 
 checkCodeBundle(
+    "Package google https function with bundling and childprocess",
+    "google",
+    "https-bundle-childprocess",
+    100 * kb,
+    { childProcess: true }
+);
+
+checkCodeBundle(
     "Package google queue function with bundling",
     "google",
     "queue-bundle",
@@ -36,6 +44,17 @@ checkCodeBundle(
     {
         mode: "queue",
         packageJson: "test/package.json"
+    }
+);
+
+checkCodeBundle(
+    "Package google queue function with bundling and childprocess",
+    "google",
+    "queue-bundle-childprocess",
+    700 * kb,
+    {
+        mode: "queue",
+        childProcess: true
     }
 );
 

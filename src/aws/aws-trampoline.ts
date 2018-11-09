@@ -13,7 +13,7 @@ import { env } from "process";
 
 const awsSqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
-export const moduleWrapper = new ModuleWrapper();
+export const moduleWrapper = new ModuleWrapper(module.filename);
 
 export async function trampoline(
     event: FunctionCall | SNSEvent,

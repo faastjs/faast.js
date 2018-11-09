@@ -1,11 +1,16 @@
 import { AnyFunction } from "./type-helpers";
 import { deepStrictEqual } from "assert";
-import { warn } from "./log";
 import * as childProcess from "child_process";
+import { inspect } from "util";
 import { Deferred } from "./funnel";
 
 export interface CallId {
     CallId: string;
+}
+
+export interface Trampoline {
+    trampoline: AnyFunction;
+    moduleWrapper: ModuleWrapper;
 }
 
 export interface FunctionCall extends CallId {
@@ -74,7 +79,7 @@ export class ModuleWrapper {
     child?: childProcess.ChildProcess;
     deferred?: Deferred<FunctionReturn>;
 
-    constructor({ verbose = true } = {}) {
+    constructor(public parentFilename: string, { verbose = true } = {}) {
         this.verbose = verbose;
         if (verbose) {
             console.log(`cloudify: successful cold start.`);
@@ -106,8 +111,6 @@ export class ModuleWrapper {
         try {
             const memoryUsage = process.memoryUsage();
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
-            this.verbose &&
-                console.log(`cloudify: Invoking '${call.name}', memory: %O`, memoryUsage);
             if (call.childProcess) {
                 this.deferred = new Deferred();
                 if (!this.child) {
@@ -115,6 +118,14 @@ export class ModuleWrapper {
                     this.child = childProcess.fork("./child-index.js", [], {
                         silent: false
                     });
+                    // this.child.stdout.pipe(process.stdout);
+                    // this.child.stderr.pipe(process.stderr);
+                    this.child.stdout.setEncoding("utf8");
+                    this.child.stderr.setEncoding("utf8");
+
+                    this.child.stdout.on("data", console.error);
+                    this.child.stderr.on("data", console.error);
+
                     this.child.on("message", (value: FunctionReturn) =>
                         this.deferred!.resolve(value)
                     );
@@ -143,6 +154,9 @@ export class ModuleWrapper {
                 this.deferred!.promise.then(_ => (this.deferred = undefined));
                 return this.deferred.promise;
             } else {
+                const memInfo = inspect(memoryUsage, { compact: true });
+                this.verbose &&
+                    console.log(`cloudify: Invoking '${call.name}', memory: ${memInfo}`);
                 const func = this.lookupFunction(call);
                 const returned = await func.apply(undefined, call.args);
                 const rv: FunctionReturn = {
@@ -200,10 +214,10 @@ export function serializeCall(call: FunctionCall) {
     try {
         deepStrictEqual(deserialized, call);
     } catch (_) {
-        warn(`WARNING: problem serializing arguments to JSON`);
-        warn(`deserialized arguments: %O`, deserialized);
-        warn(`original arguments: %O`, call);
-        warn(
+        console.warn(`WARNING: problem serializing arguments to JSON`);
+        console.warn(`deserialized arguments: %O`, deserialized);
+        console.warn(`original arguments: %O`, call);
+        console.warn(
             `Detected function '${
                 call.name
             }' argument loses information when serialized by JSON.stringify()`
