@@ -19,10 +19,10 @@ import { log, logGc, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import {
+    CommonOptionDefaults,
     computeHttpResponseBytes,
     hasExpired,
-    sleep,
-    CommonOptionDefaults
+    sleep
 } from "../shared";
 import {
     FunctionCall,
@@ -43,6 +43,7 @@ import {
     sqsMessageAttribute
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
+import * as awsTrampoline from "./aws-trampoline";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -834,15 +835,13 @@ function deleteGarbageFunctions(
     });
 }
 
-import * as trampoline from "./aws-trampoline";
-
 export async function pack(
     functionModule: string,
     options?: Options
 ): Promise<PackerResult> {
     const { webpackOptions, ...rest }: PackerOptions = options || {};
     const mode = options && options.childProcess ? "childprocess" : "immediate";
-    return packer(mode, trampoline, functionModule, {
+    return packer(mode, awsTrampoline, functionModule, {
         webpackOptions: { externals: "aws-sdk", ...webpackOptions },
         ...rest
     });

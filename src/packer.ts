@@ -162,7 +162,7 @@ export async function packer(
     if (mode === "immediate") {
         const loader = `cloudify-loader?${getUrlEncodedQueryParameters({
             type: "immediate",
-            trampolineModule: trampolineModule.moduleWrapper.parentFilename!,
+            trampolineModule: trampolineModule.filename,
             functionModule
         })}!`;
         await runWebpack(loader, "index.js");
@@ -170,7 +170,7 @@ export async function packer(
     } else if (mode === "childprocess") {
         const parentLoader = `cloudify-loader?${getUrlEncodedQueryParameters({
             type: "parent",
-            trampolineModule: trampolineModule.moduleWrapper.parentFilename!
+            trampolineModule: trampolineModule.filename
         })}!`;
         await runWebpack(parentLoader, "index.js");
 

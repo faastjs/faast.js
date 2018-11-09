@@ -5,7 +5,9 @@ import PubSubApi = pubsub_v1;
 import { getExecutionLogUrl } from "./google-shared";
 import { env } from "process";
 
-export const moduleWrapper = new ModuleWrapper(module.filename);
+export const filename = module.filename;
+
+export const moduleWrapper = new ModuleWrapper();
 
 interface CloudFunctionContext {
     eventId: string;

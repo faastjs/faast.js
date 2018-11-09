@@ -9,6 +9,7 @@ export interface CallId {
 }
 
 export interface Trampoline {
+    filename: string;
     trampoline: AnyFunction;
     moduleWrapper: ModuleWrapper;
 }
@@ -79,7 +80,7 @@ export class ModuleWrapper {
     child?: childProcess.ChildProcess;
     deferred?: Deferred<FunctionReturn>;
 
-    constructor(public parentFilename: string, { verbose = true } = {}) {
+    constructor({ verbose = module.parent === undefined } = {}) {
         this.verbose = verbose;
         if (verbose) {
             console.log(`cloudify: successful cold start.`);
@@ -214,11 +215,11 @@ export function serializeCall(call: FunctionCall) {
     try {
         deepStrictEqual(deserialized, call);
     } catch (_) {
-        console.warn(`WARNING: problem serializing arguments to JSON`);
-        console.warn(`deserialized arguments: %O`, deserialized);
-        console.warn(`original arguments: %O`, call);
-        console.warn(
-            `Detected function '${
+        throw new Error(
+            `WARNING: problem serializing arguments to JSON
+deserialized arguments: ${inspect(deserialized)}
+original arguments: ${inspect(call)}
+Detected function '${
                 call.name
             }' argument loses information when serialized by JSON.stringify()`
         );

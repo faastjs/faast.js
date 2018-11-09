@@ -86,9 +86,7 @@ export function checkFunctions(
         });
 
         test("promise args not supported", async () => {
-            const saved = disableWarnings();
-            expect(await remote.promiseArg(Promise.resolve("hello"))).toEqual({});
-            saved && enableWarnings();
+            expect(remote.promiseArg(Promise.resolve("hello"))).rejects.toThrowError();
         });
 
         test("optional arguments are supported", async () => {
