@@ -116,7 +116,7 @@ export class ModuleWrapper {
                 if (!this.child) {
                     this.verbose && console.log(`Creating child process`);
                     this.child = childProcess.fork("./child-index.js", [], {
-                        silent: false
+                        silent: true
                     });
                     // this.child.stdout.pipe(process.stdout);
                     // this.child.stderr.pipe(process.stderr);
