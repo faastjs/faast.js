@@ -124,7 +124,6 @@ export let defaults: Required<Options> = {
 export const Impl: CloudImpl<Options, State> = {
     name: "aws",
     initialize,
-    cleanupResources,
     pack,
     getFunctionImpl,
     defaults
@@ -357,8 +356,11 @@ export function logUrl(state: State) {
     return getLogUrl(region, FunctionName);
 }
 
-export async function initialize(fModule: string, options: Options = {}): Promise<State> {
-    const nonce = uuidv4();
+export async function initialize(
+    fModule: string,
+    nonce: string,
+    options: Options = {}
+): Promise<State> {
     log(`Nonce: ${nonce}`);
 
     const {
@@ -847,18 +849,6 @@ export async function pack(
     });
 }
 
-export function cleanupResources(resourceString: string) {
-    const resources: AWSResources = JSON.parse(resourceString);
-    if (!resources.region) {
-        throw new Error("Resources missing 'region'");
-    }
-    const services = createAWSApis(resources.region);
-    return cleanup({
-        resources,
-        services
-    });
-}
-
 export async function stop(state: PartialState) {
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
@@ -869,7 +859,6 @@ export async function stop(state: PartialState) {
         await state.gcPromise;
         log(`Garbage collection done.`);
     }
-    return JSON.stringify(state.resources);
 }
 
 export function getFunctionImpl() {

@@ -13,18 +13,6 @@ test(
 );
 
 test(
-    "removes ephemeral resources from a resource list",
-    async () => {
-        const cloud = cloudify.create("aws");
-        const func = await cloud.createFunction("./functions", { mode: "queue" });
-        const resourceList = await func.stop();
-        await cloud.cleanupResources(resourceList);
-        await checkResourcesCleanedUp(await getAWSResources(func));
-    },
-    30 * 1000
-);
-
-test(
     "removes s3 buckets",
     async () => {
         const cloud = cloudify.create("aws");

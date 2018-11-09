@@ -114,7 +114,6 @@ export const defaults: Required<Options> = {
 export const Impl: CloudImpl<Options, State> = {
     name: "google",
     initialize,
-    cleanupResources,
     pack,
     getFunctionImpl,
     defaults
@@ -232,10 +231,14 @@ async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) 
     );
 }
 
-export async function initialize(fmodule: string, options: Options = {}): Promise<State> {
+export async function initialize(
+    fmodule: string,
+    nonce: string,
+    options: Options = {}
+): Promise<State> {
     const services = await initializeGoogleServices();
     const project = await google.auth.getProjectId();
-    return initializeWithApi(services, fmodule, options, project, false);
+    return initializeWithApi(services, fmodule, nonce, options, project, false);
 }
 
 async function getEmulator(): Promise<CloudFunctions.Cloudfunctions> {
@@ -252,12 +255,17 @@ async function getEmulator(): Promise<CloudFunctions.Cloudfunctions> {
     return emulator as any;
 }
 
-export async function initializeEmulator(fmodule: string, options: Options = {}) {
+export async function initializeEmulator(
+    fmodule: string,
+    nonce: string,
+    options: Options = {}
+) {
     const services = await initializeGoogleServices(true);
     const project = await google.auth.getProjectId();
     return initializeWithApi(
         services,
         fmodule,
+        nonce,
         {
             ...options,
             mode: "https"
@@ -272,6 +280,7 @@ const priceRequestFunnel = new MemoFunnel<string, GoogleCloudPricing>(1);
 async function initializeWithApi(
     services: GoogleServices,
     serverModule: string,
+    nonce: string,
     options: Options,
     project: string,
     isEmulator: boolean
@@ -287,7 +296,6 @@ async function initializeWithApi(
         retentionInDays = defaults.retentionInDays,
         googleCloudFunctionOptions
     } = options;
-    const nonce = uuidv4();
     log(`Nonce: ${nonce}`);
     const location = `projects/${project}/locations/${region}`;
 
@@ -722,12 +730,6 @@ export async function pack(
     });
 }
 
-export async function cleanupResources(resourcesString: string) {
-    const resources: GoogleResources = JSON.parse(resourcesString);
-    const services = await initializeGoogleServices(resources.isEmulator);
-    return cleanup({ resources, services });
-}
-
 export async function stop(state: Partial<State>) {
     if (state.queueState) {
         await cloudqueue.stop(state.queueState);
@@ -737,7 +739,6 @@ export async function stop(state: Partial<State>) {
         await state.gcPromise;
         log(`Garbage collection done.`);
     }
-    return JSON.stringify(state.resources);
 }
 
 export function getFunctionImpl() {

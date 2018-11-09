@@ -35,7 +35,6 @@ export const defaults = {
 export const Impl: CloudImpl<Options, State> = {
     name: "process",
     initialize,
-    cleanupResources,
     pack,
     getFunctionImpl,
     defaults
@@ -48,15 +47,17 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
     stop
 };
 
-async function initialize(serverModule: string, options: Options = {}): Promise<State> {
+async function initialize(
+    serverModule: string,
+    nonce: string,
+    options: Options = {}
+): Promise<State> {
     return {
         resources: { childProcesses: new Set() },
         serverModule,
         options
     };
 }
-
-async function cleanupResources(_resources: string): Promise<void> {}
 
 async function pack(_functionModule: string, _options?: Options): Promise<PackerResult> {
     throw new Error("Pack not supported for process-cloudify");
@@ -176,12 +177,11 @@ async function cleanup(state: State): Promise<void> {
     await stop(state);
 }
 
-async function stop(state: State): Promise<string> {
+async function stop(state: State) {
     const childProcesses = state.resources.childProcesses;
     const completed = Promise.all(
         [...childProcesses].map(p => new Promise(resolve => p.on("exit", resolve)))
     );
     childProcesses.forEach(p => p.kill());
     await completed;
-    return "";
 }

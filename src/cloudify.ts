@@ -96,20 +96,17 @@ export class Cloud<O extends CommonOptions, S> {
         return this.impl.defaults;
     }
 
-    cleanupResources(resources: string): Promise<void> {
-        return this.impl.cleanupResources(resources);
-    }
-
     pack(fmodule: string, options?: O): Promise<PackerResult> {
         return this.impl.pack(resolveModule(fmodule), options);
     }
 
     async createFunction(modulePath: string, options?: O): Promise<CloudFunction<O, S>> {
         const resolvedModule = resolveModule(modulePath);
+        const cloudifyFunctionId = uuidv4();
         return new CloudFunction(
             this,
             this.impl.getFunctionImpl(),
-            await this.impl.initialize(resolvedModule, options),
+            await this.impl.initialize(resolvedModule, cloudifyFunctionId, options),
             resolvedModule,
             options
         );
@@ -694,8 +691,7 @@ export async function cloudify<O extends CommonOptions, S, M extends object>(
 
 export interface CloudImpl<O, S> {
     name: string;
-    initialize(serverModule: string, options?: O): Promise<S>;
-    cleanupResources(resources: string): Promise<void>;
+    initialize(serverModule: string, functionId: string, options?: O): Promise<S>;
     pack(functionModule: string, options?: O): Promise<PackerResult>;
     getFunctionImpl(): CloudFunctionImpl<S>;
     defaults: O;
@@ -713,7 +709,7 @@ export interface CloudFunctionImpl<State> {
     callFunction(state: State, call: FunctionCall): Promise<FunctionReturnWithMetrics>;
 
     cleanup(state: State): Promise<void>;
-    stop(state: State): Promise<string>;
+    stop(state: State): Promise<void>;
     logUrl?: (state: State) => string;
 }
 
