@@ -108,6 +108,10 @@ export class ModuleWrapper {
         return func;
     }
 
+    stop() {
+        this.child && this.child.disconnect();
+    }
+
     async execute(callingContext: CallingContext): Promise<FunctionReturn> {
         try {
             const memoryUsage = process.memoryUsage();
@@ -174,8 +178,9 @@ export class ModuleWrapper {
                 return rv;
             }
         } catch (err) {
-            console.error(`Caught error in moduleWrapper.execute`);
-            this.verbose && console.error(err);
+            if (this.verbose) {
+                console.error(err);
+            }
             return createErrorResponse(err, callingContext);
         }
     }

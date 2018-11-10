@@ -93,7 +93,7 @@ export function sleep(ms: number, callback: (cancel: () => void) => void = () =>
     });
 }
 
-export function streamToBuffer(s: Readable) {
+export function streamToBuffer(s: NodeJS.ReadableStream) {
     return new Promise<Buffer>((resolve, reject) => {
         const buffers: Buffer[] = [];
         s.on("error", reject);

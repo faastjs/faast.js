@@ -1,10 +1,12 @@
 import * as sys from "child_process";
 import * as fs from "fs";
 import * as path from "path";
+import { PassThrough } from "stream";
 import * as awsCloudify from "../src/aws/aws-cloudify";
 import * as cloudify from "../src/cloudify";
 import * as googleCloudify from "../src/google/google-cloudify";
-import { disableWarnings, enableWarnings, log, warn } from "../src/log";
+import { log, warn } from "../src/log";
+import { unzipInDir } from "../src/packer";
 import * as funcs from "./functions";
 
 export function checkFunctions(
@@ -107,10 +109,6 @@ function exec(cmd: string) {
     return result;
 }
 
-function unzipInDir(dir: string, zipFile: string) {
-    exec(`rm -rf ${dir} && mkdir -p ${dir} && unzip ${zipFile} -d ${dir}`);
-}
-
 export function checkCodeBundle(
     description: string,
     cloudProvider: "aws",
@@ -142,20 +140,22 @@ export function checkCodeBundle(
                 const identifier = `func-${cloudProvider}-${packageType}`;
                 const tmpDir = path.join("tmp", identifier);
                 exec(`mkdir -p ${tmpDir}`);
-                const zipFile = path.join("tmp", identifier) + ".zip";
                 const { archive } = await cloudify
                     .create(cloudProvider)
                     .pack("./functions", options);
 
-                await new Promise((resolve, reject) => {
-                    const output = fs.createWriteStream(zipFile);
-                    output.on("finish", resolve);
-                    output.on("error", reject);
-                    archive.pipe(output);
-                });
-                unzipInDir(tmpDir, zipFile);
-                maxZipFileSize &&
-                    expect(fs.statSync(zipFile).size).toBeLessThan(maxZipFileSize);
+                const stream1 = archive.pipe(new PassThrough());
+                const stream2 = archive.pipe(new PassThrough());
+
+                const zipFile = path.join("tmp", identifier + ".zip");
+                stream2.pipe(fs.createWriteStream(zipFile));
+                const writePromise = new Promise(resolve => stream2.on("end", resolve));
+
+                const unzipPromise = unzipInDir(tmpDir, stream1);
+
+                await Promise.all([writePromise, unzipPromise]);
+                const bytes = fs.statSync(zipFile).size;
+                maxZipFileSize && expect(bytes).toBeLessThan(maxZipFileSize);
                 expect(exec(`cd ${tmpDir} && node index.js`)).toMatch(
                     "cloudify: successful cold start."
                 );

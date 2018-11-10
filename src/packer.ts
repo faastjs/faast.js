@@ -1,16 +1,19 @@
 import { Archiver } from "archiver";
 import * as fs from "fs";
 import * as path from "path";
+import * as rimraf from "rimraf";
+import { Readable } from "stream";
+import { promisify } from "util";
 import * as webpack from "webpack";
+import * as yauzl from "yauzl";
+import { ZipFile } from "yauzl";
 import { LoaderOptions } from "./cloudify-loader";
-
 import { log, warn } from "./log";
+import { streamToBuffer } from "./shared";
+import { Trampoline } from "./trampoline";
+
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
-import * as JSZip from "jszip";
-import { streamToBuffer } from "./shared";
-import { promisify } from "util";
-import { Trampoline } from "./trampoline";
 
 export interface PackerOptions {
     webpackOptions?: webpack.Configuration;
@@ -18,8 +21,6 @@ export interface PackerOptions {
     addDirectory?: string | string[];
     addZipFile?: string | string[];
 }
-
-const readFile = promisify(fs.readFile);
 
 export interface PackerResult {
     archive: NodeJS.ReadableStream;
@@ -91,19 +92,11 @@ export async function packer(
     }
 
     async function processAddZips(archive: Archiver, zipFiles: string[]) {
-        if (zipFiles.length === 0) {
-            return;
-        }
-        const zip = new JSZip();
-        await zip.loadAsync(await streamToBuffer(archive));
         for (const zipFile of zipFiles) {
-            await zip.loadAsync(await readFile(zipFile));
+            await processZip(zipFile, (filename, contents) => {
+                archive.append(contents, { name: filename });
+            });
         }
-
-        return zip.generateNodeStream({
-            compression: "DEFLATE",
-            compressionOptions: { level: 8 }
-        });
     }
 
     async function prepareZipArchive(): Promise<PackerResult> {
@@ -115,14 +108,15 @@ export async function packer(
             addDirectory = [addDirectory];
         }
         addDirectory && processAddDirectories(archive, addDirectory);
-        archive.finalize();
         if (typeof addZipFile === "string") {
             addZipFile = [addZipFile];
         }
-        const result =
-            (addZipFile && (await processAddZips(archive, addZipFile))) || archive;
+        if (addZipFile) {
+            await processAddZips(archive, addZipFile);
+        }
+        archive.finalize();
         const indexContents = mfs.readFileSync("/index.js").toString();
-        return { archive: result, indexContents };
+        return { archive, indexContents };
     }
 
     const dependencies = (packageJson && addPackageJson(packageJson)) || [];
@@ -184,4 +178,82 @@ export async function packer(
     } else {
         throw new Error(`Unknown mode ${mode}`);
     }
+}
+
+/**
+ *
+ *
+ * @export
+ * @param {NodeJS.ReadableStream | string} archive A zip archive as a stream or a filename
+ * @param {(filename: string, contents: Readable) => void} processEntry Every
+ * entry's contents must be consumed, otherwise the next entry won't be read.
+ * @returns
+ */
+export async function processZip(
+    archive: NodeJS.ReadableStream | string,
+    processEntry: (filename: string, contents: Readable) => void
+) {
+    return new Promise<void>(async (resolve, reject) => {
+        let zip: ZipFile;
+        if (typeof archive === "string") {
+            zip = await new Promise<ZipFile>((resolve, reject) =>
+                yauzl.open(
+                    archive,
+                    { lazyEntries: true },
+                    (err, zip) => (err ? reject(err) : resolve(zip))
+                )
+            );
+        } else {
+            const buf = await streamToBuffer(archive);
+            zip = await new Promise<ZipFile>((resolve, reject) =>
+                yauzl.fromBuffer(
+                    buf,
+                    { lazyEntries: true },
+                    (err, zip) => (err ? reject(err) : resolve(zip))
+                )
+            );
+        }
+        if (!zip) {
+            reject(new Error("Error with zip file processing"));
+            return;
+        }
+        zip.readEntry();
+        zip.on("entry", (entry: yauzl.Entry) => {
+            if (/\/$/.test(entry.fileName)) {
+                zip.readEntry();
+            } else {
+                zip.openReadStream(entry, function(err, readStream) {
+                    if (err) throw err;
+                    readStream!.on("end", function() {
+                        zip.readEntry();
+                    });
+                    processEntry(entry.fileName, readStream!);
+                });
+            }
+        });
+        zip.on("end", resolve);
+    });
+}
+
+const mkdir = promisify(fs.mkdir);
+const exists = promisify(fs.exists);
+const rmrf = promisify(rimraf);
+
+export async function unzipInDir(dir: string, archive: NodeJS.ReadableStream) {
+    await rmrf(dir);
+    await mkdir(dir, { recursive: true });
+    let total = 0;
+    await processZip(archive, async (filename, contents) => {
+        const destinationFilename = path.join(dir, filename);
+        const { dir: outputDir } = path.parse(destinationFilename);
+        if (!(await exists(outputDir))) {
+            await mkdir(outputDir, { recursive: true });
+        }
+        const stream = fs.createWriteStream(destinationFilename, {
+            mode: 0o700
+        });
+        contents.on("data", chunk => (total += chunk.length));
+        contents.pipe(stream);
+    });
+    return total;
 }

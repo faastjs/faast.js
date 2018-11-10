@@ -2,10 +2,10 @@ import * as cloudify from "../src/cloudify";
 import * as funcs from "./functions";
 import { checkFunctions } from "./tests";
 
-checkFunctions("cloudify-immediate basic functions", "immediate", {
-    // Remove these options to avoid unsupported warning.
-    memorySize: undefined,
-    timeout: undefined
+checkFunctions("cloudify-immediate basic functions", "immediate", {});
+
+checkFunctions("cloudify-immediate with childprocess basic functions", "immediate", {
+    childProcess: true
 });
 
 test("cloudify-immediate cleanup stops executions", async () => {
