@@ -32,7 +32,7 @@ import {
     FunctionReturn,
     FunctionReturnWithMetrics,
     serializeCall
-} from "../trampoline";
+} from "../module-wrapper";
 import { Mutable } from "../type-helpers";
 import {
     getMessageBody,

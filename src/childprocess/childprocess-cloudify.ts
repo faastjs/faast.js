@@ -6,7 +6,7 @@ import {
     FunctionReturn,
     FunctionReturnWithMetrics,
     createErrorResponse
-} from "../trampoline";
+} from "../module-wrapper";
 import { CommonOptionDefaults } from "../shared";
 
 export interface ProcessResources {

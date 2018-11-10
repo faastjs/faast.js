@@ -7,7 +7,7 @@ import {
     serializeCall,
     FunctionReturnWithMetrics,
     FunctionReturn
-} from "./trampoline";
+} from "./module-wrapper";
 import { Attributes } from "./type-helpers";
 const log = debug("cloudify:collector");
 

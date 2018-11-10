@@ -6,7 +6,7 @@ import {
     ModuleWrapper,
     createErrorResponse,
     CallingContext
-} from "../trampoline";
+} from "../module-wrapper";
 import { publishSQS, publishSQSControlMessage } from "./aws-queue";
 import { getExecutionLogUrl } from "./aws-shared";
 import { env } from "process";

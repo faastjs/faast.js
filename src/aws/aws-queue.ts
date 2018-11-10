@@ -2,7 +2,7 @@ import * as aws from "aws-sdk";
 import * as cloudqueue from "../queue";
 import { log, warn } from "../log";
 import { SNSEvent } from "aws-lambda";
-import { FunctionCall } from "../trampoline";
+import { FunctionCall } from "../module-wrapper";
 import { AWSMetrics } from "./aws-cloudify";
 import { Attributes } from "../type-helpers";
 import { sum, computeHttpResponseBytes } from "../shared";

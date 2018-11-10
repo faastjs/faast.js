@@ -14,7 +14,7 @@ import {
     FunctionReturnWithMetrics,
     ModuleWrapper,
     serializeCall
-} from "../trampoline";
+} from "../module-wrapper";
 import * as immediateTrampoline from "./immediate-trampoline";
 
 const rmrf = promisify(rimraf);

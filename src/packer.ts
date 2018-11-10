@@ -10,7 +10,7 @@ import { ZipFile } from "yauzl";
 import { LoaderOptions } from "./cloudify-loader";
 import { log, warn } from "./log";
 import { streamToBuffer } from "./shared";
-import { Trampoline } from "./trampoline";
+import { Trampoline } from "./module-wrapper";
 
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");

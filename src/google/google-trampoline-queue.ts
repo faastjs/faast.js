@@ -1,6 +1,6 @@
 import { google, pubsub_v1 } from "googleapis";
 import { publish, publishControlMessage } from "./google-queue";
-import { ModuleWrapper, FunctionCall, createErrorResponse } from "../trampoline";
+import { ModuleWrapper, FunctionCall, createErrorResponse } from "../module-wrapper";
 import PubSubApi = pubsub_v1;
 import { getExecutionLogUrl } from "./google-shared";
 import { env } from "process";

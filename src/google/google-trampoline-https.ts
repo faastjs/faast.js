@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ModuleWrapper, FunctionCall, createErrorResponse } from "../trampoline";
+import { ModuleWrapper, FunctionCall, createErrorResponse } from "../module-wrapper";
 import { env } from "process";
 import { getExecutionLogUrl } from "./google-shared";
 

@@ -1,5 +1,5 @@
 import * as process from "process";
-import { ModuleWrapper, FunctionReturn, createErrorResponse } from "../trampoline";
+import { ModuleWrapper, FunctionReturn, createErrorResponse } from "../module-wrapper";
 import { ProcessFunctionCall } from "./childprocess-cloudify";
 
 export const moduleWrapper = new ModuleWrapper();

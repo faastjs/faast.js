@@ -29,7 +29,7 @@ import {
     FunctionReturn,
     FunctionReturnWithMetrics,
     serializeCall
-} from "../trampoline";
+} from "../module-wrapper";
 import * as awsNpm from "./aws-npm";
 import {
     createSNSTopic,

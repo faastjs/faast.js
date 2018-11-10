@@ -17,7 +17,7 @@ import {
     sleep,
     CommonOptionDefaults
 } from "./shared";
-import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "./trampoline";
+import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "./module-wrapper";
 import { NonFunctionProperties, Unpacked } from "./type-helpers";
 import Module = require("module");
 
