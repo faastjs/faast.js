@@ -15,7 +15,7 @@ import {
     ModuleWrapper,
     serializeCall
 } from "../module-wrapper";
-import * as immediateTrampoline from "./immediate-trampoline";
+import * as immediateTrampolineFactory from "./immediate-trampoline";
 
 const rmrf = promisify(rimraf);
 const mkdir = promisify(fs.mkdir);
@@ -58,8 +58,10 @@ async function initialize(
     options: Options = {}
 ): Promise<State> {
     const { verbose, silenceStdio = defaults.silenceStdio } = options;
-    const moduleWrapper = new ModuleWrapper({ verbose, silenceStdio });
-    moduleWrapper.register(require(serverModule));
+    const moduleWrapper = new ModuleWrapper(require(serverModule), {
+        verbose,
+        silenceStdio
+    });
 
     const tempDir = path.join(tmpdir(), "cloudify-" + nonce);
     log(`tempDir: ${tempDir}`);
@@ -89,7 +91,7 @@ async function initialize(
 
 async function pack(functionModule: string, options?: Options): Promise<PackerResult> {
     const popts: PackerOptions = options || {};
-    return packer(immediateTrampoline, functionModule, popts);
+    return packer(immediateTrampolineFactory, functionModule, popts);
 }
 
 function getFunctionImpl(): CloudFunctionImpl<State> {

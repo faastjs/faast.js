@@ -101,6 +101,12 @@ export class Cloud<O extends CommonOptions, S> {
     }
 
     pack(fmodule: string, options?: O): Promise<PackerResult> {
+        if (options && options.childProcess !== undefined) {
+            options.moduleWrapperOptions = {
+                ...options.moduleWrapperOptions,
+                useChildProcess: options.childProcess
+            };
+        }
         return this.impl.pack(resolveModule(fmodule), options);
     }
 
@@ -474,8 +480,7 @@ export class CloudFunction<O extends CommonOptions, S> {
                     name: fn.name,
                     args,
                     CallId,
-                    modulePath: this.modulePath,
-                    useChildProcess: this.childProcess
+                    modulePath: this.modulePath
                 };
 
                 const invokeCloudFunction = () => {

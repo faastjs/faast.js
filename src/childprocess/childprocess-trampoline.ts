@@ -2,8 +2,6 @@ import * as process from "process";
 import { ModuleWrapper, FunctionReturn, createErrorResponse } from "../module-wrapper";
 import { ProcessFunctionCall } from "./childprocess-cloudify";
 
-export const moduleWrapper = new ModuleWrapper();
-
 process.on("message", async ({ call, serverModule, timeout }: ProcessFunctionCall) => {
     const startTime = Date.now();
 

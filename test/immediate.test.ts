@@ -11,8 +11,10 @@ checkFunctions("cloudify-immediate with childprocess basic functions", "immediat
 test("cloudify-immediate stdout and stderr with child process", async () => {
     const { remote, cloudFunc } = await cloudify("immediate", funcs, "./functions");
     await remote.consoleLog("Remote console.log output");
-    await remote.consoleWarn("Remote console.log output");
+    await remote.consoleWarn("Remote console.warn output");
+
     // XXX add checks for console.log/warn output
+
     await cloudFunc.cleanup();
 });
 

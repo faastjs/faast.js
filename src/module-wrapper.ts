@@ -12,9 +12,12 @@ export interface CallId {
 }
 
 export interface Trampoline {
-    filename: string;
     trampoline: AnyFunction;
-    moduleWrapper: ModuleWrapper;
+}
+
+export interface TrampolineFactory {
+    filename: string;
+    makeTrampoline: (moduleWrapper: ModuleWrapper) => Trampoline;
 }
 
 export interface FunctionCall extends CallId {
@@ -22,7 +25,6 @@ export interface FunctionCall extends CallId {
     modulePath: string;
     args: any[];
     ResponseQueueId?: string;
-    useChildProcess?: boolean;
 }
 
 export interface FunctionReturn extends CallId {
@@ -77,7 +79,7 @@ export function createErrorResponse(
     };
 }
 
-interface ModuleWrapperOptions {
+export interface ModuleWrapperOptions {
     /**
      * Output additional information with each execution to aid debugging. On
      * most cloud providers these go into the cloud logs. With the "immediate"
@@ -93,6 +95,8 @@ interface ModuleWrapperOptions {
      * @type {boolean}
      */
     silenceStdio?: boolean;
+
+    useChildProcess?: boolean;
 }
 
 export class ModuleWrapper {
@@ -101,13 +105,14 @@ export class ModuleWrapper {
     deferred?: Deferred<FunctionReturn>;
     silenceStdio: boolean;
     verbose: boolean;
+    useChildProcess: boolean;
 
-    constructor({
-        verbose = module.parent === undefined,
-        silenceStdio = false
-    }: ModuleWrapperOptions = {}) {
+    constructor(fModule: ModuleType, options: ModuleWrapperOptions = {}) {
+        const { verbose = true, silenceStdio = false, useChildProcess = false } = options;
+        this.funcs = fModule;
         this.verbose = verbose;
         this.silenceStdio = silenceStdio;
+        this.useChildProcess = useChildProcess;
 
         if (process.env["CLOUDIFY_CHILD"]) {
             console.log(`cloudify: started child process for module wrapper.`);
@@ -124,10 +129,6 @@ export class ModuleWrapper {
         } else if (verbose) {
             console.log(`cloudify: successful cold start.`);
         }
-    }
-
-    register(moduleObj: ModuleType) {
-        this.funcs = moduleObj;
     }
 
     lookupFunction(request: object): AnyFunction {
@@ -157,7 +158,7 @@ export class ModuleWrapper {
         try {
             const memoryUsage = process.memoryUsage();
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
-            if (call.useChildProcess) {
+            if (this.useChildProcess) {
                 this.deferred = new Deferred();
                 if (!this.child) {
                     this.verbose && console.log(`Creating child process`);

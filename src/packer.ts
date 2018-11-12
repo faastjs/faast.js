@@ -10,8 +10,7 @@ import { ZipFile } from "yauzl";
 import { LoaderOptions } from "./cloudify-loader";
 import { log, warn } from "./log";
 import { streamToBuffer } from "./shared";
-import { Trampoline } from "./module-wrapper";
-import * as moduleWrapper from "./module-wrapper";
+import { TrampolineFactory, ModuleWrapperOptions } from "./module-wrapper";
 
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
@@ -21,6 +20,7 @@ export interface PackerOptions {
     packageJson?: string | object | false;
     addDirectory?: string | string[];
     addZipFile?: string | string[];
+    moduleWrapperOptions?: ModuleWrapperOptions;
 }
 
 export interface PackerResult {
@@ -36,17 +36,18 @@ function getUrlEncodedQueryParameters(options: LoaderOptions) {
 }
 
 export async function packer(
-    trampolineModule: Trampoline,
+    trampolineFactory: TrampolineFactory,
     functionModule: string,
     {
         webpackOptions = {},
         packageJson,
         addDirectory,
         addZipFile,
-        ...otherPackerOptions
+        moduleWrapperOptions = {},
+        ...rest
     }: PackerOptions
 ): Promise<PackerResult> {
-    const _exhaustiveCheck: Required<typeof otherPackerOptions> = {};
+    const _exhaustiveCheck: Required<typeof rest> = {};
     log(`Running webpack`);
     const mfs = new MemoryFileSystem();
 
@@ -154,7 +155,8 @@ export async function packer(
     }
 
     const loader = `cloudify-loader?${getUrlEncodedQueryParameters({
-        trampolineModule: trampolineModule.filename,
+        trampolineFactoryModule: trampolineFactory.filename,
+        moduleWrapperOptions,
         functionModule
     })}!`;
     await runWebpack(loader, "index.js");
