@@ -842,8 +842,7 @@ export async function pack(
     options?: Options
 ): Promise<PackerResult> {
     const { webpackOptions, ...rest }: PackerOptions = options || {};
-    const mode = options && options.childProcess ? "childprocess" : "immediate";
-    return packer(mode, awsTrampoline, functionModule, {
+    return packer(awsTrampoline, functionModule, {
         webpackOptions: { externals: "aws-sdk", ...webpackOptions },
         ...rest
     });

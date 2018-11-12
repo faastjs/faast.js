@@ -1,8 +1,11 @@
-import { AnyFunction } from "./type-helpers";
 import { deepStrictEqual } from "assert";
 import * as childProcess from "child_process";
+import * as process from "process";
 import { inspect } from "util";
 import { Deferred } from "./funnel";
+import { AnyFunction } from "./type-helpers";
+
+export const filename = module.filename;
 
 export interface CallId {
     CallId: string;
@@ -19,7 +22,7 @@ export interface FunctionCall extends CallId {
     modulePath: string;
     args: any[];
     ResponseQueueId?: string;
-    childProcess?: boolean;
+    useChildProcess?: boolean;
 }
 
 export interface FunctionReturn extends CallId {
@@ -74,15 +77,51 @@ export function createErrorResponse(
     };
 }
 
+interface ModuleWrapperOptions {
+    /**
+     * Output additional information with each execution to aid debugging. On
+     * most cloud providers these go into the cloud logs. With the "immediate"
+     * provider, the logs go to stdout. Defaults to true.
+     *
+     * @type {boolean}
+     */
+    verbose?: boolean;
+
+    /**
+     * If the call is made with child process, silence stdout.
+     *
+     * @type {boolean}
+     */
+    silenceStdio?: boolean;
+}
+
 export class ModuleWrapper {
     funcs: ModuleType = {};
-    verbose: boolean;
     child?: childProcess.ChildProcess;
     deferred?: Deferred<FunctionReturn>;
+    silenceStdio: boolean;
+    verbose: boolean;
 
-    constructor({ verbose = module.parent === undefined } = {}) {
+    constructor({
+        verbose = module.parent === undefined,
+        silenceStdio = false
+    }: ModuleWrapperOptions = {}) {
         this.verbose = verbose;
-        if (verbose) {
+        this.silenceStdio = silenceStdio;
+
+        if (process.env["CLOUDIFY_CHILD"]) {
+            console.log(`cloudify: started child process for module wrapper.`);
+            process.on("message", async (call: FunctionCall) => {
+                console.log(`Received message: %O`, call);
+                const startTime = Date.now();
+                try {
+                    const ret = await this.execute({ call, startTime });
+                    process.send!(ret);
+                } catch (err) {
+                    console.error(err);
+                }
+            });
+        } else if (verbose) {
             console.log(`cloudify: successful cold start.`);
         }
     }
@@ -108,29 +147,29 @@ export class ModuleWrapper {
         return func;
     }
 
-    stop() {
-        this.child && this.child.disconnect();
+    async stop() {
+        if (this.child) {
+            this.child.disconnect();
+        }
     }
 
     async execute(callingContext: CallingContext): Promise<FunctionReturn> {
         try {
             const memoryUsage = process.memoryUsage();
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
-            if (call.childProcess) {
+            if (call.useChildProcess) {
                 this.deferred = new Deferred();
                 if (!this.child) {
                     this.verbose && console.log(`Creating child process`);
-                    this.child = childProcess.fork("./child-index.js", [], {
-                        silent: true
+                    this.child = childProcess.fork("./index.js", [], {
+                        silent: true, // This just redirects stdout and stderr to IPC.
+                        env: { CLOUDIFY_CHILD: "true" }
                     });
-                    // this.child.stdout.pipe(process.stdout);
-                    // this.child.stderr.pipe(process.stderr);
-                    this.child.stdout.setEncoding("utf8");
-                    this.child.stderr.setEncoding("utf8");
 
-                    this.child.stdout.on("data", console.error);
-                    this.child.stderr.on("data", console.error);
-
+                    if (!this.silenceStdio) {
+                        this.child!.stdout.pipe(process.stdout);
+                        this.child!.stderr.pipe(process.stderr);
+                    }
                     this.child.on("message", (value: FunctionReturn) =>
                         this.deferred!.resolve(value)
                     );
@@ -153,7 +192,7 @@ export class ModuleWrapper {
                 }
                 this.verbose && console.log(`Sending request to child process`);
                 this.child.send(
-                    { ...call, childProcess: false },
+                    { ...call, useChildProcess: false },
                     err => err && this.deferred!.reject(err)
                 );
                 this.deferred!.promise.then(_ => (this.deferred = undefined));

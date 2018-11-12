@@ -11,6 +11,7 @@ import { LoaderOptions } from "./cloudify-loader";
 import { log, warn } from "./log";
 import { streamToBuffer } from "./shared";
 import { Trampoline } from "./module-wrapper";
+import * as moduleWrapper from "./module-wrapper";
 
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
@@ -35,7 +36,6 @@ function getUrlEncodedQueryParameters(options: LoaderOptions) {
 }
 
 export async function packer(
-    mode: "immediate" | "childprocess",
     trampolineModule: Trampoline,
     functionModule: string,
     {
@@ -153,41 +153,19 @@ export async function packer(
         );
     }
 
-    if (mode === "immediate") {
-        const loader = `cloudify-loader?${getUrlEncodedQueryParameters({
-            type: "immediate",
-            trampolineModule: trampolineModule.filename,
-            functionModule
-        })}!`;
-        await runWebpack(loader, "index.js");
-        return prepareZipArchive();
-    } else if (mode === "childprocess") {
-        const parentLoader = `cloudify-loader?${getUrlEncodedQueryParameters({
-            type: "parent",
-            trampolineModule: trampolineModule.filename
-        })}!`;
-        await runWebpack(parentLoader, "index.js");
-
-        const childLoader = `cloudify-loader?${getUrlEncodedQueryParameters({
-            type: "child",
-            moduleWrapper: require.resolve("./trampoline"),
-            functionModule
-        })}!`;
-        await runWebpack(childLoader, "child-index.js");
-        return prepareZipArchive();
-    } else {
-        throw new Error(`Unknown mode ${mode}`);
-    }
+    const loader = `cloudify-loader?${getUrlEncodedQueryParameters({
+        trampolineModule: trampolineModule.filename,
+        functionModule
+    })}!`;
+    await runWebpack(loader, "index.js");
+    return prepareZipArchive();
 }
 
 /**
- *
- *
  * @export
  * @param {NodeJS.ReadableStream | string} archive A zip archive as a stream or a filename
  * @param {(filename: string, contents: Readable) => void} processEntry Every
  * entry's contents must be consumed, otherwise the next entry won't be read.
- * @returns
  */
 export async function processZip(
     archive: NodeJS.ReadableStream | string,

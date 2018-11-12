@@ -49,7 +49,7 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
 
 async function initialize(
     serverModule: string,
-    nonce: string,
+    _nonce: string,
     options: Options = {}
 ): Promise<State> {
     return {

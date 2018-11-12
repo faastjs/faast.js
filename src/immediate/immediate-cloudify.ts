@@ -27,10 +27,14 @@ export interface State {
     tempDir: string;
 }
 
-export interface Options extends CommonOptions {}
+export interface Options extends CommonOptions {
+    verbose?: boolean;
+    silenceStdio?: boolean;
+}
 
-export const defaults: CommonOptions = {
-    ...CommonOptionDefaults
+export const defaults: Options = {
+    ...CommonOptionDefaults,
+    silenceStdio: false
 };
 
 export const Impl: CloudImpl<Options, State> = {
@@ -53,7 +57,8 @@ async function initialize(
     nonce: string,
     options: Options = {}
 ): Promise<State> {
-    const moduleWrapper = new ModuleWrapper({ verbose: false });
+    const { verbose, silenceStdio = defaults.silenceStdio } = options;
+    const moduleWrapper = new ModuleWrapper({ verbose, silenceStdio });
     moduleWrapper.register(require(serverModule));
 
     const tempDir = path.join(tmpdir(), "cloudify-" + nonce);
@@ -84,9 +89,7 @@ async function initialize(
 
 async function pack(functionModule: string, options?: Options): Promise<PackerResult> {
     const popts: PackerOptions = options || {};
-    const mode = options && options.childProcess ? "childprocess" : "immediate";
-    log(`Packer mode: ${mode}`);
-    return packer(mode, immediateTrampoline, functionModule, popts);
+    return packer(immediateTrampoline, functionModule, popts);
 }
 
 function getFunctionImpl(): CloudFunctionImpl<State> {

@@ -1,4 +1,4 @@
-import * as cloudify from "../src/cloudify";
+import { cloudify } from "../src/cloudify";
 import * as funcs from "./functions";
 import { checkFunctions } from "./tests";
 
@@ -8,19 +8,25 @@ checkFunctions("cloudify-immediate with childprocess basic functions", "immediat
     childProcess: true
 });
 
+test("cloudify-immediate stdout and stderr with child process", async () => {
+    const { remote, cloudFunc } = await cloudify("immediate", funcs, "./functions");
+    await remote.consoleLog("Remote console.log output");
+    await remote.consoleWarn("Remote console.log output");
+    // XXX add checks for console.log/warn output
+    await cloudFunc.cleanup();
+});
+
 test("cloudify-immediate cleanup stops executions", async () => {
-    const cloud = cloudify.create("immediate");
-    const func = await cloud.createFunction("./functions");
-    const immediate = func.cloudifyModule(funcs);
+    const { remote, cloudFunc } = await cloudify("immediate", funcs, "./functions");
     let done = 0;
-    immediate
+    remote
         .hello("there")
         .catch(_ => {})
         .then(_ => done++);
-    immediate
+    remote
         .delay(10)
         .catch(_ => {})
         .then(_ => done++);
-    await func.cleanup();
+    await cloudFunc.cleanup();
     expect(done).toBe(2);
 });

@@ -723,8 +723,7 @@ export async function pack(
     const trampolineModule =
         mode === "queue" ? googleTrampolineQueue : googleTrampolineHttps;
     const packerOptions: PackerOptions = options;
-    const packMode = options && options.childProcess ? "childprocess" : "immediate";
-    return packer(packMode, trampolineModule, functionModule, {
+    return packer(trampolineModule, functionModule, {
         packageJson: mode === "queue" ? "package.json" : undefined,
         ...packerOptions
     });

@@ -1,4 +1,4 @@
-import { ModuleWrapper, FunctionCall } from "../module-wrapper";
+import { FunctionCall, ModuleWrapper } from "../module-wrapper";
 
 export const filename = module.filename;
 

@@ -17,7 +17,11 @@ import {
     sleep,
     CommonOptionDefaults
 } from "./shared";
-import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "./module-wrapper";
+import {
+    FunctionCall,
+    FunctionReturn,
+    FunctionReturnWithMetrics
+} from "./module-wrapper";
 import { NonFunctionProperties, Unpacked } from "./type-helpers";
 import Module = require("module");
 
@@ -471,7 +475,7 @@ export class CloudFunction<O extends CommonOptions, S> {
                     args,
                     CallId,
                     modulePath: this.modulePath,
-                    childProcess: this.childProcess
+                    useChildProcess: this.childProcess
                 };
 
                 const invokeCloudFunction = () => {
