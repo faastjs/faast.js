@@ -672,19 +672,19 @@ export function cloudify<M extends object>(
     cloudName: "childprocess",
     fmodule: M,
     modulePath: string,
-    options?: google.Options
+    options?: childprocess.Options
 ): Promise<Cloudified<childprocess.Options, childprocess.State, M>>;
 export function cloudify<M extends object>(
     cloudName: "immediate",
     fmodule: M,
     modulePath: string,
-    options?: google.Options
+    options?: immediate.Options
 ): Promise<Cloudified<immediate.Options, immediate.State, M>>;
 export function cloudify<O extends CommonOptions, S, M extends object>(
     cloudName: CloudProvider,
     fmodule: M,
     modulePath: string,
-    options?: google.Options
+    options?: O
 ): Promise<Cloudified<O, S, M>>;
 export async function cloudify<O extends CommonOptions, S, M extends object>(
     cloudProvider: CloudProvider,
