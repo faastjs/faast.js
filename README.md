@@ -4,11 +4,7 @@ Ad-hoc serverless batch processing for nodejs.
 
 ## Prerequisites for building:
 
-[Yarn](https://yarnpkg.com/en/docs/install)
-
-```
-npm install -g yarn
-```
+[Node LTS](https://nodejs.org/en/download/)
 
 [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
 
@@ -33,8 +29,8 @@ sudo apt install unzip
 ## Building
 
 ```
-$ yarn install
-$ yarn build
+$ npm install
+$ npm run build
 ```
 
 ## Testing live cloud services
@@ -68,7 +64,7 @@ npx jest build/test/aws-https.test.js
 ### All "fast" live cloud tests
 
 ```
-$ yarn test
+$ npm run test
 ```
 
 This excludes the larger tests `test-slow/*`. These should be executed individually using `npx`.
@@ -76,7 +72,7 @@ This excludes the larger tests `test-slow/*`. These should be executed individua
 Jest sometimes overwrites output during the test (this shows up as garbled Jest test status output, or missing log messages output through the console). Redirect stdout to get clean output:
 
 ```
-$ yarn test > out
+$ npm run test > out
 $ cat out
 ```
 
@@ -92,7 +88,7 @@ $ npm install -g @google-cloud/functions-emulator
 Then run the test script:
 
 ```
-$ DEBUG=cloudify yarn test-local
+$ DEBUG=cloudify npm run test-local
 ```
 
 # Principles
