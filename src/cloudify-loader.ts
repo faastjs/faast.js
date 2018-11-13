@@ -9,7 +9,7 @@ export interface LoaderOptions {
 
 export default function webpackCloudifyLoader(this: any, _source: string) {
     const options = getOptions(this) as LoaderOptions;
-    let rv = `
+    return `
             const trampolineFactory = require("${options.trampolineFactoryModule}");
             const fModule = require("${options.functionModule}");
             const ModuleWrapper = require("${require.resolve("./module-wrapper")}");
@@ -17,6 +17,5 @@ export default function webpackCloudifyLoader(this: any, _source: string) {
                 options.moduleWrapperOptions
             )});
             module.exports = trampolineFactory.makeTrampoline(wrappedModule);
-            `;
-    return rv;
+    `;
 }
