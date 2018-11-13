@@ -6,11 +6,12 @@ import { Readable } from "stream";
 import { promisify } from "util";
 import * as webpack from "webpack";
 import * as yauzl from "yauzl";
-import { ZipFile } from "yauzl";
 import { LoaderOptions } from "./cloudify-loader";
 import { log, warn } from "./log";
 import { streamToBuffer } from "./shared";
 import { TrampolineFactory, ModuleWrapperOptions } from "./module-wrapper";
+
+type ZipFile = yauzl.ZipFile;
 
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
@@ -173,26 +174,23 @@ export async function processZip(
     archive: NodeJS.ReadableStream | string,
     processEntry: (filename: string, contents: Readable) => void
 ) {
+    let zip: ZipFile;
+    if (typeof archive === "string") {
+        zip = await new Promise<ZipFile>((resolve, reject) =>
+            yauzl.open(archive, { lazyEntries: true }, (err, zipfile) =>
+                err ? reject(err) : resolve(zipfile)
+            )
+        );
+    } else {
+        const buf = await streamToBuffer(archive);
+        zip = await new Promise<ZipFile>((resolve, reject) =>
+            yauzl.fromBuffer(buf, { lazyEntries: true }, (err, zipfile) =>
+                err ? reject(err) : resolve(zipfile)
+            )
+        );
+    }
+
     return new Promise<void>(async (resolve, reject) => {
-        let zip: ZipFile;
-        if (typeof archive === "string") {
-            zip = await new Promise<ZipFile>((resolve, reject) =>
-                yauzl.open(
-                    archive,
-                    { lazyEntries: true },
-                    (err, zip) => (err ? reject(err) : resolve(zip))
-                )
-            );
-        } else {
-            const buf = await streamToBuffer(archive);
-            zip = await new Promise<ZipFile>((resolve, reject) =>
-                yauzl.fromBuffer(
-                    buf,
-                    { lazyEntries: true },
-                    (err, zip) => (err ? reject(err) : resolve(zip))
-                )
-            );
-        }
         if (!zip) {
             reject(new Error("Error with zip file processing"));
             return;
@@ -202,11 +200,11 @@ export async function processZip(
             if (/\/$/.test(entry.fileName)) {
                 zip.readEntry();
             } else {
-                zip.openReadStream(entry, function(err, readStream) {
-                    if (err) throw err;
-                    readStream!.on("end", function() {
-                        zip.readEntry();
-                    });
+                zip.openReadStream(entry, (err, readStream) => {
+                    if (err) {
+                        throw err;
+                    }
+                    readStream!.on("end", () => zip.readEntry());
                     processEntry(entry.fileName, readStream!);
                 });
             }
