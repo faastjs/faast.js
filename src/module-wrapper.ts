@@ -90,11 +90,9 @@ export interface ModuleWrapperOptions {
     verbose?: boolean;
 
     /**
-     * If the call is made with child process, silence stdout.
-     *
-     * @type {boolean}
+     * Logging function for console.log/warn/error output. Only available in child process mode.
      */
-    silenceStdio?: boolean;
+    log?: (msg: string) => void;
 
     useChildProcess?: boolean;
 }
@@ -103,21 +101,22 @@ export class ModuleWrapper {
     funcs: ModuleType = {};
     child?: childProcess.ChildProcess;
     deferred?: Deferred<FunctionReturn>;
-    silenceStdio: boolean;
-    verbose: boolean;
-    useChildProcess: boolean;
+    options: Required<ModuleWrapperOptions>;
 
     constructor(fModule: ModuleType, options: ModuleWrapperOptions = {}) {
-        const { verbose = true, silenceStdio = false, useChildProcess = false } = options;
+        this.options = {
+            verbose: true,
+            useChildProcess: false,
+            log: () => { },
+            ...options
+        };
+
         this.funcs = fModule;
-        this.verbose = verbose;
-        this.silenceStdio = silenceStdio;
-        this.useChildProcess = useChildProcess;
+        const { verbose } = this.options;
 
         if (process.env["CLOUDIFY_CHILD"]) {
-            console.log(`cloudify: started child process for module wrapper.`);
+            verbose && console.log(`cloudify: started child process for module wrapper.`);
             process.on("message", async (call: FunctionCall) => {
-                console.log(`Received message: %O`, call);
                 const startTime = Date.now();
                 try {
                     const ret = await this.execute({ call, startTime });
@@ -155,22 +154,34 @@ export class ModuleWrapper {
     }
 
     async execute(callingContext: CallingContext): Promise<FunctionReturn> {
+        const { verbose } = this.options;
         try {
             const memoryUsage = process.memoryUsage();
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
-            if (this.useChildProcess) {
+            if (this.options.useChildProcess) {
                 this.deferred = new Deferred();
                 if (!this.child) {
-                    this.verbose && console.log(`Creating child process`);
+                    verbose && console.log(`cloudify: creating child process`);
                     this.child = childProcess.fork("./index.js", [], {
                         silent: true, // This just redirects stdout and stderr to IPC.
                         env: { CLOUDIFY_CHILD: "true" }
                     });
 
-                    if (!this.silenceStdio) {
-                        this.child!.stdout.pipe(process.stdout);
-                        this.child!.stderr.pipe(process.stderr);
+                    this.child!.stdout.setEncoding("utf8");
+                    this.child!.stderr.setEncoding("utf8");
+
+                    const logLines = (msg: string) => {
+                        let lines = msg.split("\n");
+                        if (lines[lines.length - 1] === "") {
+                            lines = lines.slice(0, lines.length - 1);
+                        }
+                        for (const line of lines) {
+                            this.options.log(line);
+                        }
                     }
+                    this.child!.stdout.on("data", logLines);
+                    this.child!.stderr.on("data", logLines);
+
                     this.child.on("message", (value: FunctionReturn) =>
                         this.deferred!.resolve(value)
                     );
@@ -191,7 +202,7 @@ export class ModuleWrapper {
                         }
                     });
                 }
-                this.verbose && console.log(`Sending request to child process`);
+                verbose && console.log(`cloudify: sending invoke message to child process for '${call.name}'`);
                 this.child.send(
                     { ...call, useChildProcess: false },
                     err => err && this.deferred!.reject(err)
@@ -199,8 +210,8 @@ export class ModuleWrapper {
                 this.deferred!.promise.then(_ => (this.deferred = undefined));
                 return this.deferred.promise;
             } else {
-                const memInfo = inspect(memoryUsage, { compact: true });
-                this.verbose &&
+                const memInfo = inspect(memoryUsage, { compact: true, breakLength: Infinity });
+                verbose &&
                     console.log(`cloudify: Invoking '${call.name}', memory: ${memInfo}`);
                 const func = this.lookupFunction(call);
                 const returned = await func.apply(undefined, call.args);
@@ -218,7 +229,7 @@ export class ModuleWrapper {
                 return rv;
             }
         } catch (err) {
-            if (this.verbose) {
+            if (verbose) {
                 console.error(err);
             }
             return createErrorResponse(err, callingContext);
@@ -265,7 +276,7 @@ export function serializeCall(call: FunctionCall) {
 deserialized arguments: ${inspect(deserialized)}
 original arguments: ${inspect(call)}
 Detected function '${
-                call.name
+            call.name
             }' argument loses information when serialized by JSON.stringify()`
         );
     }

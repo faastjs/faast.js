@@ -29,12 +29,13 @@ export interface State {
 
 export interface Options extends CommonOptions {
     verbose?: boolean;
-    silenceStdio?: boolean;
+    log?: (msg: string) => void;
 }
 
 export const defaults: Options = {
     ...CommonOptionDefaults,
-    silenceStdio: false
+    verbose: false,
+    log: (_: string) => { }
 };
 
 export const Impl: CloudImpl<Options, State> = {
@@ -57,10 +58,15 @@ async function initialize(
     nonce: string,
     options: Options = {}
 ): Promise<State> {
-    const { verbose, silenceStdio = defaults.silenceStdio } = options;
+    const { verbose = defaults.verbose } = options;
+    if (options.log && !options.childProcess) {
+        warn("[module-wrapper]: Option 'log' requires option 'childProcess'");
+    }
+    const childlog = options.log || defaults.log;
     const moduleWrapper = new ModuleWrapper(require(serverModule), {
         verbose,
-        silenceStdio
+        log: childlog,
+        useChildProcess: options.childProcess || false
     });
 
     const tempDir = path.join(tmpdir(), "cloudify-" + nonce);
@@ -91,7 +97,8 @@ async function initialize(
 
 async function pack(functionModule: string, options?: Options): Promise<PackerResult> {
     const popts: PackerOptions = options || {};
-    return packer(immediateTrampolineFactory, functionModule, popts);
+    const { verbose = defaults.verbose } = options!;
+    return packer(immediateTrampolineFactory, functionModule, { ...popts, moduleWrapperOptions: { verbose } });
 }
 
 function getFunctionImpl(): CloudFunctionImpl<State> {

@@ -32,7 +32,7 @@ export interface PackerResult {
 function getUrlEncodedQueryParameters(options: LoaderOptions) {
     return Object.keys(options)
         .filter(key => options[key])
-        .map(key => `${key}=${encodeURIComponent(options[key])}`)
+        .map(key => `${key}=${encodeURIComponent(JSON.stringify(options[key]))}`)
         .join(`&`);
 }
 
