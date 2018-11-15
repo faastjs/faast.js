@@ -15,7 +15,7 @@ import {
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost-analyzer";
 import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
-import { log, logGc, warn } from "../log";
+import { info, logGc, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import {
@@ -144,7 +144,7 @@ export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
 }
 
 export function quietly<U>(arg: aws.Request<U, aws.AWSError>) {
-    return arg.promise().catch(_ => {});
+    return arg.promise().catch(_ => { });
 }
 
 function zipStreamToBuffer(zipStream: NodeJS.ReadableStream): Promise<Buffer> {
@@ -178,12 +178,12 @@ async function createLambdaRole(
     services: AWSServices
 ) {
     const { iam } = services;
-    log(`Checking for cached lambda role`);
+    info(`Checking for cached lambda role`);
     const previousRole = await quietly(iam.getRole({ RoleName }));
     if (previousRole) {
         return previousRole.Role.Arn;
     }
-    log(`Creating role "${RoleName}" for cloudify trampoline function`);
+    info(`Creating role "${RoleName}" for cloudify trampoline function`);
     const AssumeRolePolicyDocument = JSON.stringify({
         Version: "2012-10-17",
         Statement: [
@@ -200,9 +200,9 @@ async function createLambdaRole(
         Description: "role for lambda functions created by cloudify",
         MaxSessionDuration: 3600
     };
-    log(`Calling createRole`);
+    info(`Calling createRole`);
     const roleResponse = await iam.createRole(roleParams).promise();
-    log(`Attaching role policy`);
+    info(`Attaching role policy`);
     await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
     return roleResponse.Role.Arn;
 }
@@ -214,7 +214,7 @@ export async function pollAWSRequest<T>(
 ) {
     let duration = 1000;
     for (let i = 1; i < n; i++) {
-        log(`Polling ${description}...`);
+        info(`Polling ${description}...`);
         const result = await quietly(fn());
         if (result) {
             return result;
@@ -233,12 +233,12 @@ export async function pollAWSRequest<T>(
 }
 
 async function createCacheBucket(s3: aws.S3, Bucket: string, region: string) {
-    log(`Checking for cache bucket`);
+    info(`Checking for cache bucket`);
     const bucket = await quietly(s3.getBucketLocation({ Bucket }));
     if (bucket) {
         return;
     }
-    log(`Creating cache bucket`);
+    info(`Creating cache bucket`);
     const createdBucket = await s3
         .createBucket({
             Bucket,
@@ -246,7 +246,7 @@ async function createCacheBucket(s3: aws.S3, Bucket: string, region: string) {
         })
         .promise();
     if (createdBucket) {
-        log(`Setting lifecycle expiration to 1 day for cached objects`);
+        info(`Setting lifecycle expiration to 1 day for cached objects`);
         await retry(3, () =>
             s3
                 .putBucketLifecycleConfiguration({
@@ -283,7 +283,7 @@ export async function buildModulesOnLambda(
     FunctionName: string,
     useDependencyCaching: boolean
 ): Promise<aws.Lambda.FunctionCode> {
-    log(`Building node_modules`);
+    info(`Building node_modules`);
     const Bucket = await getBucketName(region, iam);
 
     const packageJsonContents =
@@ -301,7 +301,7 @@ export async function buildModulesOnLambda(
 
         const localCacheEntry = await localCache.get(cacheKey);
         if (localCacheEntry) {
-            log(`Using local cache entry ${localCache.dir}/${cacheKey}`);
+            info(`Using local cache entry ${localCache.dir}/${cacheKey}`);
 
             const stream = await awsNpm.addIndexToPackage(localCacheEntry, indexContents);
             const buf = await zipStreamToBuffer(stream);
@@ -309,7 +309,7 @@ export async function buildModulesOnLambda(
         }
     }
 
-    log(`Cloudify cache bucket on S3: ${Bucket}`);
+    info(`Cloudify cache bucket on S3: ${Bucket}`);
     await createBucketFunnel.pushMemoizedRetry(3, Bucket, () =>
         createCacheBucket(s3, Bucket, region)
     );
@@ -322,7 +322,7 @@ export async function buildModulesOnLambda(
     });
     try {
         const remote = lambda.cloudifyModule(awsNpm);
-        log(`package.json contents:`, packageJsonContents);
+        info(`package.json contents:`, packageJsonContents);
         const Key = getS3Key(FunctionName);
 
         const installArgs: awsNpm.NpmInstallArgs = {
@@ -333,11 +333,11 @@ export async function buildModulesOnLambda(
             cacheKey
         };
         const installLog = await remote.npmInstall(installArgs);
-        log(installLog);
+        info(installLog);
 
         if (cacheKey) {
             const cachedPackage = await s3.getObject({ Bucket, Key: cacheKey }).promise();
-            log(`Writing local cache entry: ${localCache.dir}/${cacheKey}`);
+            info(`Writing local cache entry: ${localCache.dir}/${cacheKey}`);
             await localCache.set(cacheKey, cachedPackage.Body!);
         }
         return { S3Bucket: Bucket, S3Key: Key };
@@ -362,7 +362,7 @@ export async function initialize(
     nonce: string,
     options: Options = {}
 ): Promise<State> {
-    log(`Nonce: ${nonce}`);
+    info(`Nonce: ${nonce}`);
 
     const {
         region = defaults.region,
@@ -377,7 +377,7 @@ export async function initialize(
         useDependencyCaching = defaults.useDependencyCaching,
         packageJson = defaults.packageJson
     } = options;
-    log(`Creating AWS APIs`);
+    info(`Creating AWS APIs`);
     const services = createAWSApis(region);
     const { lambda, s3, iam } = services;
     const FunctionName = `cloudify-${nonce}`;
@@ -395,11 +395,11 @@ export async function initialize(
             MemorySize,
             ...awsLambdaOptions
         };
-        log(`createFunctionRequest: %O`, createFunctionRequest);
+        info(`createFunctionRequest: %O`, createFunctionRequest);
         const func = await pollAWSRequest(3, "creating function", () =>
             lambda.createFunction(createFunctionRequest)
         );
-        log(`Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`);
+        info(`Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`);
         return func;
     }
 
@@ -441,7 +441,7 @@ export async function initialize(
     }
 
     try {
-        log(`Creating function`);
+        info(`Creating function`);
         const rolePromise = createRoleFunnel.pushMemoizedRetry(3, RoleName, () =>
             createLambdaRole(RoleName, PolicyArn, services)
         );
@@ -465,7 +465,7 @@ export async function initialize(
         if (mode === "queue") {
             promises.push(
                 createFunctionPromise.then(async func => {
-                    log(`Adding queue implementation`);
+                    info(`Adding queue implementation`);
                     const awsQueueImpl = await createQueueImpl(
                         state,
                         FunctionName,
@@ -475,7 +475,7 @@ export async function initialize(
                         awsQueueImpl
                     );
                     retry(3, () => {
-                        log(`Adding DLQ to function`);
+                        info(`Adding DLQ to function`);
                         return lambda
                             .updateFunctionConfiguration({
                                 FunctionName,
@@ -492,7 +492,7 @@ export async function initialize(
             );
         }
         await Promise.all(promises);
-        log(`Lambda function initialization complete.`);
+        info(`Lambda function initialization complete.`);
         return state;
     } catch (err) {
         warn(`ERROR: ${err}`);
@@ -521,7 +521,7 @@ async function callFunctionHttps(
     rawResponse = await awsRequest.promise();
     const localEndTime = Date.now();
     if (rawResponse.LogResult) {
-        log(Buffer.from(rawResponse.LogResult!, "base64").toString());
+        info(Buffer.from(rawResponse.LogResult!, "base64").toString());
     }
     if (rawResponse.FunctionError) {
         const message = processAWSErrorMessage(rawResponse.Payload as string);
@@ -586,7 +586,7 @@ export type PartialState = Partial<State> & Pick<State, "services" | "resources"
 async function deleteResources(
     resources: AWSResources,
     services: AWSServices,
-    output: (msg: string) => void = log
+    output: (msg: string) => void = info
 ) {
     const {
         FunctionName,
@@ -651,15 +651,15 @@ async function addLogRetentionPolicy(
         cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 })
     );
     if (response !== undefined) {
-        log(`Added 1 day retention policy to log group ${logGroupName}`);
+        info(`Added 1 day retention policy to log group ${logGroupName}`);
     }
 }
 
 export async function cleanup(state: PartialState) {
     await stop(state);
-    log(`Cleaning up cloudify infrastructure for ${state.resources.FunctionName}...`);
+    info(`Cleaning up cloudify infrastructure for ${state.resources.FunctionName}...`);
     await deleteResources(state.resources, state.services);
-    log(`Cleanup done.`);
+    info(`Cleanup done.`);
 }
 
 let garbageCollectorRunning = false;
@@ -786,7 +786,7 @@ function garbageCollectLogGroups(
             ) {
                 logGc(
                     `Added retention policy of ${retentionInDays} day(s) to ${
-                        g.logGroupName
+                    g.logGroupName
                     }`
                 );
             }
@@ -855,9 +855,9 @@ export async function stop(state: PartialState) {
     }
     await addLogRetentionPolicy(state.resources.FunctionName, state.services.cloudwatch);
     if (state.gcPromise) {
-        log(`Waiting for garbage collection...`);
+        info(`Waiting for garbage collection...`);
         await state.gcPromise;
-        log(`Garbage collection done.`);
+        info(`Garbage collection done.`);
     }
 }
 
@@ -890,7 +890,7 @@ export async function createQueueImpl(
 ): Promise<AWSCloudQueueImpl> {
     const { sqs, sns, lambda } = state.services;
     const { resources, metrics } = state;
-    log(`Creating SNS request topic`);
+    info(`Creating SNS request topic`);
     const createTopicPromise = createSNSTopic(sns, getSNSTopicName(FunctionName));
 
     const assignRequestTopicArnPromise = createTopicPromise.then(
@@ -898,12 +898,12 @@ export async function createQueueImpl(
     );
 
     const addPermissionsPromise = createTopicPromise.then(topic => {
-        log(`Adding SNS invoke permissions to function`);
+        info(`Adding SNS invoke permissions to function`);
         return addSnsInvokePermissionsToFunction(FunctionName, topic, lambda);
     });
 
     const subscribePromise = createTopicPromise.then(topic => {
-        log(`Subscribing SNS to invoke lambda function`);
+        info(`Subscribing SNS to invoke lambda function`);
         return sns
             .subscribe({
                 TopicArn: topic,
@@ -915,7 +915,7 @@ export async function createQueueImpl(
     const assignSNSResponsePromise = subscribePromise.then(
         snsResponse => (resources.SNSLambdaSubscriptionArn = snsResponse.SubscriptionArn!)
     );
-    log(`Creating SQS response queue`);
+    info(`Creating SQS response queue`);
     const createQueuePromise = createSQSQueue(getSQSName(FunctionName), 60, sqs).then(
         ({ QueueUrl, QueueArn }) => {
             resources.ResponseQueueUrl = QueueUrl;
@@ -930,7 +930,7 @@ export async function createQueueImpl(
         subscribePromise,
         assignSNSResponsePromise
     ]);
-    log(`Created queue function`);
+    info(`Created queue function`);
     return {
         getMessageAttribute: (message, attr) => sqsMessageAttribute(message, attr),
         pollResponseQueueMessages: () =>
@@ -1132,7 +1132,7 @@ export async function costEstimate(
         measured: 0,
         unit: "GB",
         comment:
-            "Log ingestion not currently included. https://aws.amazon.com/cloudwatch/pricing/",
+            "https://aws.amazon.com/cloudwatch/pricing/ - Log ingestion costs not currently included.",
         alwaysZero: true
     });
     costs.push(logIngestion);

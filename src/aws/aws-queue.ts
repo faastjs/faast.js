@@ -1,6 +1,6 @@
 import * as aws from "aws-sdk";
 import * as cloudqueue from "../queue";
-import { log, warn } from "../log";
+import { info, warn } from "../log";
 import { SNSEvent } from "aws-lambda";
 import { FunctionCall } from "../module-wrapper";
 import { AWSMetrics } from "./aws-cloudify";
@@ -159,7 +159,7 @@ export function deadLetterMessages(
     if (!errorMessage) {
         return;
     }
-    log(`Received DLQ message: %O`, m);
+    info(`Received DLQ message: %O`, m);
     const body = m.Body && JSON.parse(m.Body);
     const snsMessage: SNSEvent = body;
     const rv = [];

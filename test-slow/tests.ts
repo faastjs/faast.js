@@ -1,6 +1,6 @@
 import * as cloudify from "../src/cloudify";
 import { Pump } from "../src/funnel";
-import { log, warn, stats } from "../src/log";
+import { info, warn, stats } from "../src/log";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
 
@@ -48,16 +48,16 @@ export function coldStartTest(
                     samplePoints += m.samples;
                 });
 
-                log(`Stats:\n${lambda.functionStats}`);
-                log(`Counters:\n${lambda.functionCounters}`);
+                info(`Stats:\n${lambda.functionStats}`);
+                info(`Counters:\n${lambda.functionCounters}`);
 
-                log(`inside: ${insidePoints}, samples: ${samplePoints}`);
+                info(`inside: ${insidePoints}, samples: ${samplePoints}`);
                 expect(samplePoints).toBe(nParallelFunctions * nSamplesPerFunction);
                 const estimatedPI = (insidePoints / samplePoints) * 4;
-                log(`PI estimate: ${estimatedPI}`);
+                info(`PI estimate: ${estimatedPI}`);
                 expect(Number(estimatedPI.toFixed(2))).toBe(3.14);
                 const cost = await lambda.costEstimate();
-                log(`Cost: ${cost}`);
+                info(`Cost: ${cost}`);
             },
             600 * 1000
         );
@@ -101,12 +101,12 @@ export function throughputTest(
                 await sleep(duration);
                 await pump.drain();
                 const cost = await lambda.costEstimate();
-                log(`Stats: ${lambda.functionStats}`);
-                log(`Counters: ${lambda.functionCounters}`);
+                info(`Stats: ${lambda.functionStats}`);
+                info(`Counters: ${lambda.functionCounters}`);
 
-                log(`Cost:`);
-                log(`${cost}`);
-                log(
+                info(`Cost:`);
+                info(`${cost}`);
+                info(
                     `Completed ${completed} calls in ${duration / (60 * 1000)} minute(s)`
                 );
             },

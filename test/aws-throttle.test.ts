@@ -1,5 +1,5 @@
 import * as cloudify from "../src/cloudify";
-import { log, warn } from "../src/log";
+import { info, warn } from "../src/log";
 import * as funcs from "./functions";
 
 let cloud: cloudify.AWS;
@@ -31,7 +31,7 @@ test(
         }
         const results = await Promise.all(promises);
         results.sort(({ start: a }, { start: b }) => a - b);
-        log(results);
+        info(results);
         let lastEnd = 0;
         // Executions should not overlap in their timestamps.
         for (const timing of results) {

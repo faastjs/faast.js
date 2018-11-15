@@ -7,7 +7,7 @@ import { promisify } from "util";
 import * as webpack from "webpack";
 import * as yauzl from "yauzl";
 import { LoaderOptions } from "./cloudify-loader";
-import { log, warn } from "./log";
+import { info, warn } from "./log";
 import { streamToBuffer } from "./shared";
 import { TrampolineFactory, ModuleWrapperOptions } from "./module-wrapper";
 
@@ -49,7 +49,7 @@ export async function packer(
     }: PackerOptions
 ): Promise<PackerResult> {
     const _exhaustiveCheck: Required<typeof rest> = {};
-    log(`Running webpack`);
+    info(`Running webpack`);
     const mfs = new MemoryFileSystem();
 
     function addToArchive(root: string, archive: Archiver) {
@@ -61,7 +61,7 @@ export async function packer(
                     addEntry(subEntryPath);
                 }
             } else if (stat.isFile()) {
-                log(`Adding file: ${entry}`);
+                info(`Adding file: ${entry}`);
                 archive.append((mfs as any).createReadStream(entry), {
                     name: path.relative(root, entry)
                 });
@@ -85,7 +85,7 @@ export async function packer(
 
     function processAddDirectories(archive: Archiver, directories: string[]) {
         for (const dir of directories) {
-            log(`Adding directory to archive: ${dir}`);
+            info(`Adding directory to archive: ${dir}`);
             if (!fs.existsSync(dir)) {
                 warn(`Directory ${dir} not found`);
             }
@@ -139,7 +139,7 @@ export async function packer(
             ...webpackOptions
         };
         config.externals = [...externalsArray, ...dependencies];
-        log(`webpack config: %O`, config);
+        info(`webpack config: %O`, config);
         const compiler = webpack(config);
         compiler.outputFileSystem = mfs as any;
         return new Promise((resolve, reject) =>
@@ -147,8 +147,8 @@ export async function packer(
                 if (err) {
                     reject(err);
                 } else {
-                    log(stats.toString());
-                    log(`Memory filesystem: %O`, mfs.data);
+                    info(stats.toString());
+                    info(`Memory filesystem: %O`, mfs.data);
                     resolve();
                 }
             })

@@ -5,7 +5,7 @@ import * as path from "path";
 import * as rimraf from "rimraf";
 import { promisify } from "util";
 import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
-import { log, warn } from "../log";
+import { info, warn } from "../log";
 import { packer, PackerOptions, PackerResult, unzipInDir } from "../packer";
 import { CommonOptionDefaults } from "../shared";
 import {
@@ -70,7 +70,7 @@ async function initialize(
     });
 
     const tempDir = path.join(tmpdir(), "cloudify-" + nonce);
-    log(`tempDir: ${tempDir}`);
+    info(`tempDir: ${tempDir}`);
     await mkdir(tempDir, { mode: 0o700, recursive: true });
     process.chdir(tempDir);
 
@@ -79,9 +79,9 @@ async function initialize(
     await unzipInDir(tempDir, packerResult.archive);
     const packageJsonFile = path.join(tempDir, "package.json");
     if (fs.existsSync(packageJsonFile)) {
-        log(`Running 'npm install'`);
+        info(`Running 'npm install'`);
         await exec("npm install").then(x => {
-            log(x.stdout);
+            info(x.stdout);
             if (x.stderr) {
                 warn(x.stderr);
             }
@@ -127,13 +127,13 @@ async function cleanup(state: State): Promise<void> {
     await stop(state);
     const { tempDir } = state;
     if (tempDir && tempDir.match(/\/cloudify-/) && fs.existsSync(tempDir)) {
-        log(`Deleting temp dir ${tempDir}`);
+        info(`Deleting temp dir ${tempDir}`);
         await rmrf(tempDir);
     }
 }
 
 async function stop(state: State) {
-    log(`Stopping`);
+    info(`Stopping`);
     state.moduleWrapper.stop();
-    log(`Stopping done`);
+    info(`Stopping done`);
 }

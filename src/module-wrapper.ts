@@ -163,7 +163,7 @@ export class ModuleWrapper {
                 if (!this.child) {
                     verbose && console.log(`cloudify: creating child process`);
                     this.child = childProcess.fork("./index.js", [], {
-                        silent: true, // This just redirects stdout and stderr to IPC.
+                        silent: true, // redirects stdout and stderr to IPC.
                         env: { CLOUDIFY_CHILD: "true" }
                     });
 

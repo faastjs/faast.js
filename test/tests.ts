@@ -5,7 +5,7 @@ import { PassThrough } from "stream";
 import * as awsCloudify from "../src/aws/aws-cloudify";
 import * as cloudify from "../src/cloudify";
 import * as googleCloudify from "../src/google/google-cloudify";
-import { log, warn } from "../src/log";
+import { info, warn } from "../src/log";
 import { unzipInDir } from "../src/packer";
 import * as funcs from "./functions";
 
@@ -40,7 +40,7 @@ export function checkFunctions(
                 const opts = { timeout: 30, memorySize: 512, ...options };
                 lambda = await cloud.createFunction("./functions", opts);
                 remote = lambda.cloudifyModule(funcs);
-                log(
+                info(
                     `Function creation took ${((Date.now() - start) / 1000).toFixed(1)}s`
                 );
             } catch (err) {
@@ -105,7 +105,7 @@ export function checkFunctions(
 
 function exec(cmd: string) {
     const result = sys.execSync(cmd).toString();
-    log(result);
+    info(result);
     return result;
 }
 
@@ -203,8 +203,8 @@ export function checkCosts(
             async () => {
                 await remote.hello("there");
                 const costs = await lambda.costEstimate();
-                log(`${costs}`);
-                log(`CSV costs:\n${costs.csv()}`);
+                info(`${costs}`);
+                info(`CSV costs:\n${costs.csv()}`);
 
                 const { estimatedBilledTime } = lambda.functionStats.aggregate;
                 expect(

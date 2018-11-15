@@ -6,7 +6,7 @@ import * as costAnalyzer from "./cost-analyzer";
 import { Funnel, Deferred } from "./funnel";
 import * as google from "./google/google-cloudify";
 import * as immediate from "./immediate/immediate-cloudify";
-import { log, logLeaks, stats, warn } from "./log";
+import { info, logLeaks, stats, warn, logUrl } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import {
     assertNever,
@@ -52,8 +52,8 @@ export type PromisifiedFunction<A extends any[], R> = (
 
 export type Promisified<M> = {
     [K in keyof M]: M[K] extends (...args: infer A) => infer R
-        ? PromisifiedFunction<A, R>
-        : never
+    ? PromisifiedFunction<A, R>
+    : never
 };
 
 export type ResponsifiedFunction<A extends any[], R> = (
@@ -62,8 +62,8 @@ export type ResponsifiedFunction<A extends any[], R> = (
 
 export type Responsified<M> = {
     [K in keyof M]: M[K] extends (...args: infer A) => infer R
-        ? ResponsifiedFunction<A, R>
-        : never
+    ? ResponsifiedFunction<A, R>
+    : never
 };
 
 export interface CommonOptions extends PackerOptions {
@@ -81,7 +81,7 @@ export interface CommonOptions extends PackerOptions {
 function resolveModule(fmodule: string) {
     const parent = module.parent!;
     if (parent.filename.match(/aws-cloudify/)) {
-        log(
+        info(
             `WARNING: import cloudify before aws-cloudify to avoid problems with module resolution`
         );
     }
@@ -94,7 +94,7 @@ function resolveModule(fmodule: string) {
 export class Cloud<O extends CommonOptions, S> {
     name: string = this.impl.name;
 
-    protected constructor(protected impl: CloudImpl<O, S>) {}
+    protected constructor(protected impl: CloudImpl<O, S>) { }
 
     get defaults() {
         return this.impl.defaults;
@@ -134,7 +134,7 @@ export class FunctionCounters {
     toString() {
         return `completed: ${this.completed}, retries: ${this.retries}, errors: ${
             this.errors
-        }`;
+            }`;
     }
 }
 
@@ -378,7 +378,7 @@ export class CloudFunction<O extends CommonOptions, S> {
         readonly modulePath: string,
         readonly options?: O
     ) {
-        this.impl.logUrl && log(`Log URL: ${this.impl.logUrl(state)}`);
+        this.impl.logUrl && logUrl(`${this.impl.logUrl(state)}`);
         const concurrency =
             (options && options.concurrency) || cloud.defaults.concurrency || 1;
         this.funnel.setMaxConcurrency(concurrency);
@@ -452,7 +452,7 @@ export class CloudFunction<O extends CommonOptions, S> {
         return rv;
     }
 
-    protected cloudifyRetryLogic() {}
+    protected cloudifyRetryLogic() { }
 
     cloudifyWithResponse<A extends any[], R>(
         fn: (...args: A) => R
@@ -585,7 +585,7 @@ export class AWS extends Cloud<aws.Options, aws.State> {
     }
 }
 
-export class AWSLambda extends CloudFunction<aws.Options, aws.State> {}
+export class AWSLambda extends CloudFunction<aws.Options, aws.State> { }
 
 export class Google extends Cloud<google.Options, google.State> {
     constructor() {
@@ -593,7 +593,7 @@ export class Google extends Cloud<google.Options, google.State> {
     }
 }
 
-export class GoogleCloudFunction extends CloudFunction<google.Options, google.State> {}
+export class GoogleCloudFunction extends CloudFunction<google.Options, google.State> { }
 
 export class GoogleEmulator extends Cloud<google.Options, google.State> {
     constructor() {
@@ -610,7 +610,7 @@ export class ChildProcess extends Cloud<childprocess.Options, childprocess.State
 export class ChildProcessFunction extends CloudFunction<
     childprocess.Options,
     childprocess.State
-> {}
+    > { }
 
 export class Immediate extends Cloud<immediate.Options, immediate.State> {
     constructor() {
@@ -621,7 +621,7 @@ export class Immediate extends Cloud<immediate.Options, immediate.State> {
 export class ImmediateFunction extends CloudFunction<
     immediate.Options,
     immediate.State
-> {}
+    > { }
 
 export type CloudProvider =
     | "aws"
@@ -737,9 +737,9 @@ function estimateFunctionLatency(fnStats: FunctionStats) {
 
     return (
         localStartLatency.mean +
-            remoteStartLatency.mean +
-            executionLatency.mean +
-            returnLatency.mean || 0
+        remoteStartLatency.mean +
+        executionLatency.mean +
+        returnLatency.mean || 0
     );
 }
 

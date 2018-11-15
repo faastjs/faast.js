@@ -16,8 +16,6 @@ async function main() {
     console.log(`Cost estimate:`);
     console.log(`${await cloudFunc.costEstimate()}`);
 
-    console.log(`Waiting for logs...`);
-    await sleep(60 * 1000);
     await cloudFunc.cleanup();
 }
 

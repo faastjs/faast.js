@@ -18,7 +18,7 @@ import {
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost-analyzer";
 import { MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
-import { log, logGc, logPricing, warn } from "../log";
+import { info, logGc, logPricing, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import {
@@ -175,10 +175,10 @@ async function poll<T>({
     let retries = 0;
     await delay(retries);
     while (true) {
-        log(`Polling...`);
+        info(`Polling...`);
         const result = await request();
         if (checkDone(result)) {
-            log(`Done.`);
+            info(`Done.`);
             return result;
         }
         if (retries++ >= maxRetries) {
@@ -251,7 +251,7 @@ async function getEmulator(): Promise<CloudFunctions.Cloudfunctions> {
     }
     const url = rest[1];
     const DISCOVERY_URL = `${url}$discovery/rest?version=v1`;
-    log(`DISCOVERY_URL: ${DISCOVERY_URL}`);
+    info(`DISCOVERY_URL: ${DISCOVERY_URL}`);
     const emulator = await google.discoverAPI(DISCOVERY_URL);
     return emulator as any;
 }
@@ -286,7 +286,7 @@ async function initializeWithApi(
     project: string,
     isEmulator: boolean
 ): Promise<State> {
-    log(`Create cloud function`);
+    info(`Create cloud function`);
     const { cloudFunctions } = services;
     const {
         region = defaults.region,
@@ -297,7 +297,7 @@ async function initializeWithApi(
         retentionInDays = defaults.retentionInDays,
         googleCloudFunctionOptions
     } = options;
-    log(`Nonce: ${nonce}`);
+    info(`Nonce: ${nonce}`);
     const location = `projects/${project}/locations/${region}`;
 
     async function createCodeBundle() {
@@ -308,7 +308,7 @@ async function initializeWithApi(
             })
         );
         const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, archive);
-        log(`Upload zip file response: ${uploadResult.statusText}`);
+        info(`Upload zip file response: ${uploadResult.statusText}`);
         return uploadUrlResponse.uploadUrl;
     }
 
@@ -339,7 +339,7 @@ async function initializeWithApi(
     );
 
     if (mode === "queue") {
-        log(`Initializing queue`);
+        info(`Initializing queue`);
         const googleQueueImpl = await initializeGoogleQueue(state, project, functionName);
         state.queueState = cloudqueue.initializeCloudFunctionQueue(googleQueueImpl);
     }
@@ -364,10 +364,10 @@ async function initializeWithApi(
         requestBody.httpsTrigger = {};
     }
     validateGoogleLabels(requestBody.labels);
-    log(`Create function at ${location}`);
-    log(`Request body: %O`, requestBody);
+    info(`Create function at ${location}`);
+    info(`Request body: %O`, requestBody);
     try {
-        log(`create function ${requestBody.name}`);
+        info(`create function ${requestBody.name}`);
         await waitFor(
             cloudFunctions,
             cloudFunctions.projects.locations.functions.create({
@@ -377,7 +377,7 @@ async function initializeWithApi(
         );
     } catch (err) {
         warn(`createFunction error: ${err.stack}`);
-        log(`delete function ${trampoline}`);
+        info(`delete function ${trampoline}`);
         await deleteFunction(cloudFunctions, trampoline).catch();
         throw err;
     }
@@ -392,7 +392,7 @@ async function initializeWithApi(
         if (!url) {
             throw new Error("Could not get http trigger url");
         }
-        log(`Function URL: ${url}`);
+        info(`Function URL: ${url}`);
         state.url = url;
     }
     await pricingPromise;
@@ -430,7 +430,7 @@ async function initializeGoogleQueue(
                 project,
                 functionName
             );
-            log(`Creating response queue subscription`);
+            info(`Creating response queue subscription`);
             return pubsub.projects.subscriptions.create({
                 name: resources.responseSubscription,
                 requestBody: {
@@ -458,7 +458,7 @@ async function initializeGoogleQueue(
 
 export function exec(cmd: string) {
     const result = sys.execSync(cmd).toString();
-    log(result);
+    info(result);
     return result;
 }
 
@@ -505,7 +505,7 @@ async function callFunctionHttps(
                     : "";
             error = new Error(
                 `${response.status} ${response.statusText} ${
-                    response.data
+                response.data
                 }${interpretation}`
             );
         }
@@ -544,7 +544,7 @@ type PartialState = Partial<State> & Pick<State, "services" | "resources">;
 async function deleteResources(
     services: GoogleServices,
     resources: GoogleResources,
-    output: (msg: string) => void = log
+    output: (msg: string) => void = info
 ) {
     const {
         trampoline,
@@ -587,7 +587,7 @@ async function deleteResources(
 }
 
 export async function cleanup(state: PartialState) {
-    log(`cleanup`);
+    info(`cleanup`);
     await stop(state);
     await deleteResources(state.services, state.resources);
 }
@@ -735,9 +735,9 @@ export async function stop(state: Partial<State>) {
         await cloudqueue.stop(state.queueState);
     }
     if (state.gcPromise) {
-        log(`Waiting for garbage collection...`);
+        info(`Waiting for garbage collection...`);
         await state.gcPromise;
-        log(`Garbage collection done.`);
+        info(`Garbage collection done.`);
     }
 }
 
