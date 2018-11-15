@@ -2,10 +2,14 @@ import { cloudify } from "../src/cloudify";
 import * as funcs from "./functions";
 import { checkFunctions } from "./tests";
 
-checkFunctions("cloudify-immediate basic functions", "immediate", {});
+const ignore = () => { }
+
+checkFunctions("cloudify-immediate basic functions", "immediate", { verbose: false });
 
 checkFunctions("cloudify-immediate with childprocess basic functions", "immediate", {
-    childProcess: true
+    childProcess: true,
+    verbose: false,
+    log: ignore
 });
 
 test("cloudify-immediate console.log and console.warn with child process", async () => {
@@ -19,7 +23,7 @@ test("cloudify-immediate console.log and console.warn with child process", async
     };
     const { remote, cloudFunc } = await cloudify("immediate", funcs, "./functions", {
         childProcess: true,
-        // verbose: true,
+        verbose: false,
         log,
     });
     await remote.consoleLog("Remote console.log output");
@@ -35,7 +39,7 @@ test("cloudify-immediate console.log and console.warn with child process", async
 });
 
 test("cloudify-immediate cleanup stops executions", async () => {
-    const { remote, cloudFunc } = await cloudify("immediate", funcs, "./functions");
+    const { remote, cloudFunc } = await cloudify("immediate", funcs, "./functions", { verbose: false });
     let done = 0;
     remote
         .hello("there")

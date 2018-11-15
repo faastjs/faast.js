@@ -34,8 +34,8 @@ export interface Options extends CommonOptions {
 
 export const defaults: Options = {
     ...CommonOptionDefaults,
-    verbose: false,
-    log: (_: string) => { }
+    verbose: true,
+    log: console.log
 };
 
 export const Impl: CloudImpl<Options, State> = {
