@@ -6,9 +6,9 @@ export const logPricing = debug("cloudify:pricing");
 export const logGc = debug("cloudify:gc");
 export const logLeaks = debug("cloudify:leaks");
 export const logTrampoline = debug("cloudify:trampoline");
-export const logUrl = debug("cloudify:logs");
+export const logUrls = debug("cloudify:logs");
 
-logUrl.enabled = true;
+logUrls.enabled = true;
 warn.enabled = true;
 stats.enabled = true;
 logLeaks.enabled = true;
