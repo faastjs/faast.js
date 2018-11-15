@@ -3,22 +3,27 @@ require("source-map-support").install();
 import * as aws from "aws-sdk";
 import { AxiosPromise, AxiosResponse } from "axios";
 import * as commander from "commander";
+import * as fs from "fs";
 import { google } from "googleapis";
 import * as inquirer from "inquirer";
 import * as ora from "ora";
+import { tmpdir } from "os";
+import * as path from "path";
+import { promisify } from "util";
 import * as awsCloudify from "./aws/aws-cloudify";
 import { LocalCache } from "./cache";
 import { RateLimitedFunnel } from "./funnel";
 import * as googleCloudify from "./google/google-cloudify";
+import * as rimraf from "rimraf";
 
 const warn = console.warn;
 const log = console.log;
+const rmrf = promisify(rimraf);
 
-interface CleanupAWSOptions {
-    region: string;
+interface CleanupOptions {
+    region?: string; // AWS and Google only.
     execute: boolean;
-    cleanAll: boolean;
-    print?: boolean;
+    cleanAll?: boolean; // AWS only
 }
 
 async function deleteResources(
@@ -56,10 +61,10 @@ async function deleteResources(
     }
 }
 
-async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
+async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     let nResources = 0;
     const output = (msg: string) => !execute && log(msg);
-    const { cloudwatch, iam, lambda, sns, sqs, s3 } = awsCloudify.createAWSApis(region);
+    const { cloudwatch, iam, lambda, sns, sqs, s3 } = awsCloudify.createAWSApis(region!);
 
     function listAWSResource<T, U>(
         pattern: RegExp,
@@ -212,12 +217,6 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupAWSOptions) {
     return nResources;
 }
 
-interface CleanupGoogleOptions {
-    region: string;
-    execute: boolean;
-    print?: boolean;
-}
-
 interface HasNextPageToken {
     nextPageToken?: string;
 }
@@ -234,7 +233,7 @@ async function iterate<T extends HasNextPageToken>(
     } while (token);
 }
 
-async function cleanupGoogle({ execute }: CleanupGoogleOptions) {
+async function cleanupGoogle({ execute }: CleanupOptions) {
     let nResources = 0;
     const output = (msg: string) => !execute && log(msg);
 
@@ -328,6 +327,25 @@ async function cleanupGoogle({ execute }: CleanupGoogleOptions) {
     return nResources;
 }
 
+async function cleanupImmediate({ execute }: CleanupOptions) {
+    const output = (msg: string) => !execute && log(msg);
+    const tmpDir = tmpdir();
+    const dir = fs.readdirSync(tmpDir);
+    let nResources = 0;
+    output(`Temporary directories:`);
+    for (const entry of dir) {
+        if (entry.match(/^cloudify-[a-f0-9-]+/)) {
+            nResources++;
+            const cloudifyDir = path.join(tmpDir, entry);
+            output(`${cloudifyDir}`);
+            if (execute) {
+                await rmrf(cloudifyDir);
+            }
+        }
+    }
+    return nResources;
+}
+
 async function prompt() {
     const answer = await inquirer.prompt<any>([
         {
@@ -343,6 +361,32 @@ async function prompt() {
     }
 }
 
+async function runCleanup(cloud: string, options: CleanupOptions) {
+    let nResources = 0;
+    if (cloud === "aws") {
+        nResources = await cleanupAWS(options);
+    } else if (cloud === "google") {
+        nResources = await cleanupGoogle(options);
+    } else if (cloud === "immediate") {
+        nResources = await cleanupImmediate(options);
+    } else {
+        warn(
+            `Unknown cloud name ${
+                commander.cloud
+            }. Must specify "aws" or "google", or "immediate".`
+        );
+        process.exit(-1);
+    }
+    if (options.execute) {
+        log(`Done.`);
+    } else {
+        if (nResources === 0) {
+            log(`No resources to clean up.`);
+        }
+    }
+    return nResources;
+}
+
 async function main() {
     let cloud!: string;
     commander
@@ -350,7 +394,7 @@ async function main() {
         .option("-v, --verbose", "Verbose mode")
         .option(
             "-a, --all",
-            `Removes the IAM 'cloudify-cached-*' roles, which are used to speed cloudify startup.`
+            `(AWS only) Removes the IAM 'cloudify-cached-*' roles, which are used to speed cloudify startup.`
         )
         .option(
             "-x, --execute",
@@ -366,7 +410,7 @@ async function main() {
             cloud = arg;
         })
         .description(
-            `Cleanup cloudify resources that may have leaked. The <cloud> argument must be "aws" or "google".
+            `Cleanup cloudify resources that may have leaked. The <cloud> argument must be "aws", "google", or "immediate".
   By default the output is a dry run and will only print the actions that would be performed if '-x' is specified.`
         );
 
@@ -390,36 +434,20 @@ async function main() {
     const force = commander.force || false;
     const cleanAll = commander.all || false;
 
-    log(`Region: ${region}`);
+    region && log(`Region: ${region}`);
+    const options = { region, execute, cleanAll };
     let nResources = 0;
     if (execute && !force) {
-        if (cloud === "aws") {
-            nResources = await cleanupAWS({ region, execute: false, cleanAll });
-        } else if (cloud === "google") {
-            nResources = await cleanupGoogle({ region, execute: false });
+        nResources = await runCleanup(cloud, { ...options, execute: false });
+        if (nResources > 0) {
+            await prompt();
         } else {
-            warn(`Unknown cloud name ${commander.cloud}. Must specify "aws" or "google"`);
-            process.exit(-1);
-        }
-
-        if (nResources === 0) {
-            log(`No resources to clean up.`);
             process.exit(0);
         }
-        await prompt();
     }
+    nResources = await runCleanup(cloud, options);
 
-    if (cloud === "aws") {
-        await cleanupAWS({ region, execute, cleanAll });
-    } else if (cloud === "google") {
-        await cleanupGoogle({ region, execute });
-    } else {
-        warn(`Unknown cloud name ${commander.cloud}. Must specify "aws" or "google"`);
-        process.exit(-1);
-    }
-    if (execute) {
-        log(`Done.`);
-    } else {
+    if (!execute && nResources > 0) {
         log(`(dryrun mode, no resources will be deleted, specify -x to execute cleanup)`);
     }
 }
