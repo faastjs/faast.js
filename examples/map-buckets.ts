@@ -1,7 +1,6 @@
 import { cloudify, CloudifyError } from "../src/cloudify";
 import * as m from "./map-buckets-module";
 import * as aws from "aws-sdk";
-import { createHash } from "crypto";
 
 const s3 = new aws.S3();
 
@@ -14,6 +13,8 @@ const s3 = new aws.S3();
 // sns                   $0.00000050/request             0 request    $0              0.0%  [5]
 // ---------------------------------------------------------------------------------------
 //                                                                    $1.46995061 (USD)
+
+let verbose = false
 
 async function listAllObjects(Bucket: string) {
     const allObjects: aws.S3.Object[] = [];
@@ -64,9 +65,11 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         let errors = 0;
         let bytes = 0;
         let id = 0;
-        console.log(
+
+        verbose && console.log(
             `id,executionLatency,user,system,finalExecutionLatency,finalUser,finalSystem`
         );
+
         for (const result of results) {
             if (!result) {
                 errors++;
@@ -77,13 +80,16 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
             bytes += result.bytes;
             const finalTiming = result.timings.pop();
             const p = (n: number) => (n / 1000).toFixed(0);
-            result.timings.forEach(t => {
-                console.log(
-                    `${id},${t.time},${p(t.usage.user)},${p(t.usage.system)},${p(
-                        finalTiming!.time
-                    )},${p(finalTiming!.usage.user)},${p(finalTiming!.usage.system)}`
-                );
-            });
+
+            if (verbose) {
+                result.timings.forEach(t => {
+                    console.log(
+                        `${id},${t.time},${p(t.usage.user)},${p(t.usage.system)},${p(
+                            finalTiming!.time
+                        )},${p(finalTiming!.usage.user)},${p(finalTiming!.usage.system)}`
+                    );
+                });
+            }
             id++;
             if (result.nErrors > 0) {
                 console.log(`Error uploading key: ${result.Key}`);
@@ -169,11 +175,43 @@ export async function emptyBucket(Bucket: string) {
     await cloudFunc.cleanup();
 }
 
-if (process.argv[3] === "all") {
-    mapBucket(process.argv[2], key => key.match(/arXiv_pdf_.*\.tar$/) !== null);
-} else {
-    mapObjects(process.argv[2], process.argv.slice(3));
+import * as commander from "commander"
+
+async function main() {
+    let bucket!: string;
+    let keys!: string[];
+    commander
+        .version("0.1.0")
+        .option("-v, --verbose", "verbose mode")
+        .arguments("<bucket> [keys...]")
+        .action((arg, rest) => {
+            bucket = arg;
+            keys = rest;
+        })
+        .description(`Map over all keys in a given S3 bucket. E.g. arxiv-derivative-flattened`);
+
+    commander.parse(process.argv);
+    if (commander.verbose) {
+        process.env.DEBUG = "cloudify:*";
+        verbose = true;
+    }
+    if (keys.length > 0 && keys[0] === "all") {
+        mapBucket(bucket, key => key.match(/arXiv_pdf_.*\.tar$/) !== null);
+    } else {
+        mapObjects(bucket, keys)
+    }
 }
+
+main();
+
+
+// if (process.argv[3] === "all") {
+//     mapBucket(process.argv[2], key => key.match(/arXiv_pdf_.*\.tar$/) !== null);
+// } else {
+//     mapObjects(process.argv[2], process.argv.slice(3));
+// }
+
+
 
 // copyObjects("arxiv-derivative-west", "arxiv-derivative-flattened", key => {
 //     const match = key.match(/^pdf\/(arXiv_pdf_\d{4}_\d{3}.tar)$/);
@@ -188,3 +226,4 @@ if (process.argv[3] === "all") {
 // });
 
 // emptyBucket("arxiv-derivative-output");
+
