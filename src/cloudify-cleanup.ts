@@ -3,7 +3,7 @@ require("source-map-support").install();
 import * as aws from "aws-sdk";
 import { AxiosPromise, AxiosResponse } from "axios";
 import * as commander from "commander";
-import { cloudfunctions_v1, google } from "googleapis";
+import { google } from "googleapis";
 import * as inquirer from "inquirer";
 import * as ora from "ora";
 import * as awsCloudify from "./aws/aws-cloudify";

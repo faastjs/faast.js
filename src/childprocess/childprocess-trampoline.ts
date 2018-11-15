@@ -2,6 +2,7 @@ import * as process from "process";
 import { ModuleWrapper, FunctionReturn, createErrorResponse } from "../module-wrapper";
 import { ProcessFunctionCall } from "./childprocess-cloudify";
 
+
 process.on("message", async ({ call, serverModule, timeout }: ProcessFunctionCall) => {
     const startTime = Date.now();
 
@@ -23,7 +24,7 @@ process.on("message", async ({ call, serverModule, timeout }: ProcessFunctionCal
         if (!mod) {
             throw new Error(`Could not find module '${serverModule}'`);
         }
-        moduleWrapper.register(mod);
+        const moduleWrapper = new ModuleWrapper(mod)
         const ret = await moduleWrapper.execute({ call, startTime });
         process.send!(ret);
     } catch (err) {
