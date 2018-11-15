@@ -98,7 +98,10 @@ async function initialize(
 async function pack(functionModule: string, options?: Options): Promise<PackerResult> {
     const popts: PackerOptions = options || {};
     const { verbose = defaults.verbose } = options!;
-    return packer(immediateTrampolineFactory, functionModule, { ...popts, moduleWrapperOptions: { verbose } });
+    return packer(immediateTrampolineFactory, functionModule, {
+        ...popts,
+        moduleWrapperOptions: { verbose }
+    });
 }
 
 function getFunctionImpl(): CloudFunctionImpl<State> {
