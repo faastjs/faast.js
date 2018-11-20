@@ -4,7 +4,8 @@ import {
     MemoFunnel,
     RateLimiter,
     RateLimitedFunnel,
-    retry
+    retry,
+    Deferred
 } from "../src/funnel";
 import { sleep } from "../src/shared";
 import { delay } from "./functions";
@@ -29,11 +30,61 @@ function foo() {
 }
 
 function measureConcurrency(timings: Timing[]) {
-    const concurrencyAtStartTimes = timings
+    return timings
         .map(t => t.start)
-        .map(t => timings.filter(({ start, end }) => start <= t && t < end).length);
-    return Math.max(...concurrencyAtStartTimes);
+        .map(t => timings.filter(({ start, end }) => start <= t && t < end).length)
+        .reduce((a, b) => Math.max(a, b));
 }
+
+describe("Deferred promise", () => {
+    test("resolves its promise", async () => {
+        const deferred = new Deferred();
+        let resolved = false;
+        deferred.promise.then(_ => (resolved = true));
+        expect(resolved).toBe(false);
+        deferred.resolve();
+        await deferred.promise;
+        expect(resolved).toBe(true);
+    });
+    test("rejects its promise", async () => {
+        const deferred = new Deferred();
+        let rejected = false;
+        expect(rejected).toBe(false);
+        deferred.reject();
+        try {
+            await deferred.promise;
+        } catch (_) {
+            rejected = true;
+        }
+        expect(rejected).toBe(true);
+    });
+    test("resolves only once", async () => {
+        const deferred = new Deferred();
+        let value = 0;
+        deferred.promise.then(_ => value++);
+
+        deferred.resolve();
+        await deferred.promise;
+        expect(value).toBe(1);
+
+        deferred.resolve();
+        await deferred.promise;
+        expect(value).toBe(1);
+    });
+    test("cannot reject after resolving", async () => {
+        const deferred = new Deferred();
+        let value = 0;
+        deferred.promise.then(_ => value++);
+
+        deferred.resolve();
+        await deferred.promise;
+        expect(value).toBe(1);
+
+        deferred.reject();
+        await deferred.promise;
+        expect(value).toBe(1);
+    });
+});
 
 describe("Funnel", () => {
     test("Defaults to infinite concurrency (tested with 200)", async () => {
@@ -146,36 +197,28 @@ describe("Funnel", () => {
         expect(result[0]).toBeUndefined();
         expect(result[1]).toBe("done");
     });
-    test(
-        "retry() retries failures",
-        async () => {
-            let attempts = 0;
-            await retry(2, async () => {
+    test("retry() retries failures", async () => {
+        let attempts = 0;
+        await retry(2, async () => {
+            attempts++;
+            throw new Error();
+        }).catch(_ => {});
+        expect(attempts).toBe(3);
+    }, 10000);
+    test("funnel.pushRetry() retries failures", async () => {
+        const funnel = new Funnel<string>(1);
+        let attempts = 0;
+        let errors = 0;
+        funnel
+            .pushRetry(2, async () => {
                 attempts++;
-                throw new Error();
-            }).catch(_ => {});
-            expect(attempts).toBe(3);
-        },
-        10000
-    );
-    test(
-        "funnel.pushRetry() retries failures",
-        async () => {
-            const funnel = new Funnel<string>(1);
-            let attempts = 0;
-            let errors = 0;
-            funnel
-                .pushRetry(2, async () => {
-                    attempts++;
-                    throw Error();
-                })
-                .catch(_ => errors++);
-            await funnel.all();
-            expect(attempts).toBe(3);
-            expect(errors).toBe(1);
-        },
-        10000
-    );
+                throw Error();
+            })
+            .catch(_ => errors++);
+        await funnel.all();
+        expect(attempts).toBe(3);
+        expect(errors).toBe(1);
+    }, 10000);
     test("Funnel cancellation", async () => {
         const funnel = new Funnel(1);
         let executed = 0;
