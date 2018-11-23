@@ -30,6 +30,7 @@ export interface FunctionCall extends CallId {
 export interface FunctionReturn extends CallId {
     type: "returned" | "error";
     value?: any;
+    isErrorObject?: boolean;
     remoteExecutionStartTime?: number;
     remoteExecutionEndTime?: number;
     logUrl?: string;
@@ -59,18 +60,22 @@ export interface ModuleType {
 }
 
 export function createErrorResponse(
-    err: Error,
+    err: unknown,
     { call, startTime, logUrl, executionId }: CallingContext
 ): FunctionReturn {
-    const errObj = {};
-    Object.getOwnPropertyNames(err).forEach(name => {
-        if (typeof err[name] === "string") {
-            errObj[name] = err[name];
-        }
-    });
+    let errObj: any = err;
+    if (err instanceof Error) {
+        errObj = {};
+        Object.getOwnPropertyNames(err).forEach(name => {
+            if (typeof err[name] === "string") {
+                errObj[name] = err[name];
+            }
+        });
+    }
     return {
         type: "error",
         value: errObj,
+        isErrorObject: typeof err === "object" && err instanceof Error,
         CallId: call.CallId || "",
         remoteExecutionStartTime: startTime,
         remoteExecutionEndTime: Date.now(),
@@ -81,19 +86,16 @@ export function createErrorResponse(
 
 export interface ModuleWrapperOptions {
     /**
-     * Output additional information with each execution to aid debugging. On
-     * most cloud providers these go into the cloud logs. With the "immediate"
-     * provider, the logs go to stdout. Defaults to true.
-     *
-     * @type {boolean}
-     */
-    verbose?: boolean;
-
-    /**
-     * Logging function for console.log/warn/error output. Only available in child process mode.
+     * Logging function for console.log/warn/error output. Only available in
+     * child process mode. This is mainly useful for debugging the "immediate"
+     * mode which runs code locally. In real clouds the logs will end up in the
+     * cloud logging service (e.g. Cloudwatch Logs, or Google Stackdriver logs).
+     * Defaults to console.log.
      */
     log?: (msg: string) => void;
-
+    /**
+     * If true, create a child process to execute the wrapped module's functions.
+     */
     useChildProcess?: boolean;
 }
 
@@ -101,32 +103,28 @@ export class ModuleWrapper {
     funcs: ModuleType = {};
     child?: childProcess.ChildProcess;
     deferred?: Deferred<FunctionReturn>;
-    options: Required<ModuleWrapperOptions>;
+    log: (msg: string) => void;
+    useChildProcess: boolean;
+    executing = false;
 
     constructor(fModule: ModuleType, options: ModuleWrapperOptions = {}) {
-        this.options = {
-            verbose: true,
-            useChildProcess: false,
-            log: () => { },
-            ...options
-        };
-
+        this.log = options.log || console.log;
+        this.useChildProcess = options.useChildProcess || false;
         this.funcs = fModule;
-        const { verbose } = this.options;
 
         if (process.env["CLOUDIFY_CHILD"]) {
-            verbose && console.log(`cloudify: started child process for module wrapper.`);
+            this.log(`cloudify: started child process for module wrapper.`);
             process.on("message", async (call: FunctionCall) => {
                 const startTime = Date.now();
                 try {
                     const ret = await this.execute({ call, startTime });
                     process.send!(ret);
                 } catch (err) {
-                    console.error(err);
+                    this.log(err);
                 }
             });
-        } else if (verbose) {
-            console.log(`cloudify: successful cold start.`);
+        } else {
+            this.log(`cloudify: successful cold start.`);
         }
     }
 
@@ -149,19 +147,25 @@ export class ModuleWrapper {
 
     async stop() {
         if (this.child) {
-            this.child.disconnect();
+            this.child!.disconnect();
+            this.child!.kill();
         }
     }
 
     async execute(callingContext: CallingContext): Promise<FunctionReturn> {
-        const { verbose } = this.options;
         try {
+            if (this.executing) {
+                this.log(`cloudify: warning: module wrapper execute is not re-entrant`);
+                throw new Error(`cloudify: module wrapper is not re-entrant`);
+            }
+            this.executing = true;
+
             const memoryUsage = process.memoryUsage();
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
-            if (this.options.useChildProcess) {
+            if (this.useChildProcess) {
                 this.deferred = new Deferred();
                 if (!this.child) {
-                    verbose && console.log(`cloudify: creating child process`);
+                    this.log(`cloudify: creating child process`);
                     this.child = childProcess.fork("./index.js", [], {
                         silent: true, // redirects stdout and stderr to IPC.
                         env: { CLOUDIFY_CHILD: "true" }
@@ -176,9 +180,9 @@ export class ModuleWrapper {
                             lines = lines.slice(0, lines.length - 1);
                         }
                         for (const line of lines) {
-                            this.options.log(line);
+                            this.log(line);
                         }
-                    }
+                    };
                     this.child!.stdout.on("data", logLines);
                     this.child!.stderr.on("data", logLines);
 
@@ -191,6 +195,9 @@ export class ModuleWrapper {
                     });
                     this.child.on("exit", (code, signal) => {
                         this.child = undefined;
+                        if (!this.deferred) {
+                            return;
+                        }
                         if (code) {
                             this.deferred!.reject(
                                 new Error(`Exited with error code ${code}`)
@@ -202,19 +209,32 @@ export class ModuleWrapper {
                         }
                     });
                 }
-                verbose && console.log(`cloudify: sending invoke message to child process for '${call.name}'`);
+                this.log(
+                    `cloudify: sending invoke message to child process for '${call.name}'`
+                );
                 this.child.send(
                     { ...call, useChildProcess: false },
                     err => err && this.deferred!.reject(err)
                 );
-                this.deferred!.promise.then(_ => (this.deferred = undefined));
-                return this.deferred.promise;
+                const rv = await this.deferred.promise;
+                this.deferred = undefined;
+                this.executing = false;
+
+                return rv;
             } else {
-                const memInfo = inspect(memoryUsage, { compact: true, breakLength: Infinity });
-                verbose &&
-                    console.log(`cloudify: Invoking '${call.name}', memory: ${memInfo}`);
+                const memInfo = inspect(memoryUsage, {
+                    compact: true,
+                    breakLength: Infinity
+                });
+                this.log(`cloudify: Invoking '${call.name}', memory: ${memInfo}`);
                 const func = this.lookupFunction(call);
+                if (!func) {
+                    throw new Error(
+                        `cloudify: module wrapper: could not find function '${call.name}'`
+                    );
+                }
                 const returned = await func.apply(undefined, call.args);
+
                 const rv: FunctionReturn = {
                     type: "returned",
                     value: returned,
@@ -226,12 +246,12 @@ export class ModuleWrapper {
                     memoryUsage,
                     instanceId
                 };
+                this.executing = false;
                 return rv;
             }
         } catch (err) {
-            if (verbose) {
-                console.error(err);
-            }
+            this.log(`cloudify: wrapped function exception or promise rejection: ${err}`);
+            this.executing = false;
             return createErrorResponse(err, callingContext);
         }
     }
@@ -272,12 +292,11 @@ export function serializeCall(call: FunctionCall) {
         deepStrictEqual(deserialized, call);
     } catch (_) {
         throw new Error(
-            `WARNING: problem serializing arguments to JSON
-deserialized arguments: ${inspect(deserialized)}
-original arguments: ${inspect(call)}
-Detected function '${
-            call.name
-            }' argument loses information when serialized by JSON.stringify()`
+            `cloudify: Detected '${
+                call.name
+            }' is not supported because one of its arguments cannot be serialized by JSON.stringify
+  original arguments: ${inspect(call.args)}
+serialized arguments: ${inspect(deserialized.args)}`
         );
     }
     return callStr;

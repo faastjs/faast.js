@@ -3,37 +3,52 @@ import * as uuidv4 from "uuid/v4";
 import * as aws from "./aws/aws-cloudify";
 import * as childprocess from "./childprocess/childprocess-cloudify";
 import * as costAnalyzer from "./cost-analyzer";
-import { Funnel, Deferred } from "./funnel";
+import { Deferred, Funnel } from "./funnel";
 import * as google from "./google/google-cloudify";
 import * as immediate from "./immediate/immediate-cloudify";
-import { info, logLeaks, stats, warn, logUrls } from "./log";
-import { PackerOptions, PackerResult } from "./packer";
-import {
-    assertNever,
-    ExponentiallyDecayingAverageValue,
-    FactoryMap,
-    roundTo100ms,
-    Statistics,
-    sleep,
-    CommonOptionDefaults
-} from "./shared";
+import { info, logLeaks, stats, warn, logCalls } from "./log";
 import {
     FunctionCall,
     FunctionReturn,
     FunctionReturnWithMetrics
 } from "./module-wrapper";
+import { PackerOptions, PackerResult } from "./packer";
+import {
+    assertNever,
+    CommonOptionDefaults,
+    ExponentiallyDecayingAverageValue,
+    FactoryMap,
+    roundTo100ms,
+    sleep,
+    Statistics
+} from "./shared";
 import { NonFunctionProperties, Unpacked } from "./type-helpers";
 import Module = require("module");
+import * as util from "util";
 
 export { aws, google, childprocess, immediate, costAnalyzer };
 
 export class CloudifyError extends Error {
     logUrl?: string;
+    constructor(errObj: any, logUrl?: string) {
+        let message = errObj.message;
+        if (logUrl) {
+            message += `\n(logs: ${logUrl})`;
+        }
+        super(message);
+        if (Object.keys(errObj).length === 0 && !(errObj instanceof Error)) {
+            warn(
+                `Error response object has no keys, likely a bug in cloudify (not serializing error objects)`
+            );
+        }
+        this.logUrl = logUrl;
+        this.name = errObj.name;
+        this.stack = errObj.stack;
+    }
 }
 
 export interface ResponseDetails<D> {
-    value?: D;
-    error?: Error;
+    value: Promise<D>;
     rawResponse: any;
     localStartLatency?: number;
     remoteStartLatency?: number;
@@ -260,21 +275,17 @@ function processResponse<R>(
     memoryLeakDetector: MemoryLeakDetector
 ) {
     const returned = returnedMetrics.returned;
-    let error: CloudifyError | undefined;
     const { executionId, logUrl, instanceId, memoryUsage } = returned;
+    let value: Promise<Unpacked<R>>;
     if (returned.type === "error") {
-        const errValue = returned.value;
-        if (Object.keys(errValue).length === 0 && !(errValue instanceof Error)) {
-            warn(
-                `Error response object has no keys, likely a bug in cloudify (not serializing error objects)`
-            );
+        let error = returned.value;
+        if (returned.isErrorObject) {
+            error = new CloudifyError(returned.value, logUrl);
         }
-        error = new CloudifyError(errValue.message + `\n(logs: ${logUrl})`);
-        error.logUrl = logUrl;
-        error.name = errValue.name;
-        error.stack = errValue.stack;
+        value = Promise.reject(error);
+    } else {
+        value = Promise.resolve(returned.value);
     }
-    const value = !error && returned.value;
     const {
         localRequestSentTime,
         remoteResponseSentTime,
@@ -283,7 +294,6 @@ function processResponse<R>(
     } = returnedMetrics;
     let rv: Response<R> = {
         value,
-        error,
         executionId,
         logUrl,
         rawResponse
@@ -332,7 +342,7 @@ function processResponse<R>(
         };
     }
 
-    if (error) {
+    if (returned.type === "error") {
         fcounters.incr(fn, "errors");
     } else {
         fcounters.incr(fn, "completed");
@@ -378,9 +388,15 @@ export class CloudFunction<O extends CommonOptions, S> {
         readonly modulePath: string,
         readonly options?: O
     ) {
-        this.impl.logUrl && logUrls(`${this.impl.logUrl(state)}`);
-        const concurrency =
-            (options && options.concurrency) || cloud.defaults.concurrency || 1;
+        let concurrency = (options && options.concurrency) || cloud.defaults.concurrency;
+        if (!concurrency) {
+            warn(
+                `Default concurrency level not defined for cloud type '${
+                    cloud.name
+                }', defaulting to 1`
+            );
+            concurrency = 1;
+        }
         this.funnel.setMaxConcurrency(concurrency);
         this.memorySize = (options && options.memorySize) || cloud.defaults.memorySize!;
         this.timeout = (options && options.timeout) || cloud.defaults.timeout;
@@ -396,7 +412,7 @@ export class CloudFunction<O extends CommonOptions, S> {
         }
     }
 
-    cleanup() {
+    async cleanup() {
         this.funnel.clear();
         this.cleanupHooks.forEach(hook => hook());
         this.cleanupHooks.clear();
@@ -457,9 +473,8 @@ export class CloudFunction<O extends CommonOptions, S> {
     cloudifyWithResponse<A extends any[], R>(
         fn: (...args: A) => R
     ): ResponsifiedFunction<A, R> {
-        let retries = 0;
-
         return async (...args: A) => {
+            let retries = 0;
             const startTime = Date.now();
             const initialInvocationTime = this.initialInvocationTime.getOrCreate(fn.name);
             // XXX capture google retries in stats?
@@ -474,6 +489,7 @@ export class CloudFunction<O extends CommonOptions, S> {
             };
 
             return this.funnel.pushRetry(shouldRetry, async () => {
+                logCalls(`Calling ${fn.name}`);
                 const deferred = new Deferred<FunctionReturnWithMetrics>();
                 const CallId = uuidv4();
                 const callRequest: FunctionCall = {
@@ -484,6 +500,7 @@ export class CloudFunction<O extends CommonOptions, S> {
                 };
 
                 const invokeCloudFunction = () => {
+                    logCalls(`Invoking...`);
                     this.functionCounters.incr(fn.name, "invocations");
                     return this.impl
                         .callFunction(this.state, callRequest)
@@ -512,7 +529,8 @@ export class CloudFunction<O extends CommonOptions, S> {
                     () => Date.now() - initialInvocationTime,
                     () =>
                         Math.max(
-                            estimateTailLatency(fnStats, this.tailLatencyRetryStdev)
+                            estimateTailLatency(fnStats, this.tailLatencyRetryStdev),
+                            5000
                         ),
                     invokeCloudFunction,
                     shouldRetry,
@@ -520,6 +538,8 @@ export class CloudFunction<O extends CommonOptions, S> {
                 );
 
                 const rv = await deferred.promise;
+
+                logCalls(`Returning '${fn.name}: ${util.inspect(rv)}'`);
 
                 return processResponse<R>(
                     rv,
@@ -537,13 +557,12 @@ export class CloudFunction<O extends CommonOptions, S> {
     cloudifyFunction<A extends any[], R>(
         fn: (...args: A) => R
     ): PromisifiedFunction<A, R> {
-        const cloudifiedFunc = async (...args: A) => {
+        const cloudifiedFunc = (...args: A) => {
             const cfn = this.cloudifyWithResponse(fn);
-            const response: Response<R> = await cfn(...args);
-            if (response.error) {
-                throw response.error;
-            }
-            return response.value;
+            const promise = cfn(...args).then(response => response.value);
+            // Attach a synchronous catch to avoid runtime warnings about unhandled promise rejections. This is desirable because users of this library may often want to attach catch clauses asyncronously.
+            promise.catch(_ => {});
+            return promise;
         };
         return cloudifiedFunc as any;
     }
