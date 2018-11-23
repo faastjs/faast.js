@@ -1,4 +1,7 @@
 import { checkFunctions } from "./tests";
 
-checkFunctions("Queue trigger", "aws", { mode: "queue" });
-checkFunctions("Queue trigger", "aws", { mode: "queue", childProcess: true });
+describe("aws-queue", () => {
+    describe("basic calls", () => checkFunctions("aws", { mode: "queue" }));
+    describe("basic calls with child process", () =>
+        checkFunctions("aws", { mode: "queue", childProcess: true }));
+});

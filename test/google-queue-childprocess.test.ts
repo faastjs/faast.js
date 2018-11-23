@@ -1,6 +1,7 @@
 import { checkFunctions } from "./tests";
 
-checkFunctions("Queue trigger with child process", "google", {
-    mode: "queue",
-    childProcess: true
-});
+describe("google-queue with child process", () =>
+    checkFunctions("google", {
+        mode: "queue",
+        childProcess: true
+    }));

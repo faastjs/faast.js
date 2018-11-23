@@ -1,3 +1,3 @@
 import { checkCosts } from "./tests";
 
-checkCosts("Google costs", "google");
+describe("google cost estimate", () => checkCosts("google"));

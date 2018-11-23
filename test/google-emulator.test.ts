@@ -1,3 +1,5 @@
 import { checkFunctions } from "./tests";
 
-checkFunctions("Google Emulator", "google-emulator", {});
+describe.skip("google-emulator", () => {
+    describe("basic calls", () => checkFunctions("google-emulator", {}));
+});

@@ -1,3 +1,3 @@
 import { checkCosts } from "./tests";
 
-checkCosts("AWS costs", "aws");
+describe("aws cost estimator", () => checkCosts("aws"));

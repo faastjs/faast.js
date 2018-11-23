@@ -1,13 +1,17 @@
 import { checkFunctions } from "./tests";
 
-checkFunctions("Https trigger with package.json", "aws", {
-    mode: "https",
-    packageJson: "test/package.json",
-    useDependencyCaching: false
-});
+describe("aws with package.json", () => {
+    describe("https trigger", () =>
+        checkFunctions("aws", {
+            mode: "https",
+            packageJson: "test/package.json",
+            useDependencyCaching: false
+        }));
 
-checkFunctions("Queue trigger with package.json", "aws", {
-    mode: "queue",
-    packageJson: "test/package.json",
-    useDependencyCaching: false
+    describe("queue trigger", () =>
+        checkFunctions("aws", {
+            mode: "queue",
+            packageJson: "test/package.json",
+            useDependencyCaching: false
+        }));
 });

@@ -26,6 +26,10 @@ export function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+export function delayReject(ms: number) {
+    return new Promise((_, reject) => setTimeout(reject, ms));
+}
+
 export function echo(n: number) {
     return n;
 }
@@ -37,6 +41,10 @@ export async function async() {
 
 export function path(): Promise<string> {
     return delay(200).then(() => process.env.PATH || "no PATH variable");
+}
+
+export function emptyReject() {
+    return Promise.reject();
 }
 
 export function rejected(): Promise<string> {

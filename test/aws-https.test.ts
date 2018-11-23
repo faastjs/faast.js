@@ -1,4 +1,7 @@
 import { checkFunctions } from "./tests";
 
-checkFunctions("Https trigger", "aws", { mode: "https" });
-checkFunctions("Https trigger", "aws", { mode: "https", childProcess: true });
+describe("aws-https", () => {
+    describe("basic calls", () => checkFunctions("aws", { mode: "https" }));
+    describe("basic calls with child process", () =>
+        checkFunctions("aws", { mode: "https", childProcess: true }));
+});

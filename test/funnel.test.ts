@@ -25,10 +25,6 @@ interface Timing {
     end: number;
 }
 
-function foo() {
-    return 0;
-}
-
 function measureConcurrency(timings: Timing[]) {
     return timings
         .map(t => t.start)
