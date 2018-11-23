@@ -1,14 +1,13 @@
 import { Archiver } from "archiver";
 import * as fs from "fs";
 import * as path from "path";
-import * as rimraf from "rimraf";
 import { Readable } from "stream";
 import { promisify } from "util";
 import * as webpack from "webpack";
 import * as yauzl from "yauzl";
 import { LoaderOptions } from "./cloudify-loader";
 import { info, warn } from "./log";
-import { streamToBuffer } from "./shared";
+import { streamToBuffer, rmrf } from "./shared";
 import { TrampolineFactory, ModuleWrapperOptions } from "./module-wrapper";
 
 type ZipFile = yauzl.ZipFile;
@@ -215,7 +214,6 @@ export async function processZip(
 
 const mkdir = promisify(fs.mkdir);
 const exists = promisify(fs.exists);
-const rmrf = promisify(rimraf);
 
 export async function unzipInDir(dir: string, archive: NodeJS.ReadableStream) {
     await rmrf(dir);

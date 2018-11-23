@@ -9,16 +9,14 @@ import * as inquirer from "inquirer";
 import * as ora from "ora";
 import { tmpdir } from "os";
 import * as path from "path";
-import { promisify } from "util";
 import * as awsCloudify from "./aws/aws-cloudify";
 import { LocalCache } from "./cache";
 import { RateLimitedFunnel } from "./funnel";
 import * as googleCloudify from "./google/google-cloudify";
-import * as rimraf from "rimraf";
+import { rmrf } from "./shared";
 
 const warn = console.warn;
 const log = console.log;
-const rmrf = promisify(rimraf);
 
 interface CleanupOptions {
     region?: string; // AWS and Google only.
@@ -193,7 +191,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
         Bucket => s3.deleteBucket({ Bucket }).promise()
     );
 
-    const cache = new LocalCache(".cloudify/aws");
+    const cache = await LocalCache.create(".cloudify/aws");
     output(`Local cache: ${cache.dir}`);
     const entries = cache.entries();
     if (!execute) {

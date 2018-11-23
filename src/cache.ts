@@ -3,12 +3,13 @@ import { homedir } from "os";
 import { join } from "path";
 import { promisify } from "util";
 import { Readable } from "stream";
-import * as rimraf from "rimraf";
+import { rmrf } from "./shared";
 
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
-const rmdir = promisify(rimraf);
 const stat = promisify(fs.stat);
+const mkdir = promisify(fs.mkdir);
+const exists = promisify(fs.exists);
 
 /**
  * A simple persistent key-value store. Entries can be expired, but are not
@@ -21,6 +22,17 @@ const stat = promisify(fs.stat);
  * @class LocalCache
  */
 export class LocalCache {
+    static async create(
+        dirRelativeToHomeDir: string,
+        expiration: number = 24 * 3600 * 1000
+    ) {
+        const rv = new LocalCache(dirRelativeToHomeDir, expiration);
+        if (!(await exists(rv.dir))) {
+            await mkdir(rv.dir, { mode: 0o700, recursive: true });
+        }
+        return rv;
+    }
+
     readonly dir: string;
 
     /**
@@ -30,14 +42,11 @@ export class LocalCache {
      * @param {number} [expiration=24 * 3600 * 1000] The age (in seconds) after
      * which a cached entry is invalid
      */
-    constructor(
+    protected constructor(
         readonly dirRelativeToHomeDir: string,
-        readonly expiration: number = 24 * 3600 * 1000
+        readonly expiration: number
     ) {
         this.dir = join(homedir(), dirRelativeToHomeDir);
-        if (!fs.existsSync(this.dir)) {
-            fs.mkdirSync(this.dir, { mode: 0o700, recursive: true });
-        }
     }
 
     /**
@@ -71,7 +80,8 @@ export class LocalCache {
     /**
      * Deletes all cached entries from disk.
      */
-    clear() {
-        return rmdir(`${this.dir}/*`);
+    async clear() {
+        await rmrf(`${this.dir}`);
+        await mkdir(this.dir, { mode: 0o700, recursive: true });
     }
 }

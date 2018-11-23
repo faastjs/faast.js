@@ -144,7 +144,7 @@ export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
 }
 
 export function quietly<U>(arg: aws.Request<U, aws.AWSError>) {
-    return arg.promise().catch(_ => { });
+    return arg.promise().catch(_ => {});
 }
 
 function zipStreamToBuffer(zipStream: NodeJS.ReadableStream): Promise<Buffer> {
@@ -291,7 +291,7 @@ export async function buildModulesOnLambda(
             ? fs.readFileSync(packageJson).toString()
             : JSON.stringify(packageJson);
 
-    const localCache = new LocalCache(".cloudify/aws");
+    const localCache = await LocalCache.create(".cloudify/aws");
 
     let cacheKey: string | undefined;
     if (useDependencyCaching) {
@@ -786,7 +786,7 @@ function garbageCollectLogGroups(
             ) {
                 logGc(
                     `Added retention policy of ${retentionInDays} day(s) to ${
-                    g.logGroupName
+                        g.logGroupName
                     }`
                 );
             }

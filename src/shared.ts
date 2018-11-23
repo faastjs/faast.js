@@ -1,9 +1,16 @@
-import { Readable } from "stream";
+import {
+    readdir as readdirCB,
+    rmdir as rmdirCB,
+    stat as statCB,
+    unlink as unlinkCB
+} from "fs";
+import { join } from "path";
+import { promisify } from "util";
 
 export const CommonOptionDefaults = {
     childProcess: false,
     gc: true,
-    maxRetries: 3,
+    maxRetries: 2,
     speculativeRetryThreshold: 3,
     retentionInDays: 1
 };
@@ -151,4 +158,25 @@ export function hasExpired(date: string | number | undefined, retentionInDays: n
 
 export function roundTo100ms(n: number) {
     return Math.round(n / 100) * 100;
+}
+
+const readdir = promisify(readdirCB);
+const unlink = promisify(unlinkCB);
+const rmdir = promisify(rmdirCB);
+const stat = promisify(statCB);
+
+export async function rmrf(dir: string) {
+    const contents = await readdir(dir);
+    for (const name of contents) {
+        const dirEntry = join(dir, name);
+        const statResult = await stat(dirEntry);
+        if (statResult.isFile()) {
+            await unlink(dirEntry);
+        } else if (statResult.isDirectory()) {
+            await rmrf(dirEntry);
+        } else {
+            throw new Error(`Could not remove '${dirEntry}'`);
+        }
+    }
+    await rmdir(dir);
 }
