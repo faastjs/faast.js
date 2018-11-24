@@ -47,7 +47,9 @@ describe("shared module tests", () => {
         mkdirSync(subdir);
         const file = path.join(subdir, "file.txt");
         const stream = createWriteStream(file);
-        stream.write("hello");
+        await new Promise((resolve, reject) =>
+            stream.write("hello", err => (err ? reject(err) : resolve()))
+        );
         stream.close();
         expect(await exists(file)).toBe(true);
         expect(await exists(subdir)).toBe(true);
