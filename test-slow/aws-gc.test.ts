@@ -29,6 +29,7 @@ test(
         const cloud = cloudify.create("aws");
         const func = await cloud.createFunction("./functions");
         const remote = func.cloudifyModule(functions);
+        const { cloudwatch } = func.state.services;
         await new Promise(async resolve => {
             let done = false;
             remote.hello("gc-test");
@@ -54,7 +55,6 @@ test(
         });
 
         const { logGroupName } = func.state.resources;
-        const { cloudwatch } = func.state.services;
         const logStreamsResponse = await cloudwatch
             .describeLogStreams({ logGroupName })
             .promise();
