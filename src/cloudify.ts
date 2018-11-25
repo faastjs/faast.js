@@ -489,9 +489,9 @@ export class CloudFunction<O extends CommonOptions, S> {
             };
 
             return this.funnel.pushRetry(shouldRetry, async () => {
-                logCalls(`Calling ${fn.name}`);
-                const deferred = new Deferred<FunctionReturnWithMetrics>();
                 const CallId = uuidv4();
+                logCalls(`Calling '${fn.name}' (${CallId})`);
+                const deferred = new Deferred<FunctionReturnWithMetrics>();
                 const callRequest: FunctionCall = {
                     name: fn.name,
                     args,
@@ -500,7 +500,6 @@ export class CloudFunction<O extends CommonOptions, S> {
                 };
 
                 const invokeCloudFunction = () => {
-                    logCalls(`Invoking...`);
                     this.functionCounters.incr(fn.name, "invocations");
                     return this.impl
                         .callFunction(this.state, callRequest)
@@ -539,7 +538,9 @@ export class CloudFunction<O extends CommonOptions, S> {
 
                 const rv = await deferred.promise;
 
-                logCalls(`Returning '${fn.name}: ${util.inspect(rv)}'`);
+                logCalls(
+                    `Returning '${fn.name}' (${CallId}): ${util.inspect(rv.returned)}`
+                );
 
                 return processResponse<R>(
                     rv,
