@@ -1,4 +1,5 @@
 import * as cloudify from "../src/cloudify";
+import { Timing } from "./functions";
 
 export const sum = (a: number[]) => a.reduce((total, n) => total + n, 0);
 
@@ -122,4 +123,11 @@ export function checkResourcesExist(resources: object) {
     for (const key of Object.keys(resources)) {
         expect(resources[key]).toBeTruthy();
     }
+}
+
+export function measureConcurrency(timings: Timing[]) {
+    return timings
+        .map(t => t.start)
+        .map(t => timings.filter(({ start, end }) => start <= t && t < end).length)
+        .reduce((a, b) => Math.max(a, b));
 }

@@ -8,29 +8,8 @@ import {
     Deferred
 } from "../src/funnel";
 import { sleep } from "../src/shared";
-import { delay } from "./functions";
-
-async function timer(ms: number) {
-    const start = Date.now();
-    await sleep(ms);
-    const end = Date.now();
-    return {
-        start,
-        end
-    };
-}
-
-interface Timing {
-    start: number;
-    end: number;
-}
-
-function measureConcurrency(timings: Timing[]) {
-    return timings
-        .map(t => t.start)
-        .map(t => timings.filter(({ start, end }) => start <= t && t < end).length)
-        .reduce((a, b) => Math.max(a, b));
-}
+import { timer, Timing } from "./functions";
+import { measureConcurrency } from "./util";
 
 describe("Deferred promise", () => {
     test("resolves its promise", async () => {
@@ -353,7 +332,7 @@ describe("RateLimiter", () => {
             const rateLimiter = new RateLimiter<Timing>(requestRate);
             const promises: Promise<Timing>[] = [];
             promises.push(rateLimiter.push(() => timer(0)));
-            await delay(900);
+            await sleep(900);
             for (let i = 0; i < 15; i++) {
                 promises.push(rateLimiter.push(() => timer(0)));
             }
@@ -382,7 +361,7 @@ describe("RateLimiter", () => {
     );
 });
 
-describe("RateLimitedFunnel", () => {
+describe("Rate limited funnel", () => {
     test(
         "Limits max concurrency and rate",
         async () => {

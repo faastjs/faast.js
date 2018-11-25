@@ -51,9 +51,25 @@ export function rejected(): Promise<string> {
     return Promise.reject("This promise is intentionally rejected.");
 }
 
-export async function timer(delayMs: number) {
+export interface Timing {
+    start: number;
+    end: number;
+}
+
+export async function timer(delayMs: number): Promise<Timing> {
     const start = Date.now();
     await delay(delayMs);
+    const end = Date.now();
+    return { start, end };
+}
+
+export async function spin(ms: number): Promise<Timing> {
+    const start = Date.now();
+    while (true) {
+        if (Date.now() - start >= ms) {
+            break;
+        }
+    }
     const end = Date.now();
     return { start, end };
 }
