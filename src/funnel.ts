@@ -13,8 +13,11 @@ export class Deferred<T = void> {
     }
 }
 
-export class Future<T = void> extends Deferred<T> {
-    constructor(private fn: () => Promise<T>, private cancel?: () => string | undefined) {
+export class DeferredWorker<T = void> extends Deferred<T> {
+    constructor(
+        private worker: () => Promise<T>,
+        private cancel?: () => string | undefined
+    ) {
         super();
     }
     execute(): void {
@@ -22,7 +25,7 @@ export class Future<T = void> extends Deferred<T> {
         if (cancelMessage) {
             this.reject(new Error(cancelMessage));
         } else {
-            this.fn()
+            this.worker()
                 .then(x => this.resolve(x))
                 .catch(err => this.reject(err));
         }
@@ -62,15 +65,15 @@ export async function retry<T, E>(
 }
 
 export class Funnel<T = void> {
-    protected pendingQueue: Set<Future<T>> = new Set();
-    protected executingQueue: Set<Future<T>> = new Set();
+    protected pendingQueue: Set<DeferredWorker<T>> = new Set();
+    protected executingQueue: Set<DeferredWorker<T>> = new Set();
     public processed = 0;
     public errors = 0;
 
     constructor(public maxConcurrency: number = 0) {}
 
     push(worker: () => Promise<T>, cancel?: () => string | undefined) {
-        const future = new Future(worker, cancel);
+        const future = new DeferredWorker(worker, cancel);
         this.pendingQueue.add(future);
         setImmediate(() => this.doWork());
         return future.promise;
@@ -214,7 +217,7 @@ export class MemoFunnel<A, T = void> extends Funnel<T> {
 export class RateLimiter<T = void> {
     protected lastTick = 0;
     protected bucket = 0;
-    protected queue: Set<Future<T>> = new Set();
+    protected queue: Set<DeferredWorker<T>> = new Set();
 
     constructor(
         protected targetRequestsPerSecond: number,
@@ -231,22 +234,12 @@ export class RateLimiter<T = void> {
             return worker();
         }
 
-        const future = new Future(worker, cancel);
+        const future = new DeferredWorker(worker, cancel);
         this.queue.add(future);
         if (this.queue.size === 1) {
             this.drainQueue();
         }
         return future.promise;
-    }
-
-    setTargetRateLimit(targetRequestsPerSecond: number) {
-        assert(targetRequestsPerSecond > 0);
-        this.targetRequestsPerSecond = targetRequestsPerSecond;
-    }
-
-    setBurstMax(maxBurst: number) {
-        assert(maxBurst >= 1);
-        this.maxBurst = maxBurst;
     }
 
     protected updateBucket() {
@@ -290,10 +283,6 @@ export class RateLimitedFunnel<T = void> extends Funnel<T> {
     constructor({ maxConcurrency, targetRequestsPerSecond, maxBurst }: Limits) {
         super(maxConcurrency);
         this.rateLimiter = new RateLimiter<T>(targetRequestsPerSecond, maxBurst);
-    }
-
-    setRateLimit(maxRequestsPerSecond: number) {
-        this.rateLimiter.setTargetRateLimit(maxRequestsPerSecond);
     }
 
     push(worker: () => Promise<T>, cancel?: () => string | undefined) {
