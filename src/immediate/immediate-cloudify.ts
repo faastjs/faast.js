@@ -139,5 +139,6 @@ async function stop(state: State) {
     info(`Stopping`);
     const promises = state.moduleWrappers.map(wrapper => wrapper.stop());
     await Promise.all(promises);
+    state.moduleWrappers = [];
     info(`Stopping done`);
 }

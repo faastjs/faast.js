@@ -283,6 +283,8 @@ function processResponse<R>(
             error = new CloudifyError(returned.value, logUrl);
         }
         value = Promise.reject(error);
+        // Add a synchronous catch handler to avoid warnings about async catch.
+        value.catch(_ => {});
     } else {
         value = Promise.resolve(returned.value);
     }
@@ -568,7 +570,7 @@ export class CloudFunction<O extends CommonOptions, S> {
         return cloudifiedFunc as any;
     }
 
-    async costEstimate(): Promise<costAnalyzer.CostBreakdown> {
+    async costEstimate() {
         if (this.impl.costEstimate) {
             const estimate = await this.impl.costEstimate(
                 this.state,
@@ -592,7 +594,7 @@ export class CloudFunction<O extends CommonOptions, S> {
             }
             return estimate;
         } else {
-            return Promise.resolve(new costAnalyzer.CostBreakdown());
+            return new costAnalyzer.CostBreakdown();
         }
     }
 }

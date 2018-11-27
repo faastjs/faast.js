@@ -32,7 +32,18 @@ export function trace(obj: object) {
         return;
     }
     while (res) {
-        console.log(`%O`, res);
+        const { stack, ...rest } = res;
+        console.log(`%O\n${stack}`, rest);
+        res = asyncObjects.get(res.triggerId);
+    }
+}
+
+export function printAsyncStack() {
+    console.log(`Async stack:`);
+    let res = asyncObjects.get(asyncHooks.executionAsyncId());
+    while (res) {
+        const { stack, ...rest } = res;
+        console.log(`%O\n${stack}`, rest);
         res = asyncObjects.get(res.triggerId);
     }
 }
@@ -63,7 +74,7 @@ export function stopAsyncTracing() {
 }
 
 export function onAsyncHook() {
-    var hooks: asyncHooks.HookCallbacks = {
+    const hooks: asyncHooks.HookCallbacks = {
         init,
         before,
         after,
@@ -71,10 +82,10 @@ export function onAsyncHook() {
         promiseResolve
     };
 
-    var asyncHook = asyncHooks.createHook(hooks);
+    const asyncHook = asyncHooks.createHook(hooks);
     asyncHook.enable();
 
-    return function() {
+    return () => {
         asyncHook.disable();
     };
 

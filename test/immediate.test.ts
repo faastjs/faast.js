@@ -1,8 +1,8 @@
 import { cloudify, immediate } from "../src/cloudify";
+import { sleep } from "../src/shared";
 import * as funcs from "./functions";
 import { checkFunctions } from "./tests";
 import { measureConcurrency } from "./util";
-import { startAsyncTracing, traceAsyncLeaks, stopAsyncTracing } from "../src/tracing";
 
 const ignore = () => {};
 
@@ -149,5 +149,22 @@ describe("cloudify immediate mode", () => {
             maxConcurrency: 5,
             expectedConcurrency: 1
         });
+    });
+
+    test("cleanup waits for all child processes to exit", async () => {
+        const { remote, cloudFunc } = await cloudify("immediate", funcs, "./functions", {
+            childProcess: true,
+            log: ignore
+        });
+        remote.spin(5000).catch(_ => {});
+        while (true) {
+            await sleep(100);
+            if (cloudFunc.state.moduleWrappers.length > 0) {
+                break;
+            }
+        }
+        expect(cloudFunc.state.moduleWrappers.length).toBe(1);
+        await cloudFunc.cleanup();
+        expect(cloudFunc.state.moduleWrappers.length).toBe(0);
     });
 });

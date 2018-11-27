@@ -1137,5 +1137,5 @@ export async function costEstimate(
     });
     costs.push(logIngestion);
 
-    return Promise.resolve(costs);
+    return costs;
 }

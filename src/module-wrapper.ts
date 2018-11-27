@@ -5,6 +5,11 @@ import { inspect } from "util";
 import { Deferred } from "./funnel";
 import { AnyFunction } from "./type-helpers";
 
+import * as debug from "debug";
+
+const log = debug("module-wrapper");
+log.enabled = false;
+
 export const filename = module.filename;
 
 export interface CallId {
@@ -163,6 +168,7 @@ export class ModuleWrapper {
             const memoryUsage = process.memoryUsage();
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
             if (this.useChildProcess) {
+                log(`Creating deferred`);
                 this.deferred = new Deferred();
                 if (!this.child) {
                     this.log(`cloudify: creating child process`);
@@ -186,23 +192,31 @@ export class ModuleWrapper {
                     this.child!.stdout.on("data", logLines);
                     this.child!.stderr.on("data", logLines);
 
-                    this.child.on("message", (value: FunctionReturn) =>
-                        this.deferred!.resolve(value)
-                    );
+                    this.child.on("message", (value: FunctionReturn) => {
+                        log(`resolving deferred on message`);
+                        this.deferred!.resolve(value);
+                    });
                     this.child.on("error", err => {
+                        log(`rejecting deferred on error`);
                         this.child = undefined;
                         this.deferred!.reject(err);
                     });
                     this.child.on("exit", (code, signal) => {
+                        log(`exit`);
                         this.child = undefined;
                         if (!this.deferred) {
+                            log(`deferred is falsy`);
+
                             return;
                         }
                         if (code) {
+                            log(`rejecting deferred on exit code`);
                             this.deferred!.reject(
                                 new Error(`Exited with error code ${code}`)
                             );
                         } else if (signal) {
+                            log(`rejecting deferred on signal`);
+
                             this.deferred!.reject(
                                 new Error(`Aborted with signal ${signal}`)
                             );
@@ -212,11 +226,16 @@ export class ModuleWrapper {
                 this.log(
                     `cloudify: sending invoke message to child process for '${call.name}'`
                 );
-                this.child.send(
-                    { ...call, useChildProcess: false },
-                    err => err && this.deferred!.reject(err)
-                );
+                this.child.send({ ...call, useChildProcess: false }, err => {
+                    if (err) {
+                        log(`rejecting deferred on send error`);
+                        this.deferred!.reject(err);
+                    }
+                });
+                log(`awaiting deferred promise`);
                 const rv = await this.deferred.promise;
+                log(`deferred promise returned`);
+
                 this.deferred = undefined;
                 this.executing = false;
 
@@ -250,9 +269,12 @@ export class ModuleWrapper {
                 return rv;
             }
         } catch (err) {
+            log(`wrapper function exception: ${err}`);
             this.log(`cloudify: wrapped function exception or promise rejection: ${err}`);
             this.executing = false;
-            return createErrorResponse(err, callingContext);
+            const rv = createErrorResponse(err, callingContext);
+            log(`wrapper function exception response: %O`, rv);
+            return rv;
         }
     }
 }
