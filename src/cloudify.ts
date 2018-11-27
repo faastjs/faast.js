@@ -283,7 +283,6 @@ function processResponse<R>(
             error = new CloudifyError(returned.value, logUrl);
         }
         value = Promise.reject(error);
-        // Add a synchronous catch handler to avoid warnings about async catch.
         value.catch(_ => {});
     } else {
         value = Promise.resolve(returned.value);
@@ -563,7 +562,6 @@ export class CloudFunction<O extends CommonOptions, S> {
         const cloudifiedFunc = (...args: A) => {
             const cfn = this.cloudifyWithResponse(fn);
             const promise = cfn(...args).then(response => response.value);
-            // Attach a synchronous catch to avoid runtime warnings about unhandled promise rejections. This is desirable because users of this library may often want to attach catch clauses asyncronously.
             promise.catch(_ => {});
             return promise;
         };
