@@ -15,25 +15,28 @@ import {
 import { packer, PackerOptions, PackerResult, unzipInDir } from "../packer";
 import { CommonOptionDefaults, rmrf } from "../shared";
 import * as immediateTrampolineFactory from "./immediate-trampoline";
+import { Writable } from "stream";
+import { makeRe } from "minimatch";
 
 const mkdir = promisify(fs.mkdir);
 const exec = promisify(sys.exec);
 
 export interface State {
     moduleWrappers: ModuleWrapper[];
-    getModuleWrapper: () => ModuleWrapper;
+    getModuleWrapper: () => Promise<ModuleWrapper>;
+    logStreams: Writable[];
     options: Options;
     tempDir: string;
+    logUrl: string;
 }
 
-export interface Options extends CommonOptions {
-    log?: (msg: string) => void;
-}
+export interface Options extends CommonOptions {}
 
 export const defaults: Options = {
     ...CommonOptionDefaults,
-    log: console.log,
-    concurrency: 10
+    concurrency: 10,
+    memorySize: 512,
+    timeout: 300
 };
 
 export const Impl: CloudImpl<Options, State> = {
@@ -48,7 +51,8 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
     name: "immediate",
     callFunction,
     cleanup,
-    stop
+    stop,
+    logUrl
 };
 
 async function initialize(
@@ -56,25 +60,49 @@ async function initialize(
     nonce: string,
     options: Options = {}
 ): Promise<State> {
-    const childlog = options.log || defaults.log;
     const moduleWrappers: ModuleWrapper[] = [];
-    const getModuleWrapper = () => {
+    const logStreams: Writable[] = [];
+
+    const tempDir = path.join(tmpdir(), "cloudify-" + nonce);
+    info(`tempDir: ${tempDir}`);
+    await mkdir(tempDir, { recursive: true });
+    const logDir = path.join(tempDir, "logs");
+    await mkdir(logDir, { recursive: true });
+    const logUrl = `file://${logDir}`;
+
+    info(`logURL: ${logUrl}`);
+
+    const getModuleWrapper = async () => {
         const idleWrapper = moduleWrappers.find(wrapper => wrapper.executing === false);
         if (idleWrapper) {
             return idleWrapper;
         }
+        let logStream: Writable;
+        let childlog = (msg: string) => {
+            logStream.write(msg);
+            logStream.write("\n");
+        };
+        try {
+            const logFile = path.join(logDir, `${moduleWrappers.length}.log`);
+            info(`Creating write stream ${logFile}`);
+            logStream = fs.createWriteStream(logFile);
+            logStreams.push(logStream);
+            await new Promise(resolve => logStream.on("open", resolve));
+        } catch (err) {
+            warn(`ERROR: Could not create log`);
+            warn(err);
+            childlog = console.log;
+        }
         const moduleWrapper = new ModuleWrapper(require(serverModule), {
             log: childlog,
-            useChildProcess: options.childProcess || false
+            useChildProcess: options.childProcess || false,
+            childProcessMemoryLimitMb: options.memorySize || defaults.memorySize,
+            childProcessTimeout: options.timeout || defaults.timeout,
+            childDir: tempDir
         });
         moduleWrappers.push(moduleWrapper);
         return moduleWrapper;
     };
-
-    const tempDir = path.join(tmpdir(), "cloudify-" + nonce);
-    info(`tempDir: ${tempDir}`);
-    await mkdir(tempDir, { mode: 0o700, recursive: true });
-    process.chdir(tempDir);
 
     const packerResult = await pack(serverModule, options);
 
@@ -93,9 +121,15 @@ async function initialize(
     return {
         moduleWrappers,
         getModuleWrapper,
+        logStreams,
         options,
-        tempDir
+        tempDir,
+        logUrl
     };
+}
+
+export function logUrl(state: State) {
+    return state.logUrl;
 }
 
 async function pack(functionModule: string, options?: Options): Promise<PackerResult> {
@@ -114,8 +148,8 @@ async function callFunction(
     const scall = JSON.parse(serializeCall(call));
     const startTime = Date.now();
     let returned: FunctionReturn;
-    process.chdir(state.tempDir);
-    returned = await state.getModuleWrapper().execute({ call: scall, startTime });
+    const moduleWrapper = await state.getModuleWrapper();
+    returned = await moduleWrapper.execute({ call: scall, startTime });
 
     return {
         returned,
@@ -139,6 +173,7 @@ async function stop(state: State) {
     info(`Stopping`);
     const promises = state.moduleWrappers.map(wrapper => wrapper.stop());
     await Promise.all(promises);
+    state.logStreams.forEach(stream => stream.end());
     state.moduleWrappers = [];
     info(`Stopping done`);
 }

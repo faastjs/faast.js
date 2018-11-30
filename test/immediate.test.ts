@@ -1,10 +1,13 @@
+import { readFile as readFileCallback } from "fs";
+import { URL } from "url";
+import { promisify } from "util";
 import { cloudify, immediate } from "../src/cloudify";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
 import { checkFunctions } from "./tests";
 import { measureConcurrency } from "./util";
 
-const ignore = () => {};
+const readFile = promisify(readFileCallback);
 
 async function testCleanup(options: immediate.Options) {
     const { remote, cloudFunc } = await cloudify(
@@ -45,9 +48,9 @@ async function testOrder(options: immediate.Options) {
         await a;
     } catch (err) {
         expect(err).toBeUndefined();
+    } finally {
+        await cloudFunc.cleanup();
     }
-
-    await cloudFunc.cleanup();
 }
 
 async function testConcurrency({
@@ -66,74 +69,102 @@ async function testConcurrency({
         options
     );
 
-    const N = maxConcurrency;
-    const promises = [];
-    for (let i = 0; i < N; i++) {
-        promises.push(remote.spin(500));
-    }
+    try {
+        const N = maxConcurrency;
+        const promises = [];
+        for (let i = 0; i < N; i++) {
+            promises.push(remote.spin(500));
+        }
 
-    const timings = await Promise.all(promises);
-    expect(measureConcurrency(timings)).toBe(expectedConcurrency);
-    await cloudFunc.cleanup();
+        const timings = await Promise.all(promises);
+        expect(measureConcurrency(timings)).toBe(expectedConcurrency);
+    } finally {
+        await cloudFunc.cleanup();
+    }
 }
 
 describe("cloudify immediate mode", () => {
-    describe("basic functions", () => checkFunctions("immediate", { log: ignore }));
+    describe("basic functions", () => checkFunctions("immediate", {}));
 
     describe("basic functions with child process", () =>
-        checkFunctions("immediate", { childProcess: true, log: ignore }));
+        checkFunctions("immediate", { childProcess: true }));
 
-    test("cleanup stops executions", () => testCleanup({ log: ignore }));
+    test("cleanup stops executions", () => testCleanup({}));
 
     test("cleanup stops executions with child process", () =>
-        testCleanup({ log: ignore, childProcess: true }));
+        testCleanup({ childProcess: true }));
 
     test("out of order await (asynchronous catch) with no concurrency", () =>
-        testOrder({ childProcess: false, log: ignore, concurrency: 1, maxRetries: 0 }));
+        testOrder({ childProcess: false, concurrency: 1, maxRetries: 0 }));
 
     test("out of order await (asynchronous catch) with child process and no concurrency", () =>
-        testOrder({ childProcess: true, log: ignore, concurrency: 1, maxRetries: 0 }));
+        testOrder({ childProcess: true, concurrency: 1, maxRetries: 0 }));
 
     test("out of order await (asynchronous catch) with concurrency", () =>
-        testOrder({ childProcess: false, log: ignore, concurrency: 2, maxRetries: 0 }));
+        testOrder({ childProcess: false, concurrency: 2, maxRetries: 0 }));
 
     test("out of order await (asynchronous catch) with child process and concurrency", () =>
-        testOrder({ childProcess: true, log: ignore, concurrency: 2, maxRetries: 0 }));
+        testOrder({ childProcess: true, concurrency: 2, maxRetries: 0 }));
 
     test("out of order await (asynchronous catch) with concurrency and retries", () =>
-        testOrder({ childProcess: false, log: ignore, concurrency: 2, maxRetries: 2 }));
+        testOrder({ childProcess: false, concurrency: 2, maxRetries: 2 }));
 
     test("out of order await (asynchronous catch) with child process and concurrency and retries", () =>
-        testOrder({ childProcess: true, log: ignore, concurrency: 2, maxRetries: 2 }));
+        testOrder({ childProcess: true, concurrency: 2, maxRetries: 2 }));
+
+    async function readFirstLogfile(logDirectoryUrl: string) {
+        const logFileUrl = new URL(logDirectoryUrl + "/0.log");
+        const buf = await readFile(logFileUrl);
+        return buf.toString().split("\n");
+    }
 
     test("console.log and console.warn with child process", async () => {
-        const messages: string[] = [];
-        const log = (msg: string) => {
-            if (msg[msg.length - 1] === "\n") {
-                msg = msg.slice(0, msg.length - 1);
-            }
-            messages.push(msg);
-        };
         const { remote, cloudFunc } = await cloudify("immediate", funcs, "./functions", {
             childProcess: true,
-            log
+            concurrency: 1
         });
-        await remote.consoleLog("Remote console.log output");
-        await remote.consoleWarn("Remote console.warn output");
-        await remote.consoleError("Remote console.error output");
+        try {
+            await remote.consoleLog("Remote console.log output");
+            await remote.consoleWarn("Remote console.warn output");
+            await remote.consoleError("Remote console.error output");
 
-        expect(messages.find(m => m === "Remote console.log output")).toBeDefined();
-        expect(messages.find(m => m === "Remote console.warn output")).toBeDefined();
-        expect(messages.find(m => m === "Remote console.error output")).toBeDefined();
+            await cloudFunc.stop();
+            const messages = await readFirstLogfile(cloudFunc.logUrl());
 
-        await cloudFunc.cleanup();
+            expect(messages).toContain("Remote console.log output");
+            expect(messages).toContain("Remote console.warn output");
+            expect(messages).toContain("Remote console.error output");
+        } finally {
+            await cloudFunc.cleanup();
+        }
+    });
+
+    test("log files should be appended, not truncated, after child process crash", async () => {
+        const { remote, cloudFunc } = await cloudify("immediate", funcs, "./functions", {
+            childProcess: true,
+            concurrency: 1,
+            maxRetries: 1
+        });
+        try {
+            await remote.consoleLog("output 1");
+            try {
+                await remote.processExit();
+            } catch (err) {}
+            await remote.consoleWarn("output 2");
+
+            const messages = await readFirstLogfile(cloudFunc.logUrl());
+
+            expect(messages).toContain("output 1");
+            expect(messages).toContain("output 2");
+        } finally {
+            await cloudFunc.cleanup();
+        }
     });
 
     test("concurrent executions with child processes", async () => {
         await testConcurrency({
             options: {
-                childProcess: true,
-                log: ignore
+                childProcess: true
             },
             maxConcurrency: 5,
             expectedConcurrency: 5
@@ -143,8 +174,7 @@ describe("cloudify immediate mode", () => {
     test("no concurrency for cpu bound work without child processes", async () => {
         await testConcurrency({
             options: {
-                childProcess: false,
-                log: ignore
+                childProcess: false
             },
             maxConcurrency: 5,
             expectedConcurrency: 1
@@ -153,8 +183,7 @@ describe("cloudify immediate mode", () => {
 
     test("cleanup waits for all child processes to exit", async () => {
         const { remote, cloudFunc } = await cloudify("immediate", funcs, "./functions", {
-            childProcess: true,
-            log: ignore
+            childProcess: true
         });
         remote.spin(5000).catch(_ => {});
         while (true) {

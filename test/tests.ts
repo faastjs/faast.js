@@ -8,6 +8,7 @@ import * as googleCloudify from "../src/google/google-cloudify";
 import { info, warn } from "../src/log";
 import { unzipInDir } from "../src/packer";
 import * as funcs from "./functions";
+import { rmrf } from "../src/shared";
 
 export function checkFunctions(cloudProvider: "aws", options: awsCloudify.Options): void;
 export function checkFunctions(
@@ -43,7 +44,7 @@ export function checkFunctions(
 
     afterAll(async () => {
         await cloudFunc.cleanup();
-        // await lambda.stop();
+        // await cloudFunc.stop();
     }, 60 * 1000);
 
     test("hello: string => string", async () => {
@@ -156,6 +157,7 @@ export function checkCodeBundle(
             stream2.pipe(fs.createWriteStream(zipFile));
             const writePromise = new Promise(resolve => stream2.on("end", resolve));
 
+            await rmrf(tmpDir);
             const unzipPromise = unzipInDir(tmpDir, stream1);
 
             await Promise.all([writePromise, unzipPromise]);
@@ -193,7 +195,7 @@ export function checkCosts(
 
     afterAll(async () => {
         await cloudFunc.cleanup();
-        // await lambda.stop();
+        // await cloudFunc.stop();
     }, 60 * 1000);
 
     test(

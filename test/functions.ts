@@ -97,3 +97,7 @@ export function consoleError(str: string) {
 export function consoleInfo(str: string) {
     console.info(str);
 }
+
+export function processExit() {
+    process.exit();
+}

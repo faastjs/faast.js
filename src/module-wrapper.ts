@@ -4,11 +4,7 @@ import * as process from "process";
 import { inspect } from "util";
 import { Deferred } from "./funnel";
 import { AnyFunction } from "./type-helpers";
-
-import * as debug from "debug";
-
-const log = debug("module-wrapper");
-log.enabled = false;
+import { logWrapper } from "./log";
 
 export const filename = module.filename;
 
@@ -102,19 +98,23 @@ export interface ModuleWrapperOptions {
      * If true, create a child process to execute the wrapped module's functions.
      */
     useChildProcess?: boolean;
+
+    childProcessMemoryLimitMb?: number;
+    childProcessTimeout?: number;
+    childDir?: string;
 }
+
+const oomPattern = /Allocation failed - JavaScript heap out of memory/;
 
 export class ModuleWrapper {
     funcs: ModuleType = {};
     child?: childProcess.ChildProcess;
     deferred?: Deferred<FunctionReturn>;
     log: (msg: string) => void;
-    useChildProcess: boolean;
     executing = false;
 
-    constructor(fModule: ModuleType, options: ModuleWrapperOptions = {}) {
+    constructor(fModule: ModuleType, public options: ModuleWrapperOptions = {}) {
         this.log = options.log || console.log;
-        this.useChildProcess = options.useChildProcess || false;
         this.funcs = fModule;
 
         if (process.env["CLOUDIFY_CHILD"]) {
@@ -150,7 +150,7 @@ export class ModuleWrapper {
         return func;
     }
 
-    async stop() {
+    stop() {
         if (this.child) {
             this.child!.disconnect();
             this.child!.kill();
@@ -167,79 +167,41 @@ export class ModuleWrapper {
 
             const memoryUsage = process.memoryUsage();
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
-            if (this.useChildProcess) {
-                log(`Creating deferred`);
+            if (this.options.useChildProcess) {
                 this.deferred = new Deferred();
                 if (!this.child) {
-                    this.log(`cloudify: creating child process`);
-                    this.child = childProcess.fork("./index.js", [], {
-                        silent: true, // redirects stdout and stderr to IPC.
-                        env: { CLOUDIFY_CHILD: "true" }
-                    });
-
-                    this.child!.stdout.setEncoding("utf8");
-                    this.child!.stderr.setEncoding("utf8");
-
-                    const logLines = (msg: string) => {
-                        let lines = msg.split("\n");
-                        if (lines[lines.length - 1] === "") {
-                            lines = lines.slice(0, lines.length - 1);
-                        }
-                        for (const line of lines) {
-                            this.log(line);
-                        }
-                    };
-                    this.child!.stdout.on("data", logLines);
-                    this.child!.stderr.on("data", logLines);
-
-                    this.child.on("message", (value: FunctionReturn) => {
-                        log(`resolving deferred on message`);
-                        this.deferred!.resolve(value);
-                    });
-                    this.child.on("error", err => {
-                        log(`rejecting deferred on error`);
-                        this.child = undefined;
-                        this.deferred!.reject(err);
-                    });
-                    this.child.on("exit", (code, signal) => {
-                        log(`exit`);
-                        this.child = undefined;
-                        if (!this.deferred) {
-                            log(`deferred is falsy`);
-
-                            return;
-                        }
-                        if (code) {
-                            log(`rejecting deferred on exit code`);
-                            this.deferred!.reject(
-                                new Error(`Exited with error code ${code}`)
-                            );
-                        } else if (signal) {
-                            log(`rejecting deferred on signal`);
-
-                            this.deferred!.reject(
-                                new Error(`Aborted with signal ${signal}`)
-                            );
-                        }
-                    });
+                    this.child = this.setupChildProcess();
                 }
-                this.log(
-                    `cloudify: sending invoke message to child process for '${call.name}'`
-                );
+                this.log(`cloudify: invoking '${call.name}' in child process`);
                 this.child.send({ ...call, useChildProcess: false }, err => {
                     if (err) {
-                        log(`rejecting deferred on send error`);
+                        logWrapper(`child send error: rejecting deferred on ${err}`);
                         this.deferred!.reject(err);
                     }
                 });
-                log(`awaiting deferred promise`);
-                const rv = await this.deferred.promise;
-                log(`deferred promise returned`);
-
-                this.deferred = undefined;
-                this.executing = false;
-
-                return rv;
+                let timer;
+                const timeout = this.options.childProcessTimeout;
+                if (timeout) {
+                    timer = setTimeout(() => {
+                        this.stop();
+                        this.child = undefined;
+                        if (this.deferred) {
+                            const error = new Error(
+                                `Request exceeded timeout of ${timeout}s`
+                            );
+                            this.deferred!.reject(error);
+                        }
+                    }, timeout * 1000);
+                }
+                logWrapper(`awaiting deferred promise`);
+                try {
+                    const rv = await this.deferred.promise;
+                    logWrapper(`deferred promise returned`);
+                    return rv;
+                } finally {
+                    timer && clearTimeout(timer);
+                    this.deferred = undefined;
+                }
             } else {
                 const memInfo = inspect(memoryUsage, {
                     compact: true,
@@ -265,17 +227,86 @@ export class ModuleWrapper {
                     memoryUsage,
                     instanceId
                 };
-                this.executing = false;
                 return rv;
             }
         } catch (err) {
-            log(`wrapper function exception: ${err}`);
+            logWrapper(`wrapper function exception: ${err}`);
             this.log(`cloudify: wrapped function exception or promise rejection: ${err}`);
+            return createErrorResponse(err, callingContext);
+        } finally {
             this.executing = false;
-            const rv = createErrorResponse(err, callingContext);
-            log(`wrapper function exception response: %O`, rv);
-            return rv;
         }
+    }
+
+    private setupChildProcess() {
+        this.log(`cloudify: creating child process`);
+
+        let execArgv = process.execArgv.slice();
+        if (this.options.childProcessMemoryLimitMb) {
+            execArgv = process.execArgv.filter(
+                arg => !arg.match(/^--max-old-space-size/) && !arg.match(/^--inspect/)
+            );
+            execArgv.push(
+                `--max-old-space-size=${this.options.childProcessMemoryLimitMb}`
+            );
+        }
+
+        const child = childProcess.fork("./index.js", [], {
+            silent: true, // redirects stdout and stderr to IPC.
+            env: { CLOUDIFY_CHILD: "true" },
+            cwd: this.options.childDir,
+            execArgv
+        });
+
+        const logLines = (msg: string) => {
+            let lines = msg.split("\n");
+            if (lines[lines.length - 1] === "") {
+                lines = lines.slice(0, lines.length - 1);
+            }
+            for (const line of lines) {
+                this.log(line);
+            }
+        };
+        child.stdout.setEncoding("utf8");
+        child.stderr.setEncoding("utf8");
+
+        let oom: string | undefined;
+        const detectOom = (chunk: string) => {
+            if (oomPattern.test(chunk)) {
+                oom = chunk;
+            }
+        };
+        child.stdout.on("data", logLines);
+        child.stderr.on("data", logLines);
+        child.stderr.on("data", detectOom);
+        child.on("message", (value: FunctionReturn) => {
+            logWrapper(`child message: resolving with %O`, value);
+            this.deferred!.resolve(value);
+        });
+        child.on("error", err => {
+            logWrapper(`child error: rejecting deferred with ${err}`);
+            this.child = undefined;
+            this.deferred!.reject(err);
+        });
+        child.on("exit", (code, signal) => {
+            logWrapper(`child exit: %O`, { code, signal });
+            this.child = undefined;
+            if (!this.deferred) {
+                logWrapper(`child exit: no deferred, exiting normally`);
+                return;
+            }
+            if (code !== null) {
+                this.deferred!.reject(new Error(`Exited with error code ${code}`));
+            } else if (signal !== null) {
+                let errorMessage = `Aborted with signal ${signal}`;
+                if (signal === "SIGABRT" && oom) {
+                    errorMessage += ` (${oom})`;
+                    oom = undefined;
+                }
+                this.deferred!.reject(new Error(errorMessage));
+            }
+        });
+        return child;
     }
 }
 

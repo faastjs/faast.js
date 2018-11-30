@@ -48,7 +48,7 @@ export function printAsyncStack() {
     }
 }
 
-export function traceAsyncLeaks() {
+export function detectAsyncLeaks() {
     console.log(`=== Handles ===`);
     (process as any)._getActiveHandles().forEach((h: object) => {
         if (h !== process.stdout && h !== process.stderr) {

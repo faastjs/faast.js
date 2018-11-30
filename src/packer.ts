@@ -216,7 +216,6 @@ const mkdir = promisify(fs.mkdir);
 const exists = promisify(fs.exists);
 
 export async function unzipInDir(dir: string, archive: NodeJS.ReadableStream) {
-    await rmrf(dir);
     await mkdir(dir, { recursive: true });
     let total = 0;
     await processZip(archive, async (filename, contents) => {

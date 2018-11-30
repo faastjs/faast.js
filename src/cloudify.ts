@@ -1,7 +1,6 @@
 import * as path from "path";
 import * as uuidv4 from "uuid/v4";
 import * as aws from "./aws/aws-cloudify";
-import * as childprocess from "./childprocess/childprocess-cloudify";
 import * as costAnalyzer from "./cost-analyzer";
 import { Deferred, Funnel } from "./funnel";
 import * as google from "./google/google-cloudify";
@@ -26,7 +25,7 @@ import { NonFunctionProperties, Unpacked } from "./type-helpers";
 import Module = require("module");
 import * as util from "util";
 
-export { aws, google, childprocess, immediate, costAnalyzer };
+export { aws, google, immediate, costAnalyzer };
 
 export class CloudifyError extends Error {
     logUrl?: string;
@@ -430,7 +429,7 @@ export class CloudFunction<O extends CommonOptions, S> {
     }
 
     logUrl() {
-        return this.impl.logUrl && this.impl.logUrl(this.state);
+        return this.impl.logUrl(this.state);
     }
 
     printStatisticsInterval(intervalMs: number, print: (msg: string) => void = stats) {
@@ -621,17 +620,6 @@ export class GoogleEmulator extends Cloud<google.Options, google.State> {
     }
 }
 
-export class ChildProcess extends Cloud<childprocess.Options, childprocess.State> {
-    constructor() {
-        super(childprocess.Impl);
-    }
-}
-
-export class ChildProcessFunction extends CloudFunction<
-    childprocess.Options,
-    childprocess.State
-> {}
-
 export class Immediate extends Cloud<immediate.Options, immediate.State> {
     constructor() {
         super(immediate.Impl);
@@ -643,17 +631,11 @@ export class ImmediateFunction extends CloudFunction<
     immediate.State
 > {}
 
-export type CloudProvider =
-    | "aws"
-    | "google"
-    | "google-emulator"
-    | "childprocess"
-    | "immediate";
+export type CloudProvider = "aws" | "google" | "google-emulator" | "immediate";
 
 export function create(cloudName: "aws"): AWS;
 export function create(cloudName: "google"): Google;
 export function create(cloudName: "google-emulator"): GoogleEmulator;
-export function create(cloudName: "childprocess"): ChildProcess;
 export function create(cloudName: "immediate"): Immediate;
 export function create(cloudName: CloudProvider): Cloud<any, any>;
 export function create(cloudName: CloudProvider): Cloud<any, any> {
@@ -663,8 +645,6 @@ export function create(cloudName: CloudProvider): Cloud<any, any> {
         return new Google();
     } else if (cloudName === "google-emulator") {
         return new GoogleEmulator();
-    } else if (cloudName === "childprocess") {
-        return new ChildProcess();
     } else if (cloudName === "immediate") {
         return new Immediate();
     }
@@ -689,23 +669,17 @@ export function cloudify<M extends object>(
     options?: google.Options
 ): Promise<Cloudified<google.Options, google.State, M>>;
 export function cloudify<M extends object>(
-    cloudName: "childprocess",
-    fmodule: M,
-    modulePath: string,
-    options?: childprocess.Options
-): Promise<Cloudified<childprocess.Options, childprocess.State, M>>;
-export function cloudify<M extends object>(
     cloudName: "immediate",
     fmodule: M,
     modulePath: string,
     options?: immediate.Options
 ): Promise<Cloudified<immediate.Options, immediate.State, M>>;
-export function cloudify<O extends CommonOptions, S, M extends object>(
+export function cloudify<S, M extends object>(
     cloudName: CloudProvider,
     fmodule: M,
     modulePath: string,
-    options?: O
-): Promise<Cloudified<O, S, M>>;
+    options?: CommonOptions
+): Promise<Cloudified<CommonOptions, S, M>>;
 export async function cloudify<O extends CommonOptions, S, M extends object>(
     cloudProvider: CloudProvider,
     fmodule: M,
@@ -739,7 +713,7 @@ export interface CloudFunctionImpl<State> {
 
     cleanup(state: State): Promise<void>;
     stop(state: State): Promise<void>;
-    logUrl?: (state: State) => string;
+    logUrl(state: State): string;
 }
 
 export interface LogEntry {
