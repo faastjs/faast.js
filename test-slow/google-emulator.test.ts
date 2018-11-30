@@ -1,5 +1,5 @@
-import { checkFunctions } from "../test/tests";
+import { testFunctions } from "../test/tests";
 
 describe("google-emulator", () => {
-    describe("basic calls", () => checkFunctions("google-emulator", {}));
+    describe("basic calls", () => testFunctions("google-emulator", {}));
 });

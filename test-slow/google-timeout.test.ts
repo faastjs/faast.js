@@ -1,5 +1,6 @@
-import { checkTimeout } from "./tests";
+import { testTimeout } from "../test/tests";
 
-checkTimeout("google function timeout test with https", "google", { mode: "https" });
-
-// checkTimeout("google function timeout with queue", "google", { useQueue: true });
+describe("Google timeout", () => {
+    describe("https mode", () => testTimeout("google", { mode: "https" }));
+    describe("queue mode", () => testTimeout("google", { mode: "queue" }));
+});

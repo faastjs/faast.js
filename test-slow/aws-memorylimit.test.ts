@@ -1,4 +1,6 @@
-import { checkMemoryLimit } from "./tests";
+import { testMemoryLimit } from "../test/tests";
 
-checkMemoryLimit("aws memory limit test with https", "aws", { mode: "https" });
-checkMemoryLimit("aws memory limit test with queue", "aws", { mode: "queue" });
+describe("AWS memory limit test", () => {
+    describe("https mode", () => testMemoryLimit("aws", { mode: "https" }));
+    describe("queue mode", () => testMemoryLimit("aws", { mode: "queue" }));
+});

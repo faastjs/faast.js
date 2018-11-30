@@ -1,3 +1,3 @@
-import { checkFunctions } from "./tests";
+import { testFunctions } from "./tests";
 
-describe("google-queue", () => checkFunctions("google", { mode: "queue" }));
+describe("google-queue", () => testFunctions("google", { mode: "queue" }));

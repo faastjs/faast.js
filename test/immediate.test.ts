@@ -4,7 +4,7 @@ import { promisify } from "util";
 import { cloudify, immediate } from "../src/cloudify";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
-import { checkFunctions } from "./tests";
+import { testFunctions, testTimeout, testMemoryLimit } from "./tests";
 import { measureConcurrency } from "./util";
 
 const readFile = promisify(readFileCallback);
@@ -84,10 +84,10 @@ async function testConcurrency({
 }
 
 describe("cloudify immediate mode", () => {
-    describe("basic functions", () => checkFunctions("immediate", {}));
+    describe("basic functions", () => testFunctions("immediate", {}));
 
     describe("basic functions with child process", () =>
-        checkFunctions("immediate", { childProcess: true }));
+        testFunctions("immediate", { childProcess: true }));
 
     test("cleanup stops executions", () => testCleanup({}));
 
@@ -111,6 +111,12 @@ describe("cloudify immediate mode", () => {
 
     test("out of order await (asynchronous catch) with child process and concurrency and retries", () =>
         testOrder({ childProcess: true, concurrency: 2, maxRetries: 2 }));
+
+    describe("process memory limit test", () =>
+        testMemoryLimit("immediate", { childProcess: true }));
+
+    describe("process timeout test", () =>
+        testTimeout("immediate", { childProcess: true }));
 
     async function readFirstLogfile(logDirectoryUrl: string) {
         const logFileUrl = new URL(logDirectoryUrl + "/0.log");

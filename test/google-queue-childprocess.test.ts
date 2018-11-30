@@ -1,7 +1,4 @@
-import { checkFunctions } from "./tests";
+import { testFunctions } from "./tests";
 
 describe("google-queue with child process", () =>
-    checkFunctions("google", {
-        mode: "queue",
-        childProcess: true
-    }));
+    testFunctions("google", { mode: "queue", childProcess: true }));

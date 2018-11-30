@@ -1,7 +1,7 @@
-import { checkFunctions } from "./tests";
+import { testFunctions } from "./tests";
 
 describe("aws-https", () => {
-    describe("basic calls", () => checkFunctions("aws", { mode: "https" }));
+    describe("basic calls", () => testFunctions("aws", { mode: "https" }));
     describe("basic calls with child process", () =>
-        checkFunctions("aws", { mode: "https", childProcess: true }));
+        testFunctions("aws", { mode: "https", childProcess: true }));
 });

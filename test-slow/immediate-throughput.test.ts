@@ -1,5 +1,4 @@
-import { throughputTest } from "./tests";
+import { testThroughput } from "../test/tests";
 
-throughputTest("Immediate throughput test", "immediate", 60 * 1000, 16, {
-    memorySize: 64
-});
+describe("Immediate mode throughput", () =>
+    testThroughput("immediate", 60 * 1000, 16, { memorySize: 64 }));

@@ -1,6 +1,4 @@
-import { throughputTest } from "./tests";
+import { testThroughput } from "../test/tests";
 
-throughputTest("AWS https throughput test", "aws", 180 * 1000, 500, {
-    memorySize: 1728,
-    mode: "https"
-});
+describe("AWS https mode throughput", () =>
+    testThroughput("aws", 180 * 1000, 500, { memorySize: 1728, mode: "https" }));

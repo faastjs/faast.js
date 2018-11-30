@@ -1,7 +1,4 @@
-import { checkFunctions } from "./tests";
+import { testFunctions } from "./tests";
 
 describe("google-https with child process", () =>
-    checkFunctions("google", {
-        mode: "https",
-        childProcess: true
-    }));
+    testFunctions("google", { mode: "https", childProcess: true }));

@@ -1,6 +1,6 @@
 import * as cloudify from "../src/cloudify";
 import { checkResourcesCleanedUp, getGoogleResources } from "../test/util";
-import * as functions from "./functions";
+import * as functions from "../test/functions";
 
 test(
     "garbage collector works for functions that are called",

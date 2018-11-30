@@ -1,3 +1,3 @@
-import { checkFunctions } from "./tests";
+import { testFunctions } from "./tests";
 
-describe("google-https", () => checkFunctions("google", { mode: "https" }));
+describe("google-https", () => testFunctions("google", { mode: "https" }));

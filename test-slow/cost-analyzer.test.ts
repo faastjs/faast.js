@@ -5,7 +5,7 @@ import {
     googleConfigurations,
     toCSV
 } from "../src/cost-analyzer";
-import * as funcs from "./functions";
+import * as funcs from "../test/functions";
 
 async function work(remote: cloudify.Promisified<typeof funcs>) {
     await remote.monteCarloPI(20000000);

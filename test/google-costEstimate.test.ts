@@ -1,3 +1,3 @@
-import { checkCosts } from "./tests";
+import { testCosts } from "./tests";
 
-describe("google cost estimate", () => checkCosts("google"));
+describe("google cost estimate", () => testCosts("google"));

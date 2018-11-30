@@ -1,6 +1,4 @@
-import { throughputTest } from "./tests";
+import { testThroughput } from "../test/tests";
 
-throughputTest("Google queue throughput test", "google", 180 * 1000, 500, {
-    memorySize: 2048,
-    mode: "queue"
-});
+describe("Google queue mode throughput test", () =>
+    testThroughput("google", 180 * 1000, 500, { memorySize: 2048, mode: "queue" }));

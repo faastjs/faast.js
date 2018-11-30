@@ -1,5 +1,6 @@
-import { checkMemoryLimit } from "./tests";
+import { testMemoryLimit } from "../test/tests";
 
-checkMemoryLimit("google memory limit test with https", "google", { mode: "https" });
-
-// checkMemoryLimit("google memory limit test with queue", "google", { useQueue: true });
+describe("Google memory limit test", () => {
+    describe("https mode", () => testMemoryLimit("google", { mode: "https" }));
+    describe("queue mode", () => testMemoryLimit("google", { mode: "queue" }));
+});

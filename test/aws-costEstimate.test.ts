@@ -1,3 +1,3 @@
-import { checkCosts } from "./tests";
+import { testCosts } from "./tests";
 
-describe("aws cost estimator", () => checkCosts("aws"));
+describe("aws cost estimator", () => testCosts("aws"));

@@ -1,4 +1,4 @@
-import { checkCodeBundle } from "./tests";
+import { testCodeBundle } from "./tests";
 import { existsSync } from "fs";
 import { join } from "path";
 
@@ -6,29 +6,29 @@ const kb = 1024;
 
 describe("aws zip file package", () => {
     describe("queue bundle", () =>
-        checkCodeBundle("aws", "queue-bundle", 100 * kb, {
+        testCodeBundle("aws", "queue-bundle", 100 * kb, {
             mode: "queue"
         }));
 
     describe("https bundle", () =>
-        checkCodeBundle("aws", "https-bundle", 100 * kb, {
+        testCodeBundle("aws", "https-bundle", 100 * kb, {
             mode: "https"
         }));
 
     describe("queue bundle with child process", () =>
-        checkCodeBundle("aws", "queue-bundle-childprocess", 100 * kb, {
+        testCodeBundle("aws", "queue-bundle-childprocess", 100 * kb, {
             mode: "queue",
             childProcess: true
         }));
 
     describe("https bundle with child process", () =>
-        checkCodeBundle("aws", "https-bundle-childprocess", 100 * kb, {
+        testCodeBundle("aws", "https-bundle-childprocess", 100 * kb, {
             mode: "https",
             childProcess: true
         }));
 
     describe("bundle with added directory", () =>
-        checkCodeBundle(
+        testCodeBundle(
             "aws",
             "added-directory",
             100 * kb,
@@ -39,7 +39,7 @@ describe("aws zip file package", () => {
         ));
 
     describe("bundle with added zip file", () =>
-        checkCodeBundle(
+        testCodeBundle(
             "aws",
             "added-zipfile",
             100 * kb,

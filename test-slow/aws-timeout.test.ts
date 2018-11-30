@@ -1,4 +1,6 @@
-import { checkTimeout } from "./tests";
+import { testTimeout } from "../test/tests";
 
-checkTimeout("aws timeout test with https", "aws", { mode: "https" });
-checkTimeout("aws timeout test with queue", "aws", { mode: "queue" });
+describe("AWS timeout limit", () => {
+    describe("https mode", () => testTimeout("aws", { mode: "https" }));
+    describe("queue mode", () => testTimeout("aws", { mode: "queue" }));
+});

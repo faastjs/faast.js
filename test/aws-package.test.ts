@@ -1,15 +1,15 @@
-import { checkFunctions } from "./tests";
+import { testFunctions } from "./tests";
 
 describe("aws with package.json", () => {
     describe("https trigger", () =>
-        checkFunctions("aws", {
+        testFunctions("aws", {
             mode: "https",
             packageJson: "test/package.json",
             useDependencyCaching: false
         }));
 
     describe("queue trigger", () =>
-        checkFunctions("aws", {
+        testFunctions("aws", {
             mode: "queue",
             packageJson: "test/package.json",
             useDependencyCaching: false
