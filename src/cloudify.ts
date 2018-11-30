@@ -410,6 +410,7 @@ export class CloudFunction<O extends CommonOptions, S> {
         if (options && options.childProcess !== undefined) {
             this.childProcess = options.childProcess;
         }
+        info(`Log url: ${impl.logUrl(state)}`);
     }
 
     async cleanup() {
