@@ -368,8 +368,8 @@ export async function initialize(
         region = defaults.region,
         PolicyArn = defaults.PolicyArn,
         RoleName = defaults.RoleName,
-        timeout: Timeout = defaults.timeout,
-        memorySize: MemorySize = defaults.memorySize,
+        timeout = defaults.timeout,
+        memorySize = defaults.memorySize,
         mode = defaults.mode,
         gc = defaults.gc,
         retentionInDays = defaults.retentionInDays,
@@ -391,8 +391,8 @@ export async function initialize(
             Handler: "index.trampoline",
             Code,
             Description: "cloudify trampoline function",
-            Timeout,
-            MemorySize,
+            Timeout: timeout,
+            MemorySize: memorySize,
             ...awsLambdaOptions
         };
         info(`createFunctionRequest: %O`, createFunctionRequest);

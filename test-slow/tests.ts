@@ -145,7 +145,12 @@ export function checkTimeout(
         test(
             "timeout error",
             async () => {
-                await expect(remote.delay(4 * 1000)).rejects.toThrowError(/time/i);
+                expect.assertions(1);
+                try {
+                    await remote.delay(4 * 1000);
+                } catch (err) {
+                    expect(err.message).toMatch(/time/i);
+                }
             },
             600 * 1000
         );
@@ -183,8 +188,13 @@ export function checkMemoryLimit(
         test(
             "out of memory error",
             async () => {
-                const bytes = 256 * 1024 * 1024;
-                await expect(remote.allocate(bytes)).rejects.toThrowError(/memory/i);
+                expect.assertions(1);
+                const bytes = 512 * 1024 * 1024;
+                try {
+                    await remote.allocate(bytes);
+                } catch (err) {
+                    expect(err.message).toMatch(/memory/i);
+                }
             },
             600 * 1000
         );

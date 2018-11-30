@@ -18,8 +18,9 @@ export function monteCarloPI(samples: number): MonteCarloReturn {
 }
 
 export function allocate(bytes: number) {
-    const array = new Array(bytes);
+    const array = new Uint8Array(bytes);
     array.fill(0);
+    console.log(`bytes allocated: %O`, bytes);
     return array.length;
 }
 
