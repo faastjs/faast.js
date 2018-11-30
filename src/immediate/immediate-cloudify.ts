@@ -68,9 +68,9 @@ async function initialize(
     await mkdir(tempDir, { recursive: true });
     const logDir = path.join(tempDir, "logs");
     await mkdir(logDir, { recursive: true });
-    const logUrl = `file://${logDir}`;
+    const log = `file://${logDir}`;
 
-    info(`logURL: ${logUrl}`);
+    info(`logURL: ${log}`);
 
     const getModuleWrapper = async () => {
         const idleWrapper = moduleWrappers.find(wrapper => wrapper.executing === false);
@@ -124,7 +124,7 @@ async function initialize(
         logStreams,
         options,
         tempDir,
-        logUrl
+        logUrl: log
     };
 }
 
@@ -171,9 +171,11 @@ async function cleanup(state: State): Promise<void> {
 
 async function stop(state: State) {
     info(`Stopping`);
-    const promises = state.moduleWrappers.map(wrapper => wrapper.stop());
-    await Promise.all(promises);
-    state.logStreams.forEach(stream => stream.end());
+    await Promise.all(state.moduleWrappers.map(wrapper => wrapper.stop()));
+    await Promise.all(
+        state.logStreams.map(stream => new Promise(resolve => stream.end(resolve)))
+    );
+    state.logStreams = [];
     state.moduleWrappers = [];
     info(`Stopping done`);
 }
