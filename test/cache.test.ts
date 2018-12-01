@@ -1,5 +1,5 @@
 import { LocalCache } from "../src/cache";
-import { delay } from "./functions";
+import { sleep } from "./functions";
 import { createHash } from "crypto";
 
 let cache: LocalCache;
@@ -29,7 +29,7 @@ describe("Local cache", () => {
         await cache2.set("foo", "bar");
         let result = await cache2.get("foo");
         expect(result && result.toString()).toBeDefined();
-        await delay(101);
+        await sleep(101);
         result = await cache2.get("foo");
         expect(result && result.toString()).toBeUndefined();
     });

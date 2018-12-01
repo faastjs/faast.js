@@ -24,7 +24,7 @@ async function testCleanup(options: immediate.Options) {
         .catch(_ => {});
 
     remote
-        .delay(1000)
+        .sleep(1000)
         .then(_ => done++)
         .catch(_ => {});
 
@@ -42,7 +42,7 @@ async function testOrder(options: immediate.Options) {
     expect.assertions(2);
 
     const a = remote.emptyReject();
-    const b = remote.delay(0);
+    const b = remote.sleep(0);
     expect(await b).toBeUndefined();
     try {
         await a;

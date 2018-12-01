@@ -347,7 +347,8 @@ export function testTimeout(
             const cloud = cloudify.create(cloudProvider);
             lambda = await cloud.createFunction("./functions", {
                 ...options,
-                timeout: 2
+                timeout: 2,
+                maxRetries: 0
             });
             remote = lambda.cloudifyModule(funcs);
         } catch (err) {
@@ -365,7 +366,7 @@ export function testTimeout(
         async () => {
             expect.assertions(1);
             try {
-                await remote.delay(4 * 1000);
+                await remote.sleep(4 * 1000);
             } catch (err) {
                 expect(err.message).toMatch(/time/i);
             }
@@ -387,7 +388,8 @@ export function testMemoryLimit(
             lambda = await cloud.createFunction("./functions", {
                 ...options,
                 timeout: 200,
-                memorySize: 256
+                memorySize: 256,
+                maxRetries: 0
             });
             remote = lambda.cloudifyModule(funcs);
         } catch (err) {
@@ -400,11 +402,15 @@ export function testMemoryLimit(
         // await lambda.stop();
     }, 60 * 1000);
 
-    test("can allocate under memory limit", async () => {
-        const bytes = (256 - 10) * 1024 * 1024;
-        const elems = await remote.allocate(bytes);
-        expect(elems).toBe(bytes / 8);
-    });
+    test(
+        "can allocate under memory limit",
+        async () => {
+            const bytes = (256 - 20) * 1024 * 1024;
+            const rv = await remote.allocate(bytes);
+            expect(rv.elems).toBe(bytes / 8);
+        },
+        300 * 1000
+    );
 
     test(
         "out of memory error",

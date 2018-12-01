@@ -22,7 +22,7 @@ export function noargs() {
     return "successfully called function with no args.";
 }
 
-export function delay(ms: number) {
+export function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -35,12 +35,12 @@ export function echo(n: number) {
 }
 
 export async function async() {
-    await delay(200);
+    await sleep(200);
     return "returned successfully from async function";
 }
 
 export function path(): Promise<string> {
-    return delay(200).then(() => process.env.PATH || "no PATH variable");
+    return sleep(200).then(() => process.env.PATH || "no PATH variable");
 }
 
 export function emptyReject() {
@@ -58,7 +58,7 @@ export interface Timing {
 
 export async function timer(delayMs: number): Promise<Timing> {
     const start = Date.now();
-    await delay(delayMs);
+    await sleep(delayMs);
     const end = Date.now();
     return { start, end };
 }
@@ -102,10 +102,13 @@ export function processExit() {
     process.exit();
 }
 
-export function allocate(bytes: number) {
+export async function allocate(bytes: number) {
     const array = new Array(bytes / 8);
-    console.log(`bytes allocated: %O`, bytes);
-    return array.length;
+    const elems = array.length;
+    console.log(`allocated: %O`, { bytes, elems });
+    await sleep(1000);
+    console.log(`Returning from allocate`);
+    return { bytes, elems };
 }
 
 export interface MonteCarloReturn {
