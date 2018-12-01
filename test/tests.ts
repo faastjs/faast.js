@@ -405,7 +405,7 @@ export function testMemoryLimit(
     test(
         "can allocate under memory limit",
         async () => {
-            const bytes = (256 - 20) * 1024 * 1024;
+            const bytes = (256 - 70) * 1024 * 1024;
             const rv = await remote.allocate(bytes);
             expect(rv.elems).toBe(bytes / 8);
         },
