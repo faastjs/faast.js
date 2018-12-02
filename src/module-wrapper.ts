@@ -152,6 +152,8 @@ export class ModuleWrapper {
 
     stop() {
         if (this.child) {
+            this.child.stdout.off("data", this.logLines);
+            this.child.stderr.off("data", this.logLines);
             this.child!.disconnect();
             this.child!.kill();
         }
@@ -238,6 +240,16 @@ export class ModuleWrapper {
         }
     }
 
+    protected logLines = (msg: string) => {
+        let lines = msg.split("\n");
+        if (lines[lines.length - 1] === "") {
+            lines = lines.slice(0, lines.length - 1);
+        }
+        for (const line of lines) {
+            this.log(line);
+        }
+    };
+
     private setupChildProcess() {
         this.log(`cloudify: creating child process`);
 
@@ -258,15 +270,6 @@ export class ModuleWrapper {
             execArgv
         });
 
-        const logLines = (msg: string) => {
-            let lines = msg.split("\n");
-            if (lines[lines.length - 1] === "") {
-                lines = lines.slice(0, lines.length - 1);
-            }
-            for (const line of lines) {
-                this.log(line);
-            }
-        };
         child.stdout.setEncoding("utf8");
         child.stderr.setEncoding("utf8");
 
@@ -276,8 +279,8 @@ export class ModuleWrapper {
                 oom = chunk;
             }
         };
-        child.stdout.on("data", logLines);
-        child.stderr.on("data", logLines);
+        child.stdout.on("data", this.logLines);
+        child.stderr.on("data", this.logLines);
         child.stderr.on("data", detectOom);
         child.on("message", (value: FunctionReturn) => {
             logWrapper(`child message: resolving with %O`, value);
