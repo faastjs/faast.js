@@ -1,15 +1,8 @@
 import * as fs from "fs";
 import { homedir } from "os";
 import { join } from "path";
-import { promisify } from "util";
 import { Readable } from "stream";
-import { rmrf } from "./shared";
-
-const readFile = promisify(fs.readFile);
-const writeFile = promisify(fs.writeFile);
-const stat = promisify(fs.stat);
-const mkdir = promisify(fs.mkdir);
-const exists = promisify(fs.exists);
+import { exists, mkdir, stat, readFile, writeFile, rmrf, readdir } from "./fs-promise";
 
 /**
  * A simple persistent key-value store. Entries can be expired, but are not
@@ -74,7 +67,7 @@ export class LocalCache {
      * Retrieve all keys stored in the cache, including expired entries.
      */
     entries() {
-        return fs.readdirSync(this.dir);
+        return readdir(this.dir);
     }
 
     /**

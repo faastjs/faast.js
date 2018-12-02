@@ -1,10 +1,9 @@
-import { createWriteStream, exists as existsCB, mkdirSync } from "fs";
+import { createWriteStream, mkdirSync } from "fs";
 import { tmpdir } from "os";
 import * as path from "path";
-import { promisify } from "util";
 import * as uuidv4 from "uuid/v4";
+import { exists, rmrf } from "../src/fs-promise";
 import { deepCopyUndefined } from "../src/module-wrapper";
-import { rmrf } from "../src/shared";
 
 describe("shared module tests", () => {
     test("Copy of undefined properties", () => {
@@ -37,8 +36,6 @@ describe("shared module tests", () => {
         const obj2 = { hypothesis: "Riemann" };
         deepCopyUndefined(obj2, obj);
     });
-
-    const exists = promisify(existsCB);
 
     test(`rmrf deletes directory recursively`, async () => {
         const tmp = path.join(tmpdir(), uuidv4());

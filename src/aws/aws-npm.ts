@@ -1,9 +1,9 @@
 import * as archiver from "archiver";
 import { S3 } from "aws-sdk";
 import * as sys from "child_process";
-import * as fs from "fs";
 import * as JSZip from "jszip";
 import * as path from "path";
+import { mkdir, writeFile } from "../fs-promise";
 import { streamToBuffer } from "../shared";
 
 // Make tsc ok with JSZip declarations.
@@ -38,8 +38,8 @@ export async function npmInstall({ Bucket, Key, cacheKey, ...args }: NpmInstallA
     console.log(
         `*** Its purpose is to create a node_modules package and cache it, then combine with user code to form an AWS Lambda code package and upload it to S3 ***`
     );
-    fs.mkdirSync(buildDir);
-    fs.writeFileSync(path.join(buildDir, "package.json"), args.packageJsonContents);
+    await mkdir(buildDir);
+    await writeFile(path.join(buildDir, "package.json"), args.packageJsonContents);
 
     let rv = "";
     console.log("Checking cache");
@@ -83,7 +83,7 @@ export async function npmInstall({ Bucket, Key, cacheKey, ...args }: NpmInstallA
         console.log(`No caching; running npm install`);
         rv += exec([`export HOME=/tmp && npm install --prefix=${buildDir}`]);
         console.log(`Writing index file`);
-        fs.writeFileSync(path.join(buildDir, "index.js"), args.indexContents);
+        await writeFile(path.join(buildDir, "index.js"), args.indexContents);
         console.log(`Archiving zip file`);
 
         const archive = archiver("zip", { zlib: { level: 8 } });

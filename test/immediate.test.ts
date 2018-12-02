@@ -1,13 +1,10 @@
-import { readFile as readFileCallback } from "fs";
 import { URL } from "url";
-import { promisify } from "util";
 import { cloudify, immediate } from "../src/cloudify";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
-import { testFunctions, testTimeout, testMemoryLimit } from "./tests";
+import { testFunctions, testMemoryLimit, testTimeout } from "./tests";
 import { measureConcurrency } from "./util";
-
-const readFile = promisify(readFileCallback);
+import { readFile } from "../src/fs-promise";
 
 async function testCleanup(options: immediate.Options) {
     const { remote, cloudFunc } = await cloudify(

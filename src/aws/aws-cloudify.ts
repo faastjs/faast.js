@@ -44,6 +44,7 @@ import {
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
+import { readFile } from "../fs-promise";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -288,7 +289,7 @@ export async function buildModulesOnLambda(
 
     const packageJsonContents =
         typeof packageJson === "string"
-            ? fs.readFileSync(packageJson).toString()
+            ? (await readFile(packageJson)).toString()
             : JSON.stringify(packageJson);
 
     const localCache = await LocalCache.create(".cloudify/aws");

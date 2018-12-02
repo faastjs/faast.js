@@ -3,7 +3,6 @@ require("source-map-support").install();
 import * as aws from "aws-sdk";
 import { AxiosPromise, AxiosResponse } from "axios";
 import * as commander from "commander";
-import * as fs from "fs";
 import { google } from "googleapis";
 import * as inquirer from "inquirer";
 import * as ora from "ora";
@@ -11,9 +10,9 @@ import { tmpdir } from "os";
 import * as path from "path";
 import * as awsCloudify from "./aws/aws-cloudify";
 import { LocalCache } from "./cache";
+import { readdir, rmrf } from "./fs-promise";
 import { RateLimitedFunnel } from "./funnel";
 import * as googleCloudify from "./google/google-cloudify";
-import { rmrf } from "./shared";
 
 const warn = console.warn;
 const log = console.log;
@@ -193,7 +192,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
 
     const cache = await LocalCache.create(".cloudify/aws");
     output(`Local cache: ${cache.dir}`);
-    const entries = cache.entries();
+    const entries = await cache.entries();
     if (!execute) {
         output(`  cache entries: ${entries.length}`);
     }
@@ -328,7 +327,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
 async function cleanupImmediate({ execute }: CleanupOptions) {
     const output = (msg: string) => !execute && log(msg);
     const tmpDir = tmpdir();
-    const dir = fs.readdirSync(tmpDir);
+    const dir = await readdir(tmpDir);
     let nResources = 0;
     output(`Temporary directories:`);
     for (const entry of dir) {

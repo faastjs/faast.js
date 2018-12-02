@@ -8,8 +8,9 @@ import { Pump } from "../src/funnel";
 import * as googleCloudify from "../src/google/google-cloudify";
 import { info, stats, warn } from "../src/log";
 import { unzipInDir } from "../src/packer";
-import { rmrf, sleep } from "../src/shared";
+import { sleep } from "../src/shared";
 import * as funcs from "./functions";
+import { rmrf } from "../src/fs-promise";
 
 export function testFunctions(cloudProvider: "aws", options: awsCloudify.Options): void;
 export function testFunctions(

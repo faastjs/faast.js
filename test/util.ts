@@ -1,4 +1,5 @@
 import * as cloudify from "../src/cloudify";
+import { readdir } from "../src/fs-promise";
 import { Timing } from "./functions";
 
 export const sum = (a: number[]) => a.reduce((total, n) => total + n, 0);
@@ -109,6 +110,14 @@ export async function getGoogleResources(func: cloudify.GoogleCloudFunction) {
         requestQueueResult,
         responseQueueResult,
         subscriptionResult
+    };
+}
+
+export async function getImmediateResources(func: cloudify.ImmediateFunction) {
+    const { tempDir } = func.state;
+    const dir = await readdir(tempDir).catch(_ => undefined);
+    return {
+        dir
     };
 }
 

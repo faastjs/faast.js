@@ -16,7 +16,7 @@ function testPackages(packages: string[]) {
             promises.push(
                 funnel.push(async () => {
                     try {
-                        const lambda = await aws.createFunction("./functions", {
+                        const lambda = await aws.createFunction("../test/functions", {
                             mode: "https",
                             useDependencyCaching: false,
                             packageJson: { dependencies: { [pkg]: "*" } }

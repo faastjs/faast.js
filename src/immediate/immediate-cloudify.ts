@@ -1,10 +1,10 @@
 import * as sys from "child_process";
-import * as fs from "fs";
 import { tmpdir } from "os";
-import * as path from "path";
+import { join } from "path";
+import { Writable } from "stream";
 import { promisify } from "util";
 import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
-import { info, warn, stats, logGc } from "../log";
+import { info, logGc, warn } from "../log";
 import {
     FunctionCall,
     FunctionReturn,
@@ -13,21 +13,17 @@ import {
     serializeCall
 } from "../module-wrapper";
 import { packer, PackerOptions, PackerResult, unzipInDir } from "../packer";
-import { CommonOptionDefaults, rmrf, hasExpired } from "../shared";
+import { CommonOptionDefaults, hasExpired } from "../shared";
+import { mkdir, readdir, stat, exists, rmrf } from "../fs-promise";
 import * as immediateTrampolineFactory from "./immediate-trampoline";
-import { Writable } from "stream";
-import { makeRe } from "minimatch";
+import { createWriteStream } from "fs";
 
-const mkdir = promisify(fs.mkdir);
 const exec = promisify(sys.exec);
-const stat = promisify(fs.stat);
-const readdir = promisify(fs.readdir);
 
 export interface State {
     moduleWrappers: ModuleWrapper[];
     getModuleWrapper: () => Promise<ModuleWrapper>;
     logStreams: Writable[];
-    options: Options;
     tempDir: string;
     logUrl: string;
     gcPromise?: Promise<void>;
@@ -61,20 +57,28 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
 async function initialize(
     serverModule: string,
     nonce: string,
-    options: Options
+    options?: Options
 ): Promise<State> {
     const moduleWrappers: ModuleWrapper[] = [];
     const logStreams: Writable[] = [];
 
+    const {
+        childProcess = defaults.childProcess,
+        gc = defaults.gc,
+        retentionInDays = defaults.retentionInDays,
+        memorySize = defaults.memorySize,
+        timeout = defaults.timeout
+    } = options || {};
+
     let gcPromise;
-    if (options.gc) {
-        gcPromise = collectGarbage(options.retentionInDays!);
+    if (gc) {
+        gcPromise = collectGarbage(retentionInDays!);
     }
 
-    const tempDir = path.join(tmpdir(), "cloudify", nonce);
+    const tempDir = join(tmpdir(), "cloudify", nonce);
     info(`tempDir: ${tempDir}`);
     await mkdir(tempDir, { recursive: true });
-    const logDir = path.join(tempDir, "logs");
+    const logDir = join(tempDir, "logs");
     await mkdir(logDir, { recursive: true });
     const log = `file://${logDir}`;
 
@@ -91,9 +95,9 @@ async function initialize(
             logStream.write("\n");
         };
         try {
-            const logFile = path.join(logDir, `${moduleWrappers.length}.log`);
+            const logFile = join(logDir, `${moduleWrappers.length}.log`);
             info(`Creating write stream ${logFile}`);
-            logStream = fs.createWriteStream(logFile);
+            logStream = createWriteStream(logFile);
             logStreams.push(logStream);
             await new Promise(resolve => logStream.on("open", resolve));
         } catch (err) {
@@ -103,9 +107,9 @@ async function initialize(
         }
         const moduleWrapper = new ModuleWrapper(require(serverModule), {
             log: childlog,
-            useChildProcess: options.childProcess || false,
-            childProcessMemoryLimitMb: options.memorySize || defaults.memorySize,
-            childProcessTimeout: options.timeout || defaults.timeout,
+            useChildProcess: childProcess,
+            childProcessMemoryLimitMb: memorySize,
+            childProcessTimeout: timeout,
             childDir: tempDir
         });
         moduleWrappers.push(moduleWrapper);
@@ -115,8 +119,8 @@ async function initialize(
     const packerResult = await pack(serverModule, options);
 
     await unzipInDir(tempDir, packerResult.archive);
-    const packageJsonFile = path.join(tempDir, "package.json");
-    if (fs.existsSync(packageJsonFile)) {
+    const packageJsonFile = join(tempDir, "package.json");
+    if (await exists(packageJsonFile)) {
         info(`Running 'npm install'`);
         await exec("npm install").then(x => {
             info(x.stdout);
@@ -130,7 +134,6 @@ async function initialize(
         moduleWrappers,
         getModuleWrapper,
         logStreams,
-        options,
         tempDir,
         logUrl: log,
         gcPromise
@@ -172,7 +175,7 @@ async function callFunction(
 async function cleanup(state: State): Promise<void> {
     await stop(state);
     const { tempDir } = state;
-    if (tempDir && tempDir.match(/\/cloudify\/[0-9a-f-]+$/) && fs.existsSync(tempDir)) {
+    if (tempDir && tempDir.match(/\/cloudify\/[0-9a-f-]+$/) && (await exists(tempDir))) {
         info(`Deleting temp dir ${tempDir}`);
         await rmrf(tempDir);
     }
@@ -199,13 +202,13 @@ async function collectGarbage(retentionInDays: number) {
         return;
     }
     garbageCollectorRunning = true;
-    const tmp = path.join(tmpdir(), "cloudify");
+    const tmp = join(tmpdir(), "cloudify");
     logGc(tmp);
     try {
         const dir = await readdir(tmp);
         for (const entry of dir) {
             if (entry.match(/^[a-f0-9-]+$/)) {
-                const cloudifyDir = path.join(tmp, entry);
+                const cloudifyDir = join(tmp, entry);
                 try {
                     const dir = await stat(cloudifyDir);
                     if (hasExpired(dir.atimeMs, retentionInDays)) {

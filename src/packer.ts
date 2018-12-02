@@ -1,14 +1,14 @@
 import { Archiver } from "archiver";
-import * as fs from "fs";
+import { createWriteStream } from "fs";
 import * as path from "path";
 import { Readable } from "stream";
-import { promisify } from "util";
 import * as webpack from "webpack";
 import * as yauzl from "yauzl";
 import { LoaderOptions } from "./cloudify-loader";
+import { exists, mkdir, readFile } from "./fs-promise";
 import { info, warn } from "./log";
-import { streamToBuffer, rmrf } from "./shared";
-import { TrampolineFactory, ModuleWrapperOptions } from "./module-wrapper";
+import { ModuleWrapperOptions, TrampolineFactory } from "./module-wrapper";
+import { streamToBuffer } from "./shared";
 
 type ZipFile = yauzl.ZipFile;
 
@@ -69,10 +69,10 @@ export async function packer(
         addEntry(root);
     }
 
-    function addPackageJson(packageJsonFile: string | object) {
+    async function addPackageJson(packageJsonFile: string | object) {
         const parsedPackageJson =
             typeof packageJsonFile === "string"
-                ? JSON.parse(fs.readFileSync(packageJsonFile).toString())
+                ? JSON.parse((await readFile(packageJsonFile)).toString())
                 : packageJsonFile;
         parsedPackageJson.main = "index.js";
         mfs.writeFileSync(
@@ -82,10 +82,10 @@ export async function packer(
         return Object.keys(parsedPackageJson.dependencies);
     }
 
-    function processAddDirectories(archive: Archiver, directories: string[]) {
+    async function processAddDirectories(archive: Archiver, directories: string[]) {
         for (const dir of directories) {
             info(`Adding directory to archive: ${dir}`);
-            if (!fs.existsSync(dir)) {
+            if (!(await exists(dir))) {
                 warn(`Directory ${dir} not found`);
             }
             archive.directory(dir, false);
@@ -108,7 +108,7 @@ export async function packer(
         if (typeof addDirectory === "string") {
             addDirectory = [addDirectory];
         }
-        addDirectory && processAddDirectories(archive, addDirectory);
+        addDirectory && (await processAddDirectories(archive, addDirectory));
         if (typeof addZipFile === "string") {
             addZipFile = [addZipFile];
         }
@@ -120,7 +120,7 @@ export async function packer(
         return { archive, indexContents };
     }
 
-    const dependencies = (packageJson && addPackageJson(packageJson)) || [];
+    const dependencies = (packageJson && (await addPackageJson(packageJson))) || [];
     const { externals = [] } = webpackOptions;
     const externalsArray = Array.isArray(externals) ? externals : [externals];
 
@@ -212,9 +212,6 @@ export async function processZip(
     });
 }
 
-const mkdir = promisify(fs.mkdir);
-const exists = promisify(fs.exists);
-
 export async function unzipInDir(dir: string, archive: NodeJS.ReadableStream) {
     await mkdir(dir, { recursive: true });
     let total = 0;
@@ -224,7 +221,7 @@ export async function unzipInDir(dir: string, archive: NodeJS.ReadableStream) {
         if (!(await exists(outputDir))) {
             await mkdir(outputDir, { recursive: true });
         }
-        const stream = fs.createWriteStream(destinationFilename, {
+        const stream = createWriteStream(destinationFilename, {
             mode: 0o700
         });
         contents.on("data", chunk => (total += chunk.length));

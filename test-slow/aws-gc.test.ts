@@ -27,7 +27,7 @@ test(
         // clean up the first function. Verify the first function's resources
         // are cleaned up, which shows that the garbage collector did its job.
         const cloud = cloudify.create("aws");
-        const func = await cloud.createFunction("./functions");
+        const func = await cloud.createFunction("../test/functions");
         const remote = func.cloudifyModule(functions);
         const { cloudwatch } = func.state.services;
         await new Promise(async resolve => {
@@ -49,7 +49,7 @@ test(
         });
 
         await func.stop();
-        const func2 = await cloud.createFunction("./functions", {
+        const func2 = await cloud.createFunction("../test/functions", {
             gc: true,
             retentionInDays: 0
         });
@@ -77,9 +77,9 @@ test(
     "garbage collector works for functions that are never called",
     async () => {
         const cloud = cloudify.create("aws");
-        const func = await cloud.createFunction("./functions");
+        const func = await cloud.createFunction("../test/functions");
         await func.stop();
-        const func2 = await cloud.createFunction("./functions", {
+        const func2 = await cloud.createFunction("../test/functions", {
             gc: true,
             retentionInDays: 0
         });
