@@ -438,6 +438,7 @@ export async function initialize(
     if (gc) {
         logGc(`Starting garbage collector`);
         state.gcPromise = collectGarbage(services, region, retentionInDays);
+        state.gcPromise.catch(_ => {});
     }
 
     try {
