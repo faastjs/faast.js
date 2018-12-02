@@ -50,6 +50,7 @@ async function testOrder(options: immediate.Options) {
         expect(err).toBeUndefined();
     } finally {
         await cloudFunc.cleanup();
+        // await cloudFunc.stop();
     }
 }
 

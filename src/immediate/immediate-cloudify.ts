@@ -4,7 +4,7 @@ import { tmpdir } from "os";
 import * as path from "path";
 import { promisify } from "util";
 import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
-import { info, warn } from "../log";
+import { info, warn, stats, logGc } from "../log";
 import {
     FunctionCall,
     FunctionReturn,
@@ -13,13 +13,15 @@ import {
     serializeCall
 } from "../module-wrapper";
 import { packer, PackerOptions, PackerResult, unzipInDir } from "../packer";
-import { CommonOptionDefaults, rmrf } from "../shared";
+import { CommonOptionDefaults, rmrf, hasExpired } from "../shared";
 import * as immediateTrampolineFactory from "./immediate-trampoline";
 import { Writable } from "stream";
 import { makeRe } from "minimatch";
 
 const mkdir = promisify(fs.mkdir);
 const exec = promisify(sys.exec);
+const stat = promisify(fs.stat);
+const readdir = promisify(fs.readdir);
 
 export interface State {
     moduleWrappers: ModuleWrapper[];
@@ -28,6 +30,7 @@ export interface State {
     options: Options;
     tempDir: string;
     logUrl: string;
+    gcPromise?: Promise<void>;
 }
 
 export interface Options extends CommonOptions {}
@@ -58,12 +61,17 @@ export const FunctionImpl: CloudFunctionImpl<State> = {
 async function initialize(
     serverModule: string,
     nonce: string,
-    options: Options = {}
+    options: Options
 ): Promise<State> {
     const moduleWrappers: ModuleWrapper[] = [];
     const logStreams: Writable[] = [];
 
-    const tempDir = path.join(tmpdir(), "cloudify-" + nonce);
+    let gcPromise;
+    if (options.gc) {
+        gcPromise = collectGarbage(options.retentionInDays!);
+    }
+
+    const tempDir = path.join(tmpdir(), "cloudify", nonce);
     info(`tempDir: ${tempDir}`);
     await mkdir(tempDir, { recursive: true });
     const logDir = path.join(tempDir, "logs");
@@ -124,7 +132,8 @@ async function initialize(
         logStreams,
         options,
         tempDir,
-        logUrl: log
+        logUrl: log,
+        gcPromise
     };
 }
 
@@ -163,7 +172,7 @@ async function callFunction(
 async function cleanup(state: State): Promise<void> {
     await stop(state);
     const { tempDir } = state;
-    if (tempDir && tempDir.match(/\/cloudify-/) && fs.existsSync(tempDir)) {
+    if (tempDir && tempDir.match(/\/cloudify\/[0-9a-f-]+$/) && fs.existsSync(tempDir)) {
         info(`Deleting temp dir ${tempDir}`);
         await rmrf(tempDir);
     }
@@ -177,5 +186,38 @@ async function stop(state: State) {
     );
     state.logStreams = [];
     state.moduleWrappers = [];
+    if (state.gcPromise) {
+        await state.gcPromise;
+    }
     info(`Stopping done`);
+}
+
+let garbageCollectorRunning = false;
+
+async function collectGarbage(retentionInDays: number) {
+    if (garbageCollectorRunning) {
+        return;
+    }
+    garbageCollectorRunning = true;
+    const tmp = path.join(tmpdir(), "cloudify");
+    logGc(tmp);
+    try {
+        const dir = await readdir(tmp);
+        for (const entry of dir) {
+            if (entry.match(/^[a-f0-9-]+$/)) {
+                const cloudifyDir = path.join(tmp, entry);
+                try {
+                    const dir = await stat(cloudifyDir);
+                    if (hasExpired(dir.atimeMs, retentionInDays)) {
+                        logGc(cloudifyDir);
+                        await rmrf(cloudifyDir);
+                    }
+                } catch (err) {}
+            }
+        }
+    } catch (err) {
+        logGc(err);
+    } finally {
+        garbageCollectorRunning = false;
+    }
 }
