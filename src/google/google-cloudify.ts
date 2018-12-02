@@ -332,6 +332,7 @@ async function initializeWithApi(
     if (gc) {
         logGc(`Starting garbage collector`);
         state.gcPromise = collectGarbage(services, project, retentionInDays);
+        state.gcPromise.catch(_ => {});
     }
 
     const pricingPromise = priceRequestFunnel.pushMemoized(region, () =>
@@ -505,7 +506,7 @@ async function callFunctionHttps(
                     : "";
             error = new Error(
                 `${response.status} ${response.statusText} ${
-                response.data
+                    response.data
                 }${interpretation}`
             );
         }
