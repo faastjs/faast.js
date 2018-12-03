@@ -4,7 +4,7 @@ import * as aws from "./aws/aws-cloudify";
 import * as costAnalyzer from "./cost-analyzer";
 import { Deferred, Funnel } from "./funnel";
 import * as google from "./google/google-cloudify";
-import * as immediate from "./immediate/immediate-cloudify";
+import * as local from "./local/local-cloudify";
 import { info, logLeaks, stats, warn, logCalls } from "./log";
 import {
     FunctionCall,
@@ -25,7 +25,7 @@ import { NonFunctionProperties, Unpacked } from "./type-helpers";
 import Module = require("module");
 import * as util from "util";
 
-export { aws, google, immediate, costAnalyzer };
+export { aws, google, local, costAnalyzer };
 
 export class CloudifyError extends Error {
     logUrl?: string;
@@ -621,23 +621,20 @@ export class GoogleEmulator extends Cloud<google.Options, google.State> {
     }
 }
 
-export class Immediate extends Cloud<immediate.Options, immediate.State> {
+export class Local extends Cloud<local.Options, local.State> {
     constructor() {
-        super(immediate.Impl);
+        super(local.Impl);
     }
 }
 
-export class ImmediateFunction extends CloudFunction<
-    immediate.Options,
-    immediate.State
-> {}
+export class LocalFunction extends CloudFunction<local.Options, local.State> {}
 
-export type CloudProvider = "aws" | "google" | "google-emulator" | "immediate";
+export type CloudProvider = "aws" | "google" | "google-emulator" | "local";
 
 export function create(cloudName: "aws"): AWS;
 export function create(cloudName: "google"): Google;
 export function create(cloudName: "google-emulator"): GoogleEmulator;
-export function create(cloudName: "immediate"): Immediate;
+export function create(cloudName: "local"): Local;
 export function create(cloudName: CloudProvider): Cloud<any, any>;
 export function create(cloudName: CloudProvider): Cloud<any, any> {
     if (cloudName === "aws") {
@@ -646,8 +643,8 @@ export function create(cloudName: CloudProvider): Cloud<any, any> {
         return new Google();
     } else if (cloudName === "google-emulator") {
         return new GoogleEmulator();
-    } else if (cloudName === "immediate") {
-        return new Immediate();
+    } else if (cloudName === "local") {
+        return new Local();
     }
     return assertNever(cloudName);
 }
@@ -670,11 +667,11 @@ export function cloudify<M extends object>(
     options?: google.Options
 ): Promise<Cloudified<google.Options, google.State, M>>;
 export function cloudify<M extends object>(
-    cloudName: "immediate",
+    cloudName: "local",
     fmodule: M,
     modulePath: string,
-    options?: immediate.Options
-): Promise<Cloudified<immediate.Options, immediate.State, M>>;
+    options?: local.Options
+): Promise<Cloudified<local.Options, local.State, M>>;
 export function cloudify<S, M extends object>(
     cloudName: CloudProvider,
     fmodule: M,

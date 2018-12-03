@@ -324,7 +324,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
     return nResources;
 }
 
-async function cleanupImmediate({ execute }: CleanupOptions) {
+async function cleanupLocal({ execute }: CleanupOptions) {
     const output = (msg: string) => !execute && log(msg);
     const tmpDir = tmpdir();
     const dir = await readdir(tmpDir);
@@ -364,13 +364,13 @@ async function runCleanup(cloud: string, options: CleanupOptions) {
         nResources = await cleanupAWS(options);
     } else if (cloud === "google") {
         nResources = await cleanupGoogle(options);
-    } else if (cloud === "immediate") {
-        nResources = await cleanupImmediate(options);
+    } else if (cloud === "local") {
+        nResources = await cleanupLocal(options);
     } else {
         warn(
             `Unknown cloud name ${
                 commander.cloud
-            }. Must specify "aws" or "google", or "immediate".`
+            }. Must specify "aws" or "google", or "local".`
         );
         process.exit(-1);
     }
@@ -407,7 +407,7 @@ async function main() {
             cloud = arg;
         })
         .description(
-            `Cleanup cloudify resources that may have leaked. The <cloud> argument must be "aws", "google", or "immediate".
+            `Cleanup cloudify resources that may have leaked. The <cloud> argument must be "aws", "google", or "local".
   By default the output is a dry run and will only print the actions that would be performed if '-x' is specified.`
         );
 

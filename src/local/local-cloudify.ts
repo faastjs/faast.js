@@ -15,7 +15,7 @@ import {
 import { packer, PackerOptions, PackerResult, unzipInDir } from "../packer";
 import { CommonOptionDefaults, hasExpired } from "../shared";
 import { mkdir, readdir, stat, exists, rmrf, createWriteStream } from "../fs-promise";
-import * as immediateTrampolineFactory from "./immediate-trampoline";
+import * as localTrampolineFactory from "./local-trampoline";
 
 const exec = promisify(sys.exec);
 
@@ -38,7 +38,7 @@ export const defaults: Options = {
 };
 
 export const Impl: CloudImpl<Options, State> = {
-    name: "immediate",
+    name: "local",
     initialize,
     pack,
     getFunctionImpl,
@@ -46,7 +46,7 @@ export const Impl: CloudImpl<Options, State> = {
 };
 
 export const FunctionImpl: CloudFunctionImpl<State> = {
-    name: "immediate",
+    name: "local",
     callFunction,
     cleanup,
     stop,
@@ -145,7 +145,7 @@ export function logUrl(state: State) {
 
 async function pack(functionModule: string, options?: Options): Promise<PackerResult> {
     const popts: PackerOptions = options || {};
-    return packer(immediateTrampolineFactory, functionModule, popts);
+    return packer(localTrampolineFactory, functionModule, popts);
 }
 
 function getFunctionImpl(): CloudFunctionImpl<State> {

@@ -88,7 +88,7 @@ export function createErrorResponse(
 export interface ModuleWrapperOptions {
     /**
      * Logging function for console.log/warn/error output. Only available in
-     * child process mode. This is mainly useful for debugging the "immediate"
+     * child process mode. This is mainly useful for debugging the "local"
      * mode which runs code locally. In real clouds the logs will end up in the
      * cloud logging service (e.g. Cloudwatch Logs, or Google Stackdriver logs).
      * Defaults to console.log.

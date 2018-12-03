@@ -113,7 +113,7 @@ export async function getGoogleResources(func: cloudify.GoogleCloudFunction) {
     };
 }
 
-export async function getImmediateResources(func: cloudify.ImmediateFunction) {
+export async function getLocalResources(func: cloudify.LocalFunction) {
     const { tempDir } = func.state;
     const dir = await readdir(tempDir).catch(_ => undefined);
     return {

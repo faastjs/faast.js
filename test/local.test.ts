@@ -1,18 +1,13 @@
 import { URL } from "url";
-import { cloudify, immediate } from "../src/cloudify";
+import { cloudify, local } from "../src/cloudify";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
 import { testFunctions, testMemoryLimit, testTimeout } from "./tests";
 import { measureConcurrency } from "./util";
 import { readFile } from "../src/fs-promise";
 
-async function testCleanup(options: immediate.Options) {
-    const { remote, cloudFunc } = await cloudify(
-        "immediate",
-        funcs,
-        "./functions",
-        options
-    );
+async function testCleanup(options: local.Options) {
+    const { remote, cloudFunc } = await cloudify("local", funcs, "./functions", options);
     let done = 0;
 
     remote
@@ -29,13 +24,8 @@ async function testCleanup(options: immediate.Options) {
     expect(done).toBe(0);
 }
 
-async function testOrder(options: immediate.Options) {
-    const { remote, cloudFunc } = await cloudify(
-        "immediate",
-        funcs,
-        "./functions",
-        options
-    );
+async function testOrder(options: local.Options) {
+    const { remote, cloudFunc } = await cloudify("local", funcs, "./functions", options);
     expect.assertions(2);
 
     const a = remote.emptyReject();
@@ -56,16 +46,11 @@ async function testConcurrency({
     maxConcurrency,
     expectedConcurrency
 }: {
-    options: immediate.Options;
+    options: local.Options;
     maxConcurrency: number;
     expectedConcurrency: number;
 }) {
-    const { remote, cloudFunc } = await cloudify(
-        "immediate",
-        funcs,
-        "./functions",
-        options
-    );
+    const { remote, cloudFunc } = await cloudify("local", funcs, "./functions", options);
 
     try {
         const N = maxConcurrency;
@@ -81,11 +66,11 @@ async function testConcurrency({
     }
 }
 
-describe("cloudify immediate mode", () => {
-    describe("basic functions", () => testFunctions("immediate", {}));
+describe("cloudify local mode", () => {
+    describe("basic functions", () => testFunctions("local", {}));
 
     describe("basic functions with child process", () =>
-        testFunctions("immediate", { childProcess: true }));
+        testFunctions("local", { childProcess: true }));
 
     test("cleanup stops executions", () => testCleanup({}));
 
@@ -111,10 +96,9 @@ describe("cloudify immediate mode", () => {
         testOrder({ childProcess: true, concurrency: 2, maxRetries: 2 }));
 
     describe("process memory limit test", () =>
-        testMemoryLimit("immediate", { childProcess: true }));
+        testMemoryLimit("local", { childProcess: true }));
 
-    describe("process timeout test", () =>
-        testTimeout("immediate", { childProcess: true }));
+    describe("process timeout test", () => testTimeout("local", { childProcess: true }));
 
     async function readFirstLogfile(logDirectoryUrl: string) {
         const logFileUrl = new URL(logDirectoryUrl + "/0.log");
@@ -123,7 +107,7 @@ describe("cloudify immediate mode", () => {
     }
 
     test("console.log and console.warn with child process", async () => {
-        const { remote, cloudFunc } = await cloudify("immediate", funcs, "./functions", {
+        const { remote, cloudFunc } = await cloudify("local", funcs, "./functions", {
             childProcess: true,
             concurrency: 1
         });
@@ -144,7 +128,7 @@ describe("cloudify immediate mode", () => {
     });
 
     test("log files should be appended, not truncated, after child process crash", async () => {
-        const { remote, cloudFunc } = await cloudify("immediate", funcs, "./functions", {
+        const { remote, cloudFunc } = await cloudify("local", funcs, "./functions", {
             childProcess: true,
             concurrency: 1,
             maxRetries: 1
@@ -186,7 +170,7 @@ describe("cloudify immediate mode", () => {
     });
 
     test("cleanup waits for all child processes to exit", async () => {
-        const { remote, cloudFunc } = await cloudify("immediate", funcs, "./functions", {
+        const { remote, cloudFunc } = await cloudify("local", funcs, "./functions", {
             childProcess: true
         });
         remote.spin(5000).catch(_ => {});

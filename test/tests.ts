@@ -13,8 +13,8 @@ import { rmrf, createWriteStream, stat } from "../src/fs-promise";
 
 export function testFunctions(cloudProvider: "aws", options: awsCloudify.Options): void;
 export function testFunctions(
-    cloudProvider: "immediate",
-    options: cloudify.immediate.Options
+    cloudProvider: "local",
+    options: cloudify.local.Options
 ): void;
 export function testFunctions(
     cloudProvider: cloudify.CloudProvider,
