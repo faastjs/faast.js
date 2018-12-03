@@ -4,7 +4,7 @@ import {
     estimateWorkloadCost,
     googleConfigurations,
     toCSV
-} from "../src/cost-analyzer";
+} from "../src/cost";
 import * as funcs from "../test/functions";
 
 async function work(remote: cloudify.Promisified<typeof funcs>) {

@@ -3,10 +3,10 @@ import * as aws from "aws-sdk";
 import {
     FunctionCall,
     FunctionReturn,
-    ModuleWrapper,
+    Wrapper,
     createErrorResponse,
     CallingContext
-} from "../module-wrapper";
+} from "../wrapper";
 import { publishSQS, publishSQSControlMessage } from "./aws-queue";
 import { getExecutionLogUrl } from "./aws-shared";
 import { env } from "process";
@@ -15,7 +15,7 @@ const awsSqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
 export const filename = module.filename;
 
-export function makeTrampoline(moduleWrapper: ModuleWrapper) {
+export function makeTrampoline(moduleWrapper: Wrapper) {
     async function trampoline(
         event: FunctionCall | SNSEvent,
         context: Context,

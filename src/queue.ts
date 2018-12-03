@@ -7,8 +7,8 @@ import {
     serializeCall,
     FunctionReturnWithMetrics,
     FunctionReturn
-} from "./module-wrapper";
-import { Attributes } from "./type-helpers";
+} from "./wrapper";
+import { Attributes } from "./types";
 const log = debug("cloudify:collector");
 
 const CallIdAttribute: keyof Pick<FunctionReturn, "CallId"> = "CallId";

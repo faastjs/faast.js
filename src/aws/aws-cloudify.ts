@@ -11,7 +11,7 @@ import {
     FunctionCounters,
     FunctionStats
 } from "../cloudify";
-import { CostBreakdown, CostMetric } from "../cost-analyzer";
+import { CostBreakdown, CostMetric } from "../cost";
 import { readFile } from "../fs-promise";
 import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
 import { info, logGc, warn } from "../log";
@@ -20,7 +20,7 @@ import {
     FunctionReturn,
     FunctionReturnWithMetrics,
     serializeCall
-} from "../module-wrapper";
+} from "../wrapper";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import {

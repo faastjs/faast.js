@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as uuidv4 from "uuid/v4";
 import * as aws from "./aws/aws-cloudify";
-import * as costAnalyzer from "./cost-analyzer";
+import * as costAnalyzer from "./cost";
 import { Deferred, Funnel } from "./funnel";
 import * as google from "./google/google-cloudify";
 import * as local from "./local/local-cloudify";
@@ -10,7 +10,7 @@ import {
     FunctionCall,
     FunctionReturn,
     FunctionReturnWithMetrics
-} from "./module-wrapper";
+} from "./wrapper";
 import { PackerOptions, PackerResult } from "./packer";
 import {
     assertNever,
@@ -21,7 +21,7 @@ import {
     sleep,
     Statistics
 } from "./shared";
-import { NonFunctionProperties, Unpacked } from "./type-helpers";
+import { NonFunctionProperties, Unpacked } from "./types";
 import Module = require("module");
 import * as util from "util";
 

@@ -1,7 +1,7 @@
 import { pubsub_v1 } from "googleapis";
 import * as cloudqueue from "../queue";
 import PubSubApi = pubsub_v1;
-import { Attributes } from "../type-helpers";
+import { Attributes } from "../types";
 import { GoogleMetrics } from "./google-cloudify";
 import { computeHttpResponseBytes } from "../shared";
 

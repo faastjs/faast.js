@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
-import { ModuleWrapper, FunctionCall, createErrorResponse } from "../module-wrapper";
+import { Wrapper, FunctionCall, createErrorResponse } from "../wrapper";
 import { env } from "process";
 import { getExecutionLogUrl } from "./google-shared";
 
 export const filename = module.filename;
 
-export function makeTrampoline(moduleWrapper: ModuleWrapper) {
+export function makeTrampoline(moduleWrapper: Wrapper) {
     async function trampoline(request: Request, response: Response) {
         const startTime = Date.now();
         const call: FunctionCall = request.body;

@@ -10,7 +10,7 @@ import {
 } from "./cloudify";
 import { Funnel, RateLimitedFunnel } from "./funnel";
 import { Statistics, sum } from "./shared";
-import { NonFunctionProperties } from "./type-helpers";
+import { NonFunctionProperties } from "./types";
 import * as Listr from "listr";
 
 export class CostMetric {

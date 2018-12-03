@@ -3,7 +3,7 @@ import * as childProcess from "child_process";
 import * as process from "process";
 import { inspect } from "util";
 import { Deferred } from "./funnel";
-import { AnyFunction } from "./type-helpers";
+import { AnyFunction } from "./types";
 import { logWrapper } from "./log";
 
 export const filename = module.filename;
@@ -18,7 +18,7 @@ export interface Trampoline {
 
 export interface TrampolineFactory {
     filename: string;
-    makeTrampoline: (moduleWrapper: ModuleWrapper) => Trampoline;
+    makeTrampoline: (moduleWrapper: Wrapper) => Trampoline;
 }
 
 export interface FunctionCall extends CallId {
@@ -85,7 +85,7 @@ export function createErrorResponse(
     };
 }
 
-export interface ModuleWrapperOptions {
+export interface WrapperOptions {
     /**
      * Logging function for console.log/warn/error output. Only available in
      * child process mode. This is mainly useful for debugging the "local"
@@ -106,14 +106,14 @@ export interface ModuleWrapperOptions {
 
 const oomPattern = /Allocation failed - JavaScript heap out of memory/;
 
-export class ModuleWrapper {
+export class Wrapper {
     funcs: ModuleType = {};
     child?: childProcess.ChildProcess;
     deferred?: Deferred<FunctionReturn>;
     log: (msg: string) => void;
     executing = false;
 
-    constructor(fModule: ModuleType, public options: ModuleWrapperOptions = {}) {
+    constructor(fModule: ModuleType, public options: WrapperOptions = {}) {
         this.log = options.log || console.log;
         this.funcs = fModule;
 

@@ -9,9 +9,9 @@ import {
     FunctionCall,
     FunctionReturn,
     FunctionReturnWithMetrics,
-    ModuleWrapper,
+    Wrapper,
     serializeCall
-} from "../module-wrapper";
+} from "../wrapper";
 import { packer, PackerOptions, PackerResult, unzipInDir } from "../packer";
 import { CommonOptionDefaults, hasExpired } from "../shared";
 import { mkdir, readdir, stat, exists, rmrf, createWriteStream } from "../fs-promise";
@@ -20,8 +20,8 @@ import * as localTrampolineFactory from "./local-trampoline";
 const exec = promisify(sys.exec);
 
 export interface State {
-    moduleWrappers: ModuleWrapper[];
-    getModuleWrapper: () => Promise<ModuleWrapper>;
+    moduleWrappers: Wrapper[];
+    getModuleWrapper: () => Promise<Wrapper>;
     logStreams: Writable[];
     tempDir: string;
     logUrl: string;
@@ -58,7 +58,7 @@ async function initialize(
     nonce: string,
     options?: Options
 ): Promise<State> {
-    const moduleWrappers: ModuleWrapper[] = [];
+    const moduleWrappers: Wrapper[] = [];
     const logStreams: Writable[] = [];
 
     const {
@@ -104,7 +104,7 @@ async function initialize(
             warn(err);
             childlog = console.log;
         }
-        const moduleWrapper = new ModuleWrapper(require(serverModule), {
+        const moduleWrapper = new Wrapper(require(serverModule), {
             log: childlog,
             useChildProcess: childProcess,
             childProcessMemoryLimitMb: memorySize,

@@ -3,10 +3,10 @@ import * as path from "path";
 import { Readable } from "stream";
 import * as webpack from "webpack";
 import * as yauzl from "yauzl";
-import { LoaderOptions } from "./cloudify-loader";
+import { LoaderOptions } from "./loader";
 import { exists, mkdir, readFile, createWriteStream } from "./fs-promise";
 import { info, warn } from "./log";
-import { ModuleWrapperOptions, TrampolineFactory } from "./module-wrapper";
+import { WrapperOptions, TrampolineFactory } from "./wrapper";
 import { streamToBuffer } from "./shared";
 
 type ZipFile = yauzl.ZipFile;
@@ -19,7 +19,7 @@ export interface PackerOptions {
     packageJson?: string | object | false;
     addDirectory?: string | string[];
     addZipFile?: string | string[];
-    moduleWrapperOptions?: ModuleWrapperOptions;
+    moduleWrapperOptions?: WrapperOptions;
 }
 
 export interface PackerResult {
@@ -153,7 +153,7 @@ export async function packer(
         );
     }
 
-    const loader = `cloudify-loader?${getUrlEncodedQueryParameters({
+    const loader = `loader?${getUrlEncodedQueryParameters({
         trampolineFactoryModule: trampolineFactory.filename,
         moduleWrapperOptions,
         functionModule

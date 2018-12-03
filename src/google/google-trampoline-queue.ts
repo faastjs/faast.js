@@ -1,6 +1,6 @@
 import { google, pubsub_v1 } from "googleapis";
 import { publish, publishControlMessage } from "./google-queue";
-import { ModuleWrapper, FunctionCall, createErrorResponse } from "../module-wrapper";
+import { Wrapper, FunctionCall, createErrorResponse } from "../wrapper";
 import PubSubApi = pubsub_v1;
 import { getExecutionLogUrl } from "./google-shared";
 import { env } from "process";
@@ -27,7 +27,7 @@ async function initialize() {
     }
 }
 
-export function makeTrampoline(moduleWrapper: ModuleWrapper) {
+export function makeTrampoline(moduleWrapper: Wrapper) {
     async function trampoline(data: PubsubMessage, context: CloudFunctionContext) {
         const startTime = Date.now();
         await initialize();

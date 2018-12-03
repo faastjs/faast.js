@@ -2,7 +2,7 @@ import { tmpdir } from "os";
 import * as path from "path";
 import * as uuidv4 from "uuid/v4";
 import { exists, rmrf, createWriteStream, mkdir } from "../src/fs-promise";
-import { deepCopyUndefined } from "../src/module-wrapper";
+import { deepCopyUndefined } from "../src/wrapper";
 
 describe("shared module tests", () => {
     test("Copy of undefined properties", () => {

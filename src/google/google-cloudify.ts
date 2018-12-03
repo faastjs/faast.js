@@ -16,7 +16,7 @@ import {
     FunctionCounters,
     FunctionStats
 } from "../cloudify";
-import { CostBreakdown, CostMetric } from "../cost-analyzer";
+import { CostBreakdown, CostMetric } from "../cost";
 import { MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
 import { info, logGc, logPricing, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
@@ -32,8 +32,8 @@ import {
     FunctionReturn,
     FunctionReturnWithMetrics,
     serializeCall
-} from "../module-wrapper";
-import { Mutable } from "../type-helpers";
+} from "../wrapper";
+import { Mutable } from "../types";
 import {
     getMessageBody,
     publish,

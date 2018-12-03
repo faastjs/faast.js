@@ -2,9 +2,9 @@ import * as aws from "aws-sdk";
 import * as cloudqueue from "../queue";
 import { info, warn } from "../log";
 import { SNSEvent } from "aws-lambda";
-import { FunctionCall } from "../module-wrapper";
+import { FunctionCall } from "../wrapper";
 import { AWSMetrics } from "./aws-cloudify";
-import { Attributes } from "../type-helpers";
+import { Attributes } from "../types";
 import { sum, computeHttpResponseBytes } from "../shared";
 
 export function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
