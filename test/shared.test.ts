@@ -1,8 +1,7 @@
-import { createWriteStream, mkdirSync } from "fs";
 import { tmpdir } from "os";
 import * as path from "path";
 import * as uuidv4 from "uuid/v4";
-import { exists, rmrf } from "../src/fs-promise";
+import { exists, rmrf, createWriteStream, mkdir } from "../src/fs-promise";
 import { deepCopyUndefined } from "../src/module-wrapper";
 
 describe("shared module tests", () => {
@@ -40,8 +39,8 @@ describe("shared module tests", () => {
     test(`rmrf deletes directory recursively`, async () => {
         const tmp = path.join(tmpdir(), uuidv4());
         const subdir = path.join(tmp, "subdir");
-        mkdirSync(tmp);
-        mkdirSync(subdir);
+        await mkdir(tmp);
+        await mkdir(subdir);
         const file = path.join(subdir, "file.txt");
         const stream = createWriteStream(file);
         await new Promise((resolve, reject) =>

@@ -1,8 +1,7 @@
-import * as fs from "fs";
 import { homedir } from "os";
 import { join } from "path";
 import { Readable } from "stream";
-import { exists, mkdir, stat, readFile, writeFile, rmrf, readdir } from "./fs-promise";
+import { exists, mkdir, readdir, readFile, rmrf, stat, writeFile } from "./fs-promise";
 
 /**
  * A simple persistent key-value store. Entries can be expired, but are not

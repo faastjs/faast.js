@@ -1,11 +1,10 @@
 import { Archiver } from "archiver";
-import { createWriteStream } from "fs";
 import * as path from "path";
 import { Readable } from "stream";
 import * as webpack from "webpack";
 import * as yauzl from "yauzl";
 import { LoaderOptions } from "./cloudify-loader";
-import { exists, mkdir, readFile } from "./fs-promise";
+import { exists, mkdir, readFile, createWriteStream } from "./fs-promise";
 import { info, warn } from "./log";
 import { ModuleWrapperOptions, TrampolineFactory } from "./module-wrapper";
 import { streamToBuffer } from "./shared";

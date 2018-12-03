@@ -14,9 +14,8 @@ import {
 } from "../module-wrapper";
 import { packer, PackerOptions, PackerResult, unzipInDir } from "../packer";
 import { CommonOptionDefaults, hasExpired } from "../shared";
-import { mkdir, readdir, stat, exists, rmrf } from "../fs-promise";
+import { mkdir, readdir, stat, exists, rmrf, createWriteStream } from "../fs-promise";
 import * as immediateTrampolineFactory from "./immediate-trampoline";
-import { createWriteStream } from "fs";
 
 const exec = promisify(sys.exec);
 

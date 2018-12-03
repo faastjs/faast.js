@@ -1,5 +1,4 @@
 import * as asyncHooks from "async_hooks";
-import * as fs from "fs";
 import * as util from "util";
 
 let hook: () => void | undefined;

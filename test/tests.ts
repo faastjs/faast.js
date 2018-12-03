@@ -1,5 +1,4 @@
 import * as sys from "child_process";
-import * as fs from "fs";
 import * as path from "path";
 import { PassThrough } from "stream";
 import * as awsCloudify from "../src/aws/aws-cloudify";
@@ -10,7 +9,7 @@ import { info, stats, warn } from "../src/log";
 import { unzipInDir } from "../src/packer";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
-import { rmrf } from "../src/fs-promise";
+import { rmrf, createWriteStream, stat } from "../src/fs-promise";
 
 export function testFunctions(cloudProvider: "aws", options: awsCloudify.Options): void;
 export function testFunctions(
@@ -156,14 +155,14 @@ export function testCodeBundle(
             const stream2 = archive.pipe(new PassThrough());
 
             const zipFile = path.join("tmp", identifier + ".zip");
-            stream2.pipe(fs.createWriteStream(zipFile));
+            stream2.pipe(createWriteStream(zipFile));
             const writePromise = new Promise(resolve => stream2.on("end", resolve));
 
             await rmrf(tmpDir);
             const unzipPromise = unzipInDir(tmpDir, stream1);
 
             await Promise.all([writePromise, unzipPromise]);
-            const bytes = fs.statSync(zipFile).size;
+            const bytes = (await stat(zipFile)).size;
             maxZipFileSize && expect(bytes).toBeLessThan(maxZipFileSize);
             expect(exec(`cd ${tmpDir} && node index.js`)).toMatch(
                 "cloudify: successful cold start."

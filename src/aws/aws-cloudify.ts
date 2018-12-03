@@ -2,8 +2,6 @@ import * as aws from "aws-sdk";
 import { NumberOfBytesType } from "aws-sdk/clients/kms";
 import { PromiseResult } from "aws-sdk/lib/request";
 import { createHash } from "crypto";
-import * as fs from "fs";
-import * as uuidv4 from "uuid/v4";
 import { LocalCache } from "../cache";
 import {
     AWS,
@@ -14,8 +12,15 @@ import {
     FunctionStats
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost-analyzer";
+import { readFile } from "../fs-promise";
 import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
 import { info, logGc, warn } from "../log";
+import {
+    FunctionCall,
+    FunctionReturn,
+    FunctionReturnWithMetrics,
+    serializeCall
+} from "../module-wrapper";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import {
@@ -24,12 +29,6 @@ import {
     hasExpired,
     sleep
 } from "../shared";
-import {
-    FunctionCall,
-    FunctionReturn,
-    FunctionReturnWithMetrics,
-    serializeCall
-} from "../module-wrapper";
 import * as awsNpm from "./aws-npm";
 import {
     createSNSTopic,
@@ -44,7 +43,6 @@ import {
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
-import { readFile } from "../fs-promise";
 
 export interface Options extends CommonOptions {
     region?: string;
