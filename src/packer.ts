@@ -19,7 +19,7 @@ export interface PackerOptions {
     packageJson?: string | object | false;
     addDirectory?: string | string[];
     addZipFile?: string | string[];
-    moduleWrapperOptions?: WrapperOptions;
+    wrapperOptions?: WrapperOptions;
 }
 
 export interface PackerResult {
@@ -42,7 +42,7 @@ export async function packer(
         packageJson,
         addDirectory,
         addZipFile,
-        moduleWrapperOptions = {},
+        wrapperOptions = {},
         ...rest
     }: PackerOptions
 ): Promise<PackerResult> {
@@ -155,7 +155,7 @@ export async function packer(
 
     const loader = `loader?${getUrlEncodedQueryParameters({
         trampolineFactoryModule: trampolineFactory.filename,
-        moduleWrapperOptions,
+        wrapperOptions,
         functionModule
     })}!`;
     await runWebpack(loader, "index.js");

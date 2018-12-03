@@ -109,7 +109,7 @@ export const defaults: Required<Options> = {
     addDirectory: [],
     packageJson: false,
     webpackOptions: {},
-    moduleWrapperOptions: {}
+    wrapperOptions: {}
 };
 
 export const Impl: CloudImpl<Options, State> = {

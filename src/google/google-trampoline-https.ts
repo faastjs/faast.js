@@ -5,7 +5,7 @@ import { getExecutionLogUrl } from "./google-shared";
 
 export const filename = module.filename;
 
-export function makeTrampoline(moduleWrapper: Wrapper) {
+export function makeTrampoline(wrapper: Wrapper) {
     async function trampoline(request: Request, response: Response) {
         const startTime = Date.now();
         const call: FunctionCall = request.body;
@@ -20,7 +20,7 @@ export function makeTrampoline(moduleWrapper: Wrapper) {
             executionId
         };
         try {
-            const returned = await moduleWrapper.execute(callingContext);
+            const returned = await wrapper.execute(callingContext);
             response.send(returned);
         } catch (err) {
             console.error(err);

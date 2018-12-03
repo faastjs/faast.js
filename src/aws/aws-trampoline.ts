@@ -15,7 +15,7 @@ const awsSqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
 export const filename = module.filename;
 
-export function makeTrampoline(moduleWrapper: Wrapper) {
+export function makeTrampoline(wrapper: Wrapper) {
     async function trampoline(
         event: FunctionCall | SNSEvent,
         context: Context,
@@ -40,7 +40,7 @@ export function makeTrampoline(moduleWrapper: Wrapper) {
         };
         if ("CallId" in event) {
             const call = event as FunctionCall;
-            const result = await moduleWrapper.execute({ call, ...callingContext });
+            const result = await wrapper.execute({ call, ...callingContext });
             callback(null, result);
         } else {
             const snsEvent = event as SNSEvent;
@@ -60,7 +60,7 @@ export function makeTrampoline(moduleWrapper: Wrapper) {
                         ),
                     2 * 1000
                 );
-                const result = await moduleWrapper.execute({
+                const result = await wrapper.execute({
                     call,
                     ...callingContext
                 });

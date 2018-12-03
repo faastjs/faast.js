@@ -6,11 +6,7 @@ import { Deferred, Funnel } from "./funnel";
 import * as google from "./google/google-cloudify";
 import * as local from "./local/local-cloudify";
 import { info, logLeaks, stats, warn, logCalls } from "./log";
-import {
-    FunctionCall,
-    FunctionReturn,
-    FunctionReturnWithMetrics
-} from "./wrapper";
+import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "./wrapper";
 import { PackerOptions, PackerResult } from "./packer";
 import {
     assertNever,
@@ -116,8 +112,8 @@ export class Cloud<O extends CommonOptions, S> {
 
     pack(fmodule: string, options?: O): Promise<PackerResult> {
         if (options && options.childProcess !== undefined) {
-            options.moduleWrapperOptions = {
-                ...options.moduleWrapperOptions,
+            options.wrapperOptions = {
+                ...options.wrapperOptions,
                 useChildProcess: options.childProcess
             };
         }

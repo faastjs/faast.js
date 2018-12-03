@@ -176,12 +176,12 @@ describe("cloudify local mode", () => {
         remote.spin(5000).catch(_ => {});
         while (true) {
             await sleep(100);
-            if (cloudFunc.state.moduleWrappers.length > 0) {
+            if (cloudFunc.state.wrappers.length > 0) {
                 break;
             }
         }
-        expect(cloudFunc.state.moduleWrappers.length).toBe(1);
+        expect(cloudFunc.state.wrappers.length).toBe(1);
         await cloudFunc.cleanup();
-        expect(cloudFunc.state.moduleWrappers.length).toBe(0);
+        expect(cloudFunc.state.wrappers.length).toBe(0);
     });
 });

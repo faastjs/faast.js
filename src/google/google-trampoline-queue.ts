@@ -27,7 +27,7 @@ async function initialize() {
     }
 }
 
-export function makeTrampoline(moduleWrapper: Wrapper) {
+export function makeTrampoline(wrapper: Wrapper) {
     async function trampoline(data: PubsubMessage, context: CloudFunctionContext) {
         const startTime = Date.now();
         await initialize();
@@ -55,7 +55,7 @@ export function makeTrampoline(moduleWrapper: Wrapper) {
         };
 
         try {
-            const returned = await moduleWrapper.execute(callingContext);
+            const returned = await wrapper.execute(callingContext);
             clearTimeout(startedMessageTimer);
             await publish(pubsub, call.ResponseQueueId!, JSON.stringify(returned), {
                 CallId

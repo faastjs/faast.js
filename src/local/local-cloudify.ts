@@ -20,8 +20,8 @@ import * as localTrampolineFactory from "./local-trampoline";
 const exec = promisify(sys.exec);
 
 export interface State {
-    moduleWrappers: Wrapper[];
-    getModuleWrapper: () => Promise<Wrapper>;
+    wrappers: Wrapper[];
+    getWrapper: () => Promise<Wrapper>;
     logStreams: Writable[];
     tempDir: string;
     logUrl: string;
@@ -58,7 +58,7 @@ async function initialize(
     nonce: string,
     options?: Options
 ): Promise<State> {
-    const moduleWrappers: Wrapper[] = [];
+    const wrappers: Wrapper[] = [];
     const logStreams: Writable[] = [];
 
     const {
@@ -83,8 +83,8 @@ async function initialize(
 
     info(`logURL: ${log}`);
 
-    const getModuleWrapper = async () => {
-        const idleWrapper = moduleWrappers.find(wrapper => wrapper.executing === false);
+    const getWrapper = async () => {
+        const idleWrapper = wrappers.find(wrapper => wrapper.executing === false);
         if (idleWrapper) {
             return idleWrapper;
         }
@@ -94,7 +94,7 @@ async function initialize(
             logStream.write("\n");
         };
         try {
-            const logFile = join(logDir, `${moduleWrappers.length}.log`);
+            const logFile = join(logDir, `${wrappers.length}.log`);
             info(`Creating write stream ${logFile}`);
             logStream = createWriteStream(logFile);
             logStreams.push(logStream);
@@ -104,15 +104,15 @@ async function initialize(
             warn(err);
             childlog = console.log;
         }
-        const moduleWrapper = new Wrapper(require(serverModule), {
+        const wrapper = new Wrapper(require(serverModule), {
             log: childlog,
             useChildProcess: childProcess,
             childProcessMemoryLimitMb: memorySize,
             childProcessTimeout: timeout,
             childDir: tempDir
         });
-        moduleWrappers.push(moduleWrapper);
-        return moduleWrapper;
+        wrappers.push(wrapper);
+        return wrapper;
     };
 
     const packerResult = await pack(serverModule, options);
@@ -130,8 +130,8 @@ async function initialize(
     }
 
     return {
-        moduleWrappers,
-        getModuleWrapper,
+        wrappers,
+        getWrapper,
         logStreams,
         tempDir,
         logUrl: log,
@@ -159,8 +159,8 @@ async function callFunction(
     const scall = JSON.parse(serializeCall(call));
     const startTime = Date.now();
     let returned: FunctionReturn;
-    const moduleWrapper = await state.getModuleWrapper();
-    returned = await moduleWrapper.execute({ call: scall, startTime });
+    const wrapper = await state.getWrapper();
+    returned = await wrapper.execute({ call: scall, startTime });
 
     return {
         returned,
@@ -182,12 +182,12 @@ async function cleanup(state: State): Promise<void> {
 
 async function stop(state: State) {
     info(`Stopping`);
-    await Promise.all(state.moduleWrappers.map(wrapper => wrapper.stop()));
+    await Promise.all(state.wrappers.map(wrapper => wrapper.stop()));
     await Promise.all(
         state.logStreams.map(stream => new Promise(resolve => stream.end(resolve)))
     );
     state.logStreams = [];
-    state.moduleWrappers = [];
+    state.wrappers = [];
     if (state.gcPromise) {
         await state.gcPromise;
     }

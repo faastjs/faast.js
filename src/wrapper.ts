@@ -18,7 +18,7 @@ export interface Trampoline {
 
 export interface TrampolineFactory {
     filename: string;
-    makeTrampoline: (moduleWrapper: Wrapper) => Trampoline;
+    makeTrampoline: (wrapper: Wrapper) => Trampoline;
 }
 
 export interface FunctionCall extends CallId {

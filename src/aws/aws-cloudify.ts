@@ -118,7 +118,7 @@ export let defaults: Required<Options> = {
     addZipFile: [],
     packageJson: false,
     webpackOptions: {},
-    moduleWrapperOptions: {}
+    wrapperOptions: {}
 };
 
 export const Impl: CloudImpl<Options, State> = {
