@@ -1,5 +1,5 @@
 import debug from "debug";
-import { Pump, Deferred } from "./funnel";
+import { Pump, Deferred } from "./throttle";
 import { sleep } from "./shared";
 import { warn } from "./log";
 import {
@@ -192,12 +192,12 @@ function adjustCollectorConcurrencyLevel(vars: QueueState, full: boolean) {
         let nCollectors = full ? Math.floor(nPending / 20) + 2 : 2;
         nCollectors = Math.min(nCollectors, 10);
         const pump = vars.collectorPump;
-        const previous = pump.maxConcurrency;
+        const previous = pump.concurrency;
         pump.setMaxConcurrency(nCollectors);
-        if (previous !== pump.maxConcurrency) {
+        if (previous !== pump.concurrency) {
             log(
                 `Result collectors running: ${pump.getConcurrency()}, new max: ${
-                    pump.maxConcurrency
+                    pump.concurrency
                 }`
             );
         }

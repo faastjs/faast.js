@@ -2,7 +2,7 @@ import { deepStrictEqual } from "assert";
 import * as childProcess from "child_process";
 import * as process from "process";
 import { inspect } from "util";
-import { Deferred } from "./funnel";
+import { Deferred } from "./throttle";
 import { AnyFunction } from "./types";
 import { logWrapper } from "./log";
 

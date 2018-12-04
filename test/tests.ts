@@ -3,7 +3,7 @@ import * as path from "path";
 import { PassThrough } from "stream";
 import * as awsCloudify from "../src/aws/aws-cloudify";
 import * as cloudify from "../src/cloudify";
-import { Pump } from "../src/funnel";
+import { Pump } from "../src/throttle";
 import * as googleCloudify from "../src/google/google-cloudify";
 import { info, stats, warn } from "../src/log";
 import { unzipInDir } from "../src/packer";
@@ -234,7 +234,7 @@ export function testCosts(
 
 export function testRampUp(
     cloudProvider: cloudify.CloudProvider,
-    maxConcurrency: number,
+    concurrency: number,
     options?: cloudify.CommonOptions
 ) {
     let lambda: cloudify.AnyCloudFunction;
@@ -243,8 +243,10 @@ export function testRampUp(
     beforeAll(async () => {
         try {
             const cloud = cloudify.create(cloudProvider);
-            lambda = await cloud.createFunction("./functions", options);
-            lambda.setConcurrency(maxConcurrency);
+            lambda = await cloud.createFunction("./functions", {
+                ...options,
+                concurrency
+            });
             lambda.printStatisticsInterval(1000, stats);
             remote = lambda.cloudifyModule(funcs);
         } catch (err) {

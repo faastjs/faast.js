@@ -12,7 +12,7 @@ import * as awsCloudify from "./aws/aws-cloudify";
 import { LocalCache } from "./cache";
 import { readdir, rmrf } from "./fs-promise";
 import * as googleCloudify from "./google/google-cloudify";
-import { limit } from "./funnel";
+import { throttle } from "./throttle";
 
 const warn = console.warn;
 const log = console.log;
@@ -27,7 +27,7 @@ async function deleteResources(
     name: string,
     matchingResources: string[],
     remove: (arg: string) => Promise<any>,
-    { maxConcurrency = 10, targetRequestsPerSecond = 5, maxBurst = 5 } = {}
+    { concurrency = 10, rate = 5, burst = 5 } = {}
 ) {
     if (matchingResources.length > 0) {
         const timeEstimate = (nResources: number) =>
@@ -36,12 +36,12 @@ async function deleteResources(
             `Deleting ${matchingResources.length} ${name} ${timeEstimate(nResources)}`;
         const spinner = ora(updateSpinnerText(matchingResources.length)).start();
         let done = 0;
-        const scheduleRemove = limit(
+        const scheduleRemove = throttle(
             {
-                maxConcurrency,
-                targetRequestsPerSecond,
-                maxBurst,
-                shouldRetry: 3
+                concurrency,
+                rate,
+                burst,
+                retry: 3
             },
             async arg => {
                 await remove(arg);
@@ -111,9 +111,9 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
         nResources += allResources.length;
         if (execute) {
             await deleteResources(name, allResources, remove, {
-                maxConcurrency: 10,
-                targetRequestsPerSecond: 5,
-                maxBurst: 5
+                concurrency: 10,
+                rate: 5,
+                burst: 5
             });
         }
     }
@@ -277,9 +277,9 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
         nResources += allResources.length;
         if (execute) {
             await deleteResources(name, allResources, remove, {
-                maxConcurrency: 20,
-                targetRequestsPerSecond: 20,
-                maxBurst: 20
+                concurrency: 20,
+                rate: 20,
+                burst: 20
             });
         }
     }

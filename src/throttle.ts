@@ -47,14 +47,9 @@ function popFirst<T>(set: Set<T>): T | undefined {
 
 type RetryType = number | ((err: any, retries: number) => boolean);
 
-export async function retry<T>(
-    shouldRetry: RetryType,
-    fn: (retries: number) => Promise<T>
-) {
+export async function retry<T>(retryN: RetryType, fn: (retries: number) => Promise<T>) {
     const retryTest =
-        typeof shouldRetry === "function"
-            ? shouldRetry
-            : (_: any, i: number) => i < shouldRetry;
+        typeof retryN === "function" ? retryN : (_: any, i: number) => i < retryN;
     for (let i = 0; true; i++) {
         try {
             return await fn(i);
@@ -73,7 +68,7 @@ export class Funnel<T = void> {
     public processed = 0;
     public errors = 0;
 
-    constructor(public maxConcurrency: number = 0, protected shouldRetry?: RetryType) {}
+    constructor(public concurrency: number = 0, protected shouldRetry?: RetryType) {}
 
     push(
         worker: () => Promise<T>,
@@ -108,7 +103,7 @@ export class Funnel<T = void> {
     }
 
     setMaxConcurrency(maxConcurrency: number) {
-        this.maxConcurrency = maxConcurrency;
+        this.concurrency = maxConcurrency;
     }
 
     getConcurrency() {
@@ -119,7 +114,7 @@ export class Funnel<T = void> {
         const { pendingQueue } = this;
         while (
             pendingQueue.size > 0 &&
-            (!this.maxConcurrency || this.executingQueue.size < this.maxConcurrency)
+            (!this.concurrency || this.executingQueue.size < this.concurrency)
         ) {
             const worker = popFirst(pendingQueue)!;
             this.executingQueue.add(worker);
@@ -146,10 +141,7 @@ export class Pump<T = void> extends Funnel<T | void> {
             if (this.stopped) {
                 return;
             }
-            while (
-                this.executingQueue.size + this.pendingQueue.size <
-                this.maxConcurrency
-            ) {
+            while (this.executingQueue.size + this.pendingQueue.size < this.concurrency) {
                 this.push(() =>
                     this.worker()
                         .catch(_ => {})
@@ -186,17 +178,14 @@ export class RateLimiter<T = void> {
     protected bucket = 0;
     protected queue: Set<DeferredWorker<T>> = new Set();
 
-    constructor(
-        protected targetRequestsPerSecond: number,
-        protected maxBurst: number = 1
-    ) {
+    constructor(protected targetRequestsPerSecond: number, protected burst: number = 1) {
         assert(targetRequestsPerSecond > 0);
-        assert(this.maxBurst >= 1);
+        assert(this.burst >= 1);
     }
 
     push(worker: () => Promise<T>, cancel?: () => string | undefined) {
         this.updateBucket();
-        if (this.queue.size === 0 && this.bucket <= this.maxBurst - 1) {
+        if (this.queue.size === 0 && this.bucket <= this.burst - 1) {
             this.bucket++;
             return worker();
         }
@@ -218,13 +207,13 @@ export class RateLimiter<T = void> {
     }
 
     protected async drainQueue() {
-        const requestAmountToDrain = 1 - (this.maxBurst - this.bucket);
+        const requestAmountToDrain = 1 - (this.burst - this.bucket);
         const secondsToDrain = requestAmountToDrain / this.targetRequestsPerSecond;
         if (secondsToDrain > 0) {
             await sleep(secondsToDrain * 1000);
         }
         this.updateBucket();
-        while (this.bucket <= this.maxBurst - 1) {
+        while (this.bucket <= this.burst - 1) {
             const next = popFirst(this.queue);
             if (!next) {
                 break;
@@ -239,13 +228,14 @@ export class RateLimiter<T = void> {
 }
 
 interface Limits {
-    maxConcurrency: number;
-    targetRequestsPerSecond: number;
-    maxBurst?: number;
-    shouldRetry?: number | ((err: any, retries: number) => boolean);
+    concurrency: number;
+    rate: number;
+    burst?: number;
+    retry?: number | ((err: any, retries: number) => boolean);
+    memoize?: boolean;
 }
 
-export function memoize<A extends any[], R>(fn: (...args: A) => R) {
+export function memoizeFn<A extends any[], R>(fn: (...args: A) => R) {
     const cache: Map<string, R> = new Map();
     return (...args: A) => {
         const key = JSON.stringify(args);
@@ -259,16 +249,14 @@ export function memoize<A extends any[], R>(fn: (...args: A) => R) {
     };
 }
 
-export function limit<A extends any[], R>(
-    { maxConcurrency, shouldRetry, targetRequestsPerSecond, maxBurst }: Limits,
+export function throttle<A extends any[], R>(
+    { concurrency, retry: retryN, rate, burst, memoize }: Limits,
     fn: PromiseFn<A, R>
 ) {
-    const funnel = new Funnel<R>(maxConcurrency, shouldRetry);
-    const rateLimiter = new RateLimiter<R>(targetRequestsPerSecond, maxBurst);
+    const funnel = new Funnel<R>(concurrency, retryN);
+    const rateLimiter = new RateLimiter<R>(rate, burst);
 
-    return (...args: A) => funnel.push(() => rateLimiter.push(() => fn(...args)));
-}
-
-export function limitMemoize<A extends any[], R>(limits: Limits, fn: PromiseFn<A, R>) {
-    return memoize(limit(limits, fn));
+    const conditionedFunc = (...args: A) =>
+        funnel.push(() => rateLimiter.push(() => fn(...args)));
+    return memoize ? memoizeFn(conditionedFunc) : conditionedFunc;
 }

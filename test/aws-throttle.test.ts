@@ -13,9 +13,9 @@ describe("aws throttling to reduce concurrency", () => {
             func = await cloud.createFunction("./functions", {
                 // Timeout: 120
                 mode: "https",
-                memorySize: 1024
+                memorySize: 1024,
+                concurrency: 1
             });
-            await func.setConcurrency(1);
             remote = func.cloudifyModule(funcs);
         } catch (err) {
             warn(err);

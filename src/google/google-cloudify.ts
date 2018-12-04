@@ -16,7 +16,7 @@ import {
     FunctionStats
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost";
-import { limit, retry } from "../funnel";
+import { throttle, retry } from "../throttle";
 import { info, logGc, logPricing, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
@@ -607,11 +607,11 @@ async function collectGarbage(
         let pageToken: string | undefined;
 
         let promises = [];
-        const scheduleDeleteResources = limit(
+        const scheduleDeleteResources = throttle(
             {
-                maxConcurrency: 5,
-                targetRequestsPerSecond: 5,
-                maxBurst: 2
+                concurrency: 5,
+                rate: 5,
+                burst: 2
             },
             deleteFunctionResources
         );
@@ -746,8 +746,8 @@ function parseTimestamp(timestampStr: string | undefined) {
     return Date.parse(timestampStr || "") || 0;
 }
 
-const getGoogleCloudFunctionsPricing = limit(
-    { maxConcurrency: 1, targetRequestsPerSecond: 5, shouldRetry: 3 },
+const getGoogleCloudFunctionsPricing = throttle(
+    { concurrency: 1, rate: 1, retry: 3 },
     async (
         cloudBilling: CloudBilling.Cloudbilling,
         region: string

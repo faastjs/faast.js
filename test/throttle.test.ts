@@ -1,13 +1,5 @@
-import {
-    Funnel,
-    Pump,
-    RateLimiter,
-    retry,
-    Deferred,
-    memoize,
-    limit
-} from "../src/funnel";
 import { sleep } from "../src/shared";
+import { Deferred, Funnel, Pump, RateLimiter, retry, throttle } from "../src/throttle";
 import { timer, Timing } from "./functions";
 import { measureConcurrency } from "./util";
 
@@ -282,23 +274,25 @@ describe("Pump", () => {
 
 describe("memoize", () => {
     test("Returns cached results for the same key", async () => {
-        const funnel = new Funnel<Timing>(1);
         const promises = [];
         const N = 10;
-        const timerFn = memoize(_ => timer(10));
+        const timerFn = throttle({ memoize: true, concurrency: 1, rate: 10 }, _ =>
+            timer(10)
+        );
         for (let i = 0; i < N; i++) {
-            promises.push(funnel.push(() => timerFn("key")));
+            promises.push(timerFn("key"));
         }
         const times = await Promise.all(promises);
         expect(measureConcurrency(times)).toBe(N);
     });
     test("Runs the worker for different keys", async () => {
-        const funnel = new Funnel<Timing>(1);
         const promises = [];
         const N = 10;
-        const timerFn = memoize(_ => timer(10));
+        const timerFn = throttle({ memoize: true, concurrency: 1, rate: 10 }, _ =>
+            timer(10)
+        );
         for (let i = 0; i < N; i++) {
-            promises.push(funnel.push(() => timerFn(i)));
+            promises.push(timerFn(i));
         }
         const times = await Promise.all(promises);
         expect(measureConcurrency(times)).toBe(1);
@@ -364,21 +358,21 @@ describe("RateLimiter", () => {
     );
 });
 
-describe("limit function", () => {
+describe("throttle", () => {
     test(
         "Limits max concurrency and rate",
         async () => {
-            const maxConcurrency = 10;
-            const targetRequestsPerSecond = 10;
-            const timerFn = limit({ maxConcurrency, targetRequestsPerSecond }, timer);
+            const concurrency = 10;
+            const rate = 10;
+            const timerFn = throttle({ concurrency, rate }, timer);
             const promises = [];
             for (let i = 0; i < 15; i++) {
                 promises.push(timerFn(1000));
             }
 
             const times = await Promise.all(promises);
-            expect(measureConcurrency(times)).toBe(maxConcurrency);
-            expect(measureMaxRequestRatePerSecond(times)).toBe(targetRequestsPerSecond);
+            expect(measureConcurrency(times)).toBe(concurrency);
+            expect(measureMaxRequestRatePerSecond(times)).toBe(rate);
         },
         12 * 1000
     );
@@ -386,10 +380,10 @@ describe("limit function", () => {
     test(
         "Limits rate with single concurrency",
         async () => {
-            const maxConcurrency = 1;
-            const targetRequestsPerSecond = 10;
+            const concurrency = 1;
+            const rate = 10;
             const processTimeMs = 200;
-            const timerFn = limit({ maxConcurrency, targetRequestsPerSecond }, timer);
+            const timerFn = throttle({ concurrency, rate }, timer);
 
             const promises = [];
             for (let i = 0; i < 10; i++) {
@@ -397,9 +391,9 @@ describe("limit function", () => {
             }
 
             const times = await Promise.all(promises);
-            expect(measureConcurrency(times)).toBe(maxConcurrency);
+            expect(measureConcurrency(times)).toBe(concurrency);
             expect(measureMaxRequestRatePerSecond(times)).toBe(
-                Math.min(targetRequestsPerSecond, 1000 / processTimeMs)
+                Math.min(rate, 1000 / processTimeMs)
             );
         },
         10 * 1000

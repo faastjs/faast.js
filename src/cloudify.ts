@@ -2,7 +2,7 @@ import * as path from "path";
 import * as uuidv4 from "uuid/v4";
 import * as aws from "./aws/aws-cloudify";
 import * as costAnalyzer from "./cost";
-import { Deferred, Funnel } from "./funnel";
+import { Deferred, Funnel } from "./throttle";
 import * as google from "./google/google-cloudify";
 import * as local from "./local/local-cloudify";
 import { info, logLeaks, stats, warn, logCalls } from "./log";
@@ -366,7 +366,7 @@ export class CloudFunction<O extends CommonOptions, S> {
     functionCounters = new FunctionCountersMap();
     functionStats = new FunctionStatsMap();
     protected memoryLeakDetector: MemoryLeakDetector;
-    protected funnel = new Funnel<any>();
+    protected funnel: Funnel<any>;
     protected memorySize: number | undefined;
     protected timeout: number | undefined;
     protected skew = new ExponentiallyDecayingAverageValue(0.3);
@@ -393,7 +393,7 @@ export class CloudFunction<O extends CommonOptions, S> {
             );
             concurrency = 1;
         }
-        this.funnel.setMaxConcurrency(concurrency);
+        this.funnel = new Funnel<any>(concurrency);
         this.memorySize = (options && options.memorySize) || cloud.defaults.memorySize!;
         this.timeout = (options && options.timeout) || cloud.defaults.timeout;
         this.memoryLeakDetector = new MemoryLeakDetector(this.memorySize);
@@ -449,10 +449,6 @@ export class CloudFunction<O extends CommonOptions, S> {
     stopPrintStatisticsInterval() {
         this.statsTimer && clearInterval(this.statsTimer);
         this.statsTimer = undefined;
-    }
-
-    setConcurrency(maxConcurrentExecutions: number) {
-        this.funnel.setMaxConcurrency(maxConcurrentExecutions);
     }
 
     cloudifyModule<M>(fmodule: M): Promisified<M> {

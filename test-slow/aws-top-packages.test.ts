@@ -1,7 +1,7 @@
 import { AWS } from "../src/cloudify";
 import { topPackages, topPackagesAll, topPackagesFailures } from "./top-packages";
 import * as functions from "../test/functions";
-import { Funnel } from "../src/funnel";
+import { Funnel } from "../src/throttle";
 
 type Results = { [key in string]: string | Error };
 

@@ -13,7 +13,7 @@ import {
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost";
 import { readFile } from "../fs-promise";
-import { Funnel, limit, limitMemoize, retry } from "../funnel";
+import { Funnel, throttle, retry } from "../throttle";
 import { info, logGc, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
@@ -169,8 +169,8 @@ export function createAWSApis(region: string): AWSServices {
     return services;
 }
 
-const createLambdaRole = limitMemoize(
-    { maxConcurrency: 1, targetRequestsPerSecond: 5 },
+const createLambdaRole = throttle(
+    { concurrency: 1, rate: 5, memoize: true },
     async (RoleName: string, PolicyArn: string, services: AWSServices) => {
         const { iam } = services;
         info(`Checking for cached lambda role`);
@@ -228,8 +228,8 @@ export async function pollAWSRequest<T>(
     }
 }
 
-const createCacheBucket = limitMemoize(
-    { maxConcurrency: 1, targetRequestsPerSecond: 10, shouldRetry: 3 },
+const createCacheBucket = throttle(
+    { concurrency: 1, rate: 10, retry: 3, memoize: true },
     async (s3: aws.S3, Bucket: string, region: string) => {
         info(`Checking for cache bucket`);
         const bucket = await quietly(s3.getBucketLocation({ Bucket }));
@@ -673,11 +673,11 @@ export async function collectGarbage(
         const accountId = await getAccountId(services.iam);
         const s3Bucket = await getBucketName(region, services.iam);
         const promises: Promise<void>[] = [];
-        const funnel = limit(
+        const funnel = throttle(
             {
-                maxConcurrency: 5,
-                targetRequestsPerSecond: 5,
-                maxBurst: 2
+                concurrency: 5,
+                rate: 5,
+                burst: 2
             },
             (worker: () => Promise<void>) => worker()
         );
@@ -985,82 +985,83 @@ const locations = {
     "sa-east-1": "South America (São Paulo)"
 };
 
-export async function awsPrice(
-    pricing: aws.Pricing,
-    ServiceCode: string,
-    filter: object
-) {
-    try {
-        function first(obj: object) {
-            return obj[Object.keys(obj)[0]];
+export const awsPrice = throttle(
+    { concurrency: 6, rate: 5, retry: 3, memoize: true },
+    async (pricing: aws.Pricing, ServiceCode: string, filter: object) => {
+        try {
+            function first(obj: object) {
+                return obj[Object.keys(obj)[0]];
+            }
+            function extractPrice(obj: any) {
+                const prices = Object.keys(obj.priceDimensions).map(key =>
+                    Number(obj.priceDimensions[key].pricePerUnit.USD)
+                );
+                return Math.max(...prices);
+            }
+            const priceResult = await pricing
+                .getProducts({
+                    ServiceCode,
+                    Filters: Object.keys(filter).map(key => ({
+                        Field: key,
+                        Type: "TERM_MATCH",
+                        Value: filter[key]
+                    }))
+                })
+                .promise();
+            if (priceResult.PriceList!.length > 1) {
+                warn(
+                    `Price query returned more than one product '${ServiceCode}' ($O)`,
+                    filter
+                );
+                priceResult.PriceList!.forEach(p => warn(`%O`, p));
+            }
+            const pList: any = priceResult.PriceList![0];
+            const price = extractPrice(first(pList.terms.OnDemand));
+            return price;
+        } catch (err) {
+            if (!err.message.match(/ThrottlingException/)) {
+                warn(`Could not get AWS pricing for '${ServiceCode}' (%O)`, filter);
+                warn(err);
+            }
+            throw err;
         }
-        function extractPrice(obj: any) {
-            const prices = Object.keys(obj.priceDimensions).map(key =>
-                Number(obj.priceDimensions[key].pricePerUnit.USD)
-            );
-            return Math.max(...prices);
-        }
-        const priceResult = await pricing
-            .getProducts({
-                ServiceCode,
-                Filters: Object.keys(filter).map(key => ({
-                    Field: key,
-                    Type: "TERM_MATCH",
-                    Value: filter[key]
-                }))
-            })
-            .promise();
-        if (priceResult.PriceList!.length > 1) {
-            warn(
-                `Price query returned more than one product '${ServiceCode}' ($O)`,
-                filter
-            );
-            priceResult.PriceList!.forEach(p => warn(`%O`, p));
-        }
-        const pList: any = priceResult.PriceList![0];
-        const price = extractPrice(first(pList.terms.OnDemand));
-        return price;
-    } catch (err) {
-        warn(`Could not get AWS pricing for '${ServiceCode}' (%O)`, filter);
-        warn(err);
-        return 0;
-    }
-}
-
-export const requestAwsPrices = limitMemoize(
-    { maxConcurrency: 1, targetRequestsPerSecond: 5, shouldRetry: 3 },
-    async (pricing: aws.Pricing, region: string): Promise<AWSPrices> => {
-        const location = locations[region];
-        return {
-            lambdaPerRequest: await awsPrice(pricing, "AWSLambda", {
-                location,
-                group: "AWS-Lambda-Requests"
-            }),
-            lambdaPerGbSecond: await awsPrice(pricing, "AWSLambda", {
-                location,
-                group: "AWS-Lambda-Duration"
-            }),
-            snsPer64kPublish: await awsPrice(pricing, "AmazonSNS", {
-                location,
-                group: "SNS-Requests-Tier1"
-            }),
-            sqsPer64kRequest: await awsPrice(pricing, "AWSQueueService", {
-                location,
-                group: "SQS-APIRequest-Tier1",
-                queueType: "Standard"
-            }),
-            dataOutPerGb: await awsPrice(pricing, "AWSDataTransfer", {
-                fromLocation: location,
-                transferType: "AWS Outbound"
-            }),
-            logsIngestedPerGb: await awsPrice(pricing, "AmazonCloudWatch", {
-                location,
-                group: "Ingested Logs",
-                groupDescription: "Existing system, application, and custom log files"
-            })
-        };
     }
 );
+
+export const requestAwsPrices = async (
+    pricing: aws.Pricing,
+    region: string
+): Promise<AWSPrices> => {
+    const location = locations[region];
+    return {
+        lambdaPerRequest: await awsPrice(pricing, "AWSLambda", {
+            location,
+            group: "AWS-Lambda-Requests"
+        }).catch(_ => 0.0000002),
+        lambdaPerGbSecond: await awsPrice(pricing, "AWSLambda", {
+            location,
+            group: "AWS-Lambda-Duration"
+        }).catch(_ => 0.00001667),
+        snsPer64kPublish: await awsPrice(pricing, "AmazonSNS", {
+            location,
+            group: "SNS-Requests-Tier1"
+        }).catch(_ => 0.5 / 1e6),
+        sqsPer64kRequest: await awsPrice(pricing, "AWSQueueService", {
+            location,
+            group: "SQS-APIRequest-Tier1",
+            queueType: "Standard"
+        }).catch(_ => 0.4 / 1e6),
+        dataOutPerGb: await awsPrice(pricing, "AWSDataTransfer", {
+            fromLocation: location,
+            transferType: "AWS Outbound"
+        }).catch(_ => 0.09),
+        logsIngestedPerGb: await awsPrice(pricing, "AmazonCloudWatch", {
+            location,
+            group: "Ingested Logs",
+            groupDescription: "Existing system, application, and custom log files"
+        }).catch(_ => 0.5)
+    };
+};
 
 export async function costEstimate(
     state: State,
