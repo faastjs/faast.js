@@ -84,7 +84,7 @@ async function initialize(
     info(`logURL: ${log}`);
 
     const getWrapper = async () => {
-        const idleWrapper = wrappers.find(wrapper => wrapper.executing === false);
+        const idleWrapper = wrappers.find(w => w.executing === false);
         if (idleWrapper) {
             return idleWrapper;
         }
@@ -209,8 +209,8 @@ async function collectGarbage(retentionInDays: number) {
             if (entry.match(/^[a-f0-9-]+$/)) {
                 const cloudifyDir = join(tmp, entry);
                 try {
-                    const dir = await stat(cloudifyDir);
-                    if (hasExpired(dir.atimeMs, retentionInDays)) {
+                    const stats = await stat(cloudifyDir);
+                    if (hasExpired(stats.atimeMs, retentionInDays)) {
                         logGc(cloudifyDir);
                         await rmrf(cloudifyDir);
                     }

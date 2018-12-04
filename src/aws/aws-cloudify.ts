@@ -1,5 +1,4 @@
 import * as aws from "aws-sdk";
-import { NumberOfBytesType } from "aws-sdk/clients/kms";
 import { PromiseResult } from "aws-sdk/lib/request";
 import { createHash } from "crypto";
 import { LocalCache } from "../cache";
@@ -506,7 +505,7 @@ async function callFunctionHttps(
         Payload: serializeCall(callRequest),
         LogType: "None"
     };
-    let localRequestSentTime!: NumberOfBytesType;
+    let localRequestSentTime!: number;
     const awsRequest = lambda.invoke(request);
     localRequestSentTime = awsRequest.startTime.getTime();
     rawResponse = await awsRequest.promise();
