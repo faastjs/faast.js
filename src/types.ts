@@ -21,3 +21,5 @@ export interface Attributes {
 export interface Headers {
     [key: string]: string;
 }
+
+export type PromiseFn<A extends any[], R> = (...args: A) => Promise<R>;

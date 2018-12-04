@@ -11,8 +11,8 @@ import * as path from "path";
 import * as awsCloudify from "./aws/aws-cloudify";
 import { LocalCache } from "./cache";
 import { readdir, rmrf } from "./fs-promise";
-import { RateLimitedFunnel } from "./funnel";
 import * as googleCloudify from "./google/google-cloudify";
+import { limit } from "./funnel";
 
 const warn = console.warn;
 const log = console.log;
@@ -35,20 +35,26 @@ async function deleteResources(
         const updateSpinnerText = (nResources: number = 0) =>
             `Deleting ${matchingResources.length} ${name} ${timeEstimate(nResources)}`;
         const spinner = ora(updateSpinnerText(matchingResources.length)).start();
-        const funnel = new RateLimitedFunnel({
-            maxConcurrency,
-            targetRequestsPerSecond,
-            maxBurst
-        });
+        let done = 0;
+        const scheduleRemove = limit(
+            {
+                maxConcurrency,
+                targetRequestsPerSecond,
+                maxBurst,
+                shouldRetry: 3
+            },
+            async arg => {
+                await remove(arg);
+                done++;
+            }
+        );
         const timer = setInterval(
-            () => (spinner.text = updateSpinnerText(funnel.size())),
+            () => (spinner.text = updateSpinnerText(matchingResources.length - done)),
             1000
         );
         try {
             await Promise.all(
-                matchingResources.map(resource =>
-                    funnel.pushRetry(3, () => remove(resource))
-                )
+                matchingResources.map(resource => scheduleRemove(resource))
             );
         } finally {
             clearInterval(timer);

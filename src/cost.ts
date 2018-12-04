@@ -8,7 +8,7 @@ import {
     google,
     Promisified
 } from "./cloudify";
-import { Funnel, RateLimitedFunnel } from "./funnel";
+import { Funnel, limit } from "./funnel";
 import { Statistics, sum } from "./shared";
 import { NonFunctionProperties } from "./types";
 import * as Listr from "listr";
@@ -205,14 +205,17 @@ export async function estimateWorkloadCost<T>(
     workload: (remote: Promisified<T>) => Promise<void>,
     configurations: CostAnalyzerConfiguration[] = awsConfigurations
 ) {
-    const funnel = new RateLimitedFunnel<CostAnalysisProfile>({
-        maxConcurrency: 8,
-        targetRequestsPerSecond: 4,
-        maxBurst: 1
-    });
+    const scheduleEstimate = limit(
+        {
+            maxConcurrency: 8,
+            targetRequestsPerSecond: 4,
+            maxBurst: 1
+        },
+        estimate
+    );
 
     const promises = configurations.map(config =>
-        funnel.push(() => estimate(fmodule, workload, config))
+        scheduleEstimate(fmodule, workload, config)
     );
 
     const list = new Listr(

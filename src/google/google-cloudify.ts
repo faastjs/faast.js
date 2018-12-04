@@ -8,7 +8,6 @@ import {
     pubsub_v1
 } from "googleapis";
 import * as util from "util";
-import * as uuidv4 from "uuid/v4";
 import {
     CloudFunctionImpl,
     CloudImpl,
@@ -17,23 +16,23 @@ import {
     FunctionStats
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost";
-import { MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
+import { limit, retry } from "../funnel";
 import { info, logGc, logPricing, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import {
+    CommonOptionDefaults,
     computeHttpResponseBytes,
     hasExpired,
-    sleep,
-    CommonOptionDefaults
+    sleep
 } from "../shared";
+import { Mutable } from "../types";
 import {
     FunctionCall,
     FunctionReturn,
     FunctionReturnWithMetrics,
     serializeCall
 } from "../wrapper";
-import { Mutable } from "../types";
 import {
     getMessageBody,
     publish,
@@ -41,6 +40,8 @@ import {
     pubsubMessageAttribute,
     receiveMessages
 } from "./google-queue";
+import * as googleTrampolineHttps from "./google-trampoline-https";
+import * as googleTrampolineQueue from "./google-trampoline-queue";
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
@@ -276,8 +277,6 @@ export async function initializeEmulator(
     );
 }
 
-const priceRequestFunnel = new MemoFunnel<string, GoogleCloudPricing>(1);
-
 async function initializeWithApi(
     services: GoogleServices,
     serverModule: string,
@@ -335,9 +334,7 @@ async function initializeWithApi(
         state.gcPromise.catch(_ => {});
     }
 
-    const pricingPromise = priceRequestFunnel.pushMemoized(region, () =>
-        getGoogleCloudFunctionsPricing(services.cloudBilling, region)
-    );
+    const pricingPromise = getGoogleCloudFunctionsPricing(services.cloudBilling, region);
 
     if (mode === "queue") {
         info(`Initializing queue`);
@@ -609,11 +606,15 @@ async function collectGarbage(
 
         let pageToken: string | undefined;
 
-        const gcFunnel = new RateLimitedFunnel({
-            maxConcurrency: 5,
-            targetRequestsPerSecond: 5,
-            maxBurst: 2
-        });
+        let promises = [];
+        const scheduleDeleteResources = limit(
+            {
+                maxConcurrency: 5,
+                targetRequestsPerSecond: 5,
+                maxBurst: 2
+            },
+            deleteFunctionResources
+        );
 
         do {
             const funcListResponse = await retry(3, () =>
@@ -627,12 +628,10 @@ async function collectGarbage(
                 .filter(fn => hasExpired(fn.updateTime, retentionInDays))
                 .filter(fn => fn.name!.match(`/functions/cloudify-[a-f0-9-]+$`));
 
-            garbageFunctions.forEach(fn =>
-                gcFunnel.push(() => deleteFunctionResources(services, fn))
-            );
+            promises = garbageFunctions.map(fn => scheduleDeleteResources(services, fn));
         } while (pageToken);
 
-        await gcFunnel.all();
+        await Promise.all(promises);
     } finally {
         garbageCollectorRunning = false;
     }
@@ -714,9 +713,6 @@ async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
     });
 }
 
-import * as googleTrampolineQueue from "./google-trampoline-queue";
-import * as googleTrampolineHttps from "./google-trampoline-https";
-
 export async function pack(
     functionModule: string,
     options: Options = {}
@@ -750,81 +746,88 @@ function parseTimestamp(timestampStr: string | undefined) {
     return Date.parse(timestampStr || "") || 0;
 }
 
-async function getGoogleCloudFunctionsPricing(
-    cloudBilling: CloudBilling.Cloudbilling,
-    region: string
-): Promise<GoogleCloudPricing> {
-    try {
-        const services = await cloudBilling.services.list();
-        async function getPricing(
-            serviceName: string,
-            description: string,
-            conversionFactor: number = 1
-        ) {
-            try {
-                const service = services.data.services!.find(
-                    s => s.displayName === serviceName
-                )!;
-                const skusResponse = await cloudBilling.services.skus.list({
-                    parent: service.name
-                });
-                const { skus = [] } = skusResponse.data;
-                const matchingSkus = skus.filter(sku => sku.description === description);
-                logPricing(
-                    `matching SKUs: ${util.inspect(matchingSkus, { depth: null })}`
-                );
+const getGoogleCloudFunctionsPricing = limit(
+    { maxConcurrency: 1, targetRequestsPerSecond: 5, shouldRetry: 3 },
+    async (
+        cloudBilling: CloudBilling.Cloudbilling,
+        region: string
+    ): Promise<GoogleCloudPricing> => {
+        try {
+            const services = await cloudBilling.services.list();
+            async function getPricing(
+                serviceName: string,
+                description: string,
+                conversionFactor: number = 1
+            ) {
+                try {
+                    const service = services.data.services!.find(
+                        s => s.displayName === serviceName
+                    )!;
+                    const skusResponse = await cloudBilling.services.skus.list({
+                        parent: service.name
+                    });
+                    const { skus = [] } = skusResponse.data;
+                    const matchingSkus = skus.filter(
+                        sku => sku.description === description
+                    );
+                    logPricing(
+                        `matching SKUs: ${util.inspect(matchingSkus, { depth: null })}`
+                    );
 
-                const regionOrGlobalSku =
-                    matchingSkus.find(sku => sku.serviceRegions![0] === region) ||
-                    matchingSkus.find(sku => sku.serviceRegions![0] === "global");
+                    const regionOrGlobalSku =
+                        matchingSkus.find(sku => sku.serviceRegions![0] === region) ||
+                        matchingSkus.find(sku => sku.serviceRegions![0] === "global");
 
-                const pexp = regionOrGlobalSku!.pricingInfo![0].pricingExpression!;
-                const prices = pexp.tieredRates!.map(
-                    rate =>
-                        Number(rate.unitPrice!.units || "0") +
-                        rate.unitPrice!.nanos! / 1e9
-                );
-                const price =
-                    Math.max(...prices) *
-                    (conversionFactor / pexp.baseUnitConversionFactor!);
-                logPricing(
-                    `Found price for ${serviceName}, ${description}, ${region}: ${price}`
-                );
-                return price;
-            } catch (err) {
-                warn(`Could not get Google Cloud Functions pricing for '${description}'`);
-                warn(err);
-                return 0;
+                    const pexp = regionOrGlobalSku!.pricingInfo![0].pricingExpression!;
+                    const prices = pexp.tieredRates!.map(
+                        rate =>
+                            Number(rate.unitPrice!.units || "0") +
+                            rate.unitPrice!.nanos! / 1e9
+                    );
+                    const price =
+                        Math.max(...prices) *
+                        (conversionFactor / pexp.baseUnitConversionFactor!);
+                    logPricing(
+                        `Found price for ${serviceName}, ${description}, ${region}: ${price}`
+                    );
+                    return price;
+                } catch (err) {
+                    warn(
+                        `Could not get Google Cloud Functions pricing for '${description}'`
+                    );
+                    warn(err);
+                    return 0;
+                }
             }
-        }
 
-        return {
-            perInvocation: await getPricing("Cloud Functions", "Invocations"),
-            perGhzSecond: await getPricing("Cloud Functions", "CPU Time"),
-            perGbSecond: await getPricing("Cloud Functions", "Memory Time", 2 ** 30),
-            perGbOutboundData: await getPricing(
-                "Cloud Functions",
-                `Network Egress from ${region}`,
-                2 ** 30
-            ),
-            perGbPubSub: await getPricing(
-                "Cloud Pub/Sub",
-                "Message Delivery Basic",
-                2 ** 30
-            )
-        };
-    } catch (err) {
-        warn(`Could not get Google Cloud Functions pricing`);
-        warn(err);
-        return {
-            perInvocation: 0,
-            perGhzSecond: 0,
-            perGbSecond: 0,
-            perGbOutboundData: 0,
-            perGbPubSub: 0
-        };
+            return {
+                perInvocation: await getPricing("Cloud Functions", "Invocations"),
+                perGhzSecond: await getPricing("Cloud Functions", "CPU Time"),
+                perGbSecond: await getPricing("Cloud Functions", "Memory Time", 2 ** 30),
+                perGbOutboundData: await getPricing(
+                    "Cloud Functions",
+                    `Network Egress from ${region}`,
+                    2 ** 30
+                ),
+                perGbPubSub: await getPricing(
+                    "Cloud Pub/Sub",
+                    "Message Delivery Basic",
+                    2 ** 30
+                )
+            };
+        } catch (err) {
+            warn(`Could not get Google Cloud Functions pricing`);
+            warn(err);
+            return {
+                perInvocation: 0,
+                perGhzSecond: 0,
+                perGbSecond: 0,
+                perGbOutboundData: 0,
+                perGbPubSub: 0
+            };
+        }
     }
-}
+);
 
 // https://cloud.google.com/functions/pricing
 const gcfProvisonableMemoryTable = {
@@ -857,8 +860,9 @@ async function costEstimate(
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples;
 
     const { region } = state.resources;
-    const prices = await priceRequestFunnel.pushMemoized(region, () =>
-        getGoogleCloudFunctionsPricing(state.services.cloudBilling, region)
+    const prices = await getGoogleCloudFunctionsPricing(
+        state.services.cloudBilling,
+        region
     );
 
     const provisionedGb = provisionedMb! / 1024;

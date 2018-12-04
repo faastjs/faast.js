@@ -2,7 +2,6 @@ import * as aws from "aws-sdk";
 import * as tar from "tar-stream";
 import { Readable } from "stream";
 import { escape } from "querystring";
-import { RateLimitedFunnel } from "../src/funnel";
 import { createHash } from "crypto";
 import * as process from "process";
 
@@ -60,10 +59,6 @@ export async function processBucketObject(Bucket: string, Key: string) {
     let nExtracted = 0;
     let nErrors = 0;
     let bytes = 0;
-    const funnel = new RateLimitedFunnel({
-        maxConcurrency: 10,
-        targetRequestsPerSecond: 200
-    });
 
     const timings: Array<{ time: number; usage: NodeJS.CpuUsage }> = [];
     const addTiming = () => {
@@ -128,8 +123,6 @@ export async function processBucketObject(Bucket: string, Key: string) {
         }
     });
 
-    log(`Promises size: ${funnel.promises().length}`);
-    await funnel.all();
     clearInterval(perfTimer);
 
     log(`Extracted ${nExtracted} files from ${Bucket}, ${Key}`);

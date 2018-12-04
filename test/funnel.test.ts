@@ -1,11 +1,11 @@
 import {
     Funnel,
     Pump,
-    MemoFunnel,
     RateLimiter,
-    RateLimitedFunnel,
     retry,
-    Deferred
+    Deferred,
+    memoize,
+    limit
 } from "../src/funnel";
 import { sleep } from "../src/shared";
 import { timer, Timing } from "./functions";
@@ -179,13 +179,13 @@ describe("Funnel", () => {
             throw new Error();
         }).catch(_ => {});
         expect(attempts).toBe(3);
-    }, 10000);
-    test("funnel.pushRetry() retries failures", async () => {
-        const funnel = new Funnel<string>(1);
+    });
+    test("funnel shouldRetry parameter retries failures", async () => {
+        const funnel = new Funnel<string>(1, 2);
         let attempts = 0;
         let errors = 0;
         funnel
-            .pushRetry(2, async () => {
+            .push(async () => {
                 attempts++;
                 throw Error();
             })
@@ -202,6 +202,7 @@ describe("Funnel", () => {
             async () => {
                 executed++;
             },
+            0,
             () => "cancelled"
         );
         await expect(promise).rejects.toThrowError();
@@ -279,23 +280,25 @@ describe("Pump", () => {
     });
 });
 
-describe("MemoFunnel", () => {
+describe("memoize", () => {
     test("Returns cached results for the same key", async () => {
-        const funnel = new MemoFunnel<string, Timing>(1);
+        const funnel = new Funnel<Timing>(1);
         const promises = [];
         const N = 10;
+        const timerFn = memoize(_ => timer(10));
         for (let i = 0; i < N; i++) {
-            promises.push(funnel.pushMemoized("key", () => timer(10)));
+            promises.push(funnel.push(() => timerFn("key")));
         }
         const times = await Promise.all(promises);
         expect(measureConcurrency(times)).toBe(N);
     });
     test("Runs the worker for different keys", async () => {
-        const funnel = new MemoFunnel<number, Timing>(1);
+        const funnel = new Funnel<Timing>(1);
         const promises = [];
         const N = 10;
+        const timerFn = memoize(_ => timer(10));
         for (let i = 0; i < N; i++) {
-            promises.push(funnel.pushMemoized(i, () => timer(10)));
+            promises.push(funnel.push(() => timerFn(i)));
         }
         const times = await Promise.all(promises);
         expect(measureConcurrency(times)).toBe(1);
@@ -361,20 +364,16 @@ describe("RateLimiter", () => {
     );
 });
 
-describe("Rate limited funnel", () => {
+describe("limit function", () => {
     test(
         "Limits max concurrency and rate",
         async () => {
             const maxConcurrency = 10;
             const targetRequestsPerSecond = 10;
-            const rateLimitedFunnel = new RateLimitedFunnel<Timing>({
-                maxConcurrency,
-                targetRequestsPerSecond
-            });
-
+            const timerFn = limit({ maxConcurrency, targetRequestsPerSecond }, timer);
             const promises = [];
             for (let i = 0; i < 15; i++) {
-                promises.push(rateLimitedFunnel.push(() => timer(1000)));
+                promises.push(timerFn(1000));
             }
 
             const times = await Promise.all(promises);
@@ -390,14 +389,11 @@ describe("Rate limited funnel", () => {
             const maxConcurrency = 1;
             const targetRequestsPerSecond = 10;
             const processTimeMs = 200;
-            const rateLimitedFunnel = new RateLimitedFunnel<Timing>({
-                maxConcurrency,
-                targetRequestsPerSecond
-            });
+            const timerFn = limit({ maxConcurrency, targetRequestsPerSecond }, timer);
 
             const promises = [];
             for (let i = 0; i < 10; i++) {
-                promises.push(rateLimitedFunnel.push(() => timer(processTimeMs)));
+                promises.push(timerFn(processTimeMs));
             }
 
             const times = await Promise.all(promises);

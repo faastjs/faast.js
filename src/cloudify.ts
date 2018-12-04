@@ -485,7 +485,7 @@ export class CloudFunction<O extends CommonOptions, S> {
                 return false;
             };
 
-            return this.funnel.pushRetry(shouldRetry, async () => {
+            const invoke = async () => {
                 const CallId = uuidv4();
                 logCalls(`Calling '${fn.name}' (${CallId})`);
                 const deferred = new Deferred<FunctionReturnWithMetrics>();
@@ -548,7 +548,9 @@ export class CloudFunction<O extends CommonOptions, S> {
                     this.skew,
                     this.memoryLeakDetector
                 );
-            });
+            };
+
+            return this.funnel.push(invoke, shouldRetry);
         };
     }
 

@@ -13,14 +13,8 @@ import {
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost";
 import { readFile } from "../fs-promise";
-import { Funnel, MemoFunnel, RateLimitedFunnel, retry } from "../funnel";
+import { Funnel, limit, limitMemoize, retry } from "../funnel";
 import { info, logGc, warn } from "../log";
-import {
-    FunctionCall,
-    FunctionReturn,
-    FunctionReturnWithMetrics,
-    serializeCall
-} from "../wrapper";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import {
@@ -29,6 +23,12 @@ import {
     hasExpired,
     sleep
 } from "../shared";
+import {
+    FunctionCall,
+    FunctionReturn,
+    FunctionReturnWithMetrics,
+    serializeCall
+} from "../wrapper";
 import * as awsNpm from "./aws-npm";
 import {
     createSNSTopic,
@@ -169,42 +169,39 @@ export function createAWSApis(region: string): AWSServices {
     return services;
 }
 
-const createRoleFunnel = new MemoFunnel<string, string>(1);
-
-async function createLambdaRole(
-    RoleName: string,
-    PolicyArn: string,
-    services: AWSServices
-) {
-    const { iam } = services;
-    info(`Checking for cached lambda role`);
-    const previousRole = await quietly(iam.getRole({ RoleName }));
-    if (previousRole) {
-        return previousRole.Role.Arn;
+const createLambdaRole = limitMemoize(
+    { maxConcurrency: 1, targetRequestsPerSecond: 5 },
+    async (RoleName: string, PolicyArn: string, services: AWSServices) => {
+        const { iam } = services;
+        info(`Checking for cached lambda role`);
+        const previousRole = await quietly(iam.getRole({ RoleName }));
+        if (previousRole) {
+            return previousRole.Role.Arn;
+        }
+        info(`Creating role "${RoleName}" for cloudify trampoline function`);
+        const AssumeRolePolicyDocument = JSON.stringify({
+            Version: "2012-10-17",
+            Statement: [
+                {
+                    Principal: { Service: "lambda.amazonaws.com" },
+                    Action: "sts:AssumeRole",
+                    Effect: "Allow"
+                }
+            ]
+        });
+        const roleParams: aws.IAM.CreateRoleRequest = {
+            AssumeRolePolicyDocument,
+            RoleName,
+            Description: "role for lambda functions created by cloudify",
+            MaxSessionDuration: 3600
+        };
+        info(`Calling createRole`);
+        const roleResponse = await iam.createRole(roleParams).promise();
+        info(`Attaching role policy`);
+        await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
+        return roleResponse.Role.Arn;
     }
-    info(`Creating role "${RoleName}" for cloudify trampoline function`);
-    const AssumeRolePolicyDocument = JSON.stringify({
-        Version: "2012-10-17",
-        Statement: [
-            {
-                Principal: { Service: "lambda.amazonaws.com" },
-                Action: "sts:AssumeRole",
-                Effect: "Allow"
-            }
-        ]
-    });
-    const roleParams: aws.IAM.CreateRoleRequest = {
-        AssumeRolePolicyDocument,
-        RoleName,
-        Description: "role for lambda functions created by cloudify",
-        MaxSessionDuration: 3600
-    };
-    info(`Calling createRole`);
-    const roleResponse = await iam.createRole(roleParams).promise();
-    info(`Attaching role policy`);
-    await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
-    return roleResponse.Role.Arn;
-}
+);
 
 export async function pollAWSRequest<T>(
     n: number,
@@ -231,37 +228,38 @@ export async function pollAWSRequest<T>(
     }
 }
 
-async function createCacheBucket(s3: aws.S3, Bucket: string, region: string) {
-    info(`Checking for cache bucket`);
-    const bucket = await quietly(s3.getBucketLocation({ Bucket }));
-    if (bucket) {
-        return;
+const createCacheBucket = limitMemoize(
+    { maxConcurrency: 1, targetRequestsPerSecond: 10, shouldRetry: 3 },
+    async (s3: aws.S3, Bucket: string, region: string) => {
+        info(`Checking for cache bucket`);
+        const bucket = await quietly(s3.getBucketLocation({ Bucket }));
+        if (bucket) {
+            return;
+        }
+        info(`Creating cache bucket`);
+        const createdBucket = await s3
+            .createBucket({
+                Bucket,
+                CreateBucketConfiguration: { LocationConstraint: region }
+            })
+            .promise();
+        if (createdBucket) {
+            info(`Setting lifecycle expiration to 1 day for cached objects`);
+            await retry(3, () =>
+                s3
+                    .putBucketLifecycleConfiguration({
+                        Bucket,
+                        LifecycleConfiguration: {
+                            Rules: [
+                                { Expiration: { Days: 1 }, Status: "Enabled", Prefix: "" }
+                            ]
+                        }
+                    })
+                    .promise()
+            );
+        }
     }
-    info(`Creating cache bucket`);
-    const createdBucket = await s3
-        .createBucket({
-            Bucket,
-            CreateBucketConfiguration: { LocationConstraint: region }
-        })
-        .promise();
-    if (createdBucket) {
-        info(`Setting lifecycle expiration to 1 day for cached objects`);
-        await retry(3, () =>
-            s3
-                .putBucketLifecycleConfiguration({
-                    Bucket,
-                    LifecycleConfiguration: {
-                        Rules: [
-                            { Expiration: { Days: 1 }, Status: "Enabled", Prefix: "" }
-                        ]
-                    }
-                })
-                .promise()
-        );
-    }
-}
-
-const createBucketFunnel = new MemoFunnel<string>(1);
+);
 
 async function getBucketName(region: string, iam: aws.IAM) {
     const getUserResponse = await iam.getUser().promise();
@@ -309,9 +307,7 @@ export async function buildModulesOnLambda(
     }
 
     info(`Cloudify cache bucket on S3: ${Bucket}`);
-    await createBucketFunnel.pushMemoizedRetry(3, Bucket, () =>
-        createCacheBucket(s3, Bucket, region)
-    );
+    await createCacheBucket(s3, Bucket, region);
 
     const cloud = new AWS();
     const lambda = await cloud.createFunction(require.resolve("./aws-npm"), {
@@ -349,7 +345,7 @@ export async function buildModulesOnLambda(
     }
 }
 
-const priceRequestFunnel = new MemoFunnel<string, AWSPrices>(1);
+const priceRequestFunnel = new Funnel<AWSPrices>(1);
 
 export function logUrl(state: State) {
     const { region, FunctionName } = state.resources;
@@ -442,9 +438,7 @@ export async function initialize(
 
     try {
         info(`Creating function`);
-        const rolePromise = createRoleFunnel.pushMemoizedRetry(3, RoleName, () =>
-            createLambdaRole(RoleName, PolicyArn, services)
-        );
+        const rolePromise = createLambdaRole(RoleName, PolicyArn, services);
 
         const createFunctionPromise = Promise.all([createCodeBundle(), rolePromise]).then(
             ([codeBundle, roleArn]) => {
@@ -456,10 +450,7 @@ export async function initialize(
             }
         );
 
-        const pricingPromise = priceRequestFunnel.pushMemoized(region, () =>
-            requestAwsPrices(services.pricing, region)
-        );
-
+        const pricingPromise = requestAwsPrices(services.pricing, region);
         const promises: Promise<any>[] = [createFunctionPromise, pricingPromise];
 
         if (mode === "queue") {
@@ -681,11 +672,20 @@ export async function collectGarbage(
     try {
         const accountId = await getAccountId(services.iam);
         const s3Bucket = await getBucketName(region, services.iam);
-        const gcFunnel = new RateLimitedFunnel({
-            maxConcurrency: 5,
-            targetRequestsPerSecond: 5,
-            maxBurst: 2
-        });
+        const promises: Promise<void>[] = [];
+        const funnel = limit(
+            {
+                maxConcurrency: 5,
+                targetRequestsPerSecond: 5,
+                maxBurst: 2
+            },
+            (worker: () => Promise<void>) => worker()
+        );
+        const scheduleWork = (worker: () => Promise<void>) => {
+            const promise = funnel(worker);
+            promises.push(promise);
+            return promise;
+        };
         const functionsWithLogGroups = new Set();
 
         await new Promise((resolve, reject) =>
@@ -712,7 +712,7 @@ export async function collectGarbage(
                             region,
                             accountId,
                             s3Bucket,
-                            gcFunnel
+                            scheduleWork
                         );
                     }
                     return true;
@@ -740,14 +740,14 @@ export async function collectGarbage(
                         accountId,
                         s3Bucket,
                         funcs,
-                        gcFunnel
+                        scheduleWork
                     );
                 }
                 return true;
             })
         );
 
-        await gcFunnel.all();
+        await Promise.all(promises);
     } finally {
         garbageCollectorRunning = false;
     }
@@ -766,7 +766,7 @@ function garbageCollectLogGroups(
     region: string,
     accountId: string,
     s3Bucket: string,
-    gcFunnel: Funnel
+    scheduleWork: (worker: () => Promise<void>) => void
 ) {
     const { cloudwatch } = services;
 
@@ -775,7 +775,7 @@ function garbageCollectLogGroups(
     );
 
     logGroupsMissingRetentionPolicy.forEach(g =>
-        gcFunnel.push(async () => {
+        scheduleWork(async () => {
             if (
                 await quietly(
                     cloudwatch.putRetentionPolicy({
@@ -805,7 +805,7 @@ function garbageCollectLogGroups(
         accountId,
         s3Bucket,
         garbageFunctions,
-        gcFunnel
+        scheduleWork
     );
 }
 
@@ -815,7 +815,7 @@ function deleteGarbageFunctions(
     accountId: string,
     s3Bucket: string,
     garbageFunctions: string[],
-    gcFunnel: Funnel
+    scheduleWork: (worker: () => Promise<void>) => void
 ) {
     garbageFunctions.forEach(FunctionName => {
         const resources: AWSResources = {
@@ -828,7 +828,7 @@ function deleteGarbageFunctions(
             s3Key: getS3Key(FunctionName),
             logGroupName: getLogGroupName(FunctionName)
         };
-        gcFunnel.push(async () => {
+        scheduleWork(async () => {
             await deleteResources(resources, services, logGc);
             const logGroupName = getLogGroupName(FunctionName);
             if (await quietly(services.cloudwatch.deleteLogGroup({ logGroupName }))) {
@@ -1027,40 +1027,40 @@ export async function awsPrice(
     }
 }
 
-export async function requestAwsPrices(
-    pricing: aws.Pricing,
-    region: string
-): Promise<AWSPrices> {
-    const location = locations[region];
-    return {
-        lambdaPerRequest: await awsPrice(pricing, "AWSLambda", {
-            location,
-            group: "AWS-Lambda-Requests"
-        }),
-        lambdaPerGbSecond: await awsPrice(pricing, "AWSLambda", {
-            location,
-            group: "AWS-Lambda-Duration"
-        }),
-        snsPer64kPublish: await awsPrice(pricing, "AmazonSNS", {
-            location,
-            group: "SNS-Requests-Tier1"
-        }),
-        sqsPer64kRequest: await awsPrice(pricing, "AWSQueueService", {
-            location,
-            group: "SQS-APIRequest-Tier1",
-            queueType: "Standard"
-        }),
-        dataOutPerGb: await awsPrice(pricing, "AWSDataTransfer", {
-            fromLocation: location,
-            transferType: "AWS Outbound"
-        }),
-        logsIngestedPerGb: await awsPrice(pricing, "AmazonCloudWatch", {
-            location,
-            group: "Ingested Logs",
-            groupDescription: "Existing system, application, and custom log files"
-        })
-    };
-}
+export const requestAwsPrices = limitMemoize(
+    { maxConcurrency: 1, targetRequestsPerSecond: 5, shouldRetry: 3 },
+    async (pricing: aws.Pricing, region: string): Promise<AWSPrices> => {
+        const location = locations[region];
+        return {
+            lambdaPerRequest: await awsPrice(pricing, "AWSLambda", {
+                location,
+                group: "AWS-Lambda-Requests"
+            }),
+            lambdaPerGbSecond: await awsPrice(pricing, "AWSLambda", {
+                location,
+                group: "AWS-Lambda-Duration"
+            }),
+            snsPer64kPublish: await awsPrice(pricing, "AmazonSNS", {
+                location,
+                group: "SNS-Requests-Tier1"
+            }),
+            sqsPer64kRequest: await awsPrice(pricing, "AWSQueueService", {
+                location,
+                group: "SQS-APIRequest-Tier1",
+                queueType: "Standard"
+            }),
+            dataOutPerGb: await awsPrice(pricing, "AWSDataTransfer", {
+                fromLocation: location,
+                transferType: "AWS Outbound"
+            }),
+            logsIngestedPerGb: await awsPrice(pricing, "AmazonCloudWatch", {
+                location,
+                group: "Ingested Logs",
+                groupDescription: "Existing system, application, and custom log files"
+            })
+        };
+    }
+);
 
 export async function costEstimate(
     state: State,
@@ -1069,9 +1069,8 @@ export async function costEstimate(
 ): Promise<CostBreakdown> {
     const costs = new CostBreakdown();
     const { region } = state.resources;
-    const prices = await priceRequestFunnel.pushMemoized(region, () =>
-        requestAwsPrices(state.services.pricing, region)
-    );
+    const prices = await requestAwsPrices(state.services.pricing, region);
+
     const { memorySize = defaults.memorySize } = state.options;
     const billedTimeStats = statistics.estimatedBilledTime;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples || 0;
