@@ -5,6 +5,7 @@ import * as JSZip from "jszip";
 import * as path from "path";
 import { mkdir, writeFile } from "../fs-promise";
 import { streamToBuffer } from "../shared";
+import { tmpdir } from "os";
 
 // Make tsc ok with JSZip declarations.
 declare global {
@@ -20,7 +21,7 @@ export function exec(cmds: string[]) {
     return rv;
 }
 
-const buildDir = "/tmp/build";
+const buildDir = path.join(tmpdir(), "build");
 const s3 = new S3();
 
 export interface NpmInstallArgs {
