@@ -73,12 +73,13 @@ async function initialize(
     if (gc) {
         gcPromise = collectGarbage(retentionInDays!);
     }
-
-    const tempDir = join(tmpdir(), "cloudify", nonce);
+    const cloudifyDir = join(tmpdir(), "cloudify");
+    await mkdir(cloudifyDir);
+    const tempDir = join(cloudifyDir, nonce);
     info(`tempDir: ${tempDir}`);
-    await mkdir(tempDir, { recursive: true });
+    await mkdir(tempDir);
     const logDir = join(tempDir, "logs");
-    await mkdir(logDir, { recursive: true });
+    await mkdir(logDir);
     const log = `file://${logDir}`;
 
     info(`logURL: ${log}`);
