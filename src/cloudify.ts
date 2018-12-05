@@ -104,7 +104,9 @@ function resolveModule(fmodule: string) {
 export class Cloud<O extends CommonOptions, S> {
     name: string = this.impl.name;
 
-    protected constructor(protected impl: CloudImpl<O, S>) {}
+    protected constructor(protected impl: CloudImpl<O, S>) {
+        info(`Node version: ${process.version}`);
+    }
 
     get defaults() {
         return this.impl.defaults;
