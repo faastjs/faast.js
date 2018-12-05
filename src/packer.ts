@@ -4,7 +4,7 @@ import { Readable } from "stream";
 import * as webpack from "webpack";
 import * as yauzl from "yauzl";
 import { LoaderOptions } from "./loader";
-import { exists, mkdir, readFile, createWriteStream } from "./fs-promise";
+import { exists, mkdir, readFile, createWriteStream } from "./fs";
 import { info, warn } from "./log";
 import { WrapperOptions, TrampolineFactory } from "./wrapper";
 import { streamToBuffer } from "./shared";

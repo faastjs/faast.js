@@ -9,7 +9,7 @@ import { info, stats, warn } from "../src/log";
 import { unzipInDir } from "../src/packer";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
-import { rmrf, createWriteStream, stat } from "../src/fs-promise";
+import { rmrf, createWriteStream, stat } from "../src/fs";
 
 export function testFunctions(cloudProvider: "aws", options: awsCloudify.Options): void;
 export function testFunctions(

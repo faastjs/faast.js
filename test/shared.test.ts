@@ -1,8 +1,6 @@
-import { tmpdir } from "os";
-import * as path from "path";
-import * as uuidv4 from "uuid/v4";
-import { exists, rmrf, createWriteStream, mkdir } from "../src/fs-promise";
+import { Statistics } from "../src/shared";
 import { deepCopyUndefined } from "../src/wrapper";
+import { avg, stdev } from "./util";
 
 describe("shared module tests", () => {
     test("Copy of undefined properties", () => {
@@ -36,23 +34,51 @@ describe("shared module tests", () => {
         deepCopyUndefined(obj2, obj);
     });
 
-    test(`rmrf deletes directory recursively`, async () => {
-        const tmp = path.join(tmpdir(), uuidv4());
-        const subdir = path.join(tmp, "subdir");
-        await mkdir(tmp);
-        await mkdir(subdir);
-        const file = path.join(subdir, "file.txt");
-        const stream = createWriteStream(file);
-        await new Promise((resolve, reject) =>
-            stream.write("hello", err => (err ? reject(err) : resolve()))
-        );
-        stream.close();
-        expect(await exists(file)).toBe(true);
-        expect(await exists(subdir)).toBe(true);
-        expect(await exists(tmp)).toBe(true);
-        await rmrf(tmp);
-        expect(await exists(file)).toBe(false);
-        expect(await exists(subdir)).toBe(false);
-        expect(await exists(tmp)).toBe(false);
+    function check(values: number[]) {
+        const stat = new Statistics();
+        values.forEach(value => stat.update(value));
+        expect(stat.mean).toBeCloseTo(avg(values), 10);
+        expect(stat.stdev).toBeCloseTo(stdev(values), 10);
+        expect(stat.samples).toBe(values.length);
+    }
+
+    describe("statistics", () => {
+        test("empty values", () => {
+            const emptyStat = new Statistics();
+            expect(emptyStat.mean).toBeNaN();
+            expect(emptyStat.stdev).toBe(0);
+            expect(emptyStat.samples).toBe(0);
+        });
+        test("single values", () => {
+            check([0]);
+            check([1]);
+            check([-1]);
+            check([0.5]);
+            check([-0.5]);
+            check([0.1]);
+            check([-0.1]);
+        });
+        test("multiple values", () => {
+            check([0, 1]);
+            check([0, 1, 2]);
+            check([42, 100, 1000]);
+            check([1, 0.1]);
+            check([-0.5, 0.5]);
+            check([-1, 1]);
+            check([3.14159, 2.717]);
+        });
+        test("random values", () => {
+            const a = [];
+            const b = [];
+            const c = [];
+            for (let i = 0; i < 1000; i++) {
+                a.push(Math.random());
+                b.push(Math.random() * 10);
+                c.push(Math.random() * 100);
+            }
+            check(a);
+            check(b);
+            check(c);
+        });
     });
 });

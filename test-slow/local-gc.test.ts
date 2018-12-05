@@ -1,7 +1,7 @@
 import { tmpdir } from "os";
 import { join } from "path";
 import * as cloudify from "../src/cloudify";
-import { readdir } from "../src/fs-promise";
+import { readdir } from "../src/fs";
 import * as functions from "../test/functions";
 import { checkResourcesCleanedUp, getLocalResources } from "../test/util";
 

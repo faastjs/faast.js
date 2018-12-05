@@ -1,5 +1,5 @@
 import * as cloudify from "../src/cloudify";
-import { readdir } from "../src/fs-promise";
+import { readdir } from "../src/fs";
 import { Timing } from "./functions";
 
 export const sum = (a: number[]) => a.reduce((total, n) => total + n, 0);

@@ -4,7 +4,7 @@ import { sleep } from "../src/shared";
 import * as funcs from "./functions";
 import { testFunctions, testMemoryLimit, testTimeout } from "./tests";
 import { measureConcurrency } from "./util";
-import { readFile } from "../src/fs-promise";
+import { readFile } from "../src/fs";
 
 async function testCleanup(options: local.Options) {
     const { remote, cloudFunc } = await cloudify("local", funcs, "./functions", options);

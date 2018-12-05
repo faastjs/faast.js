@@ -3,7 +3,7 @@ import { S3 } from "aws-sdk";
 import * as sys from "child_process";
 import * as JSZip from "jszip";
 import * as path from "path";
-import { mkdir, writeFile } from "../fs-promise";
+import { mkdir, writeFile } from "../fs";
 import { streamToBuffer } from "../shared";
 import { tmpdir } from "os";
 

@@ -11,7 +11,7 @@ import {
     FunctionStats
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost";
-import { readFile } from "../fs-promise";
+import { readFile } from "../fs";
 import { Funnel, throttle, retry } from "../throttle";
 import { info, logGc, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";

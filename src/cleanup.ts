@@ -10,7 +10,7 @@ import { tmpdir } from "os";
 import * as path from "path";
 import * as awsCloudify from "./aws/aws-cloudify";
 import { LocalCache } from "./cache";
-import { readdir, rmrf } from "./fs-promise";
+import { readdir, rmrf } from "./fs";
 import * as googleCloudify from "./google/google-cloudify";
 import { throttle } from "./throttle";
 

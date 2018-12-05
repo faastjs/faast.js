@@ -14,7 +14,7 @@ import {
 } from "../wrapper";
 import { packer, PackerOptions, PackerResult, unzipInDir } from "../packer";
 import { CommonOptionDefaults, hasExpired } from "../shared";
-import { mkdir, readdir, stat, exists, rmrf, createWriteStream } from "../fs-promise";
+import { mkdir, readdir, stat, exists, rmrf, createWriteStream } from "../fs";
 import * as localTrampolineFactory from "./local-trampoline";
 
 const exec = promisify(sys.exec);
@@ -73,11 +73,9 @@ async function initialize(
     if (gc) {
         gcPromise = collectGarbage(retentionInDays!);
     }
-    const cloudifyDir = join(tmpdir(), "cloudify");
-    await mkdir(cloudifyDir);
-    const tempDir = join(cloudifyDir, nonce);
+    const tempDir = join(tmpdir(), "cloudify", nonce);
     info(`tempDir: ${tempDir}`);
-    await mkdir(tempDir);
+    await mkdir(tempDir, { recursive: true });
     const logDir = join(tempDir, "logs");
     await mkdir(logDir);
     const log = `file://${logDir}`;
