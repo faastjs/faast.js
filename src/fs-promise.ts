@@ -1,8 +1,8 @@
 import * as fs from "fs";
 import { promisify } from "util";
-import { join } from "path";
+import { join, dirname } from "path";
+import { gte } from "semver";
 
-export const mkdir = promisify(fs.mkdir);
 export const rmdir = promisify(fs.rmdir);
 export const stat = promisify(fs.stat);
 export const readdir = promisify(fs.readdir);
@@ -27,4 +27,17 @@ export async function rmrf(dir: string) {
         }
     }
     await rmdir(dir);
+}
+
+const mkdirPromise = promisify(fs.mkdir);
+export async function mkdir(dir: string, options?: fs.MakeDirectoryOptions) {
+    if (await exists(dir)) {
+        return;
+    }
+    if (gte(process.version, "10.12.0") || !options || !options.recursive) {
+        return mkdirPromise(dir, options);
+    }
+
+    await mkdir(dirname(dir), options);
+    await mkdirPromise(dir);
 }
