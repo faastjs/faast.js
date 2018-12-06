@@ -1,8 +1,7 @@
-import * as path from "path";
 import { tmpdir } from "os";
-import { rmdir, mkdir, createWriteStream, exists } from "../src/fs";
-import { rmrf } from "../src/fs";
+import * as path from "path";
 import * as uuidv4 from "uuid/v4";
+import { createWriteStream, exists, mkdir, rmrf } from "../src/fs";
 
 describe("fs module tests", () => {
     test(`rmrf deletes directory recursively`, async () => {
