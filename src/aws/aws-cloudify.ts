@@ -485,7 +485,8 @@ export async function initialize(
         info(`Lambda function initialization complete.`);
         return state;
     } catch (err) {
-        warn(`ERROR: ${err}`);
+        warn(`ERROR: ${new Error("Could not initialize cloud function")}`);
+        warn(`Underlying error: ${err}`);
         await cleanup(state);
         throw err;
     }
