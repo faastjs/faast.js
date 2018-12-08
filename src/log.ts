@@ -8,6 +8,7 @@ export const logLeaks = debug("cloudify:leaks");
 export const logTrampoline = debug("cloudify:trampoline");
 export const logCalls = debug("cloudify:calls");
 export const logWrapper = debug("cloudify:wrapper");
+export const logWebpack = debug("cloudify:webpack");
 
 warn.enabled = true;
 stats.enabled = true;

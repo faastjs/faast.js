@@ -5,7 +5,7 @@ import * as webpack from "webpack";
 import * as yauzl from "yauzl";
 import { LoaderOptions } from "./loader";
 import { exists, mkdir, readFile, createWriteStream } from "./fs";
-import { info, warn } from "./log";
+import { info, warn, logWebpack } from "./log";
 import { WrapperOptions, TrampolineFactory } from "./wrapper";
 import { streamToBuffer } from "./shared";
 
@@ -137,7 +137,7 @@ export async function packer(
             ...webpackOptions
         };
         config.externals = [...externalsArray, ...dependencies];
-        info(`webpack config: %O`, config);
+        logWebpack(`webpack config: %O`, config);
         const compiler = webpack(config);
         compiler.outputFileSystem = mfs as any;
         return new Promise((resolve, reject) =>
@@ -145,8 +145,8 @@ export async function packer(
                 if (err) {
                     reject(err);
                 } else {
-                    info(stats.toString());
-                    info(`Memory filesystem: %O`, mfs.data);
+                    logWebpack(stats.toString());
+                    logWebpack(`Memory filesystem: %O`, mfs.data);
                     resolve();
                 }
             })
