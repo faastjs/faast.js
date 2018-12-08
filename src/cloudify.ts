@@ -1,12 +1,11 @@
 import * as path from "path";
+import * as util from "util";
 import * as uuidv4 from "uuid/v4";
 import * as aws from "./aws/aws-cloudify";
 import * as costAnalyzer from "./cost";
-import { Deferred, Funnel } from "./throttle";
 import * as google from "./google/google-cloudify";
 import * as local from "./local/local-cloudify";
-import { info, logLeaks, stats, warn, logCalls } from "./log";
-import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "./wrapper";
+import { info, logCalls, logLeaks, stats, warn } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import {
     assertNever,
@@ -17,9 +16,10 @@ import {
     sleep,
     Statistics
 } from "./shared";
+import { Deferred, Funnel } from "./throttle";
 import { NonFunctionProperties, Unpacked } from "./types";
+import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "./wrapper";
 import Module = require("module");
-import * as util from "util";
 
 export { aws, google, local, costAnalyzer };
 
