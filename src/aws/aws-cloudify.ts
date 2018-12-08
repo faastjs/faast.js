@@ -12,7 +12,6 @@ import {
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost";
 import { readFile } from "../fs";
-import { Funnel, throttle, retry } from "../throttle";
 import { info, logGc, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
@@ -22,6 +21,7 @@ import {
     hasExpired,
     sleep
 } from "../shared";
+import { Funnel, retry, throttle } from "../throttle";
 import {
     FunctionCall,
     FunctionReturn,
@@ -49,6 +49,7 @@ export interface Options extends CommonOptions {
     RoleName?: string;
     useDependencyCaching?: boolean;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
+    CacheBucket?: string;
 }
 
 export interface AWSPrices {
@@ -87,6 +88,7 @@ export interface AWSServices {
     readonly sns: aws.SNS;
     readonly s3: aws.S3;
     readonly pricing: aws.Pricing;
+    readonly sts: aws.STS;
 }
 
 type AWSCloudQueueState = cloudqueue.StateWithMessageType<aws.SQS.Message>;
@@ -117,7 +119,8 @@ export let defaults: Required<Options> = {
     addZipFile: [],
     packageJson: false,
     webpackOptions: {},
-    wrapperOptions: {}
+    wrapperOptions: {},
+    CacheBucket: ""
 };
 
 export const Impl: CloudImpl<Options, State> = {
@@ -163,7 +166,8 @@ export function createAWSApis(region: string): AWSServices {
         sqs: new aws.SQS({ apiVersion: "2012-11-05", region }),
         sns: new aws.SNS({ apiVersion: "2010-03-31", region }),
         s3: new aws.S3({ apiVersion: "2006-03-01", region }),
-        pricing: new aws.Pricing({ region: "us-east-1" })
+        pricing: new aws.Pricing({ region: "us-east-1" }),
+        sts: new aws.STS({ apiVersion: "2011-06-15", region })
     };
     return services;
 }
@@ -260,10 +264,8 @@ const createCacheBucket = throttle(
     }
 );
 
-async function getBucketName(region: string, iam: aws.IAM) {
-    const getUserResponse = await iam.getUser().promise();
-    const userId = getUserResponse.User.UserId.toLowerCase();
-    return `cloudify-cache-${region}-${userId}`;
+function getBucketName(region: string, accountId: string) {
+    return `cloudify-cache-${accountId}-${region}`;
 }
 
 function getS3Key(FunctionName: string) {
@@ -272,15 +274,14 @@ function getS3Key(FunctionName: string) {
 
 export async function buildModulesOnLambda(
     s3: aws.S3,
-    iam: aws.IAM,
     region: string,
+    Bucket: string,
     packageJson: string | object,
     indexContents: Promise<string>,
     FunctionName: string,
     useDependencyCaching: boolean
 ): Promise<aws.Lambda.FunctionCode> {
     info(`Building node_modules`);
-    const Bucket = await getBucketName(region, iam);
 
     const packageJsonContents =
         typeof packageJson === "string"
@@ -305,7 +306,6 @@ export async function buildModulesOnLambda(
         }
     }
 
-    info(`Cloudify cache bucket on S3: ${Bucket}`);
     await createCacheBucket(s3, Bucket, region);
 
     const cloud = new AWS();
@@ -316,7 +316,6 @@ export async function buildModulesOnLambda(
     });
     try {
         const remote = lambda.cloudifyModule(awsNpm);
-        info(`package.json contents:`, packageJsonContents);
         const Key = getS3Key(FunctionName);
 
         const installArgs: awsNpm.NpmInstallArgs = {
@@ -331,7 +330,6 @@ export async function buildModulesOnLambda(
 
         if (cacheKey) {
             const cachedPackage = await s3.getObject({ Bucket, Key: cacheKey }).promise();
-            info(`Writing local cache entry: ${localCache.dir}/${cacheKey}`);
             await localCache.set(cacheKey, cachedPackage.Body!);
         }
         return { S3Bucket: Bucket, S3Key: Key };
@@ -373,8 +371,10 @@ export async function initialize(
     } = options;
     info(`Creating AWS APIs`);
     const services = createAWSApis(region);
-    const { lambda, s3, iam } = services;
+    const { lambda, s3, sts } = services;
     const FunctionName = `cloudify-${nonce}`;
+    const accountId = await getAccountId(sts);
+    const CacheBucket = options.CacheBucket || getBucketName(region, accountId);
 
     async function createFunction(Code: aws.Lambda.FunctionCode, Role: string) {
         const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
@@ -404,8 +404,8 @@ export async function initialize(
         if (packageJson) {
             Code = await buildModulesOnLambda(
                 s3,
-                iam,
                 region,
+                CacheBucket,
                 packageJson,
                 bundle.then(b => b.indexContents),
                 FunctionName,
@@ -431,7 +431,13 @@ export async function initialize(
 
     if (gc) {
         logGc(`Starting garbage collector`);
-        state.gcPromise = collectGarbage(services, region, retentionInDays);
+        state.gcPromise = collectGarbage(
+            services,
+            region,
+            accountId,
+            CacheBucket,
+            retentionInDays
+        );
         state.gcPromise.catch(_ => {});
     }
 
@@ -665,6 +671,8 @@ function functionNameFromLogGroup(logGroupName: string) {
 export async function collectGarbage(
     services: AWSServices,
     region: string,
+    accountId: string,
+    Bucket: string,
     retentionInDays: number
 ) {
     if (garbageCollectorRunning) {
@@ -672,8 +680,6 @@ export async function collectGarbage(
     }
     garbageCollectorRunning = true;
     try {
-        const accountId = await getAccountId(services.iam);
-        const s3Bucket = await getBucketName(region, services.iam);
         const promises: Promise<void>[] = [];
         const funnel = throttle(
             {
@@ -713,7 +719,7 @@ export async function collectGarbage(
                             retentionInDays,
                             region,
                             accountId,
-                            s3Bucket,
+                            Bucket,
                             scheduleWork
                         );
                     }
@@ -740,7 +746,7 @@ export async function collectGarbage(
                         services,
                         region,
                         accountId,
-                        s3Bucket,
+                        Bucket,
                         funcs,
                         scheduleWork
                     );
@@ -755,10 +761,11 @@ export async function collectGarbage(
     }
 }
 
-async function getAccountId(iam: aws.IAM) {
-    const user = await iam.getUser().promise();
-    const arn = user.User.Arn;
-    return arn.split(":")[4];
+export async function getAccountId(sts: aws.STS) {
+    const response = await sts.getCallerIdentity().promise();
+    const { Account, Arn, UserId } = response;
+    info(`Account ID: %O`, { Account, Arn, UserId });
+    return response.Account!;
 }
 
 function garbageCollectLogGroups(
