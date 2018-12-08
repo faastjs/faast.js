@@ -152,8 +152,8 @@ export class Wrapper {
 
     stop() {
         if (this.child) {
-            this.child.stdout.off("data", this.logLines);
-            this.child.stderr.off("data", this.logLines);
+            this.child.stdout.removeListener("data", this.logLines);
+            this.child.stderr.removeListener("data", this.logLines);
             this.child!.disconnect();
             this.child!.kill();
         }
