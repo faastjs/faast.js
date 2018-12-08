@@ -14,8 +14,8 @@
         "test": "jest build/test",
         "test-slow": "jest build/test-slow/",
         "test-unit": "jest build/test/unit-*",
-        "test-aws": "jest build/test/aws-*",
-        "test-google": "jest build/test/google-*",
+        "test-aws": "jest build/test/unit-* build/test/aws-*",
+        "test-google": "jest build/test/unit-* build/test/google-*",
         "clean": "rm -rf build",
         "tslint": "tslint -p tsconfig.json"
     },
