@@ -1,5 +1,5 @@
 import * as cloudify from "../src/cloudify";
-import { checkResourcesCleanedUp, getAWSResources } from "./util";
+import { checkResourcesCleanedUp, getAWSResources } from "./tests";
 
 describe("aws cleanup", () => {
     test(

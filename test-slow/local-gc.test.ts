@@ -3,7 +3,7 @@ import { join } from "path";
 import * as cloudify from "../src/cloudify";
 import { readdir } from "../src/fs";
 import * as functions from "../test/functions";
-import { checkResourcesCleanedUp, getLocalResources } from "../test/util";
+import { checkResourcesCleanedUp, getLocalResources } from "../test/tests";
 
 async function checkLocalTempDirectoryCleanedUp() {
     const cloudifyDir = join(tmpdir(), "cloudify");

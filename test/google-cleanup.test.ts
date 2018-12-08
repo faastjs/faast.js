@@ -1,5 +1,9 @@
 import * as cloudify from "../src/cloudify";
-import { checkResourcesCleanedUp, checkResourcesExist, getGoogleResources } from "./util";
+import {
+    checkResourcesCleanedUp,
+    checkResourcesExist,
+    getGoogleResources
+} from "./tests";
 
 describe("google cleanup", () => {
     test(

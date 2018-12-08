@@ -1,5 +1,5 @@
 import * as cloudify from "../src/cloudify";
-import { checkResourcesCleanedUp, getGoogleResources } from "../test/util";
+import { checkResourcesCleanedUp, getGoogleResources } from "../test/tests";
 import * as functions from "../test/functions";
 
 test(
