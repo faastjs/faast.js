@@ -11,8 +11,11 @@
     "scripts": {
         "build": "npm run clean && tsc",
         "watch": "npm run clean && tsc --watch",
-        "test": "npm run build && jest test/",
-        "test-slow": "npm run build && jest test-slow/",
+        "test": "jest test/",
+        "test-slow": "jest test-slow/",
+        "test-unit": "jest test/unit-*",
+        "test-aws": "jest test/aws-*",
+        "test-google": "jest test/google-*",
         "clean": "rm -rf build",
         "tslint": "tslint -p tsconfig.json"
     },

@@ -2,8 +2,7 @@ import { URL } from "url";
 import { cloudify, local } from "../src/cloudify";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
-import { testFunctions, testMemoryLimit, testTimeout } from "./tests";
-import { measureConcurrency } from "./util";
+import { testFunctions, testMemoryLimit, testTimeout, measureConcurrency } from "./tests";
 import { readFile } from "../src/fs";
 
 async function testCleanup(options: local.Options) {

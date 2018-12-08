@@ -1,7 +1,7 @@
 import { sleep } from "../src/shared";
 import { Deferred, Funnel, Pump, RateLimiter, retry, throttle } from "../src/throttle";
 import { timer, Timing } from "./functions";
-import { measureConcurrency } from "./util";
+import { measureConcurrency } from "./tests";
 
 describe("Deferred promise", () => {
     test("resolves its promise", async () => {
