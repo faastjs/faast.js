@@ -2,10 +2,10 @@ import * as archiver from "archiver";
 import { S3 } from "aws-sdk";
 import * as sys from "child_process";
 import * as JSZip from "jszip";
+import { tmpdir } from "os";
 import * as path from "path";
 import { mkdir, writeFile } from "../fs";
 import { streamToBuffer } from "../shared";
-import { tmpdir } from "os";
 
 // Make tsc ok with JSZip declarations.
 declare global {

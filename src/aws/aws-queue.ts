@@ -1,11 +1,11 @@
-import * as aws from "aws-sdk";
-import * as cloudqueue from "../queue";
-import { info, warn } from "../log";
 import { SNSEvent } from "aws-lambda";
+import * as aws from "aws-sdk";
+import { info, warn } from "../log";
+import * as cloudqueue from "../queue";
+import { computeHttpResponseBytes, sum } from "../shared";
+import { Attributes } from "../types";
 import { FunctionCall } from "../wrapper";
 import { AWSMetrics } from "./aws-cloudify";
-import { Attributes } from "../types";
-import { sum, computeHttpResponseBytes } from "../shared";
 
 export function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
     const a = message.MessageAttributes;

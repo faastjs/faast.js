@@ -1,15 +1,15 @@
-import { SNSEvent, Context } from "aws-lambda";
+import { Context, SNSEvent } from "aws-lambda";
 import * as aws from "aws-sdk";
+import { env } from "process";
 import {
+    CallingContext,
+    createErrorResponse,
     FunctionCall,
     FunctionReturn,
-    Wrapper,
-    createErrorResponse,
-    CallingContext
+    Wrapper
 } from "../wrapper";
 import { publishSQS, publishSQSControlMessage } from "./aws-queue";
 import { getExecutionLogUrl } from "./aws-shared";
-import { env } from "process";
 
 const awsSqs = new aws.SQS({ apiVersion: "2012-11-05" });
 

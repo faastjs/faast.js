@@ -16,7 +16,6 @@ import {
     FunctionStats
 } from "../cloudify";
 import { CostBreakdown, CostMetric } from "../cost";
-import { throttle, retry } from "../throttle";
 import { info, logGc, logPricing, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
@@ -26,6 +25,7 @@ import {
     hasExpired,
     sleep
 } from "../shared";
+import { retry, throttle } from "../throttle";
 import { Mutable } from "../types";
 import {
     FunctionCall,
