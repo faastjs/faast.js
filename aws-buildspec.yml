@@ -1,0 +1,13 @@
+version: 0.2
+
+phases:
+    install:
+        commands:
+            - npm install
+    build:
+        commands:
+            - echo Build started on `date`
+            - npm run build
+    post_build:
+        commands:
+            - npm run test-aws

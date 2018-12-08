@@ -2,7 +2,6 @@
     "steps": [
         { "name": "gcr.io/cloud-builders/npm", "args": ["install"] },
         { "name": "gcr.io/cloud-builders/npm", "args": ["run", "build"] },
-        { "name": "gcr.io/cloud-builders/npm", "args": ["run", "test-unit"] },
         { "name": "gcr.io/cloud-builders/npm", "args": ["run", "test-google"] }
     ],
     "timeout": "300s"
