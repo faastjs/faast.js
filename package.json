@@ -1,11 +1,11 @@
 {
-    "name": "cloudify",
+    "name": "faastjs",
     "version": "0.0.2",
     "description": "Serverless without the cruft.",
     "main": "build/src/cloudify.js",
     "repository": {
         "type": "git",
-        "url": "https://github.com/acchou/cloudify"
+        "url": "https://github.com/acchou/faast.js"
     },
     "types": "build/src/cloudify.d.ts",
     "scripts": {
