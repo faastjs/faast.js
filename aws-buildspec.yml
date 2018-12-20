@@ -15,7 +15,7 @@ phases:
     post_build:
         commands:
             - npm run aws-set-gcp-key
-            - npm run test-2
+            - npm run test-4
 
 cache:
     paths:
