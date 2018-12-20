@@ -1,5 +1,9 @@
 version: 0.2
 
+env:
+    variables:
+        GOOGLE_APPLICATION_CREDENTIALS: "gcp-key.json"
+
 phases:
     install:
         commands:
@@ -10,5 +14,5 @@ phases:
             - npm run build
     post_build:
         commands:
-            - npm run aws-codebuild-setup
+            - npm run aws-set-gcp-key
             - npm run test

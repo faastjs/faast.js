@@ -1,9 +1,11 @@
+import { SSM } from "aws-sdk";
 import { join } from "path";
 import { cwd } from "process";
-import { SSM } from "aws-sdk";
 import { writeFile } from "../fs";
 
-export async function setupAWSCodeBuild() {
+// This code is only used for running builds on AWS CodeBuild. It saves Google Cloud credentials to disk to enable testing the Google Cloud APIs.
+
+export async function setGcpKey() {
     try {
         const key = "/test/gcp-key";
         const ssm = new SSM();
@@ -19,10 +21,9 @@ export async function setupAWSCodeBuild() {
         console.log(`CWD: ${cwd()}`);
         console.log(`gcp key file: ${keyFile}`);
         await writeFile(keyFile, decodedKey, { mode: 0o600 });
-        process.env["GOOGLE_APPLICATION_CREDENTIALS"] = keyFile;
     } catch (err) {
         console.warn(`Could not find Google service account key: ${err}`);
     }
 }
 
-setupAWSCodeBuild();
+setGcpKey();
