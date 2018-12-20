@@ -1,8 +1,8 @@
-import * as cloudify from "../src/cloudify";
-import { checkResourcesCleanedUp, quietly, getAWSResources } from "../test/tests";
 import { getLogGroupName } from "../src/aws/aws-shared";
-import * as functions from "../test/functions";
+import * as cloudify from "../src/cloudify";
 import { sleep } from "../src/shared";
+import * as functions from "../test/functions";
+import { checkResourcesCleanedUp, getAWSResources, quietly } from "../test/tests";
 
 async function checkLogGroupCleanedUp(func: cloudify.AWSLambda) {
     const { cloudwatch } = func.state.services;
@@ -35,10 +35,15 @@ test(
             remote.hello("gc-test");
             while (!done) {
                 await sleep(1000);
-                const logResult = await cloudwatch
-                    .filterLogEvents({ logGroupName: func.state.resources.logGroupName })
-                    .promise();
-                for (const event of logResult.events || []) {
+                const logResult = await quietly(
+                    cloudwatch
+                        .filterLogEvents({
+                            logGroupName: func.state.resources.logGroupName
+                        })
+                        .promise()
+                );
+                const events = (logResult && logResult.events) || [];
+                for (const event of events) {
                     if (event.message!.match(/REPORT RequestId/)) {
                         resolve();
                         done = true;
@@ -54,11 +59,13 @@ test(
             retentionInDays: 0
         });
 
+        // Simulate expiration of all log streams
         const { logGroupName } = func.state.resources;
-        const logStreamsResponse = await cloudwatch
-            .describeLogStreams({ logGroupName })
-            .promise();
-        for (const { logStreamName } of logStreamsResponse.logStreams || []) {
+        const logStreamsResponse = await quietly(
+            cloudwatch.describeLogStreams({ logGroupName }).promise()
+        );
+        const logStreams = (logStreamsResponse && logStreamsResponse.logStreams) || [];
+        for (const { logStreamName } of logStreams) {
             if (logStreamName) {
                 await cloudwatch
                     .deleteLogStream({ logGroupName, logStreamName })
