@@ -10,4 +10,5 @@ phases:
             - npm run build
     post_build:
         commands:
-            - npm run test-aws
+            - npm run aws-codebuild-setup
+            - npm run test

@@ -22,7 +22,8 @@
         "strict": true,
         "noEmitHelpers": true,
         "importHelpers": true,
-        "allowSyntheticDefaultImports": true
+        "allowSyntheticDefaultImports": true,
+        "skipLibCheck": true
     },
     "include": ["src", "examples", "types", "test", "test-slow", "test-other"],
     "exclude": ["node_modules", "build"]

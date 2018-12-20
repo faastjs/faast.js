@@ -14,6 +14,7 @@
         "test": "jest build/test",
         "test-slow": "jest build/test-slow/",
         "test-unit": "jest build/test/unit-*",
+        "aws-codebuild-setup": "node build/src/aws/aws-codebuild-setup.js",
         "test-aws": "jest -w 2 build/test/unit-* build/test/aws-*",
         "test-google": "jest -w 2 build/test/unit-* build/test/google-*",
         "clean": "rm -rf build",
