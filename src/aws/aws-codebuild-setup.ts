@@ -10,7 +10,7 @@ export async function setupAWSCodeBuild() {
         const gcpKey = await ssm
             .getParameter({ Name: key, WithDecryption: true })
             .promise();
-        if (!gcpKey.Parameter) {
+        if (!gcpKey.Parameter || !gcpKey.Parameter.Value) {
             throw new Error(`key '${key}' not found`);
         }
         const decodedKey = Buffer.from(gcpKey.Parameter.Value, "base64").toString();

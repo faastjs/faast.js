@@ -11,7 +11,7 @@
     "scripts": {
         "build": "npm run clean && tsc",
         "watch": "npm run clean && tsc --watch",
-        "test": "jest build/test",
+        "test": "jest build/test/*",
         "test-slow": "jest build/test-slow/",
         "test-unit": "jest build/test/unit-*",
         "aws-codebuild-setup": "node build/src/aws/aws-codebuild-setup.js",
