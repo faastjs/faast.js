@@ -998,7 +998,8 @@ export const topPackagesAll = [
     `html-to-text`,
     `koa-send`,
     `duplexer`,
-    `tether`
+    `tether`,
+    `node-ffmpeg-installer`
 ];
 
 export const topPackages = [
@@ -1984,7 +1985,8 @@ export const topPackages = [
     "html-to-text",
     "koa-send",
     "duplexer",
-    "tether"
+    "tether",
+    "node-ffmpeg-installer"
 ];
 
 export const topPackagesFailures = [
