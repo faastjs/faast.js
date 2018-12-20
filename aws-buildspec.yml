@@ -16,3 +16,7 @@ phases:
         commands:
             - npm run aws-set-gcp-key
             - npm run test-2
+
+cache:
+    paths:
+        - "node_modules/**/*"
