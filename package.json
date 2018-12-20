@@ -12,6 +12,7 @@
         "build": "npm run clean && tsc",
         "watch": "npm run clean && tsc --watch",
         "test": "jest build/test/*",
+        "test-2": "jest -w 2 build/test/*",
         "test-slow": "jest build/test-slow/",
         "test-unit": "jest build/test/unit-*",
         "aws-set-gcp-key": "node build/src/aws/aws-set-gcp-key.js",
