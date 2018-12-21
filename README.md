@@ -1,3 +1,7 @@
+![node 10 build status for acchou/faast.js](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiV3hCQVcvcTBGeE9nWU11K05YL2NPOUl2UGRXQkpHY1BvT3JqMGlqbWNrcE05K3ErZUwya0tpSU9EVnMzb21uYkROVTUwZWZJWFN0dlFYa2VEN2JleWwwPSIsIml2UGFyYW1ldGVyU3BlYyI6IjBCbWJGVGFUaTdVWHR3T3MiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
+
+![node 8 build status for acchou/faast.js](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiTkVweUF3UW0rWnhrcXpackR0eGlyY0VhRFhVa0c1UDZUb3FxU1ZFc3IvTk9zbFNoYmNORzVWRk1qdXY2OEllYnZ0bjRzZkFDSFdCWC9iUk9NZkFiOHdZPSIsIml2UGFyYW1ldGVyU3BlYyI6InY4QXpyVkRRbHI1c2pNQ0wiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
+
 # Cloudify
 
 Ad-hoc serverless batch processing for nodejs.
