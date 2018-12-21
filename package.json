@@ -11,14 +11,13 @@
     "scripts": {
         "build": "npm run clean && tsc",
         "watch": "npm run clean && tsc --watch",
-        "test": "jest build/test/*",
-        "test-2": "jest -w 2 build/test/*",
-        "test-4": "jest -w 4 build/test/*",
-        "test-slow": "jest build/test-slow/",
-        "test-unit": "jest build/test/unit-*",
         "aws-set-gcp-key": "node build/src/aws/aws-set-gcp-key.js",
+        "test": "jest build/test/*",
+        "test-slow": "jest -w 1 build/test-slow/",
+        "test-unit": "jest build/test/unit-*",
         "test-aws": "jest -w 2 build/test/unit-* build/test/aws-*",
         "test-google": "jest -w 2 build/test/unit-* build/test/google-*",
+        "test-pipeline": "jest -w 4 build/test/* && jest -w 1 build/test-slow/*",
         "clean": "rm -rf build",
         "tslint": "tslint -p tsconfig.json"
     },
