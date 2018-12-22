@@ -1,4 +1,4 @@
-import { costAnalyzer, Promisified } from "../src/cloudify";
+import { costAnalyzer, Promisified } from "../src/faast";
 import * as m from "./module";
 
 async function workload(remote: Promisified<typeof m>) {

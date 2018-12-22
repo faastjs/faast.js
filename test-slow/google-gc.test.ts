@@ -1,4 +1,4 @@
-import * as cloudify from "../src/cloudify";
+import * as faast from "../src/faast";
 import { checkResourcesCleanedUp, getGoogleResources } from "../test/tests";
 import * as functions from "../test/functions";
 
@@ -10,9 +10,9 @@ test(
         // function and set its retention to 0, and have its garbage collector
         // clean up the first function. Verify the first function's resources
         // are cleaned up, which shows that the garbage collector did its job.
-        const cloud = cloudify.create("google");
+        const cloud = faast.create("google");
         const func = await cloud.createFunction("../test/functions", { mode: "queue" });
-        const remote = func.cloudifyModule(functions);
+        const remote = func.wrapModule(functions);
         await remote.hello("gc-test");
         await func.stop();
         const func2 = await cloud.createFunction("../test/functions", {
@@ -29,7 +29,7 @@ test(
 test(
     "garbage collector works for functions that are never called",
     async () => {
-        const cloud = cloudify.create("google");
+        const cloud = faast.create("google");
         const func = await cloud.createFunction("../test/functions", { mode: "queue" });
         await func.stop();
         const func2 = await cloud.createFunction("../test/functions", {

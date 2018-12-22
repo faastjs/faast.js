@@ -4,17 +4,17 @@
 //     events: aws.CloudWatchEvents
 // ) {
 //     const ruleDescription = await events
-//         .describeRule({ Name: "cloudify-cleanup" })
+//         .describeRule({ Name: "faast-cleanup" })
 //         .promise();
 //     let RuleArn = ruleDescription.Arn;
 //     if (!RuleArn) {
 //         const ruleResponse = await events
-//             .putRule({ Name: "cloudify-cleanup", ScheduleExpression: "rate(1 day)" })
+//             .putRule({ Name: "faast-cleanup", ScheduleExpression: "rate(1 day)" })
 //             .promise();
 //         RuleArn = ruleResponse.RuleArn;
 //         events.putTargets({
-//             Rule: "cloudify-cleanup-schedule",
-//             Targets: [{ Arn: FunctionArn, Id: "cloudify-cleanup" }]
+//             Rule: "faast-cleanup-schedule",
+//             Targets: [{ Arn: FunctionArn, Id: "faast-cleanup" }]
 //         });
 //     }
 // }

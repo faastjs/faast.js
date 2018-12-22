@@ -9,7 +9,7 @@ import {
     FunctionReturn
 } from "./wrapper";
 import { Attributes } from "./types";
-const log = debug("cloudify:collector");
+const log = debug("faast:collector");
 
 const CallIdAttribute: keyof Pick<FunctionReturn, "CallId"> = "CallId";
 

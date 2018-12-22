@@ -1,4 +1,4 @@
-import * as cloudify from "../src/cloudify";
+import * as faast from "../src/faast";
 import {
     checkResourcesCleanedUp,
     checkResourcesExist,
@@ -9,7 +9,7 @@ describe("google cleanup", () => {
     test(
         "removes ephemeral resources",
         async () => {
-            const cloud = cloudify.create("google");
+            const cloud = faast.create("google");
             const func = await cloud.createFunction("./functions", { mode: "queue" });
             checkResourcesExist(await getGoogleResources(func));
             await func.cleanup();

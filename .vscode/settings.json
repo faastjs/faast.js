@@ -1,10 +1,10 @@
 {
     "typescript.tsdk": "node_modules/typescript/lib",
     "terminal.integrated.env.osx": {
-        "DEBUG": "cloudify:info,cloudify:stats"
+        "DEBUG": "faast:info,faast:stats"
     },
     "terminal.integrated.env.windows": {
-        "DEBUG": "cloudify:info,cloudify:stats"
+        "DEBUG": "faast:info,faast:stats"
     },
     "debug.node.autoAttach": "on",
     "docthis.includeMemberOfOnClassMembers": false,

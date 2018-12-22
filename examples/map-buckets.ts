@@ -1,4 +1,4 @@
-import { cloudify, CloudifyError } from "../src/cloudify";
+import { faastify, FaastError } from "../src/faast";
 import * as m from "./map-buckets-module";
 import * as aws from "aws-sdk";
 
@@ -14,7 +14,7 @@ const s3 = new aws.S3();
 // ---------------------------------------------------------------------------------------
 //                                                                    $1.46995061 (USD)
 
-let verbose = false
+let verbose = false;
 
 async function listAllObjects(Bucket: string) {
     const allObjects: aws.S3.Object[] = [];
@@ -36,7 +36,7 @@ async function listAllObjects(Bucket: string) {
 }
 
 export async function mapBucket(Bucket: string, keyFilter: (key: string) => boolean) {
-    const { cloudFunc, remote } = await cloudify("aws", m, "./map-buckets-module", {
+    const { cloudFunc, remote } = await faastify("aws", m, "./map-buckets-module", {
         memorySize: 1728,
         timeout: 300,
         mode: "queue",
@@ -52,12 +52,10 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         console.log(`Bucket ${Bucket} contains ${allObjects.length} matching objects`);
         for (const Obj of allObjects) {
             promises.push(
-                remote
-                    .processBucketObject(Bucket, Obj.Key!)
-                    .catch((err: CloudifyError) => {
-                        console.log(`Error processing ${Obj.Key!}`);
-                        console.log(`Logs: ${err.logUrl}`);
-                    })
+                remote.processBucketObject(Bucket, Obj.Key!).catch((err: FaastError) => {
+                    console.log(`Error processing ${Obj.Key!}`);
+                    console.log(`Logs: ${err.logUrl}`);
+                })
             );
         }
         const results = await Promise.all(promises);
@@ -66,9 +64,10 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         let bytes = 0;
         let id = 0;
 
-        verbose && console.log(
-            `id,executionLatency,user,system,finalExecutionLatency,finalUser,finalSystem`
-        );
+        verbose &&
+            console.log(
+                `id,executionLatency,user,system,finalExecutionLatency,finalUser,finalSystem`
+            );
 
         for (const result of results) {
             if (!result) {
@@ -109,7 +108,7 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
 }
 
 export async function mapObjects(Bucket: string, Keys: string[]) {
-    const { cloudFunc, remote } = await cloudify("aws", m, "./map-buckets-module", {
+    const { cloudFunc, remote } = await faastify("aws", m, "./map-buckets-module", {
         memorySize: 1728,
         timeout: 300,
         mode: "https",
@@ -127,7 +126,7 @@ export async function copyObjects(
     toBucket: string,
     mapper: (key: string) => string | undefined
 ) {
-    const { cloudFunc, remote } = await cloudify("aws", m, "./map-buckets-module", {
+    const { cloudFunc, remote } = await faastify("aws", m, "./map-buckets-module", {
         memorySize: 256,
         timeout: 300,
         mode: "queue"
@@ -155,7 +154,7 @@ export async function copyObjects(
 }
 
 export async function emptyBucket(Bucket: string) {
-    const { cloudFunc, remote } = await cloudify("aws", m, "./map-buckets-module", {
+    const { cloudFunc, remote } = await faastify("aws", m, "./map-buckets-module", {
         memorySize: 256,
         timeout: 300,
         mode: "https",
@@ -175,7 +174,7 @@ export async function emptyBucket(Bucket: string) {
     await cloudFunc.cleanup();
 }
 
-import * as commander from "commander"
+import * as commander from "commander";
 
 async function main() {
     let bucket!: string;
@@ -188,30 +187,29 @@ async function main() {
             bucket = arg;
             keys = rest;
         })
-        .description(`Map over all keys in a given S3 bucket. E.g. arxiv-derivative-flattened`);
+        .description(
+            `Map over all keys in a given S3 bucket. E.g. arxiv-derivative-flattened`
+        );
 
     commander.parse(process.argv);
     if (commander.verbose) {
-        process.env.DEBUG = "cloudify:*";
+        process.env.DEBUG = "faast:*";
         verbose = true;
     }
     if (keys.length > 0 && keys[0] === "all") {
         mapBucket(bucket, key => key.match(/arXiv_pdf_.*\.tar$/) !== null);
     } else {
-        mapObjects(bucket, keys)
+        mapObjects(bucket, keys);
     }
 }
 
 main();
-
 
 // if (process.argv[3] === "all") {
 //     mapBucket(process.argv[2], key => key.match(/arXiv_pdf_.*\.tar$/) !== null);
 // } else {
 //     mapObjects(process.argv[2], process.argv.slice(3));
 // }
-
-
 
 // copyObjects("arxiv-derivative-west", "arxiv-derivative-flattened", key => {
 //     const match = key.match(/^pdf\/(arXiv_pdf_\d{4}_\d{3}.tar)$/);
@@ -226,4 +224,3 @@ main();
 // });
 
 // emptyBucket("arxiv-derivative-output");
-

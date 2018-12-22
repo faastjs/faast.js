@@ -1,12 +1,12 @@
 import { URL } from "url";
-import { cloudify, local } from "../src/cloudify";
+import { faastify, local } from "../src/faast";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
 import { testFunctions, testMemoryLimit, testTimeout, measureConcurrency } from "./tests";
 import { readFile } from "../src/fs";
 
 async function testCleanup(options: local.Options) {
-    const { remote, cloudFunc } = await cloudify("local", funcs, "./functions", options);
+    const { remote, cloudFunc } = await faastify("local", funcs, "./functions", options);
     let done = 0;
 
     remote
@@ -24,7 +24,7 @@ async function testCleanup(options: local.Options) {
 }
 
 async function testOrder(options: local.Options) {
-    const { remote, cloudFunc } = await cloudify("local", funcs, "./functions", options);
+    const { remote, cloudFunc } = await faastify("local", funcs, "./functions", options);
     expect.assertions(2);
 
     const a = remote.emptyReject();
@@ -49,7 +49,7 @@ async function testConcurrency({
     maxConcurrency: number;
     expectedConcurrency: number;
 }) {
-    const { remote, cloudFunc } = await cloudify("local", funcs, "./functions", options);
+    const { remote, cloudFunc } = await faastify("local", funcs, "./functions", options);
 
     try {
         const N = maxConcurrency;
@@ -65,7 +65,7 @@ async function testConcurrency({
     }
 }
 
-describe("cloudify local mode", () => {
+describe("faast.js local mode", () => {
     describe("basic functions", () => testFunctions("local", {}));
 
     describe("basic functions with child process", () =>
@@ -106,7 +106,7 @@ describe("cloudify local mode", () => {
     }
 
     test("console.log and console.warn with child process", async () => {
-        const { remote, cloudFunc } = await cloudify("local", funcs, "./functions", {
+        const { remote, cloudFunc } = await faastify("local", funcs, "./functions", {
             childProcess: true,
             concurrency: 1
         });
@@ -127,7 +127,7 @@ describe("cloudify local mode", () => {
     });
 
     test("log files should be appended, not truncated, after child process crash", async () => {
-        const { remote, cloudFunc } = await cloudify("local", funcs, "./functions", {
+        const { remote, cloudFunc } = await faastify("local", funcs, "./functions", {
             childProcess: true,
             concurrency: 1,
             maxRetries: 1
@@ -169,7 +169,7 @@ describe("cloudify local mode", () => {
     });
 
     test("cleanup waits for all child processes to exit", async () => {
-        const { remote, cloudFunc } = await cloudify("local", funcs, "./functions", {
+        const { remote, cloudFunc } = await faastify("local", funcs, "./functions", {
             childProcess: true
         });
         remote.spin(5000).catch(_ => {});

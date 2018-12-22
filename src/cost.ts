@@ -7,7 +7,7 @@ import {
     FunctionStats,
     google,
     Promisified
-} from "./cloudify";
+} from "./faast";
 import { Funnel, throttle } from "./throttle";
 import { Statistics, sum } from "./shared";
 import { NonFunctionProperties } from "./types";
@@ -186,7 +186,7 @@ async function estimate<T>(
     const { cloudProvider, repetitions, options, repetitionConcurrency } = config;
     const cloud = create(cloudProvider);
     const cloudFunction = await cloud.createFunction(fmodule, options);
-    const remote = cloudFunction.cloudifyModule(require(fmodule)) as Promisified<T>;
+    const remote = cloudFunction.wrapModule(require(fmodule)) as Promisified<T>;
     const funnel = new Funnel<void | Error>(repetitionConcurrency);
     const results = [];
     for (let i = 0; i < repetitions; i++) {

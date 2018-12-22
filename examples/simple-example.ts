@@ -1,8 +1,8 @@
-import { cloudify } from "../src/cloudify";
+import { faastify } from "../src/faast";
 import * as m from "./module";
 
 async function main() {
-    const { cloudFunc, remote } = await cloudify("aws", m, "./module");
+    const { cloudFunc, remote } = await faastify("aws", m, "./module");
 
     const result = await remote.hello("world");
 

@@ -40,9 +40,6 @@ function log(msg: string) {
     console.log(`${timestamp()} ${msg}`);
 }
 
-// Error processing pdf/arXiv_pdf_1609_008.tar
-// Logs: https://us-west-2.console.aws.amazon.com/cloudwatch/home?region=us-west-2#logEventViewer:group=%2Faws%2Flambda%2Fcloudify-a0c47fc1-694b-4810-9b78-e36582ac56c9;stream=2018%2F10%2F23%2F%5B%24LATEST%5D93b0e7bbb9f3466dbcaa6a74d2cd6bca;filter=%22ea77ed84-d700-11e8-9643-25010a31b2e7%22
-
 export async function processBucketObject(Bucket: string, Key: string) {
     start = Date.now();
     const startCpu = process.cpuUsage();

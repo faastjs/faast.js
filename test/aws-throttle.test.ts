@@ -1,22 +1,22 @@
-import * as cloudify from "../src/cloudify";
+import * as faast from "../src/faast";
 import { info, warn } from "../src/log";
 import * as funcs from "./functions";
 
 describe("aws throttling to reduce concurrency", () => {
-    let cloud: cloudify.AWS;
-    let func: cloudify.AWSLambda;
-    let remote: cloudify.Promisified<typeof funcs>;
+    let cloud: faast.AWS;
+    let func: faast.AWSLambda;
+    let remote: faast.Promisified<typeof funcs>;
 
     beforeAll(async () => {
         try {
-            cloud = cloudify.create("aws");
+            cloud = faast.create("aws");
             func = await cloud.createFunction("./functions", {
                 // Timeout: 120
                 mode: "https",
                 memorySize: 1024,
                 concurrency: 1
             });
-            remote = func.cloudifyModule(funcs);
+            remote = func.wrapModule(funcs);
         } catch (err) {
             warn(err);
         }

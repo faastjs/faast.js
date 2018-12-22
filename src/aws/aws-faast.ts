@@ -9,7 +9,7 @@ import {
     CommonOptions,
     FunctionCounters,
     FunctionStats
-} from "../cloudify";
+} from "../faast";
 import { CostBreakdown, CostMetric } from "../cost";
 import { readFile } from "../fs";
 import { info, logGc, warn } from "../log";
@@ -108,7 +108,7 @@ export let defaults: Required<Options> = {
     ...CommonOptionDefaults,
     region: "us-west-2",
     PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
-    RoleName: "cloudify-cached-lambda-role",
+    RoleName: "faast-cached-lambda-role",
     timeout: 60,
     memorySize: 256,
     concurrency: 500,
@@ -181,7 +181,7 @@ const createLambdaRole = throttle(
         if (previousRole) {
             return previousRole.Role.Arn;
         }
-        info(`Creating role "${RoleName}" for cloudify trampoline function`);
+        info(`Creating role "${RoleName}" for faast trampoline function`);
         const AssumeRolePolicyDocument = JSON.stringify({
             Version: "2012-10-17",
             Statement: [
@@ -195,7 +195,7 @@ const createLambdaRole = throttle(
         const roleParams: aws.IAM.CreateRoleRequest = {
             AssumeRolePolicyDocument,
             RoleName,
-            Description: "role for lambda functions created by cloudify",
+            Description: "role for lambda functions created by faast",
             MaxSessionDuration: 3600
         };
         info(`Calling createRole`);
@@ -265,7 +265,7 @@ const createCacheBucket = throttle(
 );
 
 function getBucketName(region: string, accountId: string) {
-    return `cloudify-cache-${accountId}-${region}`;
+    return `faast-cache-${accountId}-${region}`;
 }
 
 function getS3Key(FunctionName: string) {
@@ -288,7 +288,7 @@ export async function buildModulesOnLambda(
             ? (await readFile(packageJson)).toString()
             : JSON.stringify(packageJson);
 
-    const localCache = await LocalCache.create(".cloudify/aws");
+    const localCache = await LocalCache.create(".faast/aws");
 
     let cacheKey: string | undefined;
     if (useDependencyCaching) {
@@ -315,7 +315,7 @@ export async function buildModulesOnLambda(
         mode: "https"
     });
     try {
-        const remote = lambda.cloudifyModule(awsNpm);
+        const remote = lambda.wrapModule(awsNpm);
         const Key = getS3Key(FunctionName);
 
         const installArgs: awsNpm.NpmInstallArgs = {
@@ -372,7 +372,7 @@ export async function initialize(
     info(`Creating AWS APIs`);
     const services = createAWSApis(region);
     const { lambda, s3, sts } = services;
-    const FunctionName = `cloudify-${nonce}`;
+    const FunctionName = `faast-${nonce}`;
     const accountId = await getAccountId(sts);
     const CacheBucket = options.CacheBucket || getBucketName(region, accountId);
 
@@ -384,7 +384,7 @@ export async function initialize(
             Runtime: "nodejs8.10",
             Handler: "index.trampoline",
             Code,
-            Description: "cloudify trampoline function",
+            Description: "faast trampoline function",
             Timeout: timeout,
             MemorySize: memorySize,
             ...awsLambdaOptions
@@ -611,7 +611,7 @@ async function deleteResources(
         }
     }
     if (RoleName) {
-        // Don't delete cached role. It may be in use by other instances of cloudify.
+        // Don't delete cached role. It may be in use by other instances of faast.
         // await deleteRole(RoleName, iam);
     }
     if (RequestTopicArn) {
@@ -656,7 +656,7 @@ async function addLogRetentionPolicy(
 
 export async function cleanup(state: PartialState) {
     await stop(state);
-    info(`Cleaning up cloudify infrastructure for ${state.resources.FunctionName}...`);
+    info(`Cleaning up faast infrastructure for ${state.resources.FunctionName}...`);
     await deleteResources(state.resources, state.services);
     info(`Cleanup done.`);
 }
@@ -664,7 +664,7 @@ export async function cleanup(state: PartialState) {
 let garbageCollectorRunning = false;
 
 function functionNameFromLogGroup(logGroupName: string) {
-    const match = logGroupName.match(/\/aws\/lambda\/(cloudify-[a-f0-9-]+)/);
+    const match = logGroupName.match(/\/aws\/lambda\/(faast-[a-f0-9-]+)/);
     return match && match[1];
 }
 
@@ -698,7 +698,7 @@ export async function collectGarbage(
 
         await new Promise((resolve, reject) =>
             services.cloudwatch
-                .describeLogGroups({ logGroupNamePrefix: "/aws/lambda/cloudify-" })
+                .describeLogGroups({ logGroupNamePrefix: "/aws/lambda/faast-" })
                 .eachPage((err, page) => {
                     if (err) {
                         warn(`GC: Error when describing log groups: ${err}`);
@@ -737,7 +737,7 @@ export async function collectGarbage(
                     resolve();
                 } else {
                     const funcs = (page.Functions || [])
-                        .filter(fn => fn.FunctionName!.match(/^cloudify-/))
+                        .filter(fn => fn.FunctionName!.match(/^faast-/))
                         .filter(fn => !functionsWithLogGroups.has(fn.FunctionName))
                         .filter(fn => hasExpired(fn.LastModified, retentionInDays))
                         .map(fn => fn.FunctionName!);

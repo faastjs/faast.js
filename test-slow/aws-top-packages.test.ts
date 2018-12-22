@@ -1,4 +1,4 @@
-import { AWS } from "../src/cloudify";
+import { AWS } from "../src/faast";
 import { topPackages, topPackagesAll, topPackagesFailures } from "./top-packages";
 import * as functions from "../test/functions";
 import { Funnel } from "../src/throttle";

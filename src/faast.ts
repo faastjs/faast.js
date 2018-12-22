@@ -1,10 +1,10 @@
 import * as path from "path";
 import * as util from "util";
 import * as uuidv4 from "uuid/v4";
-import * as aws from "./aws/aws-cloudify";
+import * as aws from "./aws/aws-faast";
 import * as costAnalyzer from "./cost";
-import * as google from "./google/google-cloudify";
-import * as local from "./local/local-cloudify";
+import * as google from "./google/google-faast";
+import * as local from "./local/local-faast";
 import { info, logCalls, logLeaks, stats, warn } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import {
@@ -23,7 +23,7 @@ import Module = require("module");
 
 export { aws, google, local, costAnalyzer };
 
-export class CloudifyError extends Error {
+export class FaastError extends Error {
     logUrl?: string;
     constructor(errObj: any, logUrl?: string) {
         let message = errObj.message;
@@ -33,7 +33,7 @@ export class CloudifyError extends Error {
         super(message);
         if (Object.keys(errObj).length === 0 && !(errObj instanceof Error)) {
             warn(
-                `Error response object has no keys, likely a bug in cloudify (not serializing error objects)`
+                `Error response object has no keys, likely a bug in faast (not serializing error objects)`
             );
         }
         this.logUrl = logUrl;
@@ -90,9 +90,9 @@ export interface CommonOptions extends PackerOptions {
 
 function resolveModule(fmodule: string) {
     const parent = module.parent!;
-    if (parent.filename.match(/aws-cloudify/)) {
+    if (parent.filename.match(/aws-faast/)) {
         info(
-            `WARNING: import cloudify before aws-cloudify to avoid problems with module resolution`
+            `WARNING: import faast before aws-faast to avoid problems with module resolution`
         );
     }
     if (path.isAbsolute(fmodule)) {
@@ -124,11 +124,11 @@ export class Cloud<O extends CommonOptions, S> {
 
     async createFunction(modulePath: string, options?: O): Promise<CloudFunction<O, S>> {
         const resolvedModule = resolveModule(modulePath);
-        const cloudifyFunctionId = uuidv4();
+        const functionId = uuidv4();
         return new CloudFunction(
             this,
             this.impl.getFunctionImpl(),
-            await this.impl.initialize(resolvedModule, cloudifyFunctionId, options),
+            await this.impl.initialize(resolvedModule, functionId, options),
             resolvedModule,
             options
         );
@@ -277,7 +277,7 @@ function processResponse<R>(
     if (returned.type === "error") {
         let error = returned.value;
         if (returned.isErrorObject) {
-            error = new CloudifyError(returned.value, logUrl);
+            error = new FaastError(returned.value, logUrl);
         }
         value = Promise.reject(error);
         value.catch(_ => {});
@@ -355,7 +355,7 @@ function processResponse<R>(
             );
             logLeaks(`Logs: ${logUrl}`);
             logLeaks(
-                `These logs show only one example cloudify function invocation that may have a leak.`
+                `These logs show only one example faast function invocation that may have a leak.`
             );
         }
     }
@@ -453,19 +453,17 @@ export class CloudFunction<O extends CommonOptions, S> {
         this.statsTimer = undefined;
     }
 
-    cloudifyModule<M>(fmodule: M): Promisified<M> {
+    wrapModule<M>(fmodule: M): Promisified<M> {
         const rv: any = {};
         for (const name of Object.keys(fmodule)) {
             if (typeof fmodule[name] === "function") {
-                rv[name] = this.cloudifyFunction(fmodule[name]);
+                rv[name] = this.wrapFunction(fmodule[name]);
             }
         }
         return rv;
     }
 
-    protected cloudifyRetryLogic() {}
-
-    cloudifyWithResponse<A extends any[], R>(
+    wrapFunctionWithResponse<A extends any[], R>(
         fn: (...args: A) => R
     ): ResponsifiedFunction<A, R> {
         return async (...args: A) => {
@@ -552,16 +550,14 @@ export class CloudFunction<O extends CommonOptions, S> {
         };
     }
 
-    cloudifyFunction<A extends any[], R>(
-        fn: (...args: A) => R
-    ): PromisifiedFunction<A, R> {
-        const cloudifiedFunc = (...args: A) => {
-            const cfn = this.cloudifyWithResponse(fn);
+    wrapFunction<A extends any[], R>(fn: (...args: A) => R): PromisifiedFunction<A, R> {
+        const wrappedFunc = (...args: A) => {
+            const cfn = this.wrapFunctionWithResponse(fn);
             const promise = cfn(...args).then(response => response.value);
             promise.catch(_ => {});
             return promise;
         };
-        return cloudifiedFunc as any;
+        return wrappedFunc as any;
     }
 
     async costEstimate() {
@@ -581,7 +577,7 @@ export class CloudFunction<O extends CommonOptions, S> {
                         measured: retries,
                         unit: "retry",
                         unitPlural: "retries",
-                        comment: `Retries were ${retryPct}% of requests and may have incurred charges not accounted for by cloudify.`,
+                        comment: `Retries were ${retryPct}% of requests and may have incurred charges not accounted for by faast.`,
                         alwaysZero: true
                     })
                 );
@@ -645,44 +641,44 @@ export function create(cloudName: CloudProvider): Cloud<any, any> {
     return assertNever(cloudName);
 }
 
-export interface Cloudified<O extends CommonOptions, S, M extends object> {
+export interface Wrapped<O extends CommonOptions, S, M extends object> {
     remote: Promisified<M>;
     cloudFunc: CloudFunction<O, S>;
 }
 
-export function cloudify<M extends object>(
+export function faastify<M extends object>(
     cloudName: "aws",
     fmodule: M,
     modulePath: string,
     options?: aws.Options
-): Promise<Cloudified<aws.Options, aws.State, M>>;
-export function cloudify<M extends object>(
+): Promise<Wrapped<aws.Options, aws.State, M>>;
+export function faastify<M extends object>(
     cloudName: "google" | "google-emulator",
     fmodule: M,
     modulePath: string,
     options?: google.Options
-): Promise<Cloudified<google.Options, google.State, M>>;
-export function cloudify<M extends object>(
+): Promise<Wrapped<google.Options, google.State, M>>;
+export function faastify<M extends object>(
     cloudName: "local",
     fmodule: M,
     modulePath: string,
     options?: local.Options
-): Promise<Cloudified<local.Options, local.State, M>>;
-export function cloudify<S, M extends object>(
+): Promise<Wrapped<local.Options, local.State, M>>;
+export function faastify<S, M extends object>(
     cloudName: CloudProvider,
     fmodule: M,
     modulePath: string,
     options?: CommonOptions
-): Promise<Cloudified<CommonOptions, S, M>>;
-export async function cloudify<O extends CommonOptions, S, M extends object>(
+): Promise<Wrapped<CommonOptions, S, M>>;
+export async function faastify<O extends CommonOptions, S, M extends object>(
     cloudProvider: CloudProvider,
     fmodule: M,
     modulePath: string,
     options?: O
-): Promise<Cloudified<O, S, M>> {
+): Promise<Wrapped<O, S, M>> {
     const cloud = create(cloudProvider);
     const cloudFunc = await cloud.createFunction(modulePath, options);
-    const remote = cloudFunc.cloudifyModule(fmodule);
+    const remote = cloudFunc.wrapModule(fmodule);
     return { remote, cloudFunc };
 }
 

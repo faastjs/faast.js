@@ -34,7 +34,7 @@ export interface NpmInstallArgs {
 
 export async function npmInstall({ Bucket, Key, cacheKey, ...args }: NpmInstallArgs) {
     console.log(
-        `*** This cloudify invocation is an internal lambda call used when the packageJson option is specified to createFunction(). ***`
+        `*** This faast invocation is an internal lambda call used when the packageJson option is specified to createFunction(). ***`
     );
     console.log(
         `*** Its purpose is to create a node_modules package and cache it, then combine with user code to form an AWS Lambda code package and upload it to S3 ***`
@@ -45,7 +45,7 @@ export async function npmInstall({ Bucket, Key, cacheKey, ...args }: NpmInstallA
     let rv = "";
     console.log("Checking cache");
     if (cacheKey) {
-        console.log(`Checking cloudify cache S3 bucket: ${Bucket}, key: ${cacheKey}`);
+        console.log(`Checking faast cache S3 bucket: ${Bucket}, key: ${cacheKey}`);
 
         const cached = await s3
             .getObject({ Bucket, Key: cacheKey })

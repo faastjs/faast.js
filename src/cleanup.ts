@@ -8,10 +8,10 @@ import * as inquirer from "inquirer";
 import * as ora from "ora";
 import { tmpdir } from "os";
 import * as path from "path";
-import * as awsCloudify from "./aws/aws-cloudify";
+import * as awsFaast from "./aws/aws-faast";
 import { LocalCache } from "./cache";
 import { readdir, rmrf } from "./fs";
-import * as googleCloudify from "./google/google-cloudify";
+import * as googleFaast from "./google/google-faast";
 import { throttle } from "./throttle";
 
 const warn = console.warn;
@@ -67,7 +67,7 @@ async function deleteResources(
 async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     let nResources = 0;
     const output = (msg: string) => !execute && log(msg);
-    const { cloudwatch, iam, lambda, sns, sqs, s3 } = awsCloudify.createAWSApis(region!);
+    const { cloudwatch, iam, lambda, sns, sqs, s3 } = awsFaast.createAWSApis(region!);
 
     function listAWSResource<T, U>(
         pattern: RegExp,
@@ -121,7 +121,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`SNS subscriptions`);
     await deleteAWSResource(
         "SNS subscription(s)",
-        /:cloudify-/,
+        /:faast-/,
         () => sns.listSubscriptions(),
         page => page.Subscriptions,
         subscription => subscription.SubscriptionArn,
@@ -131,7 +131,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`SNS topics`);
     await deleteAWSResource(
         "SNS topic(s)",
-        /:cloudify-/,
+        /:faast-/,
         () => sns.listTopics(),
         page => page.Topics,
         topic => topic.TopicArn,
@@ -141,7 +141,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`SQS queues`);
     await deleteAWSResource(
         "SQS queue(s)",
-        /\/cloudify-/,
+        /\/faast-/,
         () => sqs.listQueues(),
         page => page.QueueUrls,
         queueUrl => queueUrl,
@@ -151,7 +151,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`Lambda functions`);
     await deleteAWSResource(
         "Lambda function(s)",
-        /^cloudify-/,
+        /^faast-/,
         () => lambda.listFunctions(),
         page => page.Functions,
         func => func.FunctionName,
@@ -161,16 +161,16 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`IAM roles`);
     await deleteAWSResource(
         "IAM role(s)",
-        cleanAll ? /^cloudify-/ : /^cloudify-(?!cached)/,
+        cleanAll ? /^faast-/ : /^faast-(?!cached)/,
         () => iam.listRoles(),
         page => page.Roles,
         role => role.RoleName,
-        RoleName => awsCloudify.deleteRole(RoleName, iam)
+        RoleName => awsFaast.deleteRole(RoleName, iam)
     );
 
     output(`S3 bucket keys`);
     const buckets = await listAWSResource(
-        /^cloudify-/,
+        /^faast-/,
         () => s3.listBuckets(),
         page => page.Buckets,
         bucket => bucket.Name
@@ -189,14 +189,14 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`S3 buckets`);
     await deleteAWSResource(
         "S3 Bucket(s)",
-        /^cloudify-/,
+        /^faast-/,
         () => s3.listBuckets(),
         page => page.Buckets,
         bucket => bucket.Name,
         Bucket => s3.deleteBucket({ Bucket }).promise()
     );
 
-    const cache = await LocalCache.create(".cloudify/aws");
+    const cache = await LocalCache.create(".faast/aws");
     output(`Local cache: ${cache.dir}`);
     const entries = await cache.entries();
     if (!execute) {
@@ -210,7 +210,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`Cloudwatch log groups`);
     await deleteAWSResource(
         "Cloudwatch log group(s)",
-        /\/cloudify-/,
+        /\/faast-/,
         () => cloudwatch.describeLogGroups(),
         page => page.logGroups,
         logGroup => logGroup.logGroupName,
@@ -283,14 +283,14 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
             });
         }
     }
-    const { cloudFunctions, pubsub } = await googleCloudify.initializeGoogleServices();
+    const { cloudFunctions, pubsub } = await googleFaast.initializeGoogleServices();
     const project = await google.auth.getProjectId();
     log(`Default project: ${project}`);
 
     output(`Cloud functions`);
     await deleteGoogleResource(
         "Cloud Function(s)",
-        /cloudify-/,
+        /faast-/,
         (pageToken?: string) =>
             cloudFunctions.projects.locations.functions.list({
                 pageToken,
@@ -304,7 +304,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
     output(`Pub/Sub subscriptions`);
     await deleteGoogleResource(
         "Pub/Sub Subscription(s)",
-        /cloudify-/,
+        /faast-/,
         pageToken =>
             pubsub.projects.subscriptions.list({
                 pageToken,
@@ -319,7 +319,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
     output(`Pub/Sub topics`);
     await deleteGoogleResource(
         "Pub/Sub topic(s)",
-        /topics\/cloudify-/,
+        /topics\/faast-/,
         pageToken =>
             pubsub.projects.topics.list({ pageToken, project: `projects/${project}` }),
         page => page.topics,
@@ -337,12 +337,12 @@ async function cleanupLocal({ execute }: CleanupOptions) {
     let nResources = 0;
     output(`Temporary directories:`);
     for (const entry of dir) {
-        if (entry.match(/^cloudify-[a-f0-9-]+/)) {
+        if (entry.match(/^faast-[a-f0-9-]+/)) {
             nResources++;
-            const cloudifyDir = path.join(tmpDir, entry);
-            output(`${cloudifyDir}`);
+            const faastDir = path.join(tmpDir, entry);
+            output(`${faastDir}`);
             if (execute) {
-                await rmrf(cloudifyDir);
+                await rmrf(faastDir);
             }
         }
     }
@@ -397,7 +397,7 @@ async function main() {
         .option("-v, --verbose", "Verbose mode")
         .option(
             "-a, --all",
-            `(AWS only) Removes the IAM 'cloudify-cached-*' roles, which are used to speed cloudify startup.`
+            `(AWS only) Removes the IAM 'faast-cached-*' roles, which are used to speed startup.`
         )
         .option(
             "-x, --execute",
@@ -413,13 +413,13 @@ async function main() {
             cloud = arg;
         })
         .description(
-            `Cleanup cloudify resources that may have leaked. The <cloud> argument must be "aws", "google", or "local".
+            `Cleanup faast resources that may have leaked. The <cloud> argument must be "aws", "google", or "local".
   By default the output is a dry run and will only print the actions that would be performed if '-x' is specified.`
         );
 
     commander.parse(process.argv);
     if (commander.verbose) {
-        process.env.DEBUG = "cloudify:*";
+        process.env.DEBUG = "faast:*";
     }
     const execute = commander.execute || false;
     let region = commander.region;
@@ -427,10 +427,10 @@ async function main() {
     if (!region) {
         switch (cloud) {
             case "aws":
-                region = awsCloudify.defaults.region;
+                region = awsFaast.defaults.region;
                 break;
             case "google":
-                region = googleCloudify.defaults.region;
+                region = googleFaast.defaults.region;
                 break;
         }
     }

@@ -1,10 +1,10 @@
 import * as sys from "child_process";
 import * as path from "path";
 import { PassThrough } from "stream";
-import * as awsCloudify from "../src/aws/aws-cloudify";
-import * as cloudify from "../src/cloudify";
+import * as awsFaast from "../src/aws/aws-faast";
+import * as faast from "../src/faast";
 import { createWriteStream, readdir, rmrf, stat } from "../src/fs";
-import * as googleCloudify from "../src/google/google-cloudify";
+import * as googleFaast from "../src/google/google-faast";
 import { info, stats, warn } from "../src/log";
 import { unzipInDir } from "../src/packer";
 import { sleep } from "../src/shared";
@@ -12,27 +12,24 @@ import { Pump } from "../src/throttle";
 import * as funcs from "./functions";
 import { Timing } from "./functions";
 
-export function testFunctions(cloudProvider: "aws", options: awsCloudify.Options): void;
+export function testFunctions(cloudProvider: "aws", options: awsFaast.Options): void;
+export function testFunctions(cloudProvider: "local", options: faast.local.Options): void;
 export function testFunctions(
-    cloudProvider: "local",
-    options: cloudify.local.Options
+    cloudProvider: faast.CloudProvider,
+    options: faast.CommonOptions
 ): void;
 export function testFunctions(
-    cloudProvider: cloudify.CloudProvider,
-    options: cloudify.CommonOptions
-): void;
-export function testFunctions(
-    cloudProvider: cloudify.CloudProvider,
-    options: cloudify.CommonOptions
+    cloudProvider: faast.CloudProvider,
+    options: faast.CommonOptions
 ): void {
-    let remote: cloudify.Promisified<typeof funcs>;
-    let cloudFunc: cloudify.AnyCloudFunction;
+    let remote: faast.Promisified<typeof funcs>;
+    let cloudFunc: faast.AnyCloudFunction;
 
     beforeAll(async () => {
         try {
             const start = Date.now();
             const opts = { timeout: 30, memorySize: 512, ...options };
-            ({ remote, cloudFunc } = await cloudify.cloudify(
+            ({ remote, cloudFunc } = await faast.faastify(
                 cloudProvider,
                 funcs,
                 "./functions",
@@ -125,18 +122,18 @@ export function testCodeBundle(
     cloudProvider: "aws",
     packageType: string,
     maxZipFileSize?: number,
-    options?: awsCloudify.Options,
+    options?: awsFaast.Options,
     expectations?: (root: string) => void
 ): void;
 export function testCodeBundle(
     cloudProvider: "google" | "google-emulator",
     packageType: string,
     maxZipFileSize?: number,
-    options?: googleCloudify.Options,
+    options?: googleFaast.Options,
     expectations?: (root: string) => void
 ): void;
 export function testCodeBundle(
-    cloudProvider: cloudify.CloudProvider,
+    cloudProvider: faast.CloudProvider,
     packageType: string,
     maxZipFileSize?: number,
     options?: any,
@@ -148,7 +145,7 @@ export function testCodeBundle(
             const identifier = `func-${cloudProvider}-${packageType}`;
             const tmpDir = path.join("tmp", identifier);
             exec(`mkdir -p ${tmpDir}`);
-            const { archive } = await cloudify
+            const { archive } = await faast
                 .create(cloudProvider)
                 .pack("./functions", options);
 
@@ -166,7 +163,7 @@ export function testCodeBundle(
             const bytes = (await stat(zipFile)).size;
             maxZipFileSize && expect(bytes).toBeLessThan(maxZipFileSize);
             expect(exec(`cd ${tmpDir} && node index.js`)).toMatch(
-                "cloudify: successful cold start."
+                "faast: successful cold start."
             );
             expectations && expectations(tmpDir);
         },
@@ -175,19 +172,19 @@ export function testCodeBundle(
 }
 
 export function testCosts(
-    cloudProvider: cloudify.CloudProvider,
-    options: cloudify.CommonOptions = {}
+    cloudProvider: faast.CloudProvider,
+    options: faast.CommonOptions = {}
 ) {
-    let remote: cloudify.Promisified<typeof funcs>;
-    let cloudFunc: cloudify.AnyCloudFunction;
+    let remote: faast.Promisified<typeof funcs>;
+    let cloudFunc: faast.AnyCloudFunction;
 
     beforeAll(async () => {
-        const args: cloudify.CommonOptions = {
+        const args: faast.CommonOptions = {
             timeout: 30,
             memorySize: 512,
             mode: "queue"
         };
-        ({ remote, cloudFunc } = await cloudify.cloudify(
+        ({ remote, cloudFunc } = await faast.faastify(
             cloudProvider,
             funcs,
             "./functions",
@@ -234,22 +231,22 @@ export function testCosts(
 }
 
 export function testRampUp(
-    cloudProvider: cloudify.CloudProvider,
+    cloudProvider: faast.CloudProvider,
     concurrency: number,
-    options?: cloudify.CommonOptions
+    options?: faast.CommonOptions
 ) {
-    let lambda: cloudify.AnyCloudFunction;
-    let remote: cloudify.Promisified<typeof funcs>;
+    let lambda: faast.AnyCloudFunction;
+    let remote: faast.Promisified<typeof funcs>;
 
     beforeAll(async () => {
         try {
-            const cloud = cloudify.create(cloudProvider);
+            const cloud = faast.create(cloudProvider);
             lambda = await cloud.createFunction("./functions", {
                 ...options,
                 concurrency
             });
             lambda.printStatisticsInterval(1000, stats);
-            remote = lambda.cloudifyModule(funcs);
+            remote = lambda.wrapModule(funcs);
         } catch (err) {
             warn(err);
         }
@@ -293,20 +290,20 @@ export function testRampUp(
 }
 
 export function testThroughput(
-    cloudProvider: cloudify.CloudProvider,
+    cloudProvider: faast.CloudProvider,
     duration: number,
     concurrency: number = 500,
-    options?: cloudify.CommonOptions
+    options?: faast.CommonOptions
 ) {
-    let lambda: cloudify.AnyCloudFunction;
-    let remote: cloudify.Promisified<typeof funcs>;
+    let lambda: faast.AnyCloudFunction;
+    let remote: faast.Promisified<typeof funcs>;
 
     beforeAll(async () => {
         try {
-            const cloud = cloudify.create(cloudProvider);
+            const cloud = faast.create(cloudProvider);
             lambda = await cloud.createFunction("./functions", options);
             lambda.printStatisticsInterval(1000, stats);
-            remote = lambda.cloudifyModule(funcs);
+            remote = lambda.wrapModule(funcs);
         } catch (err) {
             warn(err);
         }
@@ -339,21 +336,21 @@ export function testThroughput(
 }
 
 export function testTimeout(
-    cloudProvider: cloudify.CloudProvider,
-    options?: cloudify.CommonOptions
+    cloudProvider: faast.CloudProvider,
+    options?: faast.CommonOptions
 ) {
-    let remote: cloudify.Promisified<typeof funcs>;
-    let lambda: cloudify.AnyCloudFunction;
+    let remote: faast.Promisified<typeof funcs>;
+    let lambda: faast.AnyCloudFunction;
 
     beforeAll(async () => {
         try {
-            const cloud = cloudify.create(cloudProvider);
+            const cloud = faast.create(cloudProvider);
             lambda = await cloud.createFunction("./functions", {
                 ...options,
                 timeout: 2,
                 maxRetries: 0
             });
-            remote = lambda.cloudifyModule(funcs);
+            remote = lambda.wrapModule(funcs);
         } catch (err) {
             warn(err);
         }
@@ -379,22 +376,22 @@ export function testTimeout(
 }
 
 export function testMemoryLimit(
-    cloudProvider: cloudify.CloudProvider,
-    options?: cloudify.CommonOptions
+    cloudProvider: faast.CloudProvider,
+    options?: faast.CommonOptions
 ) {
-    let remote: cloudify.Promisified<typeof funcs>;
-    let lambda: cloudify.AnyCloudFunction;
+    let remote: faast.Promisified<typeof funcs>;
+    let lambda: faast.AnyCloudFunction;
 
     beforeAll(async () => {
         try {
-            const cloud = cloudify.create(cloudProvider);
+            const cloud = faast.create(cloudProvider);
             lambda = await cloud.createFunction("./functions", {
                 ...options,
                 timeout: 200,
                 memorySize: 256,
                 maxRetries: 0
             });
-            remote = lambda.cloudifyModule(funcs);
+            remote = lambda.wrapModule(funcs);
         } catch (err) {
             warn(err);
         }
@@ -443,7 +440,7 @@ export function quietly<T>(p: Promise<T>) {
     return p.catch(_ => {});
 }
 
-export async function getAWSResources(func: cloudify.AWSLambda) {
+export async function getAWSResources(func: faast.AWSLambda) {
     const { lambda, sns, sqs, s3 } = func.state.services;
     const {
         FunctionName,
@@ -498,7 +495,7 @@ export async function getAWSResources(func: cloudify.AWSLambda) {
     };
 }
 
-export async function getGoogleResources(func: cloudify.GoogleCloudFunction) {
+export async function getGoogleResources(func: faast.GoogleCloudFunction) {
     const { cloudFunctions, pubsub } = func.state.services;
     const {
         trampoline,
@@ -541,7 +538,7 @@ export async function getGoogleResources(func: cloudify.GoogleCloudFunction) {
     };
 }
 
-export async function getLocalResources(func: cloudify.LocalFunction) {
+export async function getLocalResources(func: faast.LocalFunction) {
     const { tempDir } = func.state;
     const dir = await readdir(tempDir).catch(_ => undefined);
     return {

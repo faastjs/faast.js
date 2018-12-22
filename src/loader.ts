@@ -8,7 +8,7 @@ export interface LoaderOptions {
     wrapperOptions: WrapperOptions;
 }
 
-export default function webpackCloudifyLoader(this: any, _source: string) {
+export default function webpackLoader(this: any, _source: string) {
     const options = getOptions(this);
     const rv = `
             const trampolineFactory = require(${options.trampolineFactoryModule});

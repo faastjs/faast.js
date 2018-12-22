@@ -1,4 +1,4 @@
-import * as cloudify from "../src/cloudify";
+import * as faast from "../src/faast";
 import {
     awsConfigurations,
     estimateWorkloadCost,
@@ -7,7 +7,7 @@ import {
 } from "../src/cost";
 import * as funcs from "../test/functions";
 
-async function work(remote: cloudify.Promisified<typeof funcs>) {
+async function work(remote: faast.Promisified<typeof funcs>) {
     await remote.monteCarloPI(20000000);
 }
 

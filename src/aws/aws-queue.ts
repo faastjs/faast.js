@@ -5,7 +5,7 @@ import * as cloudqueue from "../queue";
 import { computeHttpResponseBytes, sum } from "../shared";
 import { Attributes } from "../types";
 import { FunctionCall } from "../wrapper";
-import { AWSMetrics } from "./aws-cloudify";
+import { AWSMetrics } from "./aws-faast";
 
 export function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
     const a = message.MessageAttributes;
@@ -56,7 +56,7 @@ export function publishSQSControlMessage(
     attr?: Attributes
 ) {
     return publishSQS(sqs, QueueUrl, "control message", {
-        cloudify: type,
+        faast: type,
         ...attr
     });
 }
@@ -99,8 +99,8 @@ export function isControlMessage(
     type: cloudqueue.ControlMessageType
 ) {
     const attr = message.MessageAttributes;
-    const cloudify = attr && attr.cloudify;
-    const value = cloudify && cloudify.StringValue;
+    const faast = attr && attr.faast;
+    const value = faast && faast.StringValue;
     return value === type;
 }
 
@@ -146,7 +146,7 @@ export async function receiveMessages(
 
 export function processAWSErrorMessage(message: string) {
     if (message && message.match(/Process exited before completing/)) {
-        message += " (cloudify: possibly out of memory)";
+        message += " (faast: possibly out of memory)";
     }
     return message;
 }

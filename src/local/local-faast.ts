@@ -3,7 +3,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { Writable } from "stream";
 import { promisify } from "util";
-import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../cloudify";
+import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../faast";
 import { info, logGc, warn } from "../log";
 import {
     FunctionCall,
@@ -73,7 +73,7 @@ async function initialize(
     if (gc) {
         gcPromise = collectGarbage(retentionInDays!);
     }
-    const tempDir = join(tmpdir(), "cloudify", nonce);
+    const tempDir = join(tmpdir(), "faast", nonce);
     info(`tempDir: ${tempDir}`);
     await mkdir(tempDir, { recursive: true });
     const logDir = join(tempDir, "logs");
@@ -173,7 +173,7 @@ async function callFunction(
 async function cleanup(state: State): Promise<void> {
     await stop(state);
     const { tempDir } = state;
-    if (tempDir && tempDir.match(/\/cloudify\/[0-9a-f-]+$/) && (await exists(tempDir))) {
+    if (tempDir && tempDir.match(/\/faast\/[0-9a-f-]+$/) && (await exists(tempDir))) {
         info(`Deleting temp dir ${tempDir}`);
         await rmrf(tempDir);
     }
@@ -200,18 +200,18 @@ async function collectGarbage(retentionInDays: number) {
         return;
     }
     garbageCollectorRunning = true;
-    const tmp = join(tmpdir(), "cloudify");
+    const tmp = join(tmpdir(), "faast");
     logGc(tmp);
     try {
         const dir = await readdir(tmp);
         for (const entry of dir) {
             if (entry.match(/^[a-f0-9-]+$/)) {
-                const cloudifyDir = join(tmp, entry);
+                const faastDir = join(tmp, entry);
                 try {
-                    const stats = await stat(cloudifyDir);
+                    const stats = await stat(faastDir);
                     if (hasExpired(stats.atimeMs, retentionInDays)) {
-                        logGc(cloudifyDir);
-                        await rmrf(cloudifyDir);
+                        logGc(faastDir);
+                        await rmrf(faastDir);
                     }
                 } catch (err) {}
             }

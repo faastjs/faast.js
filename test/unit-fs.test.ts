@@ -25,7 +25,7 @@ describe("fs module tests", () => {
     });
 
     test("mkdir succeeds on directories that already exist", async () => {
-        const dir = path.join(tmpdir(), "cloudify-test");
+        const dir = path.join(tmpdir(), "faast-test");
         expect(await mkdir(dir)).toBeUndefined();
         expect(await mkdir(dir)).toBeUndefined();
         expect(await exists(dir)).toBe(true);
@@ -33,7 +33,7 @@ describe("fs module tests", () => {
     });
 
     test("mkdir recursive", async () => {
-        const testDir = path.join(tmpdir(), "cloudify-test");
+        const testDir = path.join(tmpdir(), "faast-test");
         const dir = path.join(testDir, uuidv4(), uuidv4());
         expect(await mkdir(dir, { recursive: true })).toBeUndefined();
         expect(await exists(dir)).toBe(true);

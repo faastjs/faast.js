@@ -14,7 +14,7 @@ import {
     CommonOptions,
     FunctionCounters,
     FunctionStats
-} from "../cloudify";
+} from "../faast";
 import { CostBreakdown, CostMetric } from "../cost";
 import { info, logGc, logPricing, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
@@ -311,7 +311,7 @@ async function initializeWithApi(
         return uploadUrlResponse.uploadUrl;
     }
 
-    const functionName = "cloudify-" + nonce;
+    const functionName = "faast-" + nonce;
     const trampoline = `projects/${project}/locations/${region}/functions/${functionName}`;
 
     const resources: Mutable<GoogleResources> = {
@@ -449,7 +449,7 @@ async function initializeGoogleQueue(
             publish(pubsub, resources.requestQueueTopic!, body, attributes, metrics),
         publishReceiveQueueControlMessage: type =>
             publishControlMessage(type, pubsub, resources.responseQueueTopic!),
-        isControlMessage: (m, value) => pubsubMessageAttribute(m, "cloudify") === value,
+        isControlMessage: (m, value) => pubsubMessageAttribute(m, "faast") === value,
         deadLetterMessages: _ => undefined
     };
 }
@@ -499,7 +499,7 @@ async function callFunctionHttps(
         if (response) {
             const interpretation =
                 response && response.status === 503
-                    ? " (cloudify: possibly out of memory error)"
+                    ? " (faast: possibly out of memory error)"
                     : "";
             error = new Error(
                 `${response.status} ${response.statusText} ${
@@ -626,7 +626,7 @@ async function collectGarbage(
             pageToken = funcListResponse.data.nextPageToken;
             const garbageFunctions = (funcListResponse.data.functions || [])
                 .filter(fn => hasExpired(fn.updateTime, retentionInDays))
-                .filter(fn => fn.name!.match(`/functions/cloudify-[a-f0-9-]+$`));
+                .filter(fn => fn.name!.match(`/functions/faast-[a-f0-9-]+$`));
 
             promises = garbageFunctions.map(fn => scheduleDeleteResources(services, fn));
         } while (pageToken);

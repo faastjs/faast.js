@@ -117,8 +117,8 @@ export class Wrapper {
         this.log = options.log || console.log;
         this.funcs = fModule;
 
-        if (process.env["CLOUDIFY_CHILD"]) {
-            this.log(`cloudify: started child process for module wrapper.`);
+        if (process.env["FAAST_CHILD"]) {
+            this.log(`faast: started child process for module wrapper.`);
             process.on("message", async (call: FunctionCall) => {
                 const startTime = Date.now();
                 try {
@@ -129,7 +129,7 @@ export class Wrapper {
                 }
             });
         } else {
-            this.log(`cloudify: successful cold start.`);
+            this.log(`faast: successful cold start.`);
         }
     }
 
@@ -162,8 +162,8 @@ export class Wrapper {
     async execute(callingContext: CallingContext): Promise<FunctionReturn> {
         try {
             if (this.executing) {
-                this.log(`cloudify: warning: module wrapper execute is not re-entrant`);
-                throw new Error(`cloudify: module wrapper is not re-entrant`);
+                this.log(`faast: warning: module wrapper execute is not re-entrant`);
+                throw new Error(`faast: module wrapper is not re-entrant`);
             }
             this.executing = true;
 
@@ -174,7 +174,7 @@ export class Wrapper {
                 if (!this.child) {
                     this.child = this.setupChildProcess();
                 }
-                this.log(`cloudify: invoking '${call.name}' in child process`);
+                this.log(`faast: invoking '${call.name}' in child process`);
                 this.child.send({ ...call, useChildProcess: false }, err => {
                     if (err) {
                         logWrapper(`child send error: rejecting deferred on ${err}`);
@@ -209,11 +209,11 @@ export class Wrapper {
                     compact: true,
                     breakLength: Infinity
                 });
-                this.log(`cloudify: Invoking '${call.name}', memory: ${memInfo}`);
+                this.log(`faast: Invoking '${call.name}', memory: ${memInfo}`);
                 const func = this.lookupFunction(call);
                 if (!func) {
                     throw new Error(
-                        `cloudify: module wrapper: could not find function '${call.name}'`
+                        `faast: module wrapper: could not find function '${call.name}'`
                     );
                 }
                 const returned = await func.apply(undefined, call.args);
@@ -233,7 +233,7 @@ export class Wrapper {
             }
         } catch (err) {
             logWrapper(`wrapper function exception: ${err}`);
-            this.log(`cloudify: wrapped function exception or promise rejection: ${err}`);
+            this.log(`faast: wrapped function exception or promise rejection: ${err}`);
             return createErrorResponse(err, callingContext);
         } finally {
             this.executing = false;
@@ -251,7 +251,7 @@ export class Wrapper {
     };
 
     private setupChildProcess() {
-        this.log(`cloudify: creating child process`);
+        this.log(`faast: creating child process`);
 
         let execArgv = process.execArgv.slice();
         if (this.options.childProcessMemoryLimitMb) {
@@ -265,7 +265,7 @@ export class Wrapper {
 
         const child = childProcess.fork("./index.js", [], {
             silent: true, // redirects stdout and stderr to IPC.
-            env: { CLOUDIFY_CHILD: "true" },
+            env: { FAAST_CHILD: "true" },
             cwd: this.options.childDir,
             execArgv
         });
@@ -348,7 +348,7 @@ export function serializeCall(call: FunctionCall) {
         deepStrictEqual(deserialized, call);
     } catch (_) {
         throw new Error(
-            `cloudify: Detected '${
+            `faast: Detected '${
                 call.name
             }' is not supported because one of its arguments cannot be serialized by JSON.stringify
   original arguments: ${inspect(call.args)}

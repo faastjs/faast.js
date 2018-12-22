@@ -2,7 +2,7 @@ import { pubsub_v1 } from "googleapis";
 import * as cloudqueue from "../queue";
 import { computeHttpResponseBytes } from "../shared";
 import { Attributes } from "../types";
-import { GoogleMetrics } from "./google-cloudify";
+import { GoogleMetrics } from "./google-faast";
 import PubSubApi = pubsub_v1;
 
 export function pubsubMessageAttribute(
@@ -45,7 +45,7 @@ export function publishControlMessage(
     topic: string,
     attr?: Attributes
 ) {
-    return publish(pubsub, topic, "empty", { cloudify: type, ...attr });
+    return publish(pubsub, topic, "empty", { faast: type, ...attr });
 }
 
 export function getMessageBody(received: PubSubApi.Schema$ReceivedMessage) {

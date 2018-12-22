@@ -6,7 +6,7 @@ let cache: LocalCache;
 
 describe("Local cache", () => {
     beforeEach(async () => {
-        cache = await LocalCache.create(".cloudify/test");
+        cache = await LocalCache.create(".faast/test");
         await cache.clear();
     });
 
@@ -25,7 +25,7 @@ describe("Local cache", () => {
     });
 
     test("ignores entries after they expire", async () => {
-        const cache2 = await LocalCache.create(".cloudify/test", 100);
+        const cache2 = await LocalCache.create(".faast/test", 100);
         await cache2.set("foo", "bar");
         let result = await cache2.get("foo");
         expect(result && result.toString()).toBeDefined();
@@ -51,7 +51,7 @@ describe("Local cache", () => {
 
     test("cache values are persistent", async () => {
         await cache.set("persistentKey", "persistent");
-        const cache2 = await LocalCache.create(".cloudify/test");
+        const cache2 = await LocalCache.create(".faast/test");
         const result2 = await cache2.get("persistentKey");
         expect(result2 && result2.toString()).toBe("persistent");
     });

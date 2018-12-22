@@ -1,13 +1,13 @@
 import { tmpdir } from "os";
 import { join } from "path";
-import * as cloudify from "../src/cloudify";
+import * as faast from "../src/faast";
 import { readdir } from "../src/fs";
 import * as functions from "../test/functions";
 import { checkResourcesCleanedUp, getLocalResources } from "../test/tests";
 
 async function checkLocalTempDirectoryCleanedUp() {
-    const cloudifyDir = join(tmpdir(), "cloudify");
-    const entries = await readdir(cloudifyDir);
+    const dir = join(tmpdir(), "faast");
+    const entries = await readdir(dir);
     expect(entries.length).toBe(0);
 }
 
@@ -17,9 +17,9 @@ test("garbage collector works for functions that are called", async () => {
     // function and set its retention to 0, and have its garbage collector
     // clean up the first function. Verify the first function's resources
     // are cleaned up, which shows that the garbage collector did its job.
-    const cloud = cloudify.create("local");
+    const cloud = faast.create("local");
     const func = await cloud.createFunction("../test/functions");
-    const remote = func.cloudifyModule(functions);
+    const remote = func.wrapModule(functions);
 
     await remote.hello("gc-test");
     await func.stop();
@@ -33,7 +33,7 @@ test("garbage collector works for functions that are called", async () => {
 });
 
 test("garbage collector works for functions that are never called", async () => {
-    const cloud = cloudify.create("local");
+    const cloud = faast.create("local");
     const func = await cloud.createFunction("../test/functions");
     await func.stop();
     const func2 = await cloud.createFunction("../test/functions", {
