@@ -121,7 +121,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`SNS subscriptions`);
     await deleteAWSResource(
         "SNS subscription(s)",
-        /:faast-/,
+        /(:faast-)|(:cloudify-)/,
         () => sns.listSubscriptions(),
         page => page.Subscriptions,
         subscription => subscription.SubscriptionArn,
@@ -131,7 +131,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`SNS topics`);
     await deleteAWSResource(
         "SNS topic(s)",
-        /:faast-/,
+        /(:faast-)|(:cloudify-)/,
         () => sns.listTopics(),
         page => page.Topics,
         topic => topic.TopicArn,
@@ -141,7 +141,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`SQS queues`);
     await deleteAWSResource(
         "SQS queue(s)",
-        /\/faast-/,
+        /(\/faast-)|(\/cloudify-)/,
         () => sqs.listQueues(),
         page => page.QueueUrls,
         queueUrl => queueUrl,
@@ -151,7 +151,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`Lambda functions`);
     await deleteAWSResource(
         "Lambda function(s)",
-        /^faast-/,
+        /^(faast-)|(cloudify-)/,
         () => lambda.listFunctions(),
         page => page.Functions,
         func => func.FunctionName,
@@ -161,7 +161,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`IAM roles`);
     await deleteAWSResource(
         "IAM role(s)",
-        cleanAll ? /^faast-/ : /^faast-(?!cached)/,
+        cleanAll ? /^(faast-)|(cloudify-)/ : /^(faast-)|(cloudify-)(?!cached)/,
         () => iam.listRoles(),
         page => page.Roles,
         role => role.RoleName,
@@ -170,7 +170,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
 
     output(`S3 bucket keys`);
     const buckets = await listAWSResource(
-        /^faast-/,
+        /^(faast-)|(cloudify-)/,
         () => s3.listBuckets(),
         page => page.Buckets,
         bucket => bucket.Name
@@ -189,7 +189,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`S3 buckets`);
     await deleteAWSResource(
         "S3 Bucket(s)",
-        /^faast-/,
+        /^(faast-)|(cloudify-)/,
         () => s3.listBuckets(),
         page => page.Buckets,
         bucket => bucket.Name,
@@ -210,7 +210,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`Cloudwatch log groups`);
     await deleteAWSResource(
         "Cloudwatch log group(s)",
-        /\/faast-/,
+        /(\/faast-)|(\/cloudify-)/,
         () => cloudwatch.describeLogGroups(),
         page => page.logGroups,
         logGroup => logGroup.logGroupName,
