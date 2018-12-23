@@ -1,6 +1,6 @@
 [![CircleCI](https://circleci.com/gh/acchou/faast.js.svg?style=svg&circle-token=c97f196a78c7173d6ca4e5fc9f09c2cba4ab0647)](https://circleci.com/gh/acchou/faast.js)
 
-![node 10 build status for acchou/faast.js](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiV3hCQVcvcTBGeE9nWU11K05YL2NPOUl2UGRXQkpHY1BvT3JqMGlqbWNrcE05K3ErZUwya0tpSU9EVnMzb21uYkROVTUwZWZJWFN0dlFYa2VEN2JleWwwPSIsIml2UGFyYW1ldGVyU3BlYyI6IjBCbWJGVGFUaTdVWHR3T3MiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
+![node 10 build status for acchou/faast.js](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiQloyRTRBWFBrckRpMmlIVmNDenF2ZFNLK3FBNHRxZHZkN2Y0eU1qSHV2QS81WnBiSCs0RlhhYVltYmF2bGRDU2xsTEJqRnpyMDRYUnRxM0o5aUI3T2M4PSIsIml2UGFyYW1ldGVyU3BlYyI6Im1NdVpnY3I5SnBVWnlNTnMiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
 
 # Faast.js
 
