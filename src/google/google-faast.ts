@@ -23,7 +23,8 @@ import {
     CommonOptionDefaults,
     computeHttpResponseBytes,
     hasExpired,
-    sleep
+    sleep,
+    uuidv4Pattern
 } from "../shared";
 import { retry, throttle } from "../throttle";
 import { Mutable } from "../types";
@@ -616,6 +617,7 @@ async function collectGarbage(
             deleteFunctionResources
         );
 
+        const fnPattern = new RegExp(`/functions/faast-${uuidv4Pattern}$`);
         do {
             const funcListResponse = await retry(3, () =>
                 cloudFunctions.projects.locations.functions.list({
@@ -626,7 +628,7 @@ async function collectGarbage(
             pageToken = funcListResponse.data.nextPageToken;
             const garbageFunctions = (funcListResponse.data.functions || [])
                 .filter(fn => hasExpired(fn.updateTime, retentionInDays))
-                .filter(fn => fn.name!.match(`/functions/faast-[a-f0-9-]+$`));
+                .filter(fn => fn.name!.match(fnPattern));
 
             promises = garbageFunctions.map(fn => scheduleDeleteResources(services, fn));
         } while (pageToken);

@@ -19,7 +19,8 @@ import {
     CommonOptionDefaults,
     computeHttpResponseBytes,
     hasExpired,
-    sleep
+    sleep,
+    uuidv4Pattern
 } from "../shared";
 import { Funnel, retry, throttle } from "../throttle";
 import {
@@ -663,8 +664,10 @@ export async function cleanup(state: PartialState) {
 
 let garbageCollectorRunning = false;
 
+const logGroupNameRegexp = new RegExp(`^/aws/lambda/(faast-${uuidv4Pattern})$`);
+
 function functionNameFromLogGroup(logGroupName: string) {
-    const match = logGroupName.match(/\/aws\/lambda\/(faast-[a-f0-9-]+)/);
+    const match = logGroupName.match(logGroupNameRegexp);
     return match && match[1];
 }
 
@@ -736,8 +739,9 @@ export async function collectGarbage(
                 if (page === null) {
                     resolve();
                 } else {
+                    const fnPattern = new RegExp(`^faast-${uuidv4Pattern}$`);
                     const funcs = (page.Functions || [])
-                        .filter(fn => fn.FunctionName!.match(/^faast-/))
+                        .filter(fn => fn.FunctionName!.match(fnPattern))
                         .filter(fn => !functionsWithLogGroups.has(fn.FunctionName))
                         .filter(fn => hasExpired(fn.LastModified, retentionInDays))
                         .map(fn => fn.FunctionName!);

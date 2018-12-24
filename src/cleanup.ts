@@ -13,6 +13,7 @@ import { LocalCache } from "./cache";
 import { readdir, rmrf } from "./fs";
 import * as googleFaast from "./google/google-faast";
 import { throttle } from "./throttle";
+import { uuidv4Pattern } from "./shared";
 
 const warn = console.warn;
 const log = console.log;
@@ -20,7 +21,6 @@ const log = console.log;
 interface CleanupOptions {
     region?: string; // AWS and Google only.
     execute: boolean;
-    cleanAll?: boolean; // AWS only
 }
 
 async function deleteResources(
@@ -64,7 +64,7 @@ async function deleteResources(
     }
 }
 
-async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
+async function cleanupAWS({ region, execute }: CleanupOptions) {
     let nResources = 0;
     const output = (msg: string) => !execute && log(msg);
     const { cloudwatch, iam, lambda, sns, sqs, s3 } = awsFaast.createAWSApis(region!);
@@ -121,7 +121,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`SNS subscriptions`);
     await deleteAWSResource(
         "SNS subscription(s)",
-        /(:faast-)|(:cloudify-)/,
+        new RegExp(`:faast-${uuidv4Pattern}`),
         () => sns.listSubscriptions(),
         page => page.Subscriptions,
         subscription => subscription.SubscriptionArn,
@@ -131,7 +131,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`SNS topics`);
     await deleteAWSResource(
         "SNS topic(s)",
-        /(:faast-)|(:cloudify-)/,
+        new RegExp(`:faast-${uuidv4Pattern}`),
         () => sns.listTopics(),
         page => page.Topics,
         topic => topic.TopicArn,
@@ -141,7 +141,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`SQS queues`);
     await deleteAWSResource(
         "SQS queue(s)",
-        /(\/faast-)|(\/cloudify-)/,
+        new RegExp(`/faast-${uuidv4Pattern}`),
         () => sqs.listQueues(),
         page => page.QueueUrls,
         queueUrl => queueUrl,
@@ -151,7 +151,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`Lambda functions`);
     await deleteAWSResource(
         "Lambda function(s)",
-        /^(faast-)|(cloudify-)/,
+        new RegExp(`^faast-${uuidv4Pattern}`),
         () => lambda.listFunctions(),
         page => page.Functions,
         func => func.FunctionName,
@@ -161,7 +161,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`IAM roles`);
     await deleteAWSResource(
         "IAM role(s)",
-        cleanAll ? /^(faast-)|(cloudify-)/ : /^(faast-)|(cloudify-)(?!cached)/,
+        /^faast-cached-lambda-role$/,
         () => iam.listRoles(),
         page => page.Roles,
         role => role.RoleName,
@@ -170,7 +170,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
 
     output(`S3 bucket keys`);
     const buckets = await listAWSResource(
-        /^(faast-)|(cloudify-)/,
+        new RegExp(`^faast-${uuidv4Pattern}$`),
         () => s3.listBuckets(),
         page => page.Buckets,
         bucket => bucket.Name
@@ -189,7 +189,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`S3 buckets`);
     await deleteAWSResource(
         "S3 Bucket(s)",
-        /^(faast-)|(cloudify-)/,
+        new RegExp(`^faast-${uuidv4Pattern}$`),
         () => s3.listBuckets(),
         page => page.Buckets,
         bucket => bucket.Name,
@@ -210,7 +210,7 @@ async function cleanupAWS({ region, execute, cleanAll }: CleanupOptions) {
     output(`Cloudwatch log groups`);
     await deleteAWSResource(
         "Cloudwatch log group(s)",
-        /(\/faast-)|(\/cloudify-)/,
+        new RegExp(`/faast-${uuidv4Pattern}$`),
         () => cloudwatch.describeLogGroups(),
         page => page.logGroups,
         logGroup => logGroup.logGroupName,
@@ -290,7 +290,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
     output(`Cloud functions`);
     await deleteGoogleResource(
         "Cloud Function(s)",
-        /faast-/,
+        new RegExp(`faast-${uuidv4Pattern}`),
         (pageToken?: string) =>
             cloudFunctions.projects.locations.functions.list({
                 pageToken,
@@ -304,7 +304,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
     output(`Pub/Sub subscriptions`);
     await deleteGoogleResource(
         "Pub/Sub Subscription(s)",
-        /faast-/,
+        new RegExp(`faast-${uuidv4Pattern}`),
         pageToken =>
             pubsub.projects.subscriptions.list({
                 pageToken,
@@ -319,7 +319,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
     output(`Pub/Sub topics`);
     await deleteGoogleResource(
         "Pub/Sub topic(s)",
-        /topics\/faast-/,
+        new RegExp(`topics/faast-${uuidv4Pattern}`),
         pageToken =>
             pubsub.projects.topics.list({ pageToken, project: `projects/${project}` }),
         page => page.topics,
@@ -336,8 +336,9 @@ async function cleanupLocal({ execute }: CleanupOptions) {
     const dir = await readdir(tmpDir);
     let nResources = 0;
     output(`Temporary directories:`);
+    const entryRegexp = new RegExp(`^faast-${uuidv4Pattern}$`);
     for (const entry of dir) {
-        if (entry.match(/^faast-[a-f0-9-]+/)) {
+        if (entry.match(entryRegexp)) {
             nResources++;
             const faastDir = path.join(tmpDir, entry);
             output(`${faastDir}`);
@@ -396,10 +397,6 @@ async function main() {
         .version("0.1.0")
         .option("-v, --verbose", "Verbose mode")
         .option(
-            "-a, --all",
-            `(AWS only) Removes the IAM 'faast-cached-*' roles, which are used to speed startup.`
-        )
-        .option(
             "-x, --execute",
             "Execute the cleanup process. If this option is not specified, the output will be a dry run."
         )
@@ -435,10 +432,9 @@ async function main() {
         }
     }
     const force = commander.force || false;
-    const cleanAll = commander.all || false;
 
     region && log(`Region: ${region}`);
-    const options = { region, execute, cleanAll };
+    const options = { region, execute };
     let nResources = 0;
     if (execute && !force) {
         nResources = await runCleanup(cloud, { ...options, execute: false });

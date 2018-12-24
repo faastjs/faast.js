@@ -13,7 +13,7 @@ import {
     serializeCall
 } from "../wrapper";
 import { packer, PackerOptions, PackerResult, unzipInDir } from "../packer";
-import { CommonOptionDefaults, hasExpired } from "../shared";
+import { CommonOptionDefaults, hasExpired, uuidv4Pattern } from "../shared";
 import { mkdir, readdir, stat, exists, rmrf, createWriteStream } from "../fs";
 import * as localTrampolineFactory from "./local-trampoline";
 
@@ -173,7 +173,8 @@ async function callFunction(
 async function cleanup(state: State): Promise<void> {
     await stop(state);
     const { tempDir } = state;
-    if (tempDir && tempDir.match(/\/faast\/[0-9a-f-]+$/) && (await exists(tempDir))) {
+    const pattern = new RegExp(`/faast/${uuidv4Pattern}$`);
+    if (tempDir && tempDir.match(pattern) && (await exists(tempDir))) {
         info(`Deleting temp dir ${tempDir}`);
         await rmrf(tempDir);
     }
@@ -204,8 +205,9 @@ async function collectGarbage(retentionInDays: number) {
     logGc(tmp);
     try {
         const dir = await readdir(tmp);
+        const pattern = new RegExp(`^${uuidv4Pattern}$`);
         for (const entry of dir) {
-            if (entry.match(/^[a-f0-9-]+$/)) {
+            if (entry.match(pattern)) {
                 const faastDir = join(tmp, entry);
                 try {
                     const stats = await stat(faastDir);
