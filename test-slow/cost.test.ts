@@ -21,11 +21,7 @@ const configs = [
 test(
     "Cost analyzer",
     async () => {
-        const profile = await estimateWorkloadCost(
-            "../test-slow/functions",
-            work,
-            configs
-        );
+        const profile = await estimateWorkloadCost("../test/functions", work, configs);
 
         console.log(toCSV(profile));
         expect(profile.length).toBe(configs.length);
