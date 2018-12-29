@@ -1,7 +1,16 @@
 import { sleep } from "../src/shared";
-import { Deferred, Funnel, Pump, RateLimiter, retry, throttle } from "../src/throttle";
+import {
+    Deferred,
+    Funnel,
+    Pump,
+    RateLimiter,
+    retry,
+    throttle,
+    cacheFn
+} from "../src/throttle";
 import { timer, Timing } from "./functions";
 import { measureConcurrency } from "./tests";
+import { LocalCache } from "../src/cache";
 
 describe("Deferred promise", () => {
     test("resolves its promise", async () => {
@@ -299,6 +308,74 @@ describe("memoize", () => {
     });
 });
 
+describe("caching function values on disk", () => {
+    let cache: LocalCache;
+    beforeEach(() => {
+        cache = new LocalCache(".faast/test");
+    });
+    afterEach(async () => {
+        await cache.clear();
+    });
+    test("saves values in cache", async () => {
+        let counter = 0;
+        function fn(_: number) {
+            return Promise.resolve(counter++);
+        }
+        const mfn = cacheFn(cache, fn);
+        await mfn(0);
+        await mfn(7);
+        await mfn(0);
+        expect(counter).toBe(2);
+
+        const mfn2 = cacheFn(cache, fn);
+        await mfn2(0);
+        await mfn2(7);
+        await mfn2(0);
+        await mfn2(10);
+        expect(counter).toBe(3);
+    });
+
+    test("string arguments", async () => {
+        let counter = 0;
+        function fn(_: string) {
+            return Promise.resolve(counter++);
+        }
+        const mfn = cacheFn(cache, fn);
+        await mfn("a");
+        await mfn("b");
+        await mfn("a");
+        expect(counter).toBe(2);
+    });
+
+    test("object arguments", async () => {
+        let counter = 0;
+        function fn(_: { f: string; i: number }) {
+            return Promise.resolve(counter++);
+        }
+        const mfn = cacheFn(cache, fn);
+        await mfn({ f: "field", i: 42 });
+        await mfn({ f: "field", i: 1 });
+        await mfn({ f: "other", i: 42 });
+        await mfn({ f: "field", i: 42 });
+        expect(counter).toBe(3);
+    });
+
+    test("does not cache promise rejection from cached function", async () => {
+        let counter = 0;
+        function fn(_: number) {
+            counter++;
+            return Promise.reject(new Error("rejection"));
+        }
+        let caught = 0;
+        const mfn = cacheFn(cache, fn);
+        await mfn(1).catch(_ => caught++);
+        await mfn(2).catch(_ => caught++);
+        await mfn(1).catch(_ => caught++);
+        expect(counter).toBe(3);
+        expect(caught).toBe(3);
+    });
+});
+
 function measureMaxRequestRatePerSecond(timings: Timing[]) {
     const requestsPerSecondStartingAt = timings
         .map(t => t.start)
@@ -398,4 +475,89 @@ describe("throttle", () => {
         },
         10 * 1000
     );
+
+    test("memoizes", async () => {
+        const concurrency = 1;
+        const rate = 100;
+        let counter = 0;
+        const N = 5;
+        async function fn(_: number) {
+            counter++;
+        }
+        const throttledFn = throttle({ concurrency, rate, memoize: true }, fn);
+
+        const promises = [];
+        for (let i = 0; i < N; i++) {
+            promises.push(throttledFn(i));
+        }
+        for (let i = 0; i < N; i++) {
+            promises.push(throttledFn(i));
+        }
+
+        await Promise.all(promises);
+        expect(counter).toBe(N);
+    });
+
+    let cache: LocalCache;
+
+    afterEach(async () => {
+        if (cache) {
+            await cache.clear();
+        }
+    });
+
+    test("caches on disk", async () => {
+        const concurrency = 1;
+        const rate = 100;
+        let counter = 0;
+        cache = new LocalCache(".faast/test");
+
+        async function fn(_: number) {
+            return counter++;
+        }
+
+        const throttledFn = throttle({ concurrency, rate, cache }, fn);
+
+        const v = await throttledFn(10);
+        expect(v).toBe(0);
+
+        const throttledFn2 = throttle({ concurrency, rate, cache }, fn);
+
+        const u1 = await throttledFn2(10);
+        const u2 = await throttledFn2(20);
+
+        expect(u1).toBe(0);
+        expect(u2).toBe(1);
+        expect(counter).toBe(2);
+    });
+
+    test("caching and memoization work together", async () => {
+        const concurrency = 1;
+        const rate = 100;
+        let counter = 0;
+        cache = new LocalCache(".faast/test");
+
+        async function fn(_: number) {
+            return counter++;
+        }
+
+        const throttledFn = throttle({ concurrency, rate, memoize: true, cache }, fn);
+
+        const v = await throttledFn(10);
+        const v2 = await throttledFn(10);
+        expect(v).toBe(0);
+        expect(v2).toBe(0);
+
+        const throttledFn2 = throttle({ concurrency, rate, memoize: true, cache }, fn);
+
+        const u1 = await throttledFn2(10);
+        const u2 = await throttledFn2(20);
+        const u3 = await throttledFn2(10);
+
+        expect(u1).toBe(0);
+        expect(u2).toBe(1);
+        expect(u3).toBe(0);
+
+        expect(counter).toBe(2);
+    });
 });

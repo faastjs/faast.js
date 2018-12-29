@@ -9,11 +9,11 @@ import * as ora from "ora";
 import { tmpdir } from "os";
 import * as path from "path";
 import * as awsFaast from "./aws/aws-faast";
-import { LocalCache } from "./cache";
+import { LocalCache, caches } from "./cache";
 import { readdir, rmrf } from "./fs";
 import * as googleFaast from "./google/google-faast";
-import { throttle } from "./throttle";
 import { uuidv4Pattern } from "./shared";
+import { throttle } from "./throttle";
 
 const warn = console.warn;
 const log = console.log;
@@ -196,15 +196,20 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
         Bucket => s3.deleteBucket({ Bucket }).promise()
     );
 
-    const cache = await LocalCache.create(".faast/aws");
-    output(`Local cache: ${cache.dir}`);
-    const entries = await cache.entries();
-    if (!execute) {
-        output(`  cache entries: ${entries.length}`);
+    async function cleanupCacheDir(cache: LocalCache) {
+        output(`Local cache: ${cache.dir}`);
+        const entries = await cache.entries();
+        if (!execute) {
+            output(`  cache entries: ${entries.length}`);
+        }
+        nResources += entries.length;
+        if (execute) {
+            cache.clear();
+        }
     }
-    nResources += entries.length;
-    if (execute) {
-        cache.clear();
+
+    for (const cache of Object.keys(caches)) {
+        await cleanupCacheDir(await caches[cache]);
     }
 
     output(`Cloudwatch log groups`);

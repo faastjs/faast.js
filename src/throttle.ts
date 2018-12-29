@@ -1,6 +1,8 @@
 import * as assert from "assert";
 import { sleep } from "./shared";
 import { PromiseFn } from "./types";
+import { LocalCache } from "./cache";
+import { createHash } from "crypto";
 
 export class Deferred<T = void> {
     promise: Promise<T>;
@@ -233,10 +235,11 @@ interface Limits {
     burst?: number;
     retry?: number | ((err: any, retries: number) => boolean);
     memoize?: boolean;
+    cache?: LocalCache;
 }
 
 export function memoizeFn<A extends any[], R>(fn: (...args: A) => R) {
-    const cache: Map<string, R> = new Map();
+    const cache = new Map<string, R>();
     return (...args: A) => {
         const key = JSON.stringify(args);
         const prev = cache.get(key);
@@ -249,14 +252,45 @@ export function memoizeFn<A extends any[], R>(fn: (...args: A) => R) {
     };
 }
 
+export function cacheFn<A extends any[], R>(
+    cache: LocalCache,
+    fn: (...args: A) => Promise<R>
+) {
+    return async (...args: A) => {
+        const key = JSON.stringify(args);
+
+        const hasher = createHash("sha256");
+        hasher.update(key);
+        const cacheKey = hasher.digest("hex");
+
+        const prev = await cache.get(cacheKey);
+        if (prev) {
+            const str = prev.toString();
+            if (str === "undefined") {
+                return undefined;
+            }
+            return JSON.parse(str);
+        }
+        const value = await fn(...args);
+        await cache.set(cacheKey, JSON.stringify(value));
+        return value;
+    };
+}
+
 export function throttle<A extends any[], R>(
-    { concurrency, retry: retryN, rate, burst, memoize }: Limits,
+    { concurrency, retry: retryN, rate, burst, memoize, cache }: Limits,
     fn: PromiseFn<A, R>
 ) {
     const funnel = new Funnel<R>(concurrency, retryN);
     const rateLimiter = new RateLimiter<R>(rate, burst);
 
-    const conditionedFunc = (...args: A) =>
+    let conditionedFunc = (...args: A) =>
         funnel.push(() => rateLimiter.push(() => fn(...args)));
-    return memoize ? memoizeFn(conditionedFunc) : conditionedFunc;
+    if (cache) {
+        conditionedFunc = cacheFn(cache, conditionedFunc);
+    }
+    if (memoize) {
+        conditionedFunc = memoizeFn(conditionedFunc);
+    }
+    return conditionedFunc;
 }

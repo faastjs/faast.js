@@ -14,15 +14,12 @@ import { exists, mkdir, readdir, readFile, rmrf, stat, writeFile } from "./fs";
  * @class LocalCache
  */
 export class LocalCache {
-    static async create(
-        dirRelativeToHomeDir: string,
-        expiration: number = 24 * 3600 * 1000
-    ) {
-        const rv = new LocalCache(dirRelativeToHomeDir, expiration);
-        if (!(await exists(rv.dir))) {
-            await mkdir(rv.dir, { mode: 0o700, recursive: true });
+    initialized: Promise<void>;
+
+    protected static async initialize(dir: string) {
+        if (!(await exists(dir))) {
+            await mkdir(dir, { mode: 0o700, recursive: true });
         }
-        return rv;
     }
 
     readonly dir: string;
@@ -34,11 +31,12 @@ export class LocalCache {
      * @param {number} [expiration=24 * 3600 * 1000] The age (in seconds) after
      * which a cached entry is invalid
      */
-    protected constructor(
+    constructor(
         readonly dirRelativeToHomeDir: string,
-        readonly expiration: number
+        readonly expiration: number = 24 * 3600 * 1000
     ) {
         this.dir = join(homedir(), dirRelativeToHomeDir);
+        this.initialized = LocalCache.initialize(this.dir);
     }
 
     /**
@@ -46,6 +44,7 @@ export class LocalCache {
      * key is not found.
      */
     async get(key: string) {
+        await this.initialized;
         const entry = join(this.dir, key);
         const statEntry = await stat(entry).catch(_ => {});
         if (statEntry) {
@@ -57,7 +56,8 @@ export class LocalCache {
         return undefined;
     }
 
-    set(key: string, value: Buffer | string | Uint8Array | Readable | Blob) {
+    async set(key: string, value: Buffer | string | Uint8Array | Readable | Blob) {
+        await this.initialized;
         const entry = join(this.dir, key);
         return writeFile(entry, value, { mode: 0o600, encoding: "binary" });
     }
@@ -73,7 +73,15 @@ export class LocalCache {
      * Deletes all cached entries from disk.
      */
     async clear() {
+        await this.initialized;
         await rmrf(`${this.dir}`);
         await mkdir(this.dir, { mode: 0o700, recursive: true });
     }
 }
+
+const days = 24 * 3600 * 1000;
+
+export const caches = {
+    awsPackage: new LocalCache(".faast/aws/packages", 7 * days),
+    awsPrices: new LocalCache(".faast/aws/pricing", 1 * days)
+};

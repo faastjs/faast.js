@@ -6,7 +6,7 @@ let cache: LocalCache;
 
 describe("Local cache", () => {
     beforeEach(async () => {
-        cache = await LocalCache.create(".faast/test");
+        cache = new LocalCache(".faast/test");
         await cache.clear();
     });
 
@@ -25,7 +25,7 @@ describe("Local cache", () => {
     });
 
     test("ignores entries after they expire", async () => {
-        const cache2 = await LocalCache.create(".faast/test", 100);
+        const cache2 = new LocalCache(".faast/test", 100);
         await cache2.set("foo", "bar");
         let result = await cache2.get("foo");
         expect(result && result.toString()).toBeDefined();
@@ -51,9 +51,17 @@ describe("Local cache", () => {
 
     test("cache values are persistent", async () => {
         await cache.set("persistentKey", "persistent");
-        const cache2 = await LocalCache.create(".faast/test");
+        const cache2 = new LocalCache(".faast/test");
         const result2 = await cache2.get("persistentKey");
         expect(result2 && result2.toString()).toBe("persistent");
+    });
+
+    test("clearing cache leaves empty directory", async () => {
+        await cache.set("key", "value");
+        const value = await cache.get("key");
+        expect(value && value.toString()).toBe("value");
+        await cache.clear();
+        expect(await cache.get("key")).toBeUndefined();
     });
 
     afterAll(async () => {

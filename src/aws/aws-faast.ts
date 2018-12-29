@@ -1,7 +1,7 @@
 import * as aws from "aws-sdk";
 import { PromiseResult } from "aws-sdk/lib/request";
 import { createHash } from "crypto";
-import { LocalCache } from "../cache";
+import { LocalCache, caches } from "../cache";
 import {
     AWS,
     CloudFunctionImpl,
@@ -22,7 +22,7 @@ import {
     sleep,
     uuidv4Pattern
 } from "../shared";
-import { Funnel, retry, throttle } from "../throttle";
+import { retry, throttle } from "../throttle";
 import {
     FunctionCall,
     FunctionReturn,
@@ -289,7 +289,7 @@ export async function buildModulesOnLambda(
             ? (await readFile(packageJson)).toString()
             : JSON.stringify(packageJson);
 
-    const localCache = await LocalCache.create(".faast/aws");
+    const localCache = await caches.awsPackage;
 
     let cacheKey: string | undefined;
     if (useDependencyCaching) {
@@ -342,8 +342,6 @@ export async function buildModulesOnLambda(
         // await lambda.stop();
     }
 }
-
-const priceRequestFunnel = new Funnel<AWSPrices>(1);
 
 export function logUrl(state: State) {
     const { region, FunctionName } = state.resources;
@@ -999,7 +997,7 @@ const locations = {
 };
 
 export const awsPrice = throttle(
-    { concurrency: 6, rate: 5, retry: 3, memoize: true },
+    { concurrency: 6, rate: 5, retry: 3, memoize: true, cache: caches.awsPrices },
     async (pricing: aws.Pricing, ServiceCode: string, filter: object) => {
         try {
             function first(obj: object) {
