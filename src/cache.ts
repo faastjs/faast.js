@@ -18,7 +18,13 @@ export class LocalCache {
 
     protected static async initialize(dir: string) {
         if (!(await exists(dir))) {
-            await mkdir(dir, { mode: 0o700, recursive: true });
+            try {
+                await mkdir(dir, { mode: 0o700, recursive: true });
+            } catch (err) {
+                if (err.code !== "EEXIST") {
+                    throw err;
+                }
+            }
         }
     }
 
@@ -72,10 +78,12 @@ export class LocalCache {
     /**
      * Deletes all cached entries from disk.
      */
-    async clear() {
+    async clear({ leaveEmptyDir = true } = {}) {
         await this.initialized;
         await rmrf(`${this.dir}`);
-        await mkdir(this.dir, { mode: 0o700, recursive: true });
+        if (leaveEmptyDir) {
+            await mkdir(this.dir, { mode: 0o700, recursive: true });
+        }
     }
 }
 

@@ -1,13 +1,18 @@
 import { LocalCache } from "../src/cache";
 import { sleep } from "./functions";
 import { createHash } from "crypto";
-
-let cache: LocalCache;
+import * as uuidv4 from "uuid/v4";
 
 describe("Local cache", () => {
-    beforeEach(async () => {
-        cache = new LocalCache(".faast/test");
-        await cache.clear();
+    let cache: LocalCache;
+    const nonce = uuidv4();
+
+    beforeEach(() => {
+        cache = new LocalCache(`.faast/test/${nonce}`);
+    });
+
+    afterEach(async () => {
+        await cache.clear({ leaveEmptyDir: false });
     });
 
     test("local cache directory respects relative path", async () => {
@@ -25,7 +30,7 @@ describe("Local cache", () => {
     });
 
     test("ignores entries after they expire", async () => {
-        const cache2 = new LocalCache(".faast/test", 100);
+        const cache2 = new LocalCache(cache.dirRelativeToHomeDir, 100);
         await cache2.set("foo", "bar");
         let result = await cache2.get("foo");
         expect(result && result.toString()).toBeDefined();
@@ -51,20 +56,16 @@ describe("Local cache", () => {
 
     test("cache values are persistent", async () => {
         await cache.set("persistentKey", "persistent");
-        const cache2 = new LocalCache(".faast/test");
+        const cache2 = new LocalCache(cache.dirRelativeToHomeDir);
         const result2 = await cache2.get("persistentKey");
         expect(result2 && result2.toString()).toBe("persistent");
     });
 
-    test("clearing cache leaves empty directory", async () => {
+    test("clearing cache", async () => {
         await cache.set("key", "value");
         const value = await cache.get("key");
         expect(value && value.toString()).toBe("value");
         await cache.clear();
         expect(await cache.get("key")).toBeUndefined();
-    });
-
-    afterAll(async () => {
-        await cache.clear();
     });
 });

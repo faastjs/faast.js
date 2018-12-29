@@ -11,6 +11,9 @@ import {
 import { timer, Timing } from "./functions";
 import { measureConcurrency } from "./tests";
 import { LocalCache } from "../src/cache";
+import * as uuidv4 from "uuid/v4";
+
+const nonce = uuidv4();
 
 describe("Deferred promise", () => {
     test("resolves its promise", async () => {
@@ -311,10 +314,10 @@ describe("memoize", () => {
 describe("caching function values on disk", () => {
     let cache: LocalCache;
     beforeEach(() => {
-        cache = new LocalCache(".faast/test");
+        cache = new LocalCache(`.faast/test/${nonce}`);
     });
     afterEach(async () => {
-        await cache.clear();
+        await cache.clear({ leaveEmptyDir: false });
     });
     test("saves values in cache", async () => {
         let counter = 0;
@@ -502,7 +505,7 @@ describe("throttle", () => {
 
     afterEach(async () => {
         if (cache) {
-            await cache.clear();
+            await cache.clear({ leaveEmptyDir: false });
         }
     });
 
@@ -510,7 +513,7 @@ describe("throttle", () => {
         const concurrency = 1;
         const rate = 100;
         let counter = 0;
-        cache = new LocalCache(".faast/test");
+        cache = new LocalCache(`.faast/test/${nonce}`);
 
         async function fn(_: number) {
             return counter++;
@@ -535,7 +538,7 @@ describe("throttle", () => {
         const concurrency = 1;
         const rate = 100;
         let counter = 0;
-        cache = new LocalCache(".faast/test");
+        cache = new LocalCache(`.faast/test/${nonce}`);
 
         async function fn(_: number) {
             return counter++;

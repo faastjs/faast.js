@@ -204,7 +204,7 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
         }
         nResources += entries.length;
         if (execute) {
-            cache.clear();
+            cache.clear({ leaveEmptyDir: false });
         }
     }
 
