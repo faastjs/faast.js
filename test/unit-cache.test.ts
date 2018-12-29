@@ -15,7 +15,7 @@ describe("Local cache", () => {
         await cache.clear({ leaveEmptyDir: false });
     });
 
-    test("local cache directory respects relative path", async () => {
+    test("local cache directory respects relative path", () => {
         expect(cache.dir).toMatch(/test/);
     });
 
