@@ -17,7 +17,7 @@ export class LocalCache {
     initialized: Promise<void>;
 
     protected static async initialize(dir: string) {
-        if (!(await exists(dir))) {
+        if (!(await exists(dir).catch(_ => false))) {
             try {
                 await mkdir(dir, { mode: 0o700, recursive: true });
             } catch (err) {

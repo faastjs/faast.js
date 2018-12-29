@@ -31,7 +31,7 @@ export async function rmrf(dir: string) {
 
 const mkdirPromise = promisify(fs.mkdir);
 export async function mkdir(dir: string, options?: fs.MakeDirectoryOptions) {
-    if (await exists(dir)) {
+    if (await exists(dir).catch(_ => false)) {
         return;
     }
     if (gte(process.version, "10.12.0") || !options || !options.recursive) {
