@@ -697,6 +697,7 @@ export async function collectGarbage(
         };
         const functionsWithLogGroups = new Set();
 
+        // Collect functions with log groups
         await new Promise((resolve, reject) =>
             services.cloudwatch
                 .describeLogGroups({ logGroupNamePrefix: "/aws/lambda/faast-" })
@@ -727,6 +728,8 @@ export async function collectGarbage(
                     return true;
                 })
         );
+
+        // Collect functions without log groups
         await new Promise((resolve, reject) =>
             services.lambda.listFunctions().eachPage((err, page) => {
                 if (err) {
