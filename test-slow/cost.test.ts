@@ -12,11 +12,11 @@ async function work(remote: faast.Promisified<typeof funcs>) {
 }
 
 const repetitions = 10;
+const memorySizes = [128, 2048];
 
-const configs = [
-    ...googleConfigurations.map(c => ({ ...c, repetitions })),
-    ...awsConfigurations.map(c => ({ ...c, repetitions }))
-];
+const configs = [...googleConfigurations, ...awsConfigurations]
+    .filter(c => memorySizes.includes(c.options.memorySize!))
+    .map(c => ({ ...c, repetitions }));
 
 test(
     "Cost analyzer",
