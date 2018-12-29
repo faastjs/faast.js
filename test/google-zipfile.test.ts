@@ -34,6 +34,6 @@ describe("google zip file package", () => {
             childProcess: true
         }));
 
-    describe.skip("emulator https function", () =>
-        testCodeBundle("google-emulator", "emulator-https-bundle", 100 * kb));
+    // describe("emulator https function", () =>
+    //     testCodeBundle("google-emulator", "emulator-https-bundle", 100 * kb));
 });

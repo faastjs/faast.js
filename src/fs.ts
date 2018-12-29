@@ -29,21 +29,9 @@ export async function rmrf(dir: string) {
     await rmdir(dir);
 }
 
-async function retry<T>(retryN: number, fn: () => Promise<T>) {
-    for (let i = 0; true; i++) {
-        try {
-            return await fn();
-        } catch (err) {
-            if (i >= retryN) {
-                throw err;
-            }
-        }
-    }
-}
-
 const mkdirPromise = promisify(fs.mkdir);
 export async function mkdir(dir: string, options?: fs.MakeDirectoryOptions) {
-    if (await exists(dir).catch(_ => false)) {
+    if (await exists(dir)) {
         return;
     }
     if (gte(process.version, "10.12.0") || !options || !options.recursive) {
@@ -51,5 +39,5 @@ export async function mkdir(dir: string, options?: fs.MakeDirectoryOptions) {
     }
 
     await mkdir(dirname(dir), options);
-    await retry(3, () => mkdirPromise(dir));
+    await mkdirPromise(dir);
 }
