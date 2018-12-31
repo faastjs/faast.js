@@ -14,6 +14,9 @@ export const createReadStream = fs.createReadStream;
 export const createWriteStream = fs.createWriteStream;
 
 export async function rmrf(dir: string) {
+    if (!(await exists(dir))) {
+        return;
+    }
     const contents = await readdir(dir);
     for (const name of contents) {
         const dirEntry = join(dir, name);
@@ -39,5 +42,9 @@ export async function mkdir(dir: string, options?: fs.MakeDirectoryOptions) {
     }
 
     await mkdir(dirname(dir), options);
-    await mkdirPromise(dir);
+    await mkdirPromise(dir).catch(err => {
+        if (err.code !== "EEXISTS") {
+            throw err;
+        }
+    });
 }
