@@ -80,7 +80,9 @@ export class LocalCache {
      */
     async clear({ leaveEmptyDir = true } = {}) {
         await this.initialized;
-        await rmrf(`${this.dir}`);
+
+        await rmrf(this.dir);
+
         if (leaveEmptyDir) {
             await mkdir(this.dir, { mode: 0o700, recursive: true });
         }

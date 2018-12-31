@@ -203,7 +203,8 @@ async function estimate<T>(
 export async function estimateWorkloadCost<T>(
     fmodule: string,
     workload: (remote: Promisified<T>) => Promise<void>,
-    configurations: CostAnalyzerConfiguration[] = awsConfigurations
+    configurations: CostAnalyzerConfiguration[] = awsConfigurations,
+    options?: Listr.ListrOptions
 ) {
     const scheduleEstimate = throttle(
         {
@@ -236,7 +237,7 @@ export async function estimateWorkloadCost<T>(
                 }
             };
         }),
-        { concurrent: 8 }
+        { concurrent: 8, ...options }
     );
 
     await list.run();
@@ -247,7 +248,7 @@ export async function estimateWorkloadCost<T>(
 
 export function toCSV(profile: CostAnalysisProfile[]) {
     let rv = "";
-    rv += `cloud,memory,useQueue,options,completed,errors,retries,cost,executionLatency,billedTime\n`;
+    rv += `cloud,memory,mode,options,completed,errors,retries,cost,executionLatency,billedTime\n`;
     profile.forEach(r => {
         const { memorySize, mode, ...rest } = r.options;
         const options = `"${inspect(rest).replace('"', '""')}"`;
