@@ -5,23 +5,32 @@ import * as awsFaast from "../src/aws/aws-faast";
 import * as faast from "../src/faast";
 import { faastify } from "../src/faast";
 import { createWriteStream, readdir, rmrf, stat } from "../src/fs";
-import * as googleFaast from "../src/google/google-faast";
 import { info, stats, warn } from "../src/log";
-import { unzipInDir, PackerOptions, PackerResult } from "../src/packer";
+import { unzipInDir } from "../src/packer";
 import { sleep } from "../src/shared";
 import { Pump } from "../src/throttle";
 import * as funcs from "./functions";
 import { Timing } from "./functions";
 
-export function testFunctions(cloudProvider: "aws", options: awsFaast.Options): void;
-export function testFunctions(cloudProvider: "local", options: faast.local.Options): void;
 export function testFunctions(
-    cloudProvider: faast.CloudProvider,
-    options: faast.CommonOptions
+    cloudProvider: "aws",
+    options: awsFaast.Options,
+    initTimeout?: number
+): void;
+export function testFunctions(
+    cloudProvider: "local",
+    options: faast.local.Options,
+    initTimeout?: number
 ): void;
 export function testFunctions(
     cloudProvider: faast.CloudProvider,
-    options: faast.CommonOptions
+    options: faast.CommonOptions,
+    initTimeout?: number
+): void;
+export function testFunctions(
+    cloudProvider: faast.CloudProvider,
+    options: faast.CommonOptions,
+    initTimeout = 60 * 1000
 ): void {
     let cloudFunc: faast.CloudFunction<typeof funcs>;
     let remote: faast.Promisified<typeof funcs>;
@@ -36,12 +45,12 @@ export function testFunctions(
         } catch (err) {
             warn(err);
         }
-    }, 180 * 1000);
+    }, initTimeout);
 
     afterAll(async () => {
         await cloudFunc.cleanup();
         // await cloudFunc.stop();
-    }, 60 * 1000);
+    }, initTimeout);
 
     test("hello: string => string", async () => {
         expect(await remote.hello("Andy")).toBe("Hello Andy!");
