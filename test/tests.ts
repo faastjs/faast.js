@@ -129,7 +129,7 @@ export function testCodeBundle<O, S>(
             const tmpDir = path.join("tmp", identifier);
             exec(`mkdir -p ${tmpDir}`);
 
-            const { archive } = await cloud.pack("./functions", options);
+            const { archive } = await cloud.pack(require.resolve("./functions"), options);
 
             const stream1 = archive.pipe(new PassThrough());
             const stream2 = archive.pipe(new PassThrough());
