@@ -36,7 +36,7 @@ async function listAllObjects(Bucket: string) {
 }
 
 export async function mapBucket(Bucket: string, keyFilter: (key: string) => boolean) {
-    const { cloudFunc, remote } = await faastify("aws", m, "./map-buckets-module", {
+    const cloudFunc = await faastify("aws", m, "./map-buckets-module", {
         memorySize: 1728,
         timeout: 300,
         mode: "queue",
@@ -52,10 +52,12 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         console.log(`Bucket ${Bucket} contains ${allObjects.length} matching objects`);
         for (const Obj of allObjects) {
             promises.push(
-                remote.processBucketObject(Bucket, Obj.Key!).catch((err: FaastError) => {
-                    console.log(`Error processing ${Obj.Key!}`);
-                    console.log(`Logs: ${err.logUrl}`);
-                })
+                cloudFunc.functions
+                    .processBucketObject(Bucket, Obj.Key!)
+                    .catch((err: FaastError) => {
+                        console.log(`Error processing ${Obj.Key!}`);
+                        console.log(`Logs: ${err.logUrl}`);
+                    })
             );
         }
         const results = await Promise.all(promises);
@@ -108,14 +110,16 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
 }
 
 export async function mapObjects(Bucket: string, Keys: string[]) {
-    const { cloudFunc, remote } = await faastify("aws", m, "./map-buckets-module", {
+    const cloudFunc = await faastify("aws", m, "./map-buckets-module", {
         memorySize: 1728,
         timeout: 300,
         mode: "https",
         concurrency: 1
     });
     for (const Key of Keys) {
-        await remote.processBucketObject(Bucket, Key).catch(err => console.error(err));
+        await cloudFunc.functions
+            .processBucketObject(Bucket, Key)
+            .catch(err => console.error(err));
         console.log(`Processed ${Bucket}/${Key}`);
     }
     await cloudFunc.cleanup();
@@ -126,7 +130,7 @@ export async function copyObjects(
     toBucket: string,
     mapper: (key: string) => string | undefined
 ) {
-    const { cloudFunc, remote } = await faastify("aws", m, "./map-buckets-module", {
+    const cloudFunc = await faastify("aws", m, "./map-buckets-module", {
         memorySize: 256,
         timeout: 300,
         mode: "queue"
@@ -141,7 +145,7 @@ export async function copyObjects(
         if (toKey) {
             console.log(`Copying ${fromBucket}:${obj.Key} to ${toBucket}:${toKey}`);
             promises.push(
-                remote
+                cloudFunc.functions
                     .copyObject(fromBucket, obj.Key!, toBucket, toKey)
                     .catch(err => console.error(err))
             );
@@ -154,7 +158,7 @@ export async function copyObjects(
 }
 
 export async function emptyBucket(Bucket: string) {
-    const { cloudFunc, remote } = await faastify("aws", m, "./map-buckets-module", {
+    const cloudFunc = await faastify("aws", m, "./map-buckets-module", {
         memorySize: 256,
         timeout: 300,
         mode: "https",
@@ -168,7 +172,7 @@ export async function emptyBucket(Bucket: string) {
         if (keys.length === 0) {
             break;
         }
-        promises.push(remote.deleteObjects(Bucket, keys));
+        promises.push(cloudFunc.functions.deleteObjects(Bucket, keys));
     }
     await Promise.all(promises);
     await cloudFunc.cleanup();

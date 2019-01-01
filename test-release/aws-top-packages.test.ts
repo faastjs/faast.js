@@ -1,4 +1,4 @@
-import { AWS } from "../src/faast";
+import { faastify } from "../src/faast";
 import { topPackages, topPackagesAll, topPackagesFailures } from "./top-packages";
 import * as functions from "../test/functions";
 import { Funnel } from "../src/throttle";
@@ -7,7 +7,6 @@ type Results = { [key in string]: string | Error };
 
 function testPackages(packages: string[]) {
     async function installPackages() {
-        const aws = new AWS();
         const funnel = new Funnel<void>(500);
         const promises: Promise<void>[] = [];
         const results: Results = {};
@@ -16,12 +15,17 @@ function testPackages(packages: string[]) {
             promises.push(
                 funnel.push(async () => {
                     try {
-                        const lambda = await aws.createFunction("../test/functions", {
-                            mode: "https",
-                            useDependencyCaching: false,
-                            packageJson: { dependencies: { [pkg]: "*" } }
-                        });
-                        await lambda.cleanup();
+                        const cloudFunc = await faastify(
+                            "aws",
+                            require("../test/functions"),
+                            "../test/functions",
+                            {
+                                mode: "https",
+                                useDependencyCaching: false,
+                                packageJson: { dependencies: { [pkg]: "*" } }
+                            }
+                        );
+                        await cloudFunc.cleanup();
                         results[pkg] = pkg;
                     } catch (err) {
                         results[pkg] = err;

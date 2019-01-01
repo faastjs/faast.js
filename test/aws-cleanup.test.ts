@@ -5,8 +5,9 @@ describe("aws cleanup", () => {
     test(
         "removes ephemeral resources",
         async () => {
-            const cloud = faast.create("aws");
-            const func = await cloud.createFunction("./functions", { mode: "queue" });
+            const func = await faast.faastify("aws", {}, "./functions", {
+                mode: "queue"
+            });
             await func.cleanup();
             await checkResourcesCleanedUp(await getAWSResources(func));
         },
@@ -16,8 +17,7 @@ describe("aws cleanup", () => {
     test(
         "removes s3 buckets",
         async () => {
-            const cloud = faast.create("aws");
-            const func = await cloud.createFunction("./functions", {
+            const func = await faast.faastify("aws", {}, "./functions", {
                 packageJson: "test/package.json"
             });
             await func.cleanup();

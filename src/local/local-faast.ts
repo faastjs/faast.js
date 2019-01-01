@@ -3,7 +3,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { Writable } from "stream";
 import { promisify } from "util";
-import { CloudFunctionImpl, CloudImpl, CommonOptions } from "../faast";
+import { CloudFunctionImpl, CommonOptions } from "../faast";
 import { info, logGc, warn } from "../log";
 import {
     FunctionCall,
@@ -37,16 +37,11 @@ export const defaults: Options = {
     timeout: 300
 };
 
-export const Impl: CloudImpl<Options, State> = {
+export const Impl: CloudFunctionImpl<Options, State> = {
     name: "local",
     initialize,
     pack,
-    getFunctionImpl,
-    defaults
-};
-
-export const FunctionImpl: CloudFunctionImpl<State> = {
-    name: "local",
+    defaults,
     callFunction,
     cleanup,
     stop,
@@ -145,10 +140,6 @@ export function logUrl(state: State) {
 async function pack(functionModule: string, options?: Options): Promise<PackerResult> {
     const popts: PackerOptions = options || {};
     return packer(localTrampolineFactory, functionModule, popts);
-}
-
-function getFunctionImpl(): CloudFunctionImpl<State> {
-    return FunctionImpl;
 }
 
 async function callFunction(

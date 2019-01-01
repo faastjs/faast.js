@@ -8,7 +8,6 @@ import * as local from "./local/local-faast";
 import { info, logCalls, logLeaks, stats, warn } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import {
-    assertNever,
     CommonOptionDefaults,
     ExponentiallyDecayingAverageValue,
     FactoryMap,
@@ -100,42 +99,6 @@ function resolveModule(fmodule: string) {
     }
     return (Module as any)._resolveFilename(fmodule, module.parent);
 }
-
-export class Cloud<O extends CommonOptions, S> {
-    name: string = this.impl.name;
-
-    protected constructor(protected impl: CloudImpl<O, S>) {
-        info(`Node version: ${process.version}`);
-    }
-
-    get defaults() {
-        return this.impl.defaults;
-    }
-
-    pack(fmodule: string, options?: O): Promise<PackerResult> {
-        if (options && options.childProcess !== undefined) {
-            options.wrapperOptions = {
-                ...options.wrapperOptions,
-                useChildProcess: options.childProcess
-            };
-        }
-        return this.impl.pack(resolveModule(fmodule), options);
-    }
-
-    async createFunction(modulePath: string, options?: O): Promise<CloudFunction<O, S>> {
-        const resolvedModule = resolveModule(modulePath);
-        const functionId = uuidv4();
-        return new CloudFunction(
-            this,
-            this.impl.getFunctionImpl(),
-            await this.impl.initialize(resolvedModule, functionId, options),
-            resolvedModule,
-            options
-        );
-    }
-}
-
-export type AnyCloud = Cloud<any, any>;
 
 export class FunctionCounters {
     invocations = 0;
@@ -363,10 +326,32 @@ function processResponse<R>(
     return rv;
 }
 
-export class CloudFunction<O extends CommonOptions, S> {
+export async function createFunction<M extends object, O extends CommonOptions, S>(
+    fmodule: M,
+    modulePath: string,
+    impl: CloudFunctionImpl<O, S>,
+    options?: O
+): Promise<CloudFunction<M, O, S>> {
+    const resolvedModule = resolveModule(modulePath);
+    const functionId = uuidv4();
+    return new CloudFunction(
+        impl,
+        await impl.initialize(resolvedModule, functionId, options),
+        fmodule,
+        resolvedModule,
+        options
+    );
+}
+
+export class CloudFunction<
+    M extends object,
+    O extends CommonOptions = CommonOptions,
+    S = any
+> {
     cloudName = this.impl.name;
     functionCounters = new FunctionCountersMap();
     functionStats = new FunctionStatsMap();
+    functions: Promisified<M>;
     protected memoryLeakDetector: MemoryLeakDetector;
     protected funnel: Funnel<any>;
     protected memorySize: number | undefined;
@@ -379,25 +364,31 @@ export class CloudFunction<O extends CommonOptions, S> {
     protected tailLatencyRetryStdev = CommonOptionDefaults.speculativeRetryThreshold;
     protected childProcess = CommonOptionDefaults.childProcess;
 
+    get defaults() {
+        return this.impl.defaults;
+    }
+
     constructor(
-        protected cloud: Cloud<O, S>,
-        protected impl: CloudFunctionImpl<S>,
+        protected impl: CloudFunctionImpl<O, S>,
         readonly state: S,
+        readonly fmodule: M,
         readonly modulePath: string,
         readonly options?: O
     ) {
-        let concurrency = (options && options.concurrency) || cloud.defaults.concurrency;
+        info(`Node version: ${process.version}`);
+
+        let concurrency = (options && options.concurrency) || impl.defaults.concurrency;
         if (!concurrency) {
             warn(
                 `Default concurrency level not defined for cloud type '${
-                    cloud.name
+                    impl.name
                 }', defaulting to 1`
             );
             concurrency = 1;
         }
         this.funnel = new Funnel<any>(concurrency);
-        this.memorySize = (options && options.memorySize) || cloud.defaults.memorySize!;
-        this.timeout = (options && options.timeout) || cloud.defaults.timeout;
+        this.memorySize = (options && options.memorySize) || impl.defaults.memorySize!;
+        this.timeout = (options && options.timeout) || impl.defaults.timeout;
         this.memoryLeakDetector = new MemoryLeakDetector(this.memorySize);
         if (options && options.maxRetries !== undefined) {
             this.maxRetries = options.maxRetries;
@@ -408,7 +399,15 @@ export class CloudFunction<O extends CommonOptions, S> {
         if (options && options.childProcess !== undefined) {
             this.childProcess = options.childProcess;
         }
+
         info(`Log url: ${impl.logUrl(state)}`);
+        const functions: any = {};
+        for (const name of Object.keys(fmodule)) {
+            if (typeof fmodule[name] === "function") {
+                functions[name] = this.wrapFunction(fmodule[name]);
+            }
+        }
+        this.functions = functions;
     }
 
     async cleanup() {
@@ -451,16 +450,6 @@ export class CloudFunction<O extends CommonOptions, S> {
     stopPrintStatisticsInterval() {
         this.statsTimer && clearInterval(this.statsTimer);
         this.statsTimer = undefined;
-    }
-
-    wrapModule<M>(fmodule: M): Promisified<M> {
-        const rv: any = {};
-        for (const name of Object.keys(fmodule)) {
-            if (typeof fmodule[name] === "function") {
-                rv[name] = this.wrapFunction(fmodule[name]);
-            }
-        }
-        return rv;
     }
 
     wrapFunctionWithResponse<A extends any[], R>(
@@ -589,121 +578,97 @@ export class CloudFunction<O extends CommonOptions, S> {
     }
 }
 
-export type AnyCloudFunction = CloudFunction<any, any>;
+export type AnyCloudFunction = CloudFunction<any, any, any>;
 
-export class AWS extends Cloud<aws.Options, aws.State> {
-    constructor() {
-        super(aws.Impl);
-    }
-}
+export class AWSLambda<M extends object = object> extends CloudFunction<
+    M,
+    aws.Options,
+    aws.State
+> {}
 
-export class AWSLambda extends CloudFunction<aws.Options, aws.State> {}
+export class GoogleCloudFunction<M extends object = object> extends CloudFunction<
+    M,
+    google.Options,
+    google.State
+> {}
 
-export class Google extends Cloud<google.Options, google.State> {
-    constructor() {
-        super(google.Impl);
-    }
-}
-
-export class GoogleCloudFunction extends CloudFunction<google.Options, google.State> {}
-
-export class GoogleEmulator extends Cloud<google.Options, google.State> {
-    constructor() {
-        super(google.EmulatorImpl);
-    }
-}
-
-export class Local extends Cloud<local.Options, local.State> {
-    constructor() {
-        super(local.Impl);
-    }
-}
-
-export class LocalFunction extends CloudFunction<local.Options, local.State> {}
+export class LocalFunction<M extends object = object> extends CloudFunction<
+    M,
+    local.Options,
+    local.State
+> {}
 
 export type CloudProvider = "aws" | "google" | "google-emulator" | "local";
-
-export function create(cloudName: "aws"): AWS;
-export function create(cloudName: "google"): Google;
-export function create(cloudName: "google-emulator"): GoogleEmulator;
-export function create(cloudName: "local"): Local;
-export function create(cloudName: CloudProvider): Cloud<any, any>;
-export function create(cloudName: CloudProvider): Cloud<any, any> {
-    if (cloudName === "aws") {
-        return new AWS();
-    } else if (cloudName === "google") {
-        return new Google();
-    } else if (cloudName === "google-emulator") {
-        return new GoogleEmulator();
-    } else if (cloudName === "local") {
-        return new Local();
-    }
-    return assertNever(cloudName);
-}
-
-export interface Wrapped<O extends CommonOptions, S, M extends object> {
-    remote: Promisified<M>;
-    cloudFunc: CloudFunction<O, S>;
-}
 
 export function faastify<M extends object>(
     cloudName: "aws",
     fmodule: M,
     modulePath: string,
     options?: aws.Options
-): Promise<Wrapped<aws.Options, aws.State, M>>;
+): Promise<CloudFunction<M, aws.Options, aws.State>>;
 export function faastify<M extends object>(
     cloudName: "google" | "google-emulator",
     fmodule: M,
     modulePath: string,
     options?: google.Options
-): Promise<Wrapped<google.Options, google.State, M>>;
+): Promise<CloudFunction<M, google.Options, google.State>>;
 export function faastify<M extends object>(
     cloudName: "local",
     fmodule: M,
     modulePath: string,
     options?: local.Options
-): Promise<Wrapped<local.Options, local.State, M>>;
-export function faastify<S, M extends object>(
+): Promise<CloudFunction<M, local.Options, local.State>>;
+export function faastify<M extends object, S>(
     cloudName: CloudProvider,
     fmodule: M,
     modulePath: string,
     options?: CommonOptions
-): Promise<Wrapped<CommonOptions, S, M>>;
-export async function faastify<O extends CommonOptions, S, M extends object>(
+): Promise<CloudFunction<M, CommonOptions, S>>;
+export async function faastify<M extends object, O extends CommonOptions, S>(
     cloudProvider: CloudProvider,
     fmodule: M,
     modulePath: string,
     options?: O
-): Promise<Wrapped<O, S, M>> {
-    const cloud = create(cloudProvider);
-    const cloudFunc = await cloud.createFunction(modulePath, options);
-    const remote = cloudFunc.wrapModule(fmodule);
-    return { remote, cloudFunc };
+): Promise<CloudFunction<M, O, S>> {
+    let impl: any;
+    switch (cloudProvider) {
+        case "aws":
+            impl = aws.Impl;
+            break;
+        case "google":
+            impl = google.Impl;
+            break;
+        case "google-emulator":
+            impl = google.EmulatorImpl;
+            break;
+        case "local":
+            impl = local.Impl;
+            break;
+        default:
+            throw new Error(`Unknown cloud provider option '${cloudProvider}'`);
+    }
+    return createFunction<M, O, S>(fmodule, modulePath, impl, options);
 }
 
-export interface CloudImpl<O, S> {
+export interface CloudFunctionImpl<O, S> {
     name: string;
-    initialize(serverModule: string, functionId: string, options?: O): Promise<S>;
-    pack(functionModule: string, options?: O): Promise<PackerResult>;
-    getFunctionImpl(): CloudFunctionImpl<S>;
     defaults: O;
-}
 
-export interface CloudFunctionImpl<State> {
-    name: string;
+    initialize(serverModule: string, functionId: string, options?: O): Promise<S>;
+
+    pack(functionModule: string, options?: PackerOptions): Promise<PackerResult>;
 
     costEstimate?: (
-        state: State,
+        state: S,
         counters: FunctionCounters,
         stats: FunctionStats
     ) => Promise<costAnalyzer.CostBreakdown>;
 
-    callFunction(state: State, call: FunctionCall): Promise<FunctionReturnWithMetrics>;
+    callFunction(state: S, call: FunctionCall): Promise<FunctionReturnWithMetrics>;
 
-    cleanup(state: State): Promise<void>;
-    stop(state: State): Promise<void>;
-    logUrl(state: State): string;
+    cleanup(state: S): Promise<void>;
+    stop(state: S): Promise<void>;
+    logUrl(state: S): string;
 }
 
 export interface LogEntry {

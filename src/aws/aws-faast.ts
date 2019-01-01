@@ -3,12 +3,11 @@ import { PromiseResult } from "aws-sdk/lib/request";
 import { createHash } from "crypto";
 import { LocalCache, caches } from "../cache";
 import {
-    AWS,
     CloudFunctionImpl,
-    CloudImpl,
     CommonOptions,
     FunctionCounters,
-    FunctionStats
+    FunctionStats,
+    createFunction
 } from "../faast";
 import { CostBreakdown, CostMetric } from "../cost";
 import { readFile } from "../fs";
@@ -124,16 +123,11 @@ export let defaults: Required<Options> = {
     CacheBucket: ""
 };
 
-export const Impl: CloudImpl<Options, State> = {
+export const Impl: CloudFunctionImpl<Options, State> = {
     name: "aws",
     initialize,
     pack,
-    getFunctionImpl,
-    defaults
-};
-
-export const LambdaImpl: CloudFunctionImpl<State> = {
-    name: "aws",
+    defaults,
     callFunction,
     cleanup,
     stop,
@@ -309,14 +303,12 @@ export async function buildModulesOnLambda(
 
     await createCacheBucket(s3, Bucket, region);
 
-    const cloud = new AWS();
-    const lambda = await cloud.createFunction(require.resolve("./aws-npm"), {
+    const lambda = await createFunction(awsNpm, require.resolve("./aws-npm"), Impl, {
         timeout: 300,
         memorySize: 2048,
         mode: "https"
     });
     try {
-        const remote = lambda.wrapModule(awsNpm);
         const Key = getS3Key(FunctionName);
 
         const installArgs: awsNpm.NpmInstallArgs = {
@@ -326,7 +318,7 @@ export async function buildModulesOnLambda(
             Key,
             cacheKey
         };
-        const installLog = await remote.npmInstall(installArgs);
+        const installLog = await lambda.functions.npmInstall(installArgs);
         info(installLog);
 
         if (cacheKey) {
@@ -854,7 +846,7 @@ function deleteGarbageFunctions(
 
 export async function pack(
     functionModule: string,
-    options?: Options
+    options?: PackerOptions
 ): Promise<PackerResult> {
     const { webpackOptions, ...rest }: PackerOptions = options || {};
     return packer(awsTrampoline, functionModule, {
@@ -873,10 +865,6 @@ export async function stop(state: PartialState) {
         await state.gcPromise;
         info(`Garbage collection done.`);
     }
-}
-
-export function getFunctionImpl() {
-    return LambdaImpl;
 }
 
 function getSNSTopicName(FunctionName: string) {

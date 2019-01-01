@@ -3,10 +3,11 @@ import * as path from "path";
 import { PassThrough } from "stream";
 import * as awsFaast from "../src/aws/aws-faast";
 import * as faast from "../src/faast";
+import { faastify } from "../src/faast";
 import { createWriteStream, readdir, rmrf, stat } from "../src/fs";
 import * as googleFaast from "../src/google/google-faast";
 import { info, stats, warn } from "../src/log";
-import { unzipInDir } from "../src/packer";
+import { unzipInDir, PackerOptions, PackerResult } from "../src/packer";
 import { sleep } from "../src/shared";
 import { Pump } from "../src/throttle";
 import * as funcs from "./functions";
@@ -22,19 +23,15 @@ export function testFunctions(
     cloudProvider: faast.CloudProvider,
     options: faast.CommonOptions
 ): void {
+    let cloudFunc: faast.CloudFunction<typeof funcs>;
     let remote: faast.Promisified<typeof funcs>;
-    let cloudFunc: faast.AnyCloudFunction;
 
     beforeAll(async () => {
         try {
             const start = Date.now();
             const opts = { timeout: 30, memorySize: 512, ...options };
-            ({ remote, cloudFunc } = await faast.faastify(
-                cloudProvider,
-                funcs,
-                "./functions",
-                opts
-            ));
+            cloudFunc = await faastify(cloudProvider, funcs, "./functions", opts);
+            remote = cloudFunc.functions;
             info(`Function creation took ${((Date.now() - start) / 1000).toFixed(1)}s`);
         } catch (err) {
             warn(err);
@@ -118,36 +115,21 @@ function exec(cmd: string) {
     return result;
 }
 
-export function testCodeBundle(
-    cloudProvider: "aws",
+export function testCodeBundle<O, S>(
+    cloud: faast.CloudFunctionImpl<O, S>,
     packageType: string,
     maxZipFileSize?: number,
-    options?: awsFaast.Options,
-    expectations?: (root: string) => void
-): void;
-export function testCodeBundle(
-    cloudProvider: "google" | "google-emulator",
-    packageType: string,
-    maxZipFileSize?: number,
-    options?: googleFaast.Options,
-    expectations?: (root: string) => void
-): void;
-export function testCodeBundle(
-    cloudProvider: faast.CloudProvider,
-    packageType: string,
-    maxZipFileSize?: number,
-    options?: any,
+    options?: O,
     expectations?: (root: string) => void
 ) {
     test(
         "package zip file",
         async () => {
-            const identifier = `func-${cloudProvider}-${packageType}`;
+            const identifier = `func-${cloud.name}-${packageType}`;
             const tmpDir = path.join("tmp", identifier);
             exec(`mkdir -p ${tmpDir}`);
-            const { archive } = await faast
-                .create(cloudProvider)
-                .pack("./functions", options);
+
+            const { archive } = await cloud.pack("./functions", options);
 
             const stream1 = archive.pipe(new PassThrough());
             const stream2 = archive.pipe(new PassThrough());
@@ -175,8 +157,7 @@ export function testCosts(
     cloudProvider: faast.CloudProvider,
     options: faast.CommonOptions = {}
 ) {
-    let remote: faast.Promisified<typeof funcs>;
-    let cloudFunc: faast.AnyCloudFunction;
+    let cloudFunc: faast.CloudFunction<typeof funcs>;
 
     beforeAll(async () => {
         const args: faast.CommonOptions = {
@@ -184,12 +165,10 @@ export function testCosts(
             memorySize: 512,
             mode: "queue"
         };
-        ({ remote, cloudFunc } = await faast.faastify(
-            cloudProvider,
-            funcs,
-            "./functions",
-            { ...args, ...options }
-        ));
+        cloudFunc = await faastify(cloudProvider, funcs, "./functions", {
+            ...args,
+            ...options
+        });
     }, 120 * 1000);
 
     afterAll(async () => {
@@ -200,7 +179,7 @@ export function testCosts(
     test(
         "cost for basic call",
         async () => {
-            await remote.hello("there");
+            await cloudFunc.functions.hello("there");
             const costs = await cloudFunc.costEstimate();
             info(`${costs}`);
             info(`CSV costs:\n${costs.csv()}`);
@@ -235,18 +214,15 @@ export function testRampUp(
     concurrency: number,
     options?: faast.CommonOptions
 ) {
-    let lambda: faast.AnyCloudFunction;
-    let remote: faast.Promisified<typeof funcs>;
+    let lambda: faast.CloudFunction<typeof funcs>;
 
     beforeAll(async () => {
         try {
-            const cloud = faast.create(cloudProvider);
-            lambda = await cloud.createFunction("./functions", {
+            lambda = await faastify(cloudProvider, funcs, "./functions", {
                 ...options,
                 concurrency
             });
             lambda.printStatisticsInterval(1000, stats);
-            remote = lambda.wrapModule(funcs);
         } catch (err) {
             warn(err);
         }
@@ -262,7 +238,7 @@ export function testRampUp(
             const nSamplesPerFunction = 2000000;
             const promises: Promise<funcs.MonteCarloReturn>[] = [];
             for (let i = 0; i < nParallelFunctions; i++) {
-                promises.push(remote.monteCarloPI(nSamplesPerFunction));
+                promises.push(lambda.functions.monteCarloPI(nSamplesPerFunction));
             }
 
             const results = await Promise.all(promises);
@@ -295,15 +271,12 @@ export function testThroughput(
     concurrency: number = 500,
     options?: faast.CommonOptions
 ) {
-    let lambda: faast.AnyCloudFunction;
-    let remote: faast.Promisified<typeof funcs>;
+    let lambda: faast.CloudFunction<typeof funcs>;
 
     beforeAll(async () => {
         try {
-            const cloud = faast.create(cloudProvider);
-            lambda = await cloud.createFunction("./functions", options);
+            lambda = await faastify(cloudProvider, funcs, "./functions", options);
             lambda.printStatisticsInterval(1000, stats);
-            remote = lambda.wrapModule(funcs);
         } catch (err) {
             warn(err);
         }
@@ -318,7 +291,7 @@ export function testThroughput(
             let completed = 0;
             const nSamplesPerFunction = 100000000;
             const pump = new Pump(concurrency, () =>
-                remote.monteCarloPI(nSamplesPerFunction).then(_ => completed++)
+                lambda.functions.monteCarloPI(nSamplesPerFunction).then(_ => completed++)
             );
             pump.start();
             await sleep(duration);
@@ -339,18 +312,15 @@ export function testTimeout(
     cloudProvider: faast.CloudProvider,
     options?: faast.CommonOptions
 ) {
-    let remote: faast.Promisified<typeof funcs>;
-    let lambda: faast.AnyCloudFunction;
+    let lambda: faast.CloudFunction<typeof funcs>;
 
     beforeAll(async () => {
         try {
-            const cloud = faast.create(cloudProvider);
-            lambda = await cloud.createFunction("./functions", {
+            lambda = await faastify(cloudProvider, funcs, "./functions", {
                 ...options,
                 timeout: 2,
                 maxRetries: 0
             });
-            remote = lambda.wrapModule(funcs);
         } catch (err) {
             warn(err);
         }
@@ -366,7 +336,7 @@ export function testTimeout(
         async () => {
             expect.assertions(1);
             try {
-                await remote.sleep(4 * 1000);
+                await lambda.functions.sleep(4 * 1000);
             } catch (err) {
                 expect(err.message).toMatch(/time/i);
             }
@@ -379,19 +349,16 @@ export function testMemoryLimit(
     cloudProvider: faast.CloudProvider,
     options?: faast.CommonOptions
 ) {
-    let remote: faast.Promisified<typeof funcs>;
-    let lambda: faast.AnyCloudFunction;
+    let lambda: faast.CloudFunction<typeof funcs>;
 
     beforeAll(async () => {
         try {
-            const cloud = faast.create(cloudProvider);
-            lambda = await cloud.createFunction("./functions", {
+            lambda = await faastify(cloudProvider, funcs, "./functions", {
                 ...options,
                 timeout: 200,
                 memorySize: 256,
                 maxRetries: 0
             });
-            remote = lambda.wrapModule(funcs);
         } catch (err) {
             warn(err);
         }
@@ -406,7 +373,7 @@ export function testMemoryLimit(
         "can allocate under memory limit",
         async () => {
             const bytes = (256 - 70) * 1024 * 1024;
-            const rv = await remote.allocate(bytes);
+            const rv = await lambda.functions.allocate(bytes);
             expect(rv.elems).toBe(bytes / 8);
         },
         300 * 1000
@@ -418,7 +385,7 @@ export function testMemoryLimit(
             expect.assertions(1);
             const bytes = 256 * 1024 * 1024;
             try {
-                await remote.allocate(bytes);
+                await lambda.functions.allocate(bytes);
             } catch (err) {
                 expect(err.message).toMatch(/memory/i);
             }

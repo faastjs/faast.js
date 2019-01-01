@@ -9,8 +9,9 @@ describe("google cleanup", () => {
     test(
         "removes ephemeral resources",
         async () => {
-            const cloud = faast.create("google");
-            const func = await cloud.createFunction("./functions", { mode: "queue" });
+            const func = await faast.faastify("google", {}, "./functions", {
+                mode: "queue"
+            });
             checkResourcesExist(await getGoogleResources(func));
             await func.cleanup();
             checkResourcesCleanedUp(await getGoogleResources(func));

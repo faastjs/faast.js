@@ -1,10 +1,10 @@
 import { getLogGroupName } from "../src/aws/aws-shared";
-import * as faast from "../src/faast";
+import { faastify, AWSLambda } from "../src/faast";
 import { sleep } from "../src/shared";
 import * as functions from "../test/functions";
 import { checkResourcesCleanedUp, getAWSResources, quietly } from "../test/tests";
 
-async function checkLogGroupCleanedUp(func: faast.AWSLambda) {
+async function checkLogGroupCleanedUp(func: AWSLambda) {
     const { cloudwatch } = func.state.services;
     const { FunctionName } = func.state.resources;
 
@@ -26,19 +26,17 @@ test(
         // function and set its retention to 0, and have its garbage collector
         // clean up the first function. Verify the first function's resources
         // are cleaned up, which shows that the garbage collector did its job.
-        const cloud = faast.create("aws");
-        const func = await cloud.createFunction("../test/functions");
-        const remote = func.wrapModule(functions);
-        const { cloudwatch } = func.state.services;
+        const cloudFunc = await faastify("aws", functions, "../test/functions");
+        const { cloudwatch } = cloudFunc.state.services;
         await new Promise(async resolve => {
             let done = false;
-            remote.hello("gc-test");
+            cloudFunc.functions.hello("gc-test");
             while (!done) {
                 await sleep(1000);
                 const logResult = await quietly(
                     cloudwatch
                         .filterLogEvents({
-                            logGroupName: func.state.resources.logGroupName
+                            logGroupName: cloudFunc.state.resources.logGroupName
                         })
                         .promise()
                 );
@@ -53,14 +51,14 @@ test(
             }
         });
 
-        await func.stop();
-        const func2 = await cloud.createFunction("../test/functions", {
+        await cloudFunc.stop();
+        const func2 = await faastify("aws", functions, "../test/functions", {
             gc: true,
             retentionInDays: 0
         });
 
         // Simulate expiration of all log streams
-        const { logGroupName } = func.state.resources;
+        const { logGroupName } = cloudFunc.state.resources;
         const logStreamsResponse = await quietly(
             cloudwatch.describeLogStreams({ logGroupName }).promise()
         );
@@ -74,8 +72,8 @@ test(
         }
 
         await func2.cleanup();
-        await checkResourcesCleanedUp(await getAWSResources(func));
-        await checkLogGroupCleanedUp(func);
+        await checkResourcesCleanedUp(await getAWSResources(cloudFunc));
+        await checkLogGroupCleanedUp(cloudFunc);
     },
     120 * 1000
 );
@@ -83,10 +81,9 @@ test(
 test(
     "garbage collector works for functions that are never called",
     async () => {
-        const cloud = faast.create("aws");
-        const func = await cloud.createFunction("../test/functions");
+        const func = await faastify("aws", functions, "../test/functions");
         await func.stop();
-        const func2 = await cloud.createFunction("../test/functions", {
+        const func2 = await faastify("aws", functions, "../test/functions", {
             gc: true,
             retentionInDays: 0
         });

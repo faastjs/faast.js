@@ -3,13 +3,13 @@ import * as m from "./module";
 import { sleep } from "../src/shared";
 
 async function main() {
-    const { cloudFunc, remote } = await faastify("aws", m, "./module", {
+    const cloudFunc = await faastify("aws", m, "./module", {
         mode: "https"
     });
 
     const promises = [];
     for (let i = 0; i < 5; i++) {
-        promises.push(remote.hello("world"));
+        promises.push(cloudFunc.functions.hello("world"));
     }
 
     await Promise.all(promises);

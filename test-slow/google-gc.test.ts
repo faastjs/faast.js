@@ -1,4 +1,4 @@
-import * as faast from "../src/faast";
+import { faastify } from "../src/faast";
 import { checkResourcesCleanedUp, getGoogleResources } from "../test/tests";
 import * as functions from "../test/functions";
 
@@ -10,12 +10,12 @@ test(
         // function and set its retention to 0, and have its garbage collector
         // clean up the first function. Verify the first function's resources
         // are cleaned up, which shows that the garbage collector did its job.
-        const cloud = faast.create("google");
-        const func = await cloud.createFunction("../test/functions", { mode: "queue" });
-        const remote = func.wrapModule(functions);
-        await remote.hello("gc-test");
+        const func = await faastify("google", functions, "../test/functions", {
+            mode: "queue"
+        });
+        await func.functions.hello("gc-test");
         await func.stop();
-        const func2 = await cloud.createFunction("../test/functions", {
+        const func2 = await faastify("google", functions, "../test/functions", {
             gc: true,
             retentionInDays: 0
         });
@@ -29,10 +29,11 @@ test(
 test(
     "garbage collector works for functions that are never called",
     async () => {
-        const cloud = faast.create("google");
-        const func = await cloud.createFunction("../test/functions", { mode: "queue" });
+        const func = await faastify("google", functions, "../test/functions", {
+            mode: "queue"
+        });
         await func.stop();
-        const func2 = await cloud.createFunction("../test/functions", {
+        const func2 = await faastify("google", functions, "../test/functions", {
             gc: true,
             retentionInDays: 0
         });

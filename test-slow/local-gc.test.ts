@@ -17,13 +17,10 @@ test("garbage collector works for functions that are called", async () => {
     // function and set its retention to 0, and have its garbage collector
     // clean up the first function. Verify the first function's resources
     // are cleaned up, which shows that the garbage collector did its job.
-    const cloud = faast.create("local");
-    const func = await cloud.createFunction("../test/functions");
-    const remote = func.wrapModule(functions);
-
-    await remote.hello("gc-test");
+    const func = await faast.faastify("local", functions, "../test/functions");
+    await func.functions.hello("gc-test");
     await func.stop();
-    const func2 = await cloud.createFunction("../test/functions", {
+    const func2 = await faast.faastify("google", functions, "../test/functions", {
         gc: true,
         retentionInDays: 0
     });
@@ -33,10 +30,9 @@ test("garbage collector works for functions that are called", async () => {
 });
 
 test("garbage collector works for functions that are never called", async () => {
-    const cloud = faast.create("local");
-    const func = await cloud.createFunction("../test/functions");
+    const func = await faast.faastify("local", functions, "../test/functions");
     await func.stop();
-    const func2 = await cloud.createFunction("../test/functions", {
+    const func2 = await faast.faastify("local", functions, "../test/functions", {
         gc: true,
         retentionInDays: 0
     });

@@ -10,7 +10,6 @@ import {
 import * as util from "util";
 import {
     CloudFunctionImpl,
-    CloudImpl,
     CommonOptions,
     FunctionCounters,
     FunctionStats
@@ -114,16 +113,11 @@ export const defaults: Required<Options> = {
     wrapperOptions: {}
 };
 
-export const Impl: CloudImpl<Options, State> = {
+export const Impl: CloudFunctionImpl<Options, State> = {
     name: "google",
     initialize,
     pack,
-    getFunctionImpl,
-    defaults
-};
-
-export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
-    name: "google",
+    defaults,
     callFunction,
     cleanup,
     stop,
@@ -131,7 +125,7 @@ export const GoogleFunctionImpl: CloudFunctionImpl<State> = {
     logUrl
 };
 
-export const EmulatorImpl: CloudImpl<Options, State> = {
+export const EmulatorImpl: CloudFunctionImpl<Options, State> = {
     ...Impl,
     initialize: initializeEmulator
 };
@@ -738,10 +732,6 @@ export async function stop(state: Partial<State>) {
         await state.gcPromise;
         info(`Garbage collection done.`);
     }
-}
-
-export function getFunctionImpl() {
-    return GoogleFunctionImpl;
 }
 
 function parseTimestamp(timestampStr: string | undefined) {

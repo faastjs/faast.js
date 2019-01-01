@@ -1,4 +1,5 @@
 import { testCodeBundle } from "./tests";
+import * as awsFaast from "../src/aws/aws-faast";
 import { existsSync } from "fs";
 import { join } from "path";
 
@@ -6,30 +7,30 @@ const kb = 1024;
 
 describe("aws zip file package", () => {
     describe("queue bundle", () =>
-        testCodeBundle("aws", "queue-bundle", 100 * kb, {
+        testCodeBundle(awsFaast.Impl, "queue-bundle", 100 * kb, {
             mode: "queue"
         }));
 
     describe("https bundle", () =>
-        testCodeBundle("aws", "https-bundle", 100 * kb, {
+        testCodeBundle(awsFaast.Impl, "https-bundle", 100 * kb, {
             mode: "https"
         }));
 
     describe("queue bundle with child process", () =>
-        testCodeBundle("aws", "queue-bundle-childprocess", 100 * kb, {
+        testCodeBundle(awsFaast.Impl, "queue-bundle-childprocess", 100 * kb, {
             mode: "queue",
             childProcess: true
         }));
 
     describe("https bundle with child process", () =>
-        testCodeBundle("aws", "https-bundle-childprocess", 100 * kb, {
+        testCodeBundle(awsFaast.Impl, "https-bundle-childprocess", 100 * kb, {
             mode: "https",
             childProcess: true
         }));
 
     describe("bundle with added directory", () =>
         testCodeBundle(
-            "aws",
+            awsFaast.Impl,
             "added-directory",
             100 * kb,
             {
@@ -40,7 +41,7 @@ describe("aws zip file package", () => {
 
     describe("bundle with added zip file", () =>
         testCodeBundle(
-            "aws",
+            awsFaast.Impl,
             "added-zipfile",
             100 * kb,
             {

@@ -2,11 +2,11 @@ import { inspect } from "util";
 import {
     aws,
     CommonOptions,
-    create,
     FunctionCounters,
     FunctionStats,
     google,
-    Promisified
+    Promisified,
+    faastify
 } from "./faast";
 import { Funnel, throttle } from "./throttle";
 import { Statistics, sum } from "./shared";
@@ -184,19 +184,19 @@ async function estimate<T>(
     config: CostAnalyzerConfiguration
 ): Promise<CostAnalysisProfile> {
     const { cloudProvider, repetitions, options, repetitionConcurrency } = config;
-    const cloud = create(cloudProvider);
-    const cloudFunction = await cloud.createFunction(fmodule, options);
-    const remote = cloudFunction.wrapModule(require(fmodule)) as Promisified<T>;
+    const cloudFunc = await faastify(cloudProvider, require(fmodule), fmodule, options);
     const funnel = new Funnel<void | Error>(repetitionConcurrency);
     const results = [];
     for (let i = 0; i < repetitions; i++) {
-        results.push(funnel.push(() => workload(remote).catch((err: Error) => err)));
+        results.push(
+            funnel.push(() => workload(cloudFunc.functions).catch((err: Error) => err))
+        );
     }
     await Promise.all(results);
-    await cloudFunction.cleanup();
-    const costEstimate = await cloudFunction.costEstimate();
-    const stats = cloudFunction.functionStats.aggregate;
-    const counters = cloudFunction.functionCounters.aggregate;
+    await cloudFunc.cleanup();
+    const costEstimate = await cloudFunc.costEstimate();
+    const stats = cloudFunc.functionStats.aggregate;
+    const counters = cloudFunc.functionCounters.aggregate;
     return { cloudProvider, options, costEstimate, stats, counters, config };
 }
 

@@ -6,16 +6,15 @@ import { testFunctions, testMemoryLimit, testTimeout, measureConcurrency } from 
 import { readFile } from "../src/fs";
 
 async function testCleanup(options: local.Options) {
-    const { remote, cloudFunc } = await faastify("local", funcs, "./functions", options);
+    const cloudFunc = await faastify("local", funcs, "./functions", options);
+    const { hello, sleep } = cloudFunc.functions;
     let done = 0;
 
-    remote
-        .hello("there")
+    hello("there")
         .then(_ => done++)
         .catch(_ => {});
 
-    remote
-        .sleep(1000)
+    sleep(1000)
         .then(_ => done++)
         .catch(_ => {});
 
@@ -24,11 +23,11 @@ async function testCleanup(options: local.Options) {
 }
 
 async function testOrder(options: local.Options) {
-    const { remote, cloudFunc } = await faastify("local", funcs, "./functions", options);
+    const cloudFunc = await faastify("local", funcs, "./functions", options);
     expect.assertions(2);
 
-    const a = remote.emptyReject();
-    const b = remote.sleep(0);
+    const a = cloudFunc.functions.emptyReject();
+    const b = cloudFunc.functions.sleep(0);
     expect(await b).toBeUndefined();
     try {
         await a;
@@ -49,13 +48,13 @@ async function testConcurrency({
     maxConcurrency: number;
     expectedConcurrency: number;
 }) {
-    const { remote, cloudFunc } = await faastify("local", funcs, "./functions", options);
+    const cloudFunc = await faastify("local", funcs, "./functions", options);
 
     try {
         const N = maxConcurrency;
         const promises = [];
         for (let i = 0; i < N; i++) {
-            promises.push(remote.spin(500));
+            promises.push(cloudFunc.functions.spin(500));
         }
 
         const timings = await Promise.all(promises);
@@ -106,14 +105,14 @@ describe("faast.js local mode", () => {
     }
 
     test("console.log and console.warn with child process", async () => {
-        const { remote, cloudFunc } = await faastify("local", funcs, "./functions", {
+        const cloudFunc = await faastify("local", funcs, "./functions", {
             childProcess: true,
             concurrency: 1
         });
         try {
-            await remote.consoleLog("Remote console.log output");
-            await remote.consoleWarn("Remote console.warn output");
-            await remote.consoleError("Remote console.error output");
+            await cloudFunc.functions.consoleLog("Remote console.log output");
+            await cloudFunc.functions.consoleWarn("Remote console.warn output");
+            await cloudFunc.functions.consoleError("Remote console.error output");
 
             await cloudFunc.stop();
             const messages = await readFirstLogfile(cloudFunc.logUrl());
@@ -127,17 +126,17 @@ describe("faast.js local mode", () => {
     });
 
     test("log files should be appended, not truncated, after child process crash", async () => {
-        const { remote, cloudFunc } = await faastify("local", funcs, "./functions", {
+        const cloudFunc = await faastify("local", funcs, "./functions", {
             childProcess: true,
             concurrency: 1,
             maxRetries: 1
         });
         try {
-            await remote.consoleLog("output 1");
+            await cloudFunc.functions.consoleLog("output 1");
             try {
-                await remote.processExit();
+                await cloudFunc.functions.processExit();
             } catch (err) {}
-            await remote.consoleWarn("output 2");
+            await cloudFunc.functions.consoleWarn("output 2");
 
             const messages = await readFirstLogfile(cloudFunc.logUrl());
 
@@ -169,10 +168,10 @@ describe("faast.js local mode", () => {
     });
 
     test("cleanup waits for all child processes to exit", async () => {
-        const { remote, cloudFunc } = await faastify("local", funcs, "./functions", {
+        const cloudFunc = await faastify("local", funcs, "./functions", {
             childProcess: true
         });
-        remote.spin(5000).catch(_ => {});
+        cloudFunc.functions.spin(5000).catch(_ => {});
         while (true) {
             await sleep(100);
             if (cloudFunc.state.wrappers.length > 0) {
