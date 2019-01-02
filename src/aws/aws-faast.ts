@@ -1,26 +1,21 @@
 import * as aws from "aws-sdk";
 import { PromiseResult } from "aws-sdk/lib/request";
 import { createHash } from "crypto";
-import { LocalCache, caches } from "../cache";
+import { caches } from "../cache";
+import { CostBreakdown, CostMetric } from "../cost";
 import {
     CloudFunctionImpl,
     CommonOptions,
+    createFunction,
     FunctionCounters,
     FunctionStats,
-    createFunction
+    CommonOptionDefaults
 } from "../faast";
-import { CostBreakdown, CostMetric } from "../cost";
 import { readFile } from "../fs";
 import { info, logGc, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import {
-    CommonOptionDefaults,
-    computeHttpResponseBytes,
-    hasExpired,
-    sleep,
-    uuidv4Pattern
-} from "../shared";
+import { computeHttpResponseBytes, hasExpired, sleep, uuidv4Pattern } from "../shared";
 import { retry, throttle } from "../throttle";
 import {
     FunctionCall,
@@ -627,8 +622,8 @@ async function deleteResources(
         }
     }
     if (logGroupName) {
-        // Don't delete logs. They are often useful. By default retention will
-        // be 1 day, and gc will clean it out.
+        // Don't delete logs. They are often useful. By default log stream retention will
+        // be 1 day, and gc will clean out the log group after the streams are expired.
     }
 }
 

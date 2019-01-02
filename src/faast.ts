@@ -8,7 +8,6 @@ import * as local from "./local/local-faast";
 import { info, logCalls, logLeaks, stats, warn } from "./log";
 import { PackerOptions, PackerResult } from "./packer";
 import {
-    CommonOptionDefaults,
     ExponentiallyDecayingAverageValue,
     FactoryMap,
     roundTo100ms,
@@ -80,12 +79,29 @@ export interface CommonOptions extends PackerOptions {
     timeout?: number;
     memorySize?: number;
     mode?: "https" | "queue";
-    gc?: boolean;
+    gc?: "on" | "off" | "dryrun";
     retentionInDays?: number;
     concurrency?: number;
     maxRetries?: number;
     speculativeRetryThreshold?: number;
 }
+
+type CommonOptionDefaultKeys =
+    | "gc"
+    | "childProcess"
+    | "maxRetries"
+    | "speculativeRetryThreshold"
+    | "retentionInDays";
+
+type CommonOptionsType = Required<Pick<CommonOptions, CommonOptionDefaultKeys>>;
+
+export const CommonOptionDefaults: CommonOptionsType = {
+    childProcess: false,
+    gc: "on",
+    maxRetries: 2,
+    speculativeRetryThreshold: 3,
+    retentionInDays: 1
+};
 
 function resolveModule(fmodule: string) {
     const parent = module.parent!;

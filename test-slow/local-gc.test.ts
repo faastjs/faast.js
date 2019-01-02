@@ -21,7 +21,7 @@ test("garbage collector works for functions that are called", async () => {
     await func.functions.hello("gc-test");
     await func.stop();
     const func2 = await faast.faastify("google", functions, "../test/functions", {
-        gc: true,
+        gc: "on",
         retentionInDays: 0
     });
     await func2.cleanup();
@@ -33,7 +33,7 @@ test("garbage collector works for functions that are never called", async () => 
     const func = await faast.faastify("local", functions, "../test/functions");
     await func.stop();
     const func2 = await faast.faastify("local", functions, "../test/functions", {
-        gc: true,
+        gc: "on",
         retentionInDays: 0
     });
 

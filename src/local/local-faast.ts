@@ -3,7 +3,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { Writable } from "stream";
 import { promisify } from "util";
-import { CloudFunctionImpl, CommonOptions } from "../faast";
+import { CloudFunctionImpl, CommonOptions, CommonOptionDefaults } from "../faast";
 import { info, logGc, warn } from "../log";
 import {
     FunctionCall,
@@ -13,7 +13,7 @@ import {
     serializeCall
 } from "../wrapper";
 import { packer, PackerOptions, PackerResult, unzipInDir } from "../packer";
-import { CommonOptionDefaults, hasExpired, uuidv4Pattern } from "../shared";
+import { hasExpired, uuidv4Pattern } from "../shared";
 import { mkdir, readdir, stat, exists, rmrf, createWriteStream } from "../fs";
 import * as localTrampolineFactory from "./local-trampoline";
 

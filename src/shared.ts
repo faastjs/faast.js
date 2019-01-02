@@ -1,11 +1,3 @@
-export const CommonOptionDefaults = {
-    childProcess: false,
-    gc: true,
-    maxRetries: 2,
-    speculativeRetryThreshold: 3,
-    retentionInDays: 1
-};
-
 export class Statistics {
     samples = 0;
     max = Number.NEGATIVE_INFINITY;

@@ -16,7 +16,7 @@ test(
         await func.functions.hello("gc-test");
         await func.stop();
         const func2 = await faastify("google", functions, "../test/functions", {
-            gc: true,
+            gc: "on",
             retentionInDays: 0
         });
 
@@ -34,7 +34,7 @@ test(
         });
         await func.stop();
         const func2 = await faastify("google", functions, "../test/functions", {
-            gc: true,
+            gc: "on",
             retentionInDays: 0
         });
 

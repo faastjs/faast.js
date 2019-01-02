@@ -12,19 +12,14 @@ import {
     CloudFunctionImpl,
     CommonOptions,
     FunctionCounters,
-    FunctionStats
+    FunctionStats,
+    CommonOptionDefaults
 } from "../faast";
 import { CostBreakdown, CostMetric } from "../cost";
 import { info, logGc, logPricing, warn } from "../log";
 import { packer, PackerOptions, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import {
-    CommonOptionDefaults,
-    computeHttpResponseBytes,
-    hasExpired,
-    sleep,
-    uuidv4Pattern
-} from "../shared";
+import { computeHttpResponseBytes, hasExpired, sleep, uuidv4Pattern } from "../shared";
 import { retry, throttle } from "../throttle";
 import { Mutable } from "../types";
 import {

@@ -53,7 +53,7 @@ test(
 
         await cloudFunc.stop();
         const func2 = await faastify("aws", functions, "../test/functions", {
-            gc: true,
+            gc: "on",
             retentionInDays: 0
         });
 
@@ -84,7 +84,7 @@ test(
         const func = await faastify("aws", functions, "../test/functions");
         await func.stop();
         const func2 = await faastify("aws", functions, "../test/functions", {
-            gc: true,
+            gc: "on",
             retentionInDays: 0
         });
 
