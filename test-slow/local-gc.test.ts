@@ -20,7 +20,7 @@ test("garbage collector works for functions that are called", async () => {
     const func = await faast.faastify("local", functions, "../test/functions");
     await func.functions.hello("gc-test");
     await func.stop();
-    const func2 = await faast.faastify("google", functions, "../test/functions", {
+    const func2 = await faast.faastify("local", functions, "../test/functions", {
         gc: "on",
         retentionInDays: 0
     });
