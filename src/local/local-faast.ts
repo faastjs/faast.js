@@ -3,18 +3,19 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { Writable } from "stream";
 import { promisify } from "util";
-import { CloudFunctionImpl, CommonOptions, CommonOptionDefaults } from "../faast";
+import { CloudFunctionImpl } from "../faast";
+import { createWriteStream, exists, mkdir, readdir, rmrf, stat } from "../fs";
 import { info, logGc, warn } from "../log";
+import { CommonOptionDefaults, CommonOptions, PackerOptions } from "../options";
+import { packer, PackerResult, unzipInDir } from "../packer";
+import { hasExpired, uuidv4Pattern } from "../shared";
 import {
     FunctionCall,
     FunctionReturn,
     FunctionReturnWithMetrics,
-    Wrapper,
-    serializeCall
+    serializeCall,
+    Wrapper
 } from "../wrapper";
-import { packer, PackerOptions, PackerResult, unzipInDir } from "../packer";
-import { hasExpired, uuidv4Pattern } from "../shared";
-import { mkdir, readdir, stat, exists, rmrf, createWriteStream } from "../fs";
 import * as localTrampolineFactory from "./local-trampoline";
 
 const exec = promisify(sys.exec);
@@ -65,7 +66,7 @@ async function initialize(
     } = options || {};
 
     let gcPromise;
-    if (gc) {
+    if (gc === "on" || gc === "dryrun") {
         gcPromise = collectGarbage(retentionInDays!);
     }
     const tempDir = join(tmpdir(), "faast", nonce);

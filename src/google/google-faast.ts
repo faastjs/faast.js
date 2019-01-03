@@ -1,42 +1,21 @@
 import Axios, { AxiosError, AxiosPromise } from "axios";
 import * as sys from "child_process";
-import {
-    cloudbilling_v1,
-    cloudfunctions_v1,
-    google,
-    GoogleApis,
-    pubsub_v1
-} from "googleapis";
+import { cloudbilling_v1, cloudfunctions_v1, google, GoogleApis, pubsub_v1 } from "googleapis";
 import * as util from "util";
-import {
-    CloudFunctionImpl,
-    CommonOptions,
-    FunctionCounters,
-    FunctionStats,
-    CommonOptionDefaults
-} from "../faast";
 import { CostBreakdown, CostMetric } from "../cost";
+import { CloudFunctionImpl, FunctionCounters, FunctionStats } from "../faast";
 import { info, logGc, logPricing, warn } from "../log";
-import { packer, PackerOptions, PackerResult } from "../packer";
+import { CommonOptionDefaults, CommonOptions, PackerOptions } from "../options";
+import { packer, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import { computeHttpResponseBytes, hasExpired, sleep, uuidv4Pattern } from "../shared";
 import { retry, throttle } from "../throttle";
 import { Mutable } from "../types";
-import {
-    FunctionCall,
-    FunctionReturn,
-    FunctionReturnWithMetrics,
-    serializeCall
-} from "../wrapper";
-import {
-    getMessageBody,
-    publish,
-    publishControlMessage,
-    pubsubMessageAttribute,
-    receiveMessages
-} from "./google-queue";
+import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics, serializeCall } from "../wrapper";
+import { getMessageBody, publish, publishControlMessage, pubsubMessageAttribute, receiveMessages } from "./google-queue";
 import * as googleTrampolineHttps from "./google-trampoline-https";
 import * as googleTrampolineQueue from "./google-trampoline-queue";
+
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
@@ -104,8 +83,7 @@ export const defaults: Required<Options> = {
     addZipFile: [],
     addDirectory: [],
     packageJson: false,
-    webpackOptions: {},
-    wrapperOptions: {}
+    webpackOptions: {}
 };
 
 export const Impl: CloudFunctionImpl<Options, State> = {
@@ -318,7 +296,7 @@ async function initializeWithApi(
         options
     };
 
-    if (gc) {
+    if (gc === "on" || gc === "dryrun") {
         logGc(`Starting garbage collector`);
         state.gcPromise = collectGarbage(services, project, retentionInDays);
         state.gcPromise.catch(_ => {});

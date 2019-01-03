@@ -11,6 +11,7 @@ import { sleep } from "../src/shared";
 import { Pump } from "../src/throttle";
 import * as funcs from "./functions";
 import { Timing } from "./functions";
+import { CommonOptions } from "../src/options";
 
 export function testFunctions(
     cloudProvider: "aws",
@@ -24,12 +25,12 @@ export function testFunctions(
 ): void;
 export function testFunctions(
     cloudProvider: faast.CloudProvider,
-    options: faast.CommonOptions,
+    options: CommonOptions,
     initTimeout?: number
 ): void;
 export function testFunctions(
     cloudProvider: faast.CloudProvider,
-    options: faast.CommonOptions,
+    options: CommonOptions,
     initTimeout = 60 * 1000
 ): void {
     let cloudFunc: faast.CloudFunction<typeof funcs>;
@@ -164,12 +165,12 @@ export function testCodeBundle<O, S>(
 
 export function testCosts(
     cloudProvider: faast.CloudProvider,
-    options: faast.CommonOptions = {}
+    options: CommonOptions = {}
 ) {
     let cloudFunc: faast.CloudFunction<typeof funcs>;
 
     beforeAll(async () => {
-        const args: faast.CommonOptions = {
+        const args: CommonOptions = {
             timeout: 30,
             memorySize: 512,
             mode: "queue"
@@ -221,7 +222,7 @@ export function testCosts(
 export function testRampUp(
     cloudProvider: faast.CloudProvider,
     concurrency: number,
-    options?: faast.CommonOptions
+    options?: CommonOptions
 ) {
     let lambda: faast.CloudFunction<typeof funcs>;
 
@@ -278,7 +279,7 @@ export function testThroughput(
     cloudProvider: faast.CloudProvider,
     duration: number,
     concurrency: number = 500,
-    options?: faast.CommonOptions
+    options?: CommonOptions
 ) {
     let lambda: faast.CloudFunction<typeof funcs>;
 
@@ -317,10 +318,7 @@ export function testThroughput(
     );
 }
 
-export function testTimeout(
-    cloudProvider: faast.CloudProvider,
-    options?: faast.CommonOptions
-) {
+export function testTimeout(cloudProvider: faast.CloudProvider, options?: CommonOptions) {
     let lambda: faast.CloudFunction<typeof funcs>;
 
     beforeAll(async () => {
@@ -356,7 +354,7 @@ export function testTimeout(
 
 export function testMemoryLimit(
     cloudProvider: faast.CloudProvider,
-    options?: faast.CommonOptions
+    options?: CommonOptions
 ) {
     let lambda: faast.CloudFunction<typeof funcs>;
 

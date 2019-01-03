@@ -8,19 +8,12 @@ import { exists, mkdir, readFile, createWriteStream } from "./fs";
 import { info, warn, logWebpack } from "./log";
 import { WrapperOptions, TrampolineFactory } from "./wrapper";
 import { streamToBuffer } from "./shared";
+import { PackerOptions } from "./options";
 
 type ZipFile = yauzl.ZipFile;
 
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
-
-export interface PackerOptions {
-    webpackOptions?: webpack.Configuration;
-    packageJson?: string | object | false;
-    addDirectory?: string | string[];
-    addZipFile?: string | string[];
-    wrapperOptions?: WrapperOptions;
-}
 
 export interface PackerResult {
     archive: NodeJS.ReadableStream;
@@ -42,9 +35,9 @@ export async function packer(
         packageJson,
         addDirectory,
         addZipFile,
-        wrapperOptions = {},
         ...rest
-    }: PackerOptions
+    }: PackerOptions,
+    wrapperOptions?: WrapperOptions
 ): Promise<PackerResult> {
     const _exhaustiveCheck: Required<typeof rest> = {};
     info(`Running webpack`);
@@ -155,7 +148,7 @@ export async function packer(
 
     const loader = `loader?${getUrlEncodedQueryParameters({
         trampolineFactoryModule: trampolineFactory.filename,
-        wrapperOptions,
+        wrapperOptions: wrapperOptions || {},
         functionModule
     })}!`;
     await runWebpack(loader, "index.js");

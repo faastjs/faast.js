@@ -1,17 +1,17 @@
+import * as Listr from "listr";
 import { inspect } from "util";
 import {
     aws,
-    CommonOptions,
+    faastify,
     FunctionCounters,
     FunctionStats,
     google,
-    Promisified,
-    faastify
+    Promisified
 } from "./faast";
-import { Funnel, throttle } from "./throttle";
+import { CommonOptions } from "./options";
 import { Statistics, sum } from "./shared";
+import { Funnel, throttle } from "./throttle";
 import { NonFunctionProperties } from "./types";
-import * as Listr from "listr";
 
 export class CostMetric {
     name!: string;

@@ -6,7 +6,7 @@ import * as costAnalyzer from "./cost";
 import * as google from "./google/google-faast";
 import * as local from "./local/local-faast";
 import { info, logCalls, logLeaks, stats, warn } from "./log";
-import { PackerOptions, PackerResult } from "./packer";
+import { PackerResult } from "./packer";
 import {
     ExponentiallyDecayingAverageValue,
     FactoryMap,
@@ -18,6 +18,7 @@ import { Deferred, Funnel } from "./throttle";
 import { NonFunctionProperties, Unpacked } from "./types";
 import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "./wrapper";
 import Module = require("module");
+import { PackerOptions, CommonOptions, CommonOptionDefaults } from "./options";
 
 export { aws, google, local, costAnalyzer };
 
@@ -72,35 +73,6 @@ export type Responsified<M> = {
     [K in keyof M]: M[K] extends (...args: infer A) => infer R
         ? ResponsifiedFunction<A, R>
         : never
-};
-
-export interface CommonOptions extends PackerOptions {
-    childProcess?: boolean;
-    timeout?: number;
-    memorySize?: number;
-    mode?: "https" | "queue";
-    gc?: "on" | "off" | "dryrun";
-    retentionInDays?: number;
-    concurrency?: number;
-    maxRetries?: number;
-    speculativeRetryThreshold?: number;
-}
-
-type CommonOptionDefaultKeys =
-    | "gc"
-    | "childProcess"
-    | "maxRetries"
-    | "speculativeRetryThreshold"
-    | "retentionInDays";
-
-type CommonOptionsType = Required<Pick<CommonOptions, CommonOptionDefaultKeys>>;
-
-export const CommonOptionDefaults: CommonOptionsType = {
-    childProcess: false,
-    gc: "on",
-    maxRetries: 2,
-    speculativeRetryThreshold: 3,
-    retentionInDays: 1
 };
 
 function resolveModule(fmodule: string) {

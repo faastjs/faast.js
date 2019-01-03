@@ -5,15 +5,14 @@ import { caches } from "../cache";
 import { CostBreakdown, CostMetric } from "../cost";
 import {
     CloudFunctionImpl,
-    CommonOptions,
     createFunction,
     FunctionCounters,
-    FunctionStats,
-    CommonOptionDefaults
+    FunctionStats
 } from "../faast";
 import { readFile } from "../fs";
 import { info, logGc, warn } from "../log";
-import { packer, PackerOptions, PackerResult } from "../packer";
+import { CommonOptionDefaults, CommonOptions, PackerOptions } from "../options";
+import { packer, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
 import { computeHttpResponseBytes, hasExpired, sleep, uuidv4Pattern } from "../shared";
 import { retry, throttle } from "../throttle";
@@ -104,17 +103,9 @@ export let defaults: Required<Options> = {
     region: "us-west-2",
     PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
     RoleName: "faast-cached-lambda-role",
-    timeout: 60,
-    memorySize: 256,
-    concurrency: 500,
-    mode: "https",
+    memorySize: 1728,
     useDependencyCaching: true,
     awsLambdaOptions: {},
-    addDirectory: [],
-    addZipFile: [],
-    packageJson: false,
-    webpackOptions: {},
-    wrapperOptions: {},
     CacheBucket: ""
 };
 
@@ -415,7 +406,7 @@ export async function initialize(
         options
     };
 
-    if (gc) {
+    if (gc === "on" || gc === "dryrun") {
         logGc(`Starting garbage collector`);
         state.gcPromise = collectGarbage(
             services,
