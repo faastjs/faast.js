@@ -29,13 +29,20 @@ export interface State {
     gcPromise?: Promise<void>;
 }
 
-export interface Options extends CommonOptions {}
+export interface Options extends CommonOptions {
+    gcWorker?: (tempdir: string) => Promise<void>;
+}
 
-export const defaults: Options = {
+function gcWorker(dir: string) {
+    return rmrf(dir);
+}
+
+export const defaults: Required<Options> = {
     ...CommonOptionDefaults,
     concurrency: 10,
     memorySize: 512,
-    timeout: 300
+    timeout: 300,
+    gcWorker
 };
 
 export const Impl: CloudFunctionImpl<Options, State> = {
@@ -62,12 +69,13 @@ async function initialize(
         gc = defaults.gc,
         retentionInDays = defaults.retentionInDays,
         memorySize = defaults.memorySize,
-        timeout = defaults.timeout
+        timeout = defaults.timeout,
+        gcWorker = defaults.gcWorker
     } = options || {};
 
     let gcPromise;
-    if (gc === "on" || gc === "dryrun") {
-        gcPromise = collectGarbage(retentionInDays!);
+    if (gc) {
+        gcPromise = collectGarbage(gcWorker, retentionInDays!);
     }
     const tempDir = join(tmpdir(), "faast", nonce);
     info(`tempDir: ${tempDir}`);
@@ -188,7 +196,10 @@ async function stop(state: State) {
 
 let garbageCollectorRunning = false;
 
-async function collectGarbage(retentionInDays: number) {
+async function collectGarbage(
+    gcWorker: (dir: string) => Promise<void>,
+    retentionInDays: number
+) {
     if (garbageCollectorRunning) {
         return;
     }
@@ -205,7 +216,7 @@ async function collectGarbage(retentionInDays: number) {
                     const stats = await stat(faastDir);
                     if (hasExpired(stats.atimeMs, retentionInDays)) {
                         logGc(faastDir);
-                        await rmrf(faastDir);
+                        await gcWorker(faastDir);
                     }
                 } catch (err) {}
             }

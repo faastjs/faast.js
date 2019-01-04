@@ -1,6 +1,12 @@
 import { faastify } from "../src/faast";
-import { checkResourcesCleanedUp, getGoogleResources } from "../test/tests";
+import {
+    checkResourcesCleanedUp,
+    getGoogleResources,
+    record,
+    contains
+} from "../test/tests";
 import * as functions from "../test/functions";
+import { GoogleResources, GoogleServices } from "../src/google/google-faast";
 
 test(
     "garbage collector works for functions that are called",
@@ -15,13 +21,21 @@ test(
         });
         await func.functions.hello("gc-test");
         await func.stop();
+        const gcRecorder = record(
+            async (_: GoogleServices, _resources: GoogleResources) => {}
+        );
         const func2 = await faastify("google", functions, "../test/functions", {
-            gc: "on",
+            gc: true,
+            gcWorker: gcRecorder,
             retentionInDays: 0
         });
 
         await func2.cleanup();
-        await checkResourcesCleanedUp(await getGoogleResources(func));
+        const resources = func.state.resources;
+        expect(
+            gcRecorder.recordings.find(r => contains(r.args[1], resources))
+        ).toBeDefined();
+        await func.cleanup();
     },
     180 * 1000
 );
@@ -33,13 +47,21 @@ test(
             mode: "queue"
         });
         await func.stop();
+        const gcRecorder = record(
+            async (_: GoogleServices, _resources: GoogleResources) => {}
+        );
         const func2 = await faastify("google", functions, "../test/functions", {
-            gc: "on",
+            gc: true,
+            gcWorker: gcRecorder,
             retentionInDays: 0
         });
 
         await func2.cleanup();
-        await checkResourcesCleanedUp(await getGoogleResources(func));
+        const resources = func.state.resources;
+        expect(
+            gcRecorder.recordings.find(r => contains(r.args[1], resources))
+        ).toBeDefined();
+        await func.cleanup();
     },
     180 * 1000
 );

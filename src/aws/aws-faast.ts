@@ -44,6 +44,7 @@ export interface Options extends CommonOptions {
     useDependencyCaching?: boolean;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
     CacheBucket?: string;
+    gcWorker?: (services: AWSServices, work: GcWork) => Promise<void>;
 }
 
 export interface AWSPrices {
@@ -98,6 +99,43 @@ export interface State {
     gcPromise?: Promise<void>;
 }
 
+export type GcWork =
+    | {
+          type: "SetLogRetention";
+          logGroupName: string;
+          retentionInDays: number;
+      }
+    | {
+          type: "DeleteResources";
+          resources: AWSResources;
+      };
+
+const gcWorker = throttle(
+    { concurrency: 5, rate: 5, burst: 2 },
+    async (services: AWSServices, work: GcWork) => {
+        switch (work.type) {
+            case "SetLogRetention":
+                if (
+                    await quietly(
+                        services.cloudwatch.putRetentionPolicy({
+                            ...work
+                        })
+                    )
+                ) {
+                    logGc(
+                        `Added retention policy of ${work.retentionInDays} day(s) to ${
+                            work.logGroupName
+                        }`
+                    );
+                }
+                break;
+            case "DeleteResources":
+                await deleteResources(work.resources, services, logGc);
+                break;
+        }
+    }
+);
+
 export let defaults: Required<Options> = {
     ...CommonOptionDefaults,
     region: "us-west-2",
@@ -106,7 +144,8 @@ export let defaults: Required<Options> = {
     memorySize: 1728,
     useDependencyCaching: true,
     awsLambdaOptions: {},
-    CacheBucket: ""
+    CacheBucket: "",
+    gcWorker
 };
 
 export const Impl: CloudFunctionImpl<Options, State> = {
@@ -339,13 +378,17 @@ export async function initialize(
         RoleName = defaults.RoleName,
         timeout = defaults.timeout,
         memorySize = defaults.memorySize,
-        mode = defaults.mode,
         gc = defaults.gc,
         retentionInDays = defaults.retentionInDays,
         awsLambdaOptions = defaults.awsLambdaOptions,
         useDependencyCaching = defaults.useDependencyCaching,
-        packageJson = defaults.packageJson
+        packageJson = defaults.packageJson,
+        gcWorker = defaults.gcWorker
     } = options;
+    let { mode = defaults.mode } = options;
+    if (mode === "auto") {
+        mode = "queue";
+    }
     info(`Creating AWS APIs`);
     const services = createAWSApis(region);
     const { lambda, s3, sts } = services;
@@ -406,9 +449,10 @@ export async function initialize(
         options
     };
 
-    if (gc === "on" || gc === "dryrun") {
+    if (gc) {
         logGc(`Starting garbage collector`);
         state.gcPromise = collectGarbage(
+            gcWorker,
             services,
             region,
             accountId,
@@ -560,7 +604,7 @@ export async function deleteRole(RoleName: string, iam: aws.IAM) {
 export type PartialState = Partial<State> & Pick<State, "services" | "resources">;
 
 async function deleteResources(
-    resources: AWSResources,
+    resources: Partial<AWSResources>,
     services: AWSServices,
     output: (msg: string) => void = info
 ) {
@@ -579,7 +623,7 @@ async function deleteResources(
     } = resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
 
-    const { lambda, sqs, sns, s3 } = services;
+    const { lambda, sqs, sns, s3, iam } = services;
     if (SNSLambdaSubscriptionArn) {
         if (
             await quietly(sns.unsubscribe({ SubscriptionArn: SNSLambdaSubscriptionArn }))
@@ -588,8 +632,7 @@ async function deleteResources(
         }
     }
     if (RoleName) {
-        // Don't delete cached role. It may be in use by other instances of faast.
-        // await deleteRole(RoleName, iam);
+        await deleteRole(RoleName, iam);
     }
     if (RequestTopicArn) {
         if (await quietly(sns.deleteTopic({ TopicArn: RequestTopicArn }))) {
@@ -613,8 +656,9 @@ async function deleteResources(
         }
     }
     if (logGroupName) {
-        // Don't delete logs. They are often useful. By default log stream retention will
-        // be 1 day, and gc will clean out the log group after the streams are expired.
+        if (await quietly(services.cloudwatch.deleteLogGroup({ logGroupName }))) {
+            logGc(`Deleted log group ${logGroupName}`);
+        }
     }
 }
 
@@ -634,7 +678,13 @@ async function addLogRetentionPolicy(
 export async function cleanup(state: PartialState) {
     await stop(state);
     info(`Cleaning up faast infrastructure for ${state.resources.FunctionName}...`);
-    await deleteResources(state.resources, state.services);
+
+    // Don't delete cached role. It may be in use by other instances of faast.
+    // Don't delete logs. They are often useful. By default log stream retention will
+    // be 1 day, and gc will clean out the log group after the streams are expired.
+    const { logGroupName, RoleName, ...rest } = state.resources;
+
+    await deleteResources(rest, state.services);
     info(`Cleanup done.`);
 }
 
@@ -648,6 +698,7 @@ function functionNameFromLogGroup(logGroupName: string) {
 }
 
 export async function collectGarbage(
+    executor: (services: AWSServices, work: GcWork) => Promise<void>,
     services: AWSServices,
     region: string,
     accountId: string,
@@ -660,19 +711,9 @@ export async function collectGarbage(
     garbageCollectorRunning = true;
     try {
         const promises: Promise<void>[] = [];
-        const funnel = throttle(
-            {
-                concurrency: 5,
-                rate: 5,
-                burst: 2
-            },
-            (worker: () => Promise<void>) => worker()
-        );
-        const scheduleWork = (worker: () => Promise<void>) => {
-            const promise = funnel(worker);
-            promises.push(promise);
-            return promise;
-        };
+        function scheduleWork(work: GcWork) {
+            promises.push(executor(services, work));
+        }
         const functionsWithLogGroups = new Set();
 
         // Collect functions with log groups
@@ -694,7 +735,6 @@ export async function collectGarbage(
                             )
                         );
                         garbageCollectLogGroups(
-                            services,
                             page.logGroups!,
                             retentionInDays,
                             region,
@@ -726,7 +766,6 @@ export async function collectGarbage(
                         .map(fn => fn.FunctionName!);
 
                     deleteGarbageFunctions(
-                        services,
                         region,
                         accountId,
                         Bucket,
@@ -752,36 +791,22 @@ export async function getAccountId(sts: aws.STS) {
 }
 
 function garbageCollectLogGroups(
-    services: AWSServices,
     logGroups: aws.CloudWatchLogs.LogGroup[],
     retentionInDays: number,
     region: string,
     accountId: string,
     s3Bucket: string,
-    scheduleWork: (worker: () => Promise<void>) => void
+    scheduleWork: (work: GcWork) => void
 ) {
-    const { cloudwatch } = services;
-
     const logGroupsMissingRetentionPolicy = logGroups.filter(
         g => g.retentionInDays === undefined
     );
 
     logGroupsMissingRetentionPolicy.forEach(g =>
-        scheduleWork(async () => {
-            if (
-                await quietly(
-                    cloudwatch.putRetentionPolicy({
-                        logGroupName: g.logGroupName!,
-                        retentionInDays
-                    })
-                )
-            ) {
-                logGc(
-                    `Added retention policy of ${retentionInDays} day(s) to ${
-                        g.logGroupName
-                    }`
-                );
-            }
+        scheduleWork({
+            type: "SetLogRetention",
+            logGroupName: g.logGroupName!,
+            retentionInDays
         })
     );
 
@@ -791,23 +816,15 @@ function garbageCollectLogGroups(
         .map(g => functionNameFromLogGroup(g.logGroupName!)!)
         .filter(n => n);
 
-    deleteGarbageFunctions(
-        services,
-        region,
-        accountId,
-        s3Bucket,
-        garbageFunctions,
-        scheduleWork
-    );
+    deleteGarbageFunctions(region, accountId, s3Bucket, garbageFunctions, scheduleWork);
 }
 
 function deleteGarbageFunctions(
-    services: AWSServices,
     region: string,
     accountId: string,
     s3Bucket: string,
     garbageFunctions: string[],
-    scheduleWork: (worker: () => Promise<void>) => void
+    scheduleWork: (work: GcWork) => void
 ) {
     garbageFunctions.forEach(FunctionName => {
         const resources: AWSResources = {
@@ -820,13 +837,7 @@ function deleteGarbageFunctions(
             s3Key: getS3Key(FunctionName),
             logGroupName: getLogGroupName(FunctionName)
         };
-        scheduleWork(async () => {
-            await deleteResources(resources, services, logGc);
-            const logGroupName = getLogGroupName(FunctionName);
-            if (await quietly(services.cloudwatch.deleteLogGroup({ logGroupName }))) {
-                logGc(`Deleted log group ${logGroupName}`);
-            }
-        });
+        scheduleWork({ type: "DeleteResources", resources });
     });
 }
 

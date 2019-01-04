@@ -1,22 +1,9 @@
-import { getLogGroupName } from "../src/aws/aws-shared";
-import { faastify, AWSLambda } from "../src/faast";
+import { AWSServices, GcWork } from "../src/aws/aws-faast";
+import { faastify } from "../src/faast";
 import { sleep } from "../src/shared";
 import * as functions from "../test/functions";
-import { checkResourcesCleanedUp, getAWSResources, quietly } from "../test/tests";
-
-async function checkLogGroupCleanedUp(func: AWSLambda) {
-    const { cloudwatch } = func.state.services;
-    const { FunctionName } = func.state.resources;
-
-    const logGroupResult = await quietly(
-        cloudwatch
-            .describeLogGroups({
-                logGroupNamePrefix: getLogGroupName(FunctionName)
-            })
-            .promise()
-    );
-    expect(logGroupResult && logGroupResult.logGroups!.length).toBe(0);
-}
+import { quietly, record, contains } from "../test/tests";
+import { logGc } from "../src/log";
 
 test(
     "garbage collector works for functions that are called",
@@ -26,17 +13,21 @@ test(
         // function and set its retention to 0, and have its garbage collector
         // clean up the first function. Verify the first function's resources
         // are cleaned up, which shows that the garbage collector did its job.
-        const cloudFunc = await faastify("aws", functions, "../test/functions");
-        const { cloudwatch } = cloudFunc.state.services;
+
+        const gcRecorder = record(async (_: AWSServices, work: GcWork) => {
+            logGc(`Recorded gc work: %O`, work);
+        });
+        const func = await faastify("aws", functions, "../test/functions");
+        const { cloudwatch } = func.state.services;
         await new Promise(async resolve => {
             let done = false;
-            cloudFunc.functions.hello("gc-test");
+            func.functions.hello("gc-test");
             while (!done) {
                 await sleep(1000);
                 const logResult = await quietly(
                     cloudwatch
                         .filterLogEvents({
-                            logGroupName: cloudFunc.state.resources.logGroupName
+                            logGroupName: func.state.resources.logGroupName
                         })
                         .promise()
                 );
@@ -51,14 +42,14 @@ test(
             }
         });
 
-        await cloudFunc.stop();
+        await func.stop();
         const func2 = await faastify("aws", functions, "../test/functions", {
-            gc: "on",
+            gcWorker: gcRecorder,
             retentionInDays: 0
         });
 
         // Simulate expiration of all log streams
-        const { logGroupName } = cloudFunc.state.resources;
+        const { logGroupName } = func.state.resources;
         const logStreamsResponse = await quietly(
             cloudwatch.describeLogStreams({ logGroupName }).promise()
         );
@@ -70,10 +61,22 @@ test(
                     .promise();
             }
         }
-
         await func2.cleanup();
-        await checkResourcesCleanedUp(await getAWSResources(cloudFunc));
-        await checkLogGroupCleanedUp(cloudFunc);
+        // Don't expect roles or subscriptions to be gc'd. The main role is a singular resource that is cached across runs and doesn't change. The subscription is removed by AWS asynchronously (after days or more) automatically after the request queue topic is deleted. The response queue ARN is redundant with the response queue URL, which is the identifier used for deletion.
+        const {
+            RoleName,
+            SNSLambdaSubscriptionArn,
+            ResponseQueueArn,
+            ...resources
+        } = func.state.resources;
+        expect(
+            gcRecorder.recordings.find(
+                r =>
+                    r.args[1].type === "DeleteResources" &&
+                    contains(r.args[1].resources, resources)
+            )
+        ).toBeDefined();
+        await func.cleanup();
     },
     120 * 1000
 );
@@ -81,16 +84,32 @@ test(
 test(
     "garbage collector works for functions that are never called",
     async () => {
+        const gcRecorder = record(async (_: AWSServices, _work: GcWork) => {});
+
         const func = await faastify("aws", functions, "../test/functions");
         await func.stop();
         const func2 = await faastify("aws", functions, "../test/functions", {
-            gc: "on",
+            gcWorker: gcRecorder,
             retentionInDays: 0
         });
 
         await func2.cleanup();
-        await checkResourcesCleanedUp(await getAWSResources(func));
-        await checkLogGroupCleanedUp(func);
+        // const resources = await getAWSResources(func);
+        const {
+            RoleName, // cached
+            SNSLambdaSubscriptionArn, // async deleted by aws itself
+            ResponseQueueArn, // redundant with response queue url
+            ...resources
+        } = func.state.resources;
+
+        expect(
+            gcRecorder.recordings.find(
+                r =>
+                    r.args[1].type === "DeleteResources" &&
+                    contains(r.args[1].resources, resources)
+            )
+        ).toBeDefined();
+        await func.cleanup();
     },
     90 * 1000
 );

@@ -1,6 +1,12 @@
 import Axios, { AxiosError, AxiosPromise } from "axios";
 import * as sys from "child_process";
-import { cloudbilling_v1, cloudfunctions_v1, google, GoogleApis, pubsub_v1 } from "googleapis";
+import {
+    cloudbilling_v1,
+    cloudfunctions_v1,
+    google,
+    GoogleApis,
+    pubsub_v1
+} from "googleapis";
 import * as util from "util";
 import { CostBreakdown, CostMetric } from "../cost";
 import { CloudFunctionImpl, FunctionCounters, FunctionStats } from "../faast";
@@ -11,8 +17,19 @@ import * as cloudqueue from "../queue";
 import { computeHttpResponseBytes, hasExpired, sleep, uuidv4Pattern } from "../shared";
 import { retry, throttle } from "../throttle";
 import { Mutable } from "../types";
-import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics, serializeCall } from "../wrapper";
-import { getMessageBody, publish, publishControlMessage, pubsubMessageAttribute, receiveMessages } from "./google-queue";
+import {
+    FunctionCall,
+    FunctionReturn,
+    FunctionReturnWithMetrics,
+    serializeCall
+} from "../wrapper";
+import {
+    getMessageBody,
+    publish,
+    publishControlMessage,
+    pubsubMessageAttribute,
+    receiveMessages
+} from "./google-queue";
 import * as googleTrampolineHttps from "./google-trampoline-https";
 import * as googleTrampolineQueue from "./google-trampoline-queue";
 
@@ -23,6 +40,7 @@ import CloudBilling = cloudbilling_v1;
 export interface Options extends CommonOptions {
     region?: string;
     googleCloudFunctionOptions?: CloudFunctions.Schema$CloudFunction;
+    gcWorker?: (services: GoogleServices, resources: GoogleResources) => Promise<void>;
 }
 
 export interface GoogleResources {
@@ -72,6 +90,10 @@ export interface State {
     gcPromise?: Promise<void>;
 }
 
+function gcWorker(services: GoogleServices, resources: GoogleResources) {
+    return deleteResources(services, resources, logGc);
+}
+
 export const defaults: Required<Options> = {
     ...CommonOptionDefaults,
     region: "us-central1",
@@ -83,7 +105,8 @@ export const defaults: Required<Options> = {
     addZipFile: [],
     addDirectory: [],
     packageJson: false,
-    webpackOptions: {}
+    webpackOptions: {},
+    gcWorker
 };
 
 export const Impl: CloudFunctionImpl<Options, State> = {
@@ -259,11 +282,16 @@ async function initializeWithApi(
         region = defaults.region,
         timeout = defaults.timeout,
         memorySize = defaults.memorySize,
-        mode = defaults.mode,
         gc = defaults.gc,
         retentionInDays = defaults.retentionInDays,
-        googleCloudFunctionOptions
+        googleCloudFunctionOptions,
+        gcWorker = defaults.gcWorker
     } = options;
+    let { mode = defaults.mode } = options;
+    if (mode === "auto") {
+        mode = "https";
+    }
+
     info(`Nonce: ${nonce}`);
     const location = `projects/${project}/locations/${region}`;
 
@@ -296,9 +324,9 @@ async function initializeWithApi(
         options
     };
 
-    if (gc === "on" || gc === "dryrun") {
+    if (gc) {
         logGc(`Starting garbage collector`);
-        state.gcPromise = collectGarbage(services, project, retentionInDays);
+        state.gcPromise = collectGarbage(gcWorker, services, project, retentionInDays);
         state.gcPromise.catch(_ => {});
     }
 
@@ -561,6 +589,7 @@ export async function cleanup(state: PartialState) {
 let garbageCollectorRunning = false;
 
 async function collectGarbage(
+    gcWorker: (services: GoogleServices, resources: GoogleResources) => Promise<void>,
     services: GoogleServices,
     project: string,
     retentionInDays: number
@@ -581,7 +610,19 @@ async function collectGarbage(
                 rate: 5,
                 burst: 2
             },
-            deleteFunctionResources
+            async (services: GoogleServices, fn: CloudFunctions.Schema$CloudFunction) => {
+                const { region, name, project } = parseFunctionName(fn.name!)!;
+
+                const resources: GoogleResources = {
+                    isEmulator: false,
+                    region,
+                    trampoline: fn.name!,
+                    requestQueueTopic: getRequestQueueTopic(project, name),
+                    responseQueueTopic: getResponseQueueTopic(project, name),
+                    responseSubscription: getResponseSubscription(project, name)
+                };
+                await gcWorker(services, resources);
+            }
         );
 
         const fnPattern = new RegExp(`/functions/faast-${uuidv4Pattern}$`);
@@ -609,24 +650,6 @@ async function collectGarbage(
 function parseFunctionName(path: string) {
     const match = path.match(/^projects\/(.*)\/locations\/(.*)\/functions\/(.*)$/);
     return match && { project: match[1], region: match[2], name: match[3] };
-}
-
-async function deleteFunctionResources(
-    services: GoogleServices,
-    fn: CloudFunctions.Schema$CloudFunction
-) {
-    const { region, name, project } = parseFunctionName(fn.name!)!;
-
-    const resources: GoogleResources = {
-        isEmulator: false,
-        region,
-        trampoline: fn.name!,
-        requestQueueTopic: getRequestQueueTopic(project, name),
-        responseQueueTopic: getResponseQueueTopic(project, name),
-        responseSubscription: getResponseSubscription(project, name)
-    };
-
-    await deleteResources(services, resources, logGc);
 }
 
 /**

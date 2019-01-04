@@ -10,7 +10,7 @@ export interface PackerOptions {
 export interface CommonOptions extends PackerOptions {
     childProcess?: boolean;
     concurrency?: number;
-    gc?: "on" | "off" | "dryrun";
+    gc?: boolean;
     maxRetries?: number;
     memorySize?: number;
     mode?: "https" | "queue" | "auto";
@@ -22,7 +22,7 @@ export interface CommonOptions extends PackerOptions {
 export const CommonOptionDefaults: Required<CommonOptions> = {
     childProcess: false,
     concurrency: 100,
-    gc: "on",
+    gc: true,
     maxRetries: 2,
     memorySize: 1024,
     mode: "auto",

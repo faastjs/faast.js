@@ -5,13 +5,14 @@ import * as awsFaast from "../src/aws/aws-faast";
 import * as faast from "../src/faast";
 import { faastify } from "../src/faast";
 import { createWriteStream, readdir, rmrf, stat } from "../src/fs";
-import { info, stats, warn } from "../src/log";
+import { info, stats, warn, logGc } from "../src/log";
 import { unzipInDir } from "../src/packer";
 import { sleep } from "../src/shared";
 import { Pump } from "../src/throttle";
 import * as funcs from "./functions";
 import { Timing } from "./functions";
 import { CommonOptions } from "../src/options";
+import { Fn } from "../src/types";
 
 export function testFunctions(
     cloudProvider: "aws",
@@ -538,4 +539,36 @@ export function measureConcurrency(timings: Timing[]) {
         .map(t => t.start)
         .map(t => timings.filter(({ start, end }) => start <= t && t < end).length)
         .reduce((a, b) => Math.max(a, b));
+}
+
+export interface RecordedCall<A extends any[], R> {
+    args: A;
+    rv: R;
+}
+
+export interface RecordedFunction<A extends any[], R> extends Fn<A, R> {
+    recordings: Array<RecordedCall<A, R>>;
+}
+
+export function record<A extends any[], R>(fn: Fn<A, R>) {
+    const func: RecordedFunction<A, R> = Object.assign(
+        (...args: A) => {
+            const rv = fn(...args);
+            func.recordings.push({ args, rv });
+            info(`func.recordings: %O`, func.recordings);
+            return rv;
+        },
+        { recordings: [] }
+    );
+    return func;
+}
+
+export function contains(container: object, obj: object) {
+    for (const key of Object.keys(obj)) {
+        if (!(key in container) || container[key] !== obj[key]) {
+            return false;
+        }
+    }
+    logGc(`Contains: %O, %O`, container, obj);
+    return true;
 }

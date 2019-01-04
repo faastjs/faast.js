@@ -23,3 +23,5 @@ export interface Headers {
 }
 
 export type PromiseFn<A extends any[], R> = (...args: A) => Promise<R>;
+
+export type Fn<A extends any[], R> = (...args: A) => R;

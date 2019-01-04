@@ -1,8 +1,9 @@
 import * as assert from "assert";
 import { sleep } from "./shared";
-import { PromiseFn } from "./types";
+import { PromiseFn, Fn } from "./types";
 import { LocalCache } from "./cache";
 import { createHash } from "crypto";
+import { info } from "./log";
 
 export class Deferred<T = void> {
     promise: Promise<T>;
