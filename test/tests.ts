@@ -541,12 +541,13 @@ export function measureConcurrency(timings: Timing[]) {
         .reduce((a, b) => Math.max(a, b));
 }
 
-export interface RecordedCall<A extends any[], R> {
+export interface RecordedCall<A, R> {
     args: A;
     rv: R;
 }
 
-export interface RecordedFunction<A extends any[], R> extends Fn<A, R> {
+export interface RecordedFunction<A extends any[], R> {
+    (...any: A): R;
     recordings: Array<RecordedCall<A, R>>;
 }
 
