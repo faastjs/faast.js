@@ -11,11 +11,11 @@ import { GoogleResources, GoogleServices } from "../src/google/google-faast";
 test(
     "garbage collector works for functions that are called",
     async () => {
-        // Idea behind this test: create a cloudified function and make a call.
+        // Idea behind this test: create a faast function and make a call.
         // Then call stop() to leave the resources in place. Then create another
-        // function and set its retention to 0, and have its garbage collector
-        // clean up the first function. Verify the first function's resources
-        // are cleaned up, which shows that the garbage collector did its job.
+        // function and set its retention to 0, and use a recorder to observe what
+        // its garbage collector cleans up. Verify the first function's resources
+        // would be cleaned up, which shows that the garbage collector did its job.
         const func = await faastify("google", functions, "../test/functions", {
             mode: "queue"
         });

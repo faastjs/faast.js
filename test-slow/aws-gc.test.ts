@@ -8,11 +8,11 @@ import { logGc } from "../src/log";
 test(
     "garbage collector works for functions that are called",
     async () => {
-        // Idea behind this test: create a cloudified function and make a call.
+        // Idea behind this test: create a faast function and make a call.
         // Then call stop() to leave the resources in place. Then create another
-        // function and set its retention to 0, and have its garbage collector
-        // clean up the first function. Verify the first function's resources
-        // are cleaned up, which shows that the garbage collector did its job.
+        // function and set its retention to 0, and use a recorder to observe
+        // its garbage collector to verify that it would clean up the first function,
+        // which shows that the garbage collector did its job.
 
         const gcRecorder = record(async (_: AWSServices, work: GcWork) => {
             logGc(`Recorded gc work: %O`, work);
@@ -62,7 +62,7 @@ test(
             }
         }
         await func2.cleanup();
-        // Don't expect roles or subscriptions to be gc'd. The main role is a singular resource that is cached across runs and doesn't change. The subscription is removed by AWS asynchronously (after days or more) automatically after the request queue topic is deleted. The response queue ARN is redundant with the response queue URL, which is the identifier used for deletion.
+        // The role name, SNS subscription, and Request Queue ARN are resources that are not garbage collected. The role name is cached between calls. The SNS subscription is deleted by AWS asynchronously (possibly days later) when the SNS topic it's subscribed to is deleted. The Request Queue ARN is redundant information with the Request Queue URL, which is the resource identifier used for deletion of the queue.
         const {
             RoleName,
             SNSLambdaSubscriptionArn,
@@ -94,11 +94,11 @@ test(
         });
 
         await func2.cleanup();
-        // const resources = await getAWSResources(func);
+
         const {
-            RoleName, // cached
-            SNSLambdaSubscriptionArn, // async deleted by aws itself
-            ResponseQueueArn, // redundant with response queue url
+            RoleName,
+            SNSLambdaSubscriptionArn,
+            ResponseQueueArn,
             ...resources
         } = func.state.resources;
 

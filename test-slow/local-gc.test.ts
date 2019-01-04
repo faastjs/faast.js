@@ -5,8 +5,8 @@ import { checkResourcesCleanedUp, getLocalResources, record } from "../test/test
 test("garbage collector works for functions that are called", async () => {
     // Idea behind this test: create a cloudified function and make a call.
     // Then call stop() to leave the resources in place. Then create another
-    // function and set its retention to 0, and have its garbage collector
-    // clean up the first function. Verify the first function's resources
+    // function and set its retention to 0, and use a recorder to observe what
+    // its garbage collector cleans up. Verify the first function's resources
     // are cleaned up, which shows that the garbage collector did its job.
     const func = await faast.faastify("local", functions, "../test/functions");
     await func.functions.hello("gc-test");
