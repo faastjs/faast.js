@@ -56,6 +56,7 @@ export async function processBucketObject(Bucket: string, Key: string) {
     let nExtracted = 0;
     let nErrors = 0;
     let bytes = 0;
+    let bufBytes = 0;
 
     const timings: Array<{ time: number; usage: NodeJS.CpuUsage }> = [];
     const addTiming = () => {
@@ -81,6 +82,7 @@ export async function processBucketObject(Bucket: string, Key: string) {
             }
 
             bytes += header.size!;
+            bufBytes += buf.length;
 
             // const contentsHash = createHash("md5")
             //     .update(buf)
@@ -123,9 +125,10 @@ export async function processBucketObject(Bucket: string, Key: string) {
     clearInterval(perfTimer);
 
     log(`Extracted ${nExtracted} files from ${Bucket}, ${Key}`);
+    log(`bytes: ${bytes}, bufBytes: ${bufBytes}`);
     log(`Errors uploading: ${nErrors}`);
     addTiming();
-    return { nExtracted, nErrors, bytes, Key, timings };
+    return { nExtracted, nErrors, bytes, bufBytes, Key, timings };
 }
 
 export async function copyObject(

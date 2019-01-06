@@ -513,14 +513,6 @@ export async function getGoogleResources(func: faast.GoogleCloudFunction) {
     };
 }
 
-export async function getLocalResources(func: faast.LocalFunction) {
-    const { tempDir } = func.state;
-    const dir = await readdir(tempDir).catch(_ => undefined);
-    return {
-        dir
-    };
-}
-
 export function checkResourcesCleanedUp(resources: object) {
     for (const key of Object.keys(resources)) {
         expect(resources[key]).toBeUndefined();

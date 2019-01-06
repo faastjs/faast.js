@@ -1,10 +1,5 @@
 import { faastify } from "../src/faast";
-import {
-    checkResourcesCleanedUp,
-    getGoogleResources,
-    record,
-    contains
-} from "../test/tests";
+import { record, contains } from "../test/tests";
 import * as functions from "../test/functions";
 import { GoogleResources, GoogleServices } from "../src/google/google-faast";
 

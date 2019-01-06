@@ -44,6 +44,7 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         childProcess: true
         // awsLambdaOptions: { TracingConfig: { Mode: "Active" } }
     });
+    console.log(`Logs: ${cloudFunc.logUrl()}`);
     cloudFunc.printStatisticsInterval(1000);
     try {
         let allObjects = await listAllObjects(Bucket);
