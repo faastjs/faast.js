@@ -86,10 +86,8 @@ export class Funnel<T = void> {
         return future.promise;
     }
 
-    clear(msg: string = "Execution cancelled by funnel clearing") {
-        this.pendingQueue.forEach(p => p.reject(new Error(msg)));
+    clear() {
         this.pendingQueue.clear();
-        this.executingQueue.forEach(p => p.reject(new Error(msg)));
         this.executingQueue.clear();
     }
 
