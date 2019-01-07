@@ -120,9 +120,14 @@ describe("Funnel", () => {
         const promise1 = funnel.push(async () => count++);
         const promise2 = funnel.push(async () => count++);
         funnel.clear();
-        await expect(promise0).rejects.toThrowError();
-        await expect(promise1).rejects.toThrowError();
-        await expect(promise2).rejects.toThrowError();
+        expect(
+            await Promise.race([
+                promise0,
+                promise1,
+                promise2,
+                sleep(100).then(_ => "done")
+            ])
+        ).toBe("done");
         expect(count).toBe(0);
     });
     test("Funnel gets executed asynchronously, not at the moment of push", async () => {
