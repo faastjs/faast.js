@@ -233,7 +233,8 @@ export function testRampUp(
                 ...options,
                 concurrency
             });
-            lambda.printStatisticsInterval(1000, stats);
+            lambda.startStats();
+            lambda.on("stats", s => stats.log(s.toString()));
         } catch (err) {
             warn(err);
         }
@@ -287,7 +288,8 @@ export function testThroughput(
     beforeAll(async () => {
         try {
             lambda = await faastify(cloudProvider, funcs, "./functions", options);
-            lambda.printStatisticsInterval(1000, stats);
+            lambda.startStats();
+            lambda.on("stats", s => stats.log(s.toString()));
         } catch (err) {
             warn(err);
         }

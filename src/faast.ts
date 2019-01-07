@@ -19,6 +19,7 @@ import { NonFunctionProperties, Unpacked } from "./types";
 import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "./wrapper";
 import Module = require("module");
 import { PackerOptions, CommonOptions, CommonOptionDefaults } from "./options";
+import { EventEmitter } from "events";
 
 export { aws, google, local, costAnalyzer };
 
@@ -44,13 +45,13 @@ export class FaastError extends Error {
 export interface ResponseDetails<D> {
     value: Promise<D>;
     rawResponse: any;
+    executionId?: string;
+    logUrl?: string;
     localStartLatency?: number;
     remoteStartLatency?: number;
     executionLatency?: number;
     sendResponseLatency?: number;
     returnLatency?: number;
-    executionId?: string;
-    logUrl?: string;
 }
 
 export type Response<D> = ResponseDetails<Unpacked<D>>;
@@ -331,11 +332,26 @@ export async function createFunction<M extends object, O extends CommonOptions, 
     );
 }
 
+export class FunctionStatsEvent {
+    constructor(
+        readonly fn: string,
+        readonly counters: FunctionCounters,
+        readonly stats?: FunctionStats
+    ) {}
+
+    toString() {
+        const executionLatency = this.stats ? this.stats.executionLatency.mean : 0;
+        return `[${this.fn}] ${this.counters}, executionLatency: ${(
+            executionLatency / 1000
+        ).toFixed(2)}s`;
+    }
+}
+
 export class CloudFunction<
     M extends object,
     O extends CommonOptions = CommonOptions,
     S = any
-> {
+> extends EventEmitter {
     cloudName = this.impl.name;
     functionCounters = new FunctionCountersMap();
     functionStats = new FunctionStatsMap();
@@ -363,6 +379,7 @@ export class CloudFunction<
         readonly modulePath: string,
         readonly options?: O
     ) {
+        super();
         info(`Node version: ${process.version}`);
 
         let concurrency = (options && options.concurrency) || impl.defaults.concurrency;
@@ -402,7 +419,7 @@ export class CloudFunction<
         this.funnel.clear();
         this.cleanupHooks.forEach(hook => hook());
         this.cleanupHooks.clear();
-        this.stopPrintStatisticsInterval();
+        this.stopStats();
         return this.impl.cleanup(this.state);
     }
 
@@ -410,7 +427,7 @@ export class CloudFunction<
         this.funnel.clear();
         this.cleanupHooks.forEach(hook => hook());
         this.cleanupHooks.clear();
-        this.stopPrintStatisticsInterval();
+        this.stopStats();
         return this.impl.stop(this.state);
     }
 
@@ -418,26 +435,25 @@ export class CloudFunction<
         return this.impl.logUrl(this.state);
     }
 
-    printStatisticsInterval(intervalMs: number, print: (msg: string) => void = stats) {
-        this.statsTimer && clearInterval(this.statsTimer);
+    startStats(interval: number = 1000) {
         this.statsTimer = setInterval(() => {
             this.functionCounters.fIncremental.forEach((counters, fn) => {
-                const execStats = this.functionStats.fIncremental.get(fn);
-                const executionLatency = execStats ? execStats.executionLatency.mean : 0;
-                print(
-                    `[${fn}] ${counters}, executionLatency: ${(
-                        executionLatency / 1000
-                    ).toFixed(2)}s`
-                );
+                const stats = this.functionStats.fIncremental.get(fn);
+                this.emit("stats", new FunctionStatsEvent(fn, counters, stats));
             });
+
             this.functionCounters.resetIncremental();
             this.functionStats.resetIncremental();
-        }, intervalMs);
+        }, interval);
     }
 
-    stopPrintStatisticsInterval() {
+    stopStats() {
         this.statsTimer && clearInterval(this.statsTimer);
         this.statsTimer = undefined;
+    }
+
+    on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void) {
+        return super.on(name, listener);
     }
 
     wrapFunctionWithResponse<A extends any[], R>(

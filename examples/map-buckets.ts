@@ -1,4 +1,4 @@
-import { faastify, FaastError } from "../src/faast";
+import { faastify, FaastError, FunctionStats } from "../src/faast";
 import * as m from "./map-buckets-module";
 import * as aws from "aws-sdk";
 
@@ -45,7 +45,11 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         // awsLambdaOptions: { TracingConfig: { Mode: "Active" } }
     });
     console.log(`Logs: ${cloudFunc.logUrl()}`);
-    cloudFunc.printStatisticsInterval(1000);
+    cloudFunc.startStats(1000);
+    cloudFunc.on("stats", s => {
+        console.log(`${s}`);
+    });
+
     try {
         let allObjects = await listAllObjects(Bucket);
         allObjects = allObjects.filter(obj => keyFilter(obj.Key!));
@@ -137,8 +141,8 @@ export async function copyObjects(
         mode: "queue"
     });
 
-    cloudFunc.printStatisticsInterval(1000);
-
+    cloudFunc.startStats(1000);
+    cloudFunc.on("stats", console.log);
     const objects = await listAllObjects(fromBucket);
     const promises: Promise<void>[] = [];
     for (const obj of objects) {
@@ -180,6 +184,7 @@ export async function emptyBucket(Bucket: string) {
 }
 
 import * as commander from "commander";
+import { Statistics } from "../src/shared";
 
 async function main() {
     let bucket!: string;
