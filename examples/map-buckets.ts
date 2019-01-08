@@ -1,8 +1,8 @@
-import { faastify, FaastError, FunctionStats } from "../src/faast";
+import * as commander from "commander";
+import { FaastError, faastify } from "../src/faast";
+import { f1, GB, Statistics } from "../src/shared";
 import * as m from "./map-buckets-module";
-import * as aws from "aws-sdk";
-
-const s3 = new aws.S3();
+import { listAllObjects } from "./util";
 
 // https mode:
 // Extracted 1223514 files with 8 errors
@@ -15,27 +15,6 @@ const s3 = new aws.S3();
 //                                                                    $1.46995061 (USD)
 
 let verbose = false;
-
-export async function listAllObjects(Bucket: string) {
-    const allObjects: aws.S3.Object[] = [];
-    await new Promise(resolve =>
-        s3.listObjectsV2({ Bucket }).eachPage((err, data) => {
-            if (err) {
-                console.warn(err);
-                return false;
-            }
-            if (data) {
-                allObjects.push(...data.Contents!);
-            } else {
-                resolve();
-            }
-            return true;
-        })
-    );
-    return allObjects;
-}
-
-const GB = 2 ** 30;
 
 export async function mapBucket(Bucket: string, keyFilter: (key: string) => boolean) {
     const cloudFunc = await faastify("aws", m, "./map-buckets-module", {
@@ -108,7 +87,6 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
                 console.log(`Error uploading key: ${result.Key}`);
             }
         }
-        const f1 = (n: number) => n.toFixed(1);
         console.log(
             `Extracted ${extracted} files with ${errors} errors, ${f1(bytes / GB)}GB`
         );
@@ -197,9 +175,6 @@ export async function emptyBucket(Bucket: string) {
     await Promise.all(promises);
     await cloudFunc.cleanup();
 }
-
-import * as commander from "commander";
-import { Statistics } from "../src/shared";
 
 async function main() {
     let bucket!: string;

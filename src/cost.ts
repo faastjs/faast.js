@@ -174,35 +174,36 @@ export interface CostAnalysisProfile {
     stats: FunctionStats;
     counters: FunctionCounters;
     config: CostAnalyzerConfiguration;
+    rv: Array<string | void | Error>;
 }
 
 const ps = (stat: Statistics) => (stat.mean / 1000).toFixed(3);
 
 async function estimate<T>(
     fmodule: string,
-    workload: (module: Promisified<T>) => Promise<void>,
+    workload: (module: Promisified<T>) => Promise<string | void>,
     config: CostAnalyzerConfiguration
 ): Promise<CostAnalysisProfile> {
     const { cloudProvider, repetitions, options, repetitionConcurrency } = config;
     const cloudFunc = await faastify(cloudProvider, require(fmodule), fmodule, options);
-    const funnel = new Funnel<void | Error>(repetitionConcurrency);
+    const funnel = new Funnel<string | void | Error>(repetitionConcurrency);
     const results = [];
     for (let i = 0; i < repetitions; i++) {
         results.push(
             funnel.push(() => workload(cloudFunc.functions).catch((err: Error) => err))
         );
     }
-    await Promise.all(results);
+    const rv = await Promise.all(results);
     await cloudFunc.cleanup();
     const costEstimate = await cloudFunc.costEstimate();
     const stats = cloudFunc.functionStats.aggregate;
     const counters = cloudFunc.functionCounters.aggregate;
-    return { cloudProvider, options, costEstimate, stats, counters, config };
+    return { cloudProvider, options, costEstimate, stats, counters, config, rv };
 }
 
 export async function estimateWorkloadCost<T>(
     fmodule: string,
-    workload: (remote: Promisified<T>) => Promise<void>,
+    workload: (remote: Promisified<T>) => Promise<string | void>,
     configurations: CostAnalyzerConfiguration[] = awsConfigurations,
     options?: Listr.ListrOptions
 ) {
@@ -232,8 +233,11 @@ export async function estimateWorkloadCost<T>(
                     const { errors } = est.counters;
                     const message = `${ps(est.stats.executionLatency)}s $${total}`;
                     const errMessage = errors > 0 ? ` (${errors} errors)` : "";
+                    const workloadMessage = est.rv.find(r => typeof r === "string") || "";
 
-                    task.title = `${task.title} ${message}${errMessage}`;
+                    task.title = `${
+                        task.title
+                    } ${message}${errMessage} ${workloadMessage}`;
                 }
             };
         }),
