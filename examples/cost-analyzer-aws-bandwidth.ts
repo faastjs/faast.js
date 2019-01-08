@@ -6,6 +6,11 @@ import { listAllObjects } from "./util";
 
 type FilterFn = (s: string) => boolean;
 
+interface WorkloadSummary {
+    bytes: number;
+    bandwidth: number;
+}
+
 const workload = (Bucket: string, filter: FilterFn) => async (
     remote: Promisified<typeof m>
 ) => {
@@ -26,13 +31,22 @@ const workload = (Bucket: string, filter: FilterFn) => async (
         bytes += result.bytes;
         bandwidth.update(result.bandwidthMbps);
     }
-    return `${f1(bytes / GB)}GB, ${bandwidth}Mbps`;
+    return { bytes, bandwidth: bandwidth.mean };
 };
+
+function summarize(summary: WorkloadSummary[]) {
+    const bytes = new Statistics();
+    const bandwidth = new Statistics();
+    summary.forEach(s => {
+        bytes.update(s.bytes);
+        bandwidth.update(s.bandwidth);
+    });
+    return `${f1(bytes.mean / GB)}GB ${bandwidth}Mbps`;
+}
 
 async function compareAws(Bucket: string, filter: FilterFn) {
     costAnalyzer.estimateWorkloadCost(
         require.resolve("./map-buckets-module"),
-        workload(Bucket, filter),
         costAnalyzer.awsConfigurations
             .filter(c =>
                 [128, 256, 512, 640, 1024, 1728, 2048, 3008].find(
@@ -40,6 +54,7 @@ async function compareAws(Bucket: string, filter: FilterFn) {
                 )
             )
             .map(c => ({ ...c, repetitions: 10, repetitionConcurrency: 10 })),
+        { work: workload(Bucket, filter), summarize },
         { concurrent: 8 }
     );
 }

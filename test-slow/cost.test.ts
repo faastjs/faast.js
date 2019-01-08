@@ -23,9 +23,14 @@ const configs = [...googleConfigurations, ...awsConfigurations]
 test(
     "Cost analyzer",
     async () => {
-        const profile = await estimateWorkloadCost("../test/functions", work, configs, {
-            nonTTYRenderer: "silent"
-        });
+        const profile = await estimateWorkloadCost(
+            "../test/functions",
+            configs,
+            { work },
+            {
+                nonTTYRenderer: "silent"
+            }
+        );
 
         expect(profile.length).toBe(configs.length);
         for (const p of profile) {

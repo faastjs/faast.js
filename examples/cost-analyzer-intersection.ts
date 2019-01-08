@@ -1,7 +1,7 @@
 import { costAnalyzer, Promisified } from "../src/faast";
 import * as m from "./module";
 
-async function workload(remote: Promisified<typeof m>) {
+async function work(remote: Promisified<typeof m>) {
     await remote.randomNumbers(20000000);
 }
 
@@ -23,11 +23,9 @@ const configurations = [
 ];
 
 async function compareIntersection() {
-    costAnalyzer.estimateWorkloadCost(
-        require.resolve("./module"),
-        workload,
-        configurations
-    );
+    costAnalyzer.estimateWorkloadCost(require.resolve("./module"), configurations, {
+        work
+    });
 }
 
 compareIntersection();

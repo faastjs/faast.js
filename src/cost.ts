@@ -10,8 +10,13 @@ import {
 } from "./faast";
 import { CommonOptions } from "./options";
 import { Statistics, sum } from "./shared";
-import { Funnel, throttle } from "./throttle";
+import { throttle } from "./throttle";
 import { NonFunctionProperties } from "./types";
+
+export interface Workload<T, S> {
+    work: (module: Promisified<T>) => Promise<S>;
+    summarize?: (summaries: S[]) => string;
+}
 
 export class CostMetric {
     name!: string;
@@ -147,7 +152,7 @@ export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
         rv.push({
             cloudProvider: "aws",
             repetitions: 10,
-            options: { mode: "https", memorySize, timeout: 120 },
+            options: { mode: "https", memorySize, timeout: 300 },
             repetitionConcurrency: 10
         });
     }
@@ -160,7 +165,7 @@ export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
         rv.push({
             cloudProvider: "google",
             repetitions: 10,
-            options: { mode: "https", memorySize, timeout: 120 },
+            options: { mode: "https", memorySize, timeout: 300 },
             repetitionConcurrency: 10
         });
     }
@@ -174,40 +179,50 @@ export interface CostAnalysisProfile {
     stats: FunctionStats;
     counters: FunctionCounters;
     config: CostAnalyzerConfiguration;
-    rv: Array<string | void | Error>;
+    message?: string;
 }
 
 const ps = (stat: Statistics) => (stat.mean / 1000).toFixed(3);
 
-async function estimate<T>(
+async function estimate<T, S>(
     fmodule: string,
-    workload: (module: Promisified<T>) => Promise<string | void>,
+    workload: Workload<T, S>,
     config: CostAnalyzerConfiguration
 ): Promise<CostAnalysisProfile> {
     const { cloudProvider, repetitions, options, repetitionConcurrency } = config;
     const cloudFunc = await faastify(cloudProvider, require(fmodule), fmodule, options);
-    const funnel = new Funnel<string | void | Error>(repetitionConcurrency);
-    const results = [];
+    const doWork = throttle({ concurrency: repetitionConcurrency }, workload.work);
+    const results: Promise<S | void>[] = [];
     for (let i = 0; i < repetitions; i++) {
-        results.push(
-            funnel.push(() => workload(cloudFunc.functions).catch((err: Error) => err))
-        );
+        results.push(doWork(cloudFunc.functions).catch(_ => {}));
     }
-    const rv = await Promise.all(results);
+    const rv = (await Promise.all(results)).filter(r => r) as S[];
     await cloudFunc.cleanup();
     const costEstimate = await cloudFunc.costEstimate();
     const stats = cloudFunc.functionStats.aggregate;
     const counters = cloudFunc.functionCounters.aggregate;
-    return { cloudProvider, options, costEstimate, stats, counters, config, rv };
+    const message = workload.summarize && workload.summarize(rv);
+    return {
+        cloudProvider,
+        options,
+        costEstimate,
+        stats,
+        counters,
+        config,
+        message
+    };
 }
 
-export async function estimateWorkloadCost<T>(
+export async function estimateWorkloadCost<T, S>(
     fmodule: string,
-    workload: (remote: Promisified<T>) => Promise<string | void>,
     configurations: CostAnalyzerConfiguration[] = awsConfigurations,
+    workload: Workload<T, S>,
     options?: Listr.ListrOptions
 ) {
-    const scheduleEstimate = throttle(
+    const scheduleEstimate = throttle<
+        [string, Workload<T, S>, CostAnalyzerConfiguration],
+        CostAnalysisProfile
+    >(
         {
             concurrency: 8,
             rate: 4,
@@ -233,11 +248,8 @@ export async function estimateWorkloadCost<T>(
                     const { errors } = est.counters;
                     const message = `${ps(est.stats.executionLatency)}s $${total}`;
                     const errMessage = errors > 0 ? ` (${errors} errors)` : "";
-                    const workloadMessage = est.rv.find(r => typeof r === "string") || "";
-
-                    task.title = `${
-                        task.title
-                    } ${message}${errMessage} ${workloadMessage}`;
+                    task.title = `${task.title} ${message}${errMessage} ${est.message ||
+                        ""}`;
                 }
             };
         }),
