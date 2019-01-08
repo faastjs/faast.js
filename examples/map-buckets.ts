@@ -16,7 +16,7 @@ const s3 = new aws.S3();
 
 let verbose = false;
 
-async function listAllObjects(Bucket: string) {
+export async function listAllObjects(Bucket: string) {
     const allObjects: aws.S3.Object[] = [];
     await new Promise(resolve =>
         s3.listObjectsV2({ Bucket }).eachPage((err, data) => {
@@ -35,6 +35,8 @@ async function listAllObjects(Bucket: string) {
     return allObjects;
 }
 
+const GB = 2 ** 30;
+
 export async function mapBucket(Bucket: string, keyFilter: (key: string) => boolean) {
     const cloudFunc = await faastify("aws", m, "./map-buckets-module", {
         memorySize: 1728,
@@ -50,11 +52,14 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         console.log(`${s}`);
     });
 
+    const bandwidth = new Statistics();
+
     try {
         let allObjects = await listAllObjects(Bucket);
         allObjects = allObjects.filter(obj => keyFilter(obj.Key!));
         const promises = [];
         console.log(`Bucket ${Bucket} contains ${allObjects.length} matching objects`);
+        const start = Date.now();
         for (const Obj of allObjects) {
             promises.push(
                 cloudFunc.functions
@@ -66,6 +71,7 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
             );
         }
         const results = await Promise.all(promises);
+        const elapsed = (Date.now() - start) / 1000;
         let extracted = 0;
         let errors = 0;
         let bytes = 0;
@@ -84,6 +90,7 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
             extracted += result.nExtracted;
             errors += result.nErrors;
             bytes += result.bytes;
+            bandwidth.update(result.bandwidthMbps);
             const finalTiming = result.timings.pop();
             const p = (n: number) => (n / 1000).toFixed(0);
 
@@ -101,11 +108,19 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
                 console.log(`Error uploading key: ${result.Key}`);
             }
         }
+        const f1 = (n: number) => n.toFixed(1);
         console.log(
-            `Extracted ${extracted} files with ${errors} errors, ${(
-                bytes /
-                2 ** 30
-            ).toFixed(1)}GB`
+            `Extracted ${extracted} files with ${errors} errors, ${f1(bytes / GB)}GB`
+        );
+        console.log(
+            `Bandwidth: ${bandwidth}Mbps, stdev: ${f1(bandwidth.stdev)}, max: ${f1(
+                bandwidth.max
+            )}, min: ${f1(bandwidth.min)}, samples: ${bandwidth.samples}`
+        );
+        console.log(
+            `Implied bandwidth: ${f1(bytes / GB)}GB * 8 / ${f1(elapsed)}s = ${f1(
+                ((bytes / GB) * 8) / elapsed
+            )}Gbps aggregate bandwidth implied by end to end completion time`
         );
     } finally {
         const cost = await cloudFunc.costEstimate();

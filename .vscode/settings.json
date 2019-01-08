@@ -6,7 +6,7 @@
     "terminal.integrated.env.windows": {
         "DEBUG": "faast:info,faast:stats"
     },
-    "debug.node.autoAttach": "on",
+    "debug.node.autoAttach": "off",
     "docthis.includeMemberOfOnClassMembers": false,
     "docthis.includeMemberOfOnInterfaceMembers": false
 }

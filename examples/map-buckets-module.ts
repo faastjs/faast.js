@@ -124,11 +124,13 @@ export async function processBucketObject(Bucket: string, Key: string) {
 
     clearInterval(perfTimer);
 
+    const elapsed = Date.now() - start;
+    const bandwidthMbps = (bytes * 8) / (elapsed / 1000) / 1e6;
     log(`Extracted ${nExtracted} files from ${Bucket}, ${Key}`);
-    log(`bytes: ${bytes}, bufBytes: ${bufBytes}`);
+    log(`bytes: ${bytes}, bandwidth: ${bandwidthMbps}Mbps`);
     log(`Errors uploading: ${nErrors}`);
     addTiming();
-    return { nExtracted, nErrors, bytes, bufBytes, Key, timings };
+    return { nExtracted, nErrors, bytes, Key, timings, bandwidthMbps };
 }
 
 export async function copyObject(
