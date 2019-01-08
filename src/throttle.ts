@@ -230,7 +230,7 @@ export class RateLimiter<T = void> {
 
 interface Limits {
     concurrency: number;
-    rate: number;
+    rate?: number;
     burst?: number;
     retry?: number | ((err: any, retries: number) => boolean);
     memoize?: boolean;
@@ -281,10 +281,17 @@ export function throttle<A extends any[], R>(
     fn: PromiseFn<A, R>
 ) {
     const funnel = new Funnel<R>(concurrency, retryN);
-    const rateLimiter = new RateLimiter<R>(rate, burst);
 
-    let conditionedFunc = (...args: A) =>
-        funnel.push(() => rateLimiter.push(() => fn(...args)));
+    let conditionedFunc: PromiseFn<A, R>;
+
+    if (rate) {
+        const rateLimiter = new RateLimiter<R>(rate, burst);
+        conditionedFunc = (...args: A) =>
+            funnel.push(() => rateLimiter.push(() => fn(...args)));
+    } else {
+        conditionedFunc = (...args: A) => funnel.push(() => fn(...args));
+    }
+
     if (cache) {
         conditionedFunc = cacheFn(cache, conditionedFunc);
     }
