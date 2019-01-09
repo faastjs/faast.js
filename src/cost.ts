@@ -13,14 +13,12 @@ import { Statistics, sum, f1, keys } from "./shared";
 import { throttle } from "./throttle";
 import { NonFunctionProperties } from "./types";
 
-export interface WorkloadMetrics {
-    [key: string]: number;
-}
+export type Metrics<K extends string> = { [key in K]: number };
 
-export interface Workload<T, S extends WorkloadMetrics> {
-    work: (module: Promisified<T>) => Promise<S | void>;
-    summarize?: (summaries: S[]) => S;
-    format?: (key: keyof S, value: number) => string;
+export interface Workload<T, K extends string> {
+    work: (module: Promisified<T>) => Promise<Metrics<K> | void>;
+    summarize?: (summaries: Array<Metrics<K>>) => Metrics<K>;
+    format?: (key: K, value: number) => string;
 }
 
 export class CostMetric {
@@ -177,52 +175,52 @@ export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
     return rv;
 })();
 
-export interface CostAnalysisProfile {
+export interface CostAnalysisProfile<K extends string> {
     cloudProvider: string;
     options: Options;
     costEstimate: CostBreakdown;
     stats: FunctionStats;
     counters: FunctionCounters;
     config: CostAnalyzerConfiguration;
-    metrics: WorkloadMetrics;
+    metrics: Metrics<K>;
 }
 
 const ps = (stat: Statistics) => (stat.mean / 1000).toFixed(3);
 
-function summarizeMean<S extends WorkloadMetrics>(metrics: S[]) {
-    const stats: { [key: string]: Statistics } = {};
+function summarizeMean<K extends string>(metrics: Metrics<K>[]) {
+    const stats: { [key in K]: Statistics } = {} as any;
     metrics.forEach(m =>
-        Object.keys(m).forEach(key => {
+        keys(m).forEach(key => {
             if (!(key in stats)) {
                 stats[key] = new Statistics();
             }
             stats[key].update(m[key]);
         })
     );
-    const result = {} as S;
-    Object.keys(stats).forEach(key => {
+    const result = {} as Metrics<K>;
+    keys(stats).forEach(key => {
         result[key] = stats[key].mean;
     });
     return result;
 }
 
-function defaultFormat(key: string, value: number) {
+function defaultFormat<K extends string>(key: K, value: number) {
     return `${key}:${f1(value)}`;
 }
 
-async function estimate<T, S extends WorkloadMetrics>(
+async function estimate<T, K extends string>(
     fmodule: string,
-    workload: Workload<T, S>,
+    workload: Workload<T, K>,
     config: CostAnalyzerConfiguration
-): Promise<CostAnalysisProfile> {
+): Promise<CostAnalysisProfile<K>> {
     const { cloudProvider, repetitions, options, repetitionConcurrency } = config;
     const cloudFunc = await faastify(cloudProvider, require(fmodule), fmodule, options);
     const doWork = throttle({ concurrency: repetitionConcurrency }, workload.work);
-    const results: Promise<S | void>[] = [];
+    const results: Promise<Metrics<K> | void>[] = [];
     for (let i = 0; i < repetitions; i++) {
         results.push(doWork(cloudFunc.functions).catch(_ => {}));
     }
-    const rv = (await Promise.all(results)).filter(r => r) as S[];
+    const rv = (await Promise.all(results)).filter(r => r) as Metrics<K>[];
     await cloudFunc.cleanup();
     const costEstimate = await cloudFunc.costEstimate();
     const stats = cloudFunc.functionStats.aggregate;
@@ -240,15 +238,15 @@ async function estimate<T, S extends WorkloadMetrics>(
     };
 }
 
-export async function estimateWorkloadCost<T, S extends WorkloadMetrics>(
+export async function estimateWorkloadCost<T, K extends string>(
     fmodule: string,
     configurations: CostAnalyzerConfiguration[] = awsConfigurations,
-    workload: Workload<T, S>,
+    workload: Workload<T, K>,
     options?: Listr.ListrOptions
 ) {
     const scheduleEstimate = throttle<
-        [string, Workload<T, S>, CostAnalyzerConfiguration],
-        CostAnalysisProfile
+        [string, Workload<T, K>, CostAnalyzerConfiguration],
+        CostAnalysisProfile<K>
     >(
         {
             concurrency: 8,
@@ -277,7 +275,7 @@ export async function estimateWorkloadCost<T, S extends WorkloadMetrics>(
                     const { errors } = est.counters;
                     const message = `${ps(est.stats.executionLatency)}s $${total}`;
                     const errMessage = errors > 0 ? ` (${errors} errors)` : "";
-                    const metrics = Object.keys(est.metrics)
+                    const metrics = keys(est.metrics)
                         .map(k => format(k, est.metrics[k]))
                         .join(" ");
                     task.title = `${task.title} ${message}${errMessage} ${metrics}`;
@@ -293,14 +291,12 @@ export async function estimateWorkloadCost<T, S extends WorkloadMetrics>(
     return results;
 }
 
-export function toCSV<S extends WorkloadMetrics>(
-    profile: CostAnalysisProfile[],
-    format?: (key: keyof S, value: number) => string
+export function toCSV<K extends string>(
+    profile: Array<CostAnalysisProfile<K>>,
+    format?: (key: K, value: number) => string
 ) {
-    const allKeys = new Set<string>();
-    profile.forEach(profile =>
-        Object.keys(profile.metrics).forEach(key => allKeys.add(key))
-    );
+    const allKeys = new Set<K>();
+    profile.forEach(profile => keys(profile.metrics).forEach(key => allKeys.add(key)));
     const columns = [
         "cloud",
         "memory",
@@ -323,7 +319,7 @@ export function toCSV<S extends WorkloadMetrics>(
         const { completed, errors, retries } = r.counters;
         const cost = (r.costEstimate.total() / r.config.repetitions).toFixed(8);
 
-        const metrics: { [key: string]: string } = {};
+        const metrics: { [key in K]: string } = {} as any;
         for (const key of allKeys) {
             metrics[key] = formatter(key, r.metrics[key]);
         }

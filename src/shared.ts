@@ -147,6 +147,8 @@ export const uuidv4Pattern =
     "[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}";
 
 export const GB = 2 ** 30;
+export const MB = 2 ** 20;
+export const KB = 2 ** 10;
 
 export function f1(n: number) {
     return n.toFixed(1);
@@ -156,6 +158,9 @@ export function f2(n: number) {
     return n.toFixed(2);
 }
 
+export function keys<K extends string, O extends { [key in K]: any }>(
+    obj: O
+): Array<keyof O>;
 export function keys<O extends object>(obj: O): Array<keyof O> {
     return Object.keys(obj) as Array<keyof O>;
 }

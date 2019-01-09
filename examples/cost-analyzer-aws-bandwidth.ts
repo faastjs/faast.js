@@ -1,15 +1,16 @@
 import * as commander from "commander";
 import { costAnalyzer, Promisified } from "../src/faast";
-import { f1, GB, Statistics, f2 } from "../src/shared";
+import { f1, GB, Statistics, f2, MB, assertNever } from "../src/shared";
 import * as m from "./map-buckets-module";
 import { listAllObjects } from "./util";
-import { toCSV, WorkloadMetrics } from "../src/cost";
+import { toCSV } from "../src/cost";
 
 type FilterFn = (s: string) => boolean;
 
-interface WorkloadSummary extends WorkloadMetrics {
+interface Metrics {
     bytes: number;
     bandwidth: number;
+    aggregateBandwidthMbps: number;
 }
 
 const workload = (Bucket: string, filter: FilterFn) => async (
@@ -18,10 +19,11 @@ const workload = (Bucket: string, filter: FilterFn) => async (
     let allObjects = await listAllObjects(Bucket);
     allObjects = allObjects.filter(obj => filter(obj.Key!));
     const promises = [];
+    const start = Date.now();
     for (const Obj of allObjects) {
         promises.push(remote.processBucketObject(Bucket, Obj.Key!));
-        break;
     }
+    const elapsed = Date.now() - start;
     const results = await Promise.all(promises);
     let bytes = 0;
     let bandwidth = new Statistics();
@@ -32,10 +34,15 @@ const workload = (Bucket: string, filter: FilterFn) => async (
         bytes += result.bytes;
         bandwidth.update(result.bandwidthMbps);
     }
-    return { bytes, bandwidth: bandwidth.mean };
+    const metrics: Metrics = {
+        bytes,
+        bandwidth: bandwidth.mean,
+        aggregateBandwidthMbps: ((bytes * 8) / MB / elapsed) * allObjects.length
+    };
+    return metrics;
 };
 
-function format(key: keyof WorkloadSummary, value: number) {
+function format(key: keyof Metrics, value: number) {
     if (value === undefined) {
         return "N/A";
     }
@@ -43,9 +50,10 @@ function format(key: keyof WorkloadSummary, value: number) {
         return `${f2(value / GB)}GB`;
     } else if (key === "bandwidth") {
         return `${f1(value)}Mbps`;
-    } else {
-        return "";
+    } else if (key === "aggregateBandwidthMbps") {
+        return `${f1(value)}Mbps`;
     }
+    return assertNever(key);
 }
 
 async function compareAws(Bucket: string, filter: FilterFn) {
@@ -53,16 +61,16 @@ async function compareAws(Bucket: string, filter: FilterFn) {
         require.resolve("./map-buckets-module"),
         costAnalyzer.awsConfigurations
             .filter(c =>
-                [128, 256, 512, 640, 1024, 1728, 2048, 3008].find(
+                [256, 512, 640, 1024, 1728, 2048, 3008].find(
                     m => m === c.options.memorySize
                 )
             )
-            .map(c => ({ ...c, repetitions: 1, repetitionConcurrency: 1 })),
+            .map(c => ({ ...c, repetitions: 10, repetitionConcurrency: 10 })),
         {
             work: workload(Bucket, filter),
             format
         },
-        { concurrent: 8 }
+        { concurrent: 1 }
     );
     console.log(`${toCSV(result, format)}`);
 }
