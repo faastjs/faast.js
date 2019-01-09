@@ -151,3 +151,11 @@ export const GB = 2 ** 30;
 export function f1(n: number) {
     return n.toFixed(1);
 }
+
+export function f2(n: number) {
+    return n.toFixed(2);
+}
+
+export function keys<O extends object>(obj: O): Array<keyof O> {
+    return Object.keys(obj) as Array<keyof O>;
+}

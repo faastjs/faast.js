@@ -68,8 +68,8 @@ export function createErrorResponse(
     if (err instanceof Error) {
         errObj = {};
         Object.getOwnPropertyNames(err).forEach(name => {
-            if (typeof err[name] === "string") {
-                errObj[name] = err[name];
+            if (typeof (err as any)[name] === "string") {
+                errObj[name] = (err as any)[name];
             }
         });
     }
@@ -323,7 +323,7 @@ export function deepCopyUndefined(dest: object, source: object) {
         }
         return false;
     }
-    function recurse(d: object, s: object) {
+    function recurse(d: any, s: any) {
         if (isBackReference(s) || d === undefined) {
             return;
         }

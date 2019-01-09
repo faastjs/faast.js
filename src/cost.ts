@@ -9,13 +9,18 @@ import {
     Promisified
 } from "./faast";
 import { CommonOptions } from "./options";
-import { Statistics, sum } from "./shared";
+import { Statistics, sum, f1, keys } from "./shared";
 import { throttle } from "./throttle";
 import { NonFunctionProperties } from "./types";
 
-export interface Workload<T, S> {
-    work: (module: Promisified<T>) => Promise<S>;
-    summarize?: (summaries: S[]) => string;
+export interface WorkloadMetrics {
+    [key: string]: number;
+}
+
+export interface Workload<T, S extends WorkloadMetrics> {
+    work: (module: Promisified<T>) => Promise<S | void>;
+    summarize?: (summaries: S[]) => S;
+    format?: (key: keyof S, value: number) => string;
 }
 
 export class CostMetric {
@@ -179,12 +184,33 @@ export interface CostAnalysisProfile {
     stats: FunctionStats;
     counters: FunctionCounters;
     config: CostAnalyzerConfiguration;
-    message?: string;
+    metrics: WorkloadMetrics;
 }
 
 const ps = (stat: Statistics) => (stat.mean / 1000).toFixed(3);
 
-async function estimate<T, S>(
+function summarizeMean<S extends WorkloadMetrics>(metrics: S[]) {
+    const stats: { [key: string]: Statistics } = {};
+    metrics.forEach(m =>
+        Object.keys(m).forEach(key => {
+            if (!(key in stats)) {
+                stats[key] = new Statistics();
+            }
+            stats[key].update(m[key]);
+        })
+    );
+    const result = {} as S;
+    Object.keys(stats).forEach(key => {
+        result[key] = stats[key].mean;
+    });
+    return result;
+}
+
+function defaultFormat(key: string, value: number) {
+    return `${key}:${f1(value)}`;
+}
+
+async function estimate<T, S extends WorkloadMetrics>(
     fmodule: string,
     workload: Workload<T, S>,
     config: CostAnalyzerConfiguration
@@ -201,7 +227,8 @@ async function estimate<T, S>(
     const costEstimate = await cloudFunc.costEstimate();
     const stats = cloudFunc.functionStats.aggregate;
     const counters = cloudFunc.functionCounters.aggregate;
-    const message = workload.summarize && workload.summarize(rv);
+    let summarize = workload.summarize || summarizeMean;
+    const metrics = summarize(rv);
     return {
         cloudProvider,
         options,
@@ -209,11 +236,11 @@ async function estimate<T, S>(
         stats,
         counters,
         config,
-        message
+        metrics
     };
 }
 
-export async function estimateWorkloadCost<T, S>(
+export async function estimateWorkloadCost<T, S extends WorkloadMetrics>(
     fmodule: string,
     configurations: CostAnalyzerConfiguration[] = awsConfigurations,
     workload: Workload<T, S>,
@@ -235,6 +262,8 @@ export async function estimateWorkloadCost<T, S>(
         scheduleEstimate(fmodule, workload, config)
     );
 
+    const format = workload.format || defaultFormat;
+
     const list = new Listr(
         promises.map((promise, i) => {
             const { cloudProvider, repetitions, options } = configurations[i];
@@ -248,8 +277,10 @@ export async function estimateWorkloadCost<T, S>(
                     const { errors } = est.counters;
                     const message = `${ps(est.stats.executionLatency)}s $${total}`;
                     const errMessage = errors > 0 ? ` (${errors} errors)` : "";
-                    task.title = `${task.title} ${message}${errMessage} ${est.message ||
-                        ""}`;
+                    const metrics = Object.keys(est.metrics)
+                        .map(k => format(k, est.metrics[k]))
+                        .join(" ");
+                    task.title = `${task.title} ${message}${errMessage} ${metrics}`;
                 }
             };
         }),
@@ -262,20 +293,59 @@ export async function estimateWorkloadCost<T, S>(
     return results;
 }
 
-export function toCSV(profile: CostAnalysisProfile[]) {
-    let rv = "";
-    rv += `cloud,memory,mode,options,completed,errors,retries,cost,executionLatency,billedTime\n`;
+export function toCSV<S extends WorkloadMetrics>(
+    profile: CostAnalysisProfile[],
+    format?: (key: keyof S, value: number) => string
+) {
+    const allKeys = new Set<string>();
+    profile.forEach(profile =>
+        Object.keys(profile.metrics).forEach(key => allKeys.add(key))
+    );
+    const columns = [
+        "cloud",
+        "memory",
+        "mode",
+        "options",
+        "completed",
+        "errors",
+        "retries",
+        "cost",
+        "executionLatency",
+        "billedTime",
+        ...allKeys
+    ];
+    let rv = columns.join(",") + "\n";
+
+    const formatter = format || defaultFormat;
     profile.forEach(r => {
         const { memorySize, mode, ...rest } = r.options;
         const options = `"${inspect(rest).replace('"', '""')}"`;
         const { completed, errors, retries } = r.counters;
         const cost = (r.costEstimate.total() / r.config.repetitions).toFixed(8);
 
-        rv += `${
-            r.cloudProvider
-        },${memorySize},${mode},${options},${completed},${errors},${retries},$${cost},${ps(
-            r.stats.executionLatency
-        )},${ps(r.stats.estimatedBilledTime)}\n`;
+        const metrics: { [key: string]: string } = {};
+        for (const key of allKeys) {
+            metrics[key] = formatter(key, r.metrics[key]);
+        }
+
+        const row = {
+            cloud: r.cloudProvider,
+            memory: memorySize,
+            mode: mode,
+            options: options,
+            completed,
+            errors,
+            retries,
+            cost: `$${cost}`,
+            executionLatency: ps(r.stats.executionLatency),
+            billedTime: ps(r.stats.estimatedBilledTime),
+            ...metrics
+        };
+
+        rv += keys(row)
+            .map(k => String(row[k]))
+            .join(",");
+        rv += "\n";
     });
     return rv;
 }

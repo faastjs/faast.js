@@ -1,12 +1,13 @@
 import * as commander from "commander";
 import { costAnalyzer, Promisified } from "../src/faast";
-import { f1, GB, Statistics } from "../src/shared";
+import { f1, GB, Statistics, f2 } from "../src/shared";
 import * as m from "./map-buckets-module";
 import { listAllObjects } from "./util";
+import { toCSV, WorkloadMetrics } from "../src/cost";
 
 type FilterFn = (s: string) => boolean;
 
-interface WorkloadSummary {
+interface WorkloadSummary extends WorkloadMetrics {
     bytes: number;
     bandwidth: number;
 }
@@ -34,18 +35,21 @@ const workload = (Bucket: string, filter: FilterFn) => async (
     return { bytes, bandwidth: bandwidth.mean };
 };
 
-function summarize(summary: WorkloadSummary[]) {
-    const bytes = new Statistics();
-    const bandwidth = new Statistics();
-    summary.forEach(s => {
-        bytes.update(s.bytes);
-        bandwidth.update(s.bandwidth);
-    });
-    return `${f1(bytes.mean / GB)}GB ${bandwidth}Mbps`;
+function format(key: keyof WorkloadSummary, value: number) {
+    if (value === undefined) {
+        return "N/A";
+    }
+    if (key === "bytes") {
+        return `${f2(value / GB)}GB`;
+    } else if (key === "bandwidth") {
+        return `${f1(value)}Mbps`;
+    } else {
+        return "";
+    }
 }
 
 async function compareAws(Bucket: string, filter: FilterFn) {
-    costAnalyzer.estimateWorkloadCost(
+    const result = await costAnalyzer.estimateWorkloadCost(
         require.resolve("./map-buckets-module"),
         costAnalyzer.awsConfigurations
             .filter(c =>
@@ -53,10 +57,14 @@ async function compareAws(Bucket: string, filter: FilterFn) {
                     m => m === c.options.memorySize
                 )
             )
-            .map(c => ({ ...c, repetitions: 10, repetitionConcurrency: 10 })),
-        { work: workload(Bucket, filter), summarize },
+            .map(c => ({ ...c, repetitions: 1, repetitionConcurrency: 1 })),
+        {
+            work: workload(Bucket, filter),
+            format
+        },
         { concurrent: 8 }
     );
+    console.log(`${toCSV(result, format)}`);
 }
 
 async function main() {

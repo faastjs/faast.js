@@ -14,7 +14,6 @@
         "noImplicitReturns": true,
         "noImplicitThis": true,
         "noImplicitAny": true,
-        "suppressImplicitAnyIndexErrors": true,
         "noFallthroughCasesInSwitch": true,
         "allowUnreachableCode": false,
         "allowUnusedLabels": false,

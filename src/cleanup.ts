@@ -12,7 +12,7 @@ import * as awsFaast from "./aws/aws-faast";
 import { LocalCache, caches } from "./cache";
 import { readdir, rmrf } from "./fs";
 import * as googleFaast from "./google/google-faast";
-import { uuidv4Pattern } from "./shared";
+import { uuidv4Pattern, keys } from "./shared";
 import { throttle } from "./throttle";
 
 const warn = console.warn;
@@ -208,7 +208,7 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
         }
     }
 
-    for (const cache of Object.keys(caches)) {
+    for (const cache of keys(caches)) {
         await cleanupCacheDir(await caches[cache]);
     }
 

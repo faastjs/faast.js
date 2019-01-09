@@ -14,7 +14,13 @@ import { info, logGc, logPricing, warn } from "../log";
 import { CommonOptionDefaults, CommonOptions, PackerOptions } from "../options";
 import { packer, PackerResult } from "../packer";
 import * as cloudqueue from "../queue";
-import { computeHttpResponseBytes, hasExpired, sleep, uuidv4Pattern } from "../shared";
+import {
+    computeHttpResponseBytes,
+    hasExpired,
+    sleep,
+    uuidv4Pattern,
+    keys
+} from "../shared";
 import { retry, throttle } from "../throttle";
 import { Mutable } from "../types";
 import {
@@ -818,7 +824,7 @@ const getGoogleCloudFunctionsPricing = throttle(
 );
 
 // https://cloud.google.com/functions/pricing
-const gcfProvisonableMemoryTable = {
+const gcfProvisonableMemoryTable: { [mem: number]: number } = {
     128: 0.2,
     256: 0.4,
     512: 0.8,
@@ -833,7 +839,7 @@ async function costEstimate(
 ): Promise<CostBreakdown> {
     const costs = new CostBreakdown();
     const { memorySize = defaults.memorySize } = state.options;
-    const provisionableSizes = Object.keys(gcfProvisonableMemoryTable)
+    const provisionableSizes = keys(gcfProvisonableMemoryTable)
         .map(n => Number(n))
         .sort((a, b) => a - b);
     const provisionedMb = provisionableSizes.find(size => memorySize <= size);

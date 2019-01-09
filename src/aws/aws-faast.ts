@@ -38,7 +38,7 @@ import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
 
 export interface Options extends CommonOptions {
-    region?: string;
+    region?: AWSRegion;
     PolicyArn?: string;
     RoleName?: string;
     useDependencyCaching?: boolean;
@@ -65,7 +65,7 @@ export class AWSMetrics {
 export interface AWSResources {
     FunctionName: string;
     RoleName: string;
-    region: string;
+    region: AWSRegion;
     ResponseQueueUrl?: string;
     ResponseQueueArn?: string;
     RequestTopicArn?: string;
@@ -700,7 +700,7 @@ function functionNameFromLogGroup(logGroupName: string) {
 export async function collectGarbage(
     executor: (services: AWSServices, work: GcWork) => Promise<void>,
     services: AWSServices,
-    region: string,
+    region: AWSRegion,
     accountId: string,
     Bucket: string,
     retentionInDays: number
@@ -793,7 +793,7 @@ export async function getAccountId(sts: aws.STS) {
 function garbageCollectLogGroups(
     logGroups: aws.CloudWatchLogs.LogGroup[],
     retentionInDays: number,
-    region: string,
+    region: AWSRegion,
     accountId: string,
     s3Bucket: string,
     scheduleWork: (work: GcWork) => void
@@ -820,7 +820,7 @@ function garbageCollectLogGroups(
 }
 
 function deleteGarbageFunctions(
-    region: string,
+    region: AWSRegion,
     accountId: string,
     s3Bucket: string,
     garbageFunctions: string[],
@@ -965,6 +965,24 @@ function addSnsInvokePermissionsToFunction(
 }
 
 // https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html
+type AWSRegion =
+    | "us-east-1"
+    | "us-east-2"
+    | "us-west-1"
+    | "us-west-2"
+    | "ca-central-1"
+    | "eu-central-1"
+    | "eu-west-1"
+    | "eu-west-2"
+    | "eu-west-3"
+    | "ap-northeast-1"
+    | "ap-northeast-2"
+    | "ap-northeast-3"
+    | "ap-southeast-1"
+    | "ap-southeast-2"
+    | "ap-south-1"
+    | "sa-east-1";
+
 const locations = {
     "us-east-1": "US East (N. Virginia)",
     "us-east-2": "US East (Ohio)",
@@ -986,9 +1004,13 @@ const locations = {
 
 export const awsPrice = throttle(
     { concurrency: 6, rate: 5, retry: 3, memoize: true, cache: caches.awsPrices },
-    async (pricing: aws.Pricing, ServiceCode: string, filter: object) => {
+    async (
+        pricing: aws.Pricing,
+        ServiceCode: string,
+        filter: { [key: string]: string }
+    ) => {
         try {
-            function first(obj: object) {
+            function first(obj: any) {
                 return obj[Object.keys(obj)[0]];
             }
             function extractPrice(obj: any) {
@@ -1029,7 +1051,7 @@ export const awsPrice = throttle(
 
 export const requestAwsPrices = async (
     pricing: aws.Pricing,
-    region: string
+    region: AWSRegion
 ): Promise<AWSPrices> => {
     const location = locations[region];
     return {

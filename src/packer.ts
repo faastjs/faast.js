@@ -7,7 +7,7 @@ import { LoaderOptions } from "./loader";
 import { exists, mkdir, readFile, createWriteStream } from "./fs";
 import { info, warn, logWebpack } from "./log";
 import { WrapperOptions, TrampolineFactory } from "./wrapper";
-import { streamToBuffer } from "./shared";
+import { streamToBuffer, keys } from "./shared";
 import { PackerOptions } from "./options";
 
 type ZipFile = yauzl.ZipFile;
@@ -21,7 +21,7 @@ export interface PackerResult {
 }
 
 function getUrlEncodedQueryParameters(options: LoaderOptions) {
-    return Object.keys(options)
+    return keys(options)
         .filter(key => options[key])
         .map(key => `${key}=${encodeURIComponent(JSON.stringify(options[key]))}`)
         .join(`&`);

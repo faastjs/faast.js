@@ -7,7 +7,7 @@ import { faastify } from "../src/faast";
 import { createWriteStream, readdir, rmrf, stat } from "../src/fs";
 import { info, stats, warn, logGc } from "../src/log";
 import { unzipInDir } from "../src/packer";
-import { sleep } from "../src/shared";
+import { sleep, keys } from "../src/shared";
 import { Pump } from "../src/throttle";
 import * as funcs from "./functions";
 import { Timing } from "./functions";
@@ -515,15 +515,15 @@ export async function getGoogleResources(func: faast.GoogleCloudFunction) {
     };
 }
 
-export function checkResourcesCleanedUp(resources: object) {
-    for (const key of Object.keys(resources)) {
+export function checkResourcesCleanedUp<T extends object>(resources: T) {
+    for (const key of keys(resources)) {
         expect(resources[key]).toBeUndefined();
     }
 }
 
-export function checkResourcesExist(resources: object) {
-    expect(Object.keys(resources).length).toBe(4);
-    for (const key of Object.keys(resources)) {
+export function checkResourcesExist<T extends object>(resources: T) {
+    expect(keys(resources).length).toBe(4);
+    for (const key of keys(resources)) {
         expect(resources[key]).toBeTruthy();
     }
 }
@@ -558,8 +558,8 @@ export function record<A extends any[], R>(fn: Fn<A, R>) {
     return func;
 }
 
-export function contains(container: object, obj: object) {
-    for (const key of Object.keys(obj)) {
+export function contains<T extends U, U extends object>(container: T, obj: U) {
+    for (const key of keys(obj)) {
         if (!(key in container) || container[key] !== obj[key]) {
             return false;
         }

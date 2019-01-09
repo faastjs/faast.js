@@ -112,7 +112,7 @@ export class FunctionStats {
 
     toString() {
         return Object.keys(this)
-            .map(key => `${key}: ${this[key]}`)
+            .map(key => `${key}: ${(<any>this)[key]}`)
             .join(", ");
     }
 }
@@ -408,8 +408,8 @@ export class CloudFunction<
         info(`Log url: ${impl.logUrl(state)}`);
         const functions: any = {};
         for (const name of Object.keys(fmodule)) {
-            if (typeof fmodule[name] === "function") {
-                functions[name] = this.wrapFunction(fmodule[name]);
+            if (typeof (fmodule as any)[name] === "function") {
+                functions[name] = this.wrapFunction((fmodule as any)[name]);
             }
         }
         this.functions = functions;
