@@ -8,9 +8,9 @@ import { toCSV } from "../src/cost";
 type FilterFn = (s: string) => boolean;
 
 interface Metrics {
-    bytes: number;
-    bandwidth: number;
-    aggregateBandwidthMbps: number;
+    bytesGB: number;
+    bandwidthMbps: number;
+    // aggregateBandwidthMbps: number;
 }
 
 const workload = (Bucket: string, filter: FilterFn) => async (
@@ -22,9 +22,10 @@ const workload = (Bucket: string, filter: FilterFn) => async (
     const start = Date.now();
     for (const Obj of allObjects) {
         promises.push(remote.processBucketObject(Bucket, Obj.Key!));
+        break;
     }
-    const elapsed = Date.now() - start;
     const results = await Promise.all(promises);
+    const elapsed = Date.now() - start;
     let bytes = 0;
     let bandwidth = new Statistics();
     for (const result of results) {
@@ -35,26 +36,28 @@ const workload = (Bucket: string, filter: FilterFn) => async (
         bandwidth.update(result.bandwidthMbps);
     }
     const metrics: Metrics = {
-        bytes,
-        bandwidth: bandwidth.mean,
-        aggregateBandwidthMbps: ((bytes * 8) / MB / elapsed) * allObjects.length
+        bytesGB: bytes / GB,
+        bandwidthMbps: bandwidth.mean
+        // aggregateBandwidthMbps: ((bytes / MB) * 8) / (elapsed / 1000)
     };
     return metrics;
 };
 
-function format(key: keyof Metrics, value: number) {
-    if (value === undefined) {
-        return "N/A";
-    }
-    if (key === "bytes") {
-        return `${f2(value / GB)}GB`;
-    } else if (key === "bandwidth") {
-        return `${f1(value)}Mbps`;
-    } else if (key === "aggregateBandwidthMbps") {
-        return `${f1(value)}Mbps`;
-    }
-    return assertNever(key);
-}
+const makeFormatter = (csv: boolean) => {
+    return function format(key: keyof Metrics, value: number) {
+        if (value === undefined) {
+            return "N/A";
+        }
+        if (key === "bytesGB") {
+            return csv ? f2(value) : `${f2(value)}GB`;
+        } else if (key === "bandwidthMbps") {
+            return csv ? f1(value) : `${f1(value)}Mbps`;
+        } else if (key === "aggregateBandwidthMbps") {
+            return csv ? f1(value) : `${f1(value)}Mbps-effective`;
+        }
+        return assertNever(key);
+    };
+};
 
 async function compareAws(Bucket: string, filter: FilterFn) {
     const result = await costAnalyzer.estimateWorkloadCost(
@@ -65,14 +68,14 @@ async function compareAws(Bucket: string, filter: FilterFn) {
                     m => m === c.options.memorySize
                 )
             )
-            .map(c => ({ ...c, repetitions: 10, repetitionConcurrency: 10 })),
+            .map(c => ({ ...c, repetitions: 5, repetitionConcurrency: 5 })),
         {
             work: workload(Bucket, filter),
-            format
+            format: makeFormatter(false)
         },
-        { concurrent: 1 }
+        { concurrent: 8 }
     );
-    console.log(`${toCSV(result, format)}`);
+    // console.log(`${toCSV(result, makeFormatter(true))}`);
 }
 
 async function main() {
