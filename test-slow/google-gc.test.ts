@@ -32,7 +32,7 @@ test(
         ).toBeDefined();
         await func.cleanup();
     },
-    180 * 1000
+    300 * 1000
 );
 
 test(
@@ -58,5 +58,5 @@ test(
         ).toBeDefined();
         await func.cleanup();
     },
-    180 * 1000
+    300 * 1000
 );
