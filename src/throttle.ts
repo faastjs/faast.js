@@ -211,7 +211,7 @@ export class RateLimiter<T = void> {
         const requestAmountToDrain = 1 - (this.burst - this.bucket);
         const secondsToDrain = requestAmountToDrain / this.targetRequestsPerSecond;
         if (secondsToDrain > 0) {
-            await sleep(secondsToDrain * 1000);
+            await sleep(Math.ceil(secondsToDrain * 1000));
         }
         this.updateBucket();
         while (this.bucket <= this.burst - 1) {
