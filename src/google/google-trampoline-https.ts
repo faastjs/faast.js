@@ -8,7 +8,7 @@ export const filename = module.filename;
 export function makeTrampoline(wrapper: Wrapper) {
     async function trampoline(request: Request, response: Response) {
         const startTime = Date.now();
-        const call: FunctionCall = request.body;
+        const call: FunctionCall = JSON.parse(request.body) as FunctionCall;
         const executionId = request.headers["function-execution-id"] as string;
         const project = env["GCP_PROJECT"]!;
         const functionName = env["FUNCTION_NAME"]!;

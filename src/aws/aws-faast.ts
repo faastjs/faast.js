@@ -3,36 +3,37 @@ import { PromiseResult } from "aws-sdk/lib/request";
 import { createHash } from "crypto";
 import { caches } from "../cache";
 import { CostBreakdown, CostMetric } from "../cost";
-import {
-    CloudFunctionImpl,
-    createFunction,
-    FunctionCounters,
-    FunctionStats
-} from "../faast";
+import { createFunction } from "../faast";
 import { readFile } from "../fs";
-import { info, logGc, warn } from "../log";
+import { info, logGc, logProvider, warn } from "../log";
 import { CommonOptionDefaults, CommonOptions, PackerOptions } from "../options";
 import { packer, PackerResult } from "../packer";
-import * as cloudqueue from "../queue";
-import { computeHttpResponseBytes, hasExpired, sleep, uuidv4Pattern } from "../shared";
-import { retry, throttle } from "../throttle";
 import {
-    FunctionCall,
-    FunctionReturn,
-    FunctionReturnWithMetrics,
-    serializeCall
-} from "../wrapper";
+    CloudFunctionImpl,
+    FunctionCounters,
+    FunctionStats,
+    Invocation,
+    PollResult,
+    ResponseMessageReceived,
+    SendableMessage
+} from "../provider";
+import {
+    assertNever,
+    computeHttpResponseBytes,
+    defined,
+    hasExpired,
+    sleep,
+    uuidv4Pattern
+} from "../shared";
+import { retry, throttle } from "../throttle";
 import * as awsNpm from "./aws-npm";
 import {
     createSNSTopic,
     createSQSQueue,
-    deadLetterMessages,
-    isControlMessage,
     processAWSErrorMessage,
-    publishSNS,
-    publishSQSControlMessage,
-    receiveMessages,
-    sqsMessageAttribute
+    publishInvocationMessage,
+    publishResponseMessage,
+    receiveMessages
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
@@ -86,15 +87,12 @@ export interface AWSServices {
     readonly sts: aws.STS;
 }
 
-type AWSCloudQueueState = cloudqueue.StateWithMessageType<aws.SQS.Message>;
-type AWSCloudQueueImpl = cloudqueue.QueueImpl<aws.SQS.Message>;
 type AWSInvocationResponse = PromiseResult<aws.Lambda.InvocationResponse, aws.AWSError>;
 
 export interface State {
     resources: AWSResources;
     services: AWSServices;
-    queueState?: AWSCloudQueueState;
-    options: Options;
+    options: Options & { mode: "queue" | "https" };
     metrics: AWSMetrics;
     gcPromise?: Promise<void>;
 }
@@ -110,7 +108,7 @@ export type GcWork =
           resources: AWSResources;
       };
 
-const gcWorker = throttle(
+const defaultGcWorker = throttle(
     { concurrency: 5, rate: 5, burst: 2 },
     async (services: AWSServices, work: GcWork) => {
         switch (work.type) {
@@ -145,7 +143,7 @@ export let defaults: Required<Options> = {
     useDependencyCaching: true,
     awsLambdaOptions: {},
     CacheBucket: "",
-    gcWorker
+    gcWorker: defaultGcWorker
 };
 
 export const Impl: CloudFunctionImpl<Options, State> = {
@@ -153,11 +151,14 @@ export const Impl: CloudFunctionImpl<Options, State> = {
     initialize,
     pack,
     defaults,
-    callFunction,
     cleanup,
     stop,
     costEstimate,
-    logUrl
+    logUrl,
+    invoke,
+    publish,
+    poll,
+    responseQueueId
 };
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
@@ -368,27 +369,17 @@ export function logUrl(state: State) {
 export async function initialize(
     fModule: string,
     nonce: string,
-    options: Options = {}
+    userOptions: Options = {}
 ): Promise<State> {
     info(`Nonce: ${nonce}`);
+    const mode =
+        !userOptions.mode || userOptions.mode === "auto" ? "queue" : userOptions.mode;
+    logProvider(`defaults: %O`, defaults);
+    const options = Object.assign({}, defaults, { ...userOptions, mode });
+    logProvider(`options: %O`, options);
 
-    const {
-        region = defaults.region,
-        PolicyArn = defaults.PolicyArn,
-        RoleName = defaults.RoleName,
-        timeout = defaults.timeout,
-        memorySize = defaults.memorySize,
-        gc = defaults.gc,
-        retentionInDays = defaults.retentionInDays,
-        awsLambdaOptions = defaults.awsLambdaOptions,
-        useDependencyCaching = defaults.useDependencyCaching,
-        packageJson = defaults.packageJson,
-        gcWorker = defaults.gcWorker
-    } = options;
-    let { mode = defaults.mode } = options;
-    if (mode === "auto") {
-        mode = "queue";
-    }
+    const { region, timeout, memorySize } = options;
+
     info(`Creating AWS APIs`);
     const services = createAWSApis(region);
     const { lambda, s3, sts } = services;
@@ -407,7 +398,7 @@ export async function initialize(
             Description: "faast trampoline function",
             Timeout: timeout,
             MemorySize: memorySize,
-            ...awsLambdaOptions
+            ...options.awsLambdaOptions
         };
         info(`createFunctionRequest: %O`, createFunctionRequest);
         const func = await pollAWSRequest(3, "creating function", () =>
@@ -416,6 +407,8 @@ export async function initialize(
         info(`Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`);
         return func;
     }
+
+    const { packageJson, useDependencyCaching } = options;
 
     async function createCodeBundle() {
         const bundle = pack(fModule, options);
@@ -437,6 +430,7 @@ export async function initialize(
         return Code;
     }
 
+    const { RoleName } = options;
     const state: State = {
         resources: {
             FunctionName,
@@ -449,6 +443,7 @@ export async function initialize(
         options
     };
 
+    const { gc, retentionInDays, gcWorker } = options;
     if (gc) {
         logGc(`Starting garbage collector`);
         state.gcPromise = collectGarbage(
@@ -462,6 +457,7 @@ export async function initialize(
         state.gcPromise.catch(_ => {});
     }
 
+    const { PolicyArn } = options;
     try {
         info(`Creating function`);
         const rolePromise = createLambdaRole(RoleName, PolicyArn, services);
@@ -479,35 +475,35 @@ export async function initialize(
         const pricingPromise = requestAwsPrices(services.pricing, region);
         const promises: Promise<any>[] = [createFunctionPromise, pricingPromise];
 
-        if (mode === "queue") {
-            promises.push(
-                createFunctionPromise.then(async func => {
-                    info(`Adding queue implementation`);
-                    const awsQueueImpl = await createQueueImpl(
-                        state,
-                        FunctionName,
-                        func.FunctionArn!
-                    );
-                    state.queueState = cloudqueue.initializeCloudFunctionQueue(
-                        awsQueueImpl
-                    );
-                    retry(3, () => {
-                        info(`Adding DLQ to function`);
-                        return lambda
+        info(`Creating response queue`);
+        promises.push(
+            createFunctionPromise.then(_ =>
+                createResponseQueueImpl(state, FunctionName).then(_ =>
+                    retry(3, () =>
+                        lambda
                             .updateFunctionConfiguration({
                                 FunctionName,
                                 DeadLetterConfig: {
                                     TargetArn: state.resources.ResponseQueueArn
                                 }
                             })
-                            .promise();
-                    }).catch(err => {
+                            .promise()
+                    ).catch(err => {
                         warn(err);
                         warn(`Could not add DLQ to function, continuing without it.`);
-                    });
-                })
+                    })
+                )
+            )
+        );
+
+        if (mode === "queue") {
+            promises.push(
+                createFunctionPromise.then(async func =>
+                    createRequestQueueImpl(state, FunctionName, func.FunctionArn!)
+                )
             );
         }
+
         await Promise.all(promises);
         info(`Lambda function initialization complete.`);
         return state;
@@ -521,65 +517,83 @@ export async function initialize(
     }
 }
 
+async function invoke(
+    state: State,
+    call: Invocation
+): Promise<ResponseMessageReceived | void> {
+    const { metrics, services, resources, options } = state;
+    switch (options.mode) {
+        case "https":
+            // XXX Use response queue even with https mode?
+            const { lambda } = services;
+            const { FunctionName } = resources;
+            return callFunctionHttps(lambda, FunctionName, call, metrics);
+        case "queue":
+            const { sns } = services;
+            const { RequestTopicArn } = resources;
+            await publishInvocationMessage(sns, RequestTopicArn!, call, metrics);
+            return;
+        default:
+            assertNever(options.mode);
+    }
+}
+
+async function publish(state: State, message: SendableMessage): Promise<void> {
+    const { services, resources } = state;
+    publishResponseMessage(services.sqs, resources.ResponseQueueUrl!, message);
+}
+
+function poll(state: State): Promise<PollResult> {
+    return receiveMessages(
+        state.services.sqs,
+        state.resources.ResponseQueueUrl!,
+        state.metrics
+    );
+}
+
+function responseQueueId(state: State): string | undefined {
+    return state.resources.ResponseQueueUrl;
+}
+
 async function callFunctionHttps(
     lambda: aws.Lambda,
     FunctionName: string,
-    callRequest: FunctionCall,
+    message: Invocation,
     metrics: AWSMetrics
-): Promise<FunctionReturnWithMetrics> {
-    let returned: FunctionReturn;
+): Promise<ResponseMessageReceived> {
+    let body: string;
     let rawResponse: AWSInvocationResponse;
 
     const request: aws.Lambda.Types.InvocationRequest = {
         FunctionName,
-        Payload: serializeCall(callRequest),
+        Payload: message.body,
         LogType: "None"
     };
-    let localRequestSentTime!: number;
     const awsRequest = lambda.invoke(request);
-    localRequestSentTime = awsRequest.startTime.getTime();
     rawResponse = await awsRequest.promise();
-    const localEndTime = Date.now();
     if (rawResponse.LogResult) {
         info(Buffer.from(rawResponse.LogResult!, "base64").toString());
     }
     if (rawResponse.FunctionError) {
-        const message = processAWSErrorMessage(rawResponse.Payload as string);
-        returned = {
+        const response = processAWSErrorMessage(rawResponse.Payload as string);
+        body = JSON.stringify({
             type: "error",
-            CallId: callRequest.CallId,
-            value: new Error(message)
-        };
+            CallId: message.CallId,
+            value: new Error(response)
+        });
     } else {
-        const payload = rawResponse.Payload! as string;
-        returned = JSON.parse(payload);
+        body = rawResponse.Payload! as string;
     }
     metrics.outboundBytes += computeHttpResponseBytes(
         rawResponse.$response.httpResponse.headers
     );
     return {
-        returned,
-        localRequestSentTime,
-        remoteResponseSentTime: returned.remoteExecutionEndTime!,
-        localEndTime,
-        rawResponse
+        kind: "response",
+        CallId: message.CallId,
+        body,
+        rawResponse,
+        timestamp: Date.now()
     };
-}
-
-async function callFunction(state: State, callRequest: FunctionCall) {
-    if (state.queueState) {
-        return cloudqueue.enqueueCallRequest(
-            state.queueState!,
-            callRequest,
-            state.resources.ResponseQueueUrl!
-        );
-    } else {
-        const { metrics } = state;
-        const { lambda } = state.services;
-        const { FunctionName } = state.resources;
-
-        return callFunctionHttps(lambda, FunctionName, callRequest, metrics);
-    }
 }
 
 export async function deleteRole(RoleName: string, iam: aws.IAM) {
@@ -816,8 +830,8 @@ function garbageCollectLogGroups(
     const garbageFunctions = logGroups
         .filter(g => hasExpired(g.creationTime, retentionInDays))
         .filter(g => g.storedBytes! === 0)
-        .map(g => functionNameFromLogGroup(g.logGroupName!)!)
-        .filter(n => n);
+        .map(g => functionNameFromLogGroup(g.logGroupName!))
+        .filter(defined);
 
     deleteGarbageFunctions(region, accountId, s3Bucket, garbageFunctions, scheduleWork);
 }
@@ -856,9 +870,6 @@ export async function pack(
 }
 
 export async function stop(state: PartialState) {
-    if (state.queueState) {
-        await cloudqueue.stop(state.queueState);
-    }
     await addLogRetentionPolicy(state.resources.FunctionName, state.services.cloudwatch);
     if (state.gcPromise) {
         info(`Waiting for garbage collection...`);
@@ -885,13 +896,10 @@ function getResponseQueueUrl(region: string, accountId: string, FunctionName: st
     return `https://sqs.${region}.amazonaws.com/${accountId}/${queueName}`;
 }
 
-export async function createQueueImpl(
-    state: State,
-    FunctionName: string,
-    FunctionArn: string
-): Promise<AWSCloudQueueImpl> {
-    const { sqs, sns, lambda } = state.services;
+function createRequestQueueImpl(state: State, FunctionName: string, FunctionArn: string) {
+    const { sns, lambda } = state.services;
     const { resources, metrics } = state;
+
     info(`Creating SNS request topic`);
     const createTopicPromise = createSNSTopic(sns, getSNSTopicName(FunctionName));
 
@@ -914,39 +922,31 @@ export async function createQueueImpl(
             })
             .promise();
     });
+
     const assignSNSResponsePromise = subscribePromise.then(
         snsResponse => (resources.SNSLambdaSubscriptionArn = snsResponse.SubscriptionArn!)
     );
-    info(`Creating SQS response queue`);
-    const createQueuePromise = createSQSQueue(getSQSName(FunctionName), 60, sqs).then(
-        ({ QueueUrl, QueueArn }) => {
-            resources.ResponseQueueUrl = QueueUrl;
-            resources.ResponseQueueArn = QueueArn;
-        }
-    );
-    await Promise.all([
+
+    return Promise.all([
         createTopicPromise,
-        createQueuePromise,
         assignRequestTopicArnPromise,
         addPermissionsPromise,
         subscribePromise,
         assignSNSResponsePromise
     ]);
-    info(`Created queue function`);
-    return {
-        getMessageAttribute: (message, attr) => sqsMessageAttribute(message, attr),
-        pollResponseQueueMessages: () =>
-            receiveMessages(sqs, resources.ResponseQueueUrl!, metrics),
-        getMessageBody: message => message.Body || "",
-        getMessageSentTimestamp: message => Number(message.Attributes!.SentTimestamp),
-        description: () => resources.ResponseQueueUrl!,
-        publishRequestMessage: call =>
-            publishSNS(sns, resources.RequestTopicArn!, call, metrics),
-        publishReceiveQueueControlMessage: type =>
-            publishSQSControlMessage(type, sqs, resources.ResponseQueueUrl!),
-        isControlMessage: (message, type) => isControlMessage(message, type),
-        deadLetterMessages: message => deadLetterMessages(message)
-    };
+}
+
+export function createResponseQueueImpl(state: State, FunctionName: string) {
+    const { sqs } = state.services;
+    const { resources, metrics } = state;
+    info(`Creating SQS response queue`);
+    return createSQSQueue(getSQSName(FunctionName), 60, sqs).then(
+        ({ QueueUrl, QueueArn }) => {
+            resources.ResponseQueueUrl = QueueUrl;
+            resources.ResponseQueueArn = QueueArn;
+            info(`Created response queue`);
+        }
+    );
 }
 
 function addSnsInvokePermissionsToFunction(

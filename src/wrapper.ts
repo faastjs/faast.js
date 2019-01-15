@@ -48,11 +48,10 @@ export interface CallingContext {
     instanceId?: string;
 }
 
-export interface FunctionReturnWithMetrics {
-    returned: FunctionReturn;
+export interface FunctionReturnWithMetrics extends FunctionReturn {
     rawResponse: any;
     localRequestSentTime: number;
-    remoteResponseSentTime?: number;
+    remoteResponseSentTime: number;
     localEndTime: number;
 }
 
@@ -102,6 +101,7 @@ export interface WrapperOptions {
     childProcessMemoryLimitMb?: number;
     childProcessTimeout?: number;
     childDir?: string;
+    verbose?: boolean;
 }
 
 const oomPattern = /Allocation failed - JavaScript heap out of memory/;
@@ -112,9 +112,11 @@ export class Wrapper {
     deferred?: Deferred<FunctionReturn>;
     log: (msg: string) => void;
     executing = false;
+    verbose = false;
 
     constructor(fModule: ModuleType, public options: WrapperOptions = {}) {
         this.log = options.log || console.log;
+        this.verbose = options.verbose || false;
         this.funcs = fModule;
 
         if (process.env["FAAST_CHILD"]) {
@@ -166,7 +168,7 @@ export class Wrapper {
                 throw new Error(`faast: module wrapper is not re-entrant`);
             }
             this.executing = true;
-
+            this.verbose && this.log(`callingContext: ${inspect(callingContext)}`);
             const memoryUsage = process.memoryUsage();
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
             if (this.options.useChildProcess) {
@@ -199,6 +201,8 @@ export class Wrapper {
                 try {
                     const rv = await this.deferred.promise;
                     logWrapper(`deferred promise returned`);
+                    this.verbose &&
+                        this.log(`returned from child process: ${inspect(rv)}`);
                     return rv;
                 } finally {
                     timer && clearTimeout(timer);
@@ -217,8 +221,9 @@ export class Wrapper {
                     );
                 }
                 const returned = await func.apply(undefined, call.args);
+                this.verbose && this.log(`returned value: ${inspect(returned)}`);
 
-                const rv: FunctionReturn = {
+                return {
                     type: "returned",
                     value: returned,
                     CallId: call.CallId,
@@ -229,7 +234,6 @@ export class Wrapper {
                     memoryUsage,
                     instanceId
                 };
-                return rv;
             }
         } catch (err) {
             logWrapper(`wrapper function exception: ${err}`);
@@ -356,4 +360,22 @@ serialized arguments: ${inspect(deserialized.args)}`
         );
     }
     return callStr;
+}
+
+export function serializeReturn(returned: FunctionReturn) {
+    const rv = JSON.stringify(returned);
+    const deserialized = JSON.parse(rv);
+    deepCopyUndefined(deserialized.value, returned.value);
+    try {
+        deepStrictEqual(deserialized.value, returned.value);
+    } catch (err) {
+        throw new Error(
+            `faast: Detected call '${
+                returned.value
+            }' is not supported because one of its arguments cannot be serialized by JSON.stringify
+  original arguments: ${inspect(returned.value)}
+serialized arguments: ${inspect(deserialized.value)}`
+        );
+    }
+    return rv;
 }

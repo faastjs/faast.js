@@ -103,9 +103,7 @@ export function assertNever(x: never): never {
     throw new Error("Unexpected object: " + x);
 }
 
-export function sum(numbers: number[]) {
-    return numbers.reduce((a, b) => a + b, 0);
-}
+export const sum = (a: number[]) => a.reduce((total, n) => total + n, 0);
 
 export function objectSize(obj?: { [key: string]: string }) {
     if (!obj) {
@@ -163,4 +161,8 @@ export function keys<K extends string, O extends { [key in K]: any }>(
 ): Array<keyof O>;
 export function keys<O extends object>(obj: O): Array<keyof O> {
     return Object.keys(obj) as Array<keyof O>;
+}
+
+export function defined<T>(arg: T | undefined | null | void): arg is T {
+    return !!arg;
 }

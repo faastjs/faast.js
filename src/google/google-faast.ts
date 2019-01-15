@@ -1,4 +1,4 @@
-import Axios, { AxiosError, AxiosPromise } from "axios";
+import Axios, { AxiosError, AxiosPromise, AxiosRequestConfig } from "axios";
 import * as sys from "child_process";
 import {
     cloudbilling_v1,
@@ -9,39 +9,36 @@ import {
 } from "googleapis";
 import * as util from "util";
 import { CostBreakdown, CostMetric } from "../cost";
-import { CloudFunctionImpl, FunctionCounters, FunctionStats } from "../faast";
-import { info, logGc, logPricing, warn } from "../log";
+import { info, logGc, logPricing, logProvider, warn } from "../log";
 import { CommonOptionDefaults, CommonOptions, PackerOptions } from "../options";
 import { packer, PackerResult } from "../packer";
-import * as cloudqueue from "../queue";
 import {
+    CloudFunctionImpl,
+    FunctionCounters,
+    FunctionStats,
+    Invocation,
+    PollResult,
+    ResponseMessageReceived,
+    SendableMessage
+} from "../provider";
+import {
+    assertNever,
     computeHttpResponseBytes,
     hasExpired,
+    keys,
     sleep,
-    uuidv4Pattern,
-    keys
+    uuidv4Pattern
 } from "../shared";
 import { retry, throttle } from "../throttle";
 import { Mutable } from "../types";
-import {
-    FunctionCall,
-    FunctionReturn,
-    FunctionReturnWithMetrics,
-    serializeCall
-} from "../wrapper";
-import {
-    getMessageBody,
-    publish,
-    publishControlMessage,
-    pubsubMessageAttribute,
-    receiveMessages
-} from "./google-queue";
+import { publishPubSub, receiveMessages, publishResponseMessage } from "./google-queue";
 import * as googleTrampolineHttps from "./google-trampoline-https";
 import * as googleTrampolineQueue from "./google-trampoline-queue";
 
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
+import { serializeReturn } from "../wrapper";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -78,25 +75,19 @@ export interface GoogleServices {
     readonly cloudBilling: CloudBilling.Cloudbilling;
 }
 
-type ReceivedMessage = PubSubApi.Schema$ReceivedMessage;
-
-type GoogleCloudQueueState = cloudqueue.StateWithMessageType<ReceivedMessage>;
-type GoogleCloudQueueImpl = cloudqueue.QueueImpl<ReceivedMessage>;
-
 export interface State {
     resources: GoogleResources;
     services: GoogleServices;
-    queueState?: GoogleCloudQueueState;
     url?: string;
     project: string;
     functionName: string;
     pricing?: GoogleCloudPricing;
     metrics: GoogleMetrics;
-    options: Options;
+    options: Options & { mode: "https" | "queue" };
     gcPromise?: Promise<void>;
 }
 
-function gcWorker(services: GoogleServices, resources: GoogleResources) {
+function gcWorkerDefault(services: GoogleServices, resources: GoogleResources) {
     return deleteResources(services, resources, logGc);
 }
 
@@ -112,7 +103,7 @@ export const defaults: Required<Options> = {
     addDirectory: [],
     packageJson: false,
     webpackOptions: {},
-    gcWorker
+    gcWorker: gcWorkerDefault
 };
 
 export const Impl: CloudFunctionImpl<Options, State> = {
@@ -120,11 +111,14 @@ export const Impl: CloudFunctionImpl<Options, State> = {
     initialize,
     pack,
     defaults,
-    callFunction,
     cleanup,
     stop,
     costEstimate,
-    logUrl
+    logUrl,
+    invoke,
+    publish,
+    poll,
+    responseQueueId
 };
 
 export const EmulatorImpl: CloudFunctionImpl<Options, State> = {
@@ -164,7 +158,7 @@ async function defaultPollDelay(retries: number) {
     await sleep((retries + 1) * 100);
 }
 
-async function poll<T>({
+async function pollOperation<T>({
     request,
     checkDone,
     delay = defaultPollDelay,
@@ -210,7 +204,7 @@ async function waitFor(
     response: AxiosPromise<CloudFunctions.Schema$Operation>
 ) {
     const operationName = (await response).data.name!;
-    return poll({
+    return pollOperation({
         request: () => quietly(api.operations.get({ name: operationName })),
         checkDone: result => {
             if (!result || result.error) {
@@ -278,25 +272,19 @@ async function initializeWithApi(
     services: GoogleServices,
     serverModule: string,
     nonce: string,
-    options: Options,
+    userOptions: Options,
     project: string,
     isEmulator: boolean
 ): Promise<State> {
     info(`Create cloud function`);
     const { cloudFunctions } = services;
-    const {
-        region = defaults.region,
-        timeout = defaults.timeout,
-        memorySize = defaults.memorySize,
-        gc = defaults.gc,
-        retentionInDays = defaults.retentionInDays,
-        googleCloudFunctionOptions,
-        gcWorker = defaults.gcWorker
-    } = options;
-    let { mode = defaults.mode } = options;
-    if (mode === "auto") {
-        mode = "https";
-    }
+    const mode =
+        !userOptions.mode || userOptions.mode === "auto" ? "queue" : userOptions.mode;
+    logProvider(`defaults: %O`, defaults);
+    const options = Object.assign({}, defaults, { ...userOptions, mode });
+    logProvider(`options: %O`, options);
+
+    const { region } = options;
 
     info(`Nonce: ${nonce}`);
     const location = `projects/${project}/locations/${region}`;
@@ -330,6 +318,7 @@ async function initializeWithApi(
         options
     };
 
+    const { gc, retentionInDays, gcWorker } = options;
     if (gc) {
         logGc(`Starting garbage collector`);
         state.gcPromise = collectGarbage(gcWorker, services, project, retentionInDays);
@@ -341,11 +330,10 @@ async function initializeWithApi(
     if (mode === "queue") {
         info(`Initializing queue`);
         const googleQueueImpl = await initializeGoogleQueue(state, project, functionName);
-        state.queueState = cloudqueue.initializeCloudFunctionQueue(googleQueueImpl);
     }
 
     const sourceUploadUrl = await createCodeBundle();
-
+    const { timeout, memorySize, googleCloudFunctionOptions } = options;
     const requestBody: CloudFunctions.Schema$CloudFunction = {
         name: trampoline,
         entryPoint: "trampoline",
@@ -381,7 +369,7 @@ async function initializeWithApi(
         await deleteFunction(cloudFunctions, trampoline).catch();
         throw err;
     }
-    if (!state.queueState) {
+    if (mode === "https") {
         const func = await carefully(
             cloudFunctions.projects.locations.functions.get({ name: trampoline })
         );
@@ -415,9 +403,9 @@ async function initializeGoogleQueue(
     state: State,
     project: string,
     functionName: string
-): Promise<GoogleCloudQueueImpl> {
-    const { resources, metrics } = state;
-    const { pubsub } = state.services;
+): Promise<void> {
+    const { resources, services } = state;
+    const { pubsub } = services;
     resources.requestQueueTopic = getRequestQueueTopic(project, functionName);
     const requestPromise = pubsub.projects.topics.create({
         name: resources.requestQueueTopic
@@ -440,20 +428,6 @@ async function initializeGoogleQueue(
         });
 
     await Promise.all([requestPromise, responsePromise]);
-    return {
-        getMessageAttribute: (message, attr) => pubsubMessageAttribute(message, attr),
-        pollResponseQueueMessages: () =>
-            receiveMessages(pubsub, resources.responseSubscription!, metrics),
-        getMessageBody: received => getMessageBody(received),
-        getMessageSentTimestamp: message => parseTimestamp(message.message!.publishTime!),
-        description: () => state.resources.responseQueueTopic!,
-        publishRequestMessage: (body, attributes) =>
-            publish(pubsub, resources.requestQueueTopic!, body, attributes, metrics),
-        publishReceiveQueueControlMessage: type =>
-            publishControlMessage(type, pubsub, resources.responseQueueTopic!),
-        isControlMessage: (m, value) => pubsubMessageAttribute(m, "faast") === value,
-        deadLetterMessages: _ => undefined
-    };
 }
 
 export function exec(cmd: string) {
@@ -464,14 +438,9 @@ export function exec(cmd: string) {
 
 async function callFunctionHttps(
     url: string,
-    callArgs: FunctionCall,
+    call: Invocation,
     metrics: GoogleMetrics
-): Promise<FunctionReturnWithMetrics> {
-    // only for validation
-    serializeCall(callArgs);
-
-    let localRequestSentTime!: number;
-
+): Promise<ResponseMessageReceived> {
     const shouldRetry = (err: AxiosError) => {
         if (err.response) {
             const { status } = err.response;
@@ -481,19 +450,20 @@ async function callFunctionHttps(
     };
 
     try {
+        const axiosConfig: AxiosRequestConfig = {
+            headers: { "Content-Type": "text/plain" }
+        };
         const rawResponse = await retry(shouldRetry, () => {
-            localRequestSentTime = Date.now();
-            return Axios.put<FunctionReturn>(url!, callArgs, {});
+            return Axios.put<string>(url!, call.body, axiosConfig);
         });
-        const localEndTime = Date.now();
-        const returned: FunctionReturn = rawResponse.data;
+        const returned: string = rawResponse.data;
         metrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
         return {
-            returned,
+            kind: "response",
+            CallId: call.CallId,
+            body: returned,
             rawResponse,
-            localRequestSentTime,
-            remoteResponseSentTime: returned.remoteExecutionEndTime!,
-            localEndTime
+            timestamp: Date.now()
         };
     } catch (err) {
         const { response } = err;
@@ -509,34 +479,46 @@ async function callFunctionHttps(
                 }${interpretation}`
             );
         }
-        return {
-            returned: {
-                type: "error",
-                CallId: callArgs.CallId,
-                value: error
-            },
-            localEndTime: Date.now(),
-            localRequestSentTime,
-            rawResponse: err
-        };
+        throw error;
     }
 }
 
-async function callFunction(state: State, callRequest: FunctionCall) {
-    if (state.queueState) {
-        const {
-            queueState,
-            resources: { responseQueueTopic }
-        } = state;
-        return cloudqueue.enqueueCallRequest(
-            queueState!,
-            callRequest,
-            responseQueueTopic!
-        );
-    } else {
-        const { url, metrics } = state;
-        return callFunctionHttps(url!, callRequest, metrics);
+async function invoke(
+    state: State,
+    call: Invocation
+): Promise<ResponseMessageReceived | void> {
+    const { options, resources, services, url, metrics } = state;
+    switch (options.mode) {
+        case "https":
+            // XXX Use response queue even with https mode?
+            return callFunctionHttps(url!, call, metrics);
+        case "queue":
+            const { requestQueueTopic } = resources;
+            const { pubsub } = services;
+            publishPubSub(pubsub, requestQueueTopic!, call.body);
+            return;
+        default:
+            assertNever(options.mode);
     }
+}
+
+async function publish(state: State, message: SendableMessage): Promise<void> {
+    const { services, resources } = state;
+    const { pubsub } = services;
+    const queue = resources.responseQueueTopic!;
+    return publishResponseMessage(pubsub, queue, message);
+}
+
+function poll(state: State): Promise<PollResult> {
+    return receiveMessages(
+        state.services.pubsub,
+        state.resources.responseSubscription!,
+        state.metrics
+    );
+}
+
+function responseQueueId(state: State): string | undefined {
+    return state.resources.responseQueueTopic;
 }
 
 type PartialState = Partial<State> & Pick<State, "services" | "resources">;
@@ -726,18 +708,11 @@ export async function pack(
 }
 
 export async function stop(state: Partial<State>) {
-    if (state.queueState) {
-        await cloudqueue.stop(state.queueState);
-    }
     if (state.gcPromise) {
         info(`Waiting for garbage collection...`);
         await state.gcPromise;
         info(`Garbage collection done.`);
     }
-}
-
-function parseTimestamp(timestampStr: string | undefined) {
-    return Date.parse(timestampStr || "") || 0;
 }
 
 const getGoogleCloudFunctionsPricing = throttle(

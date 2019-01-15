@@ -9,6 +9,8 @@ export const logTrampoline = debug("faast:trampoline");
 export const logCalls = debug("faast:calls");
 export const logWrapper = debug("faast:wrapper");
 export const logWebpack = debug("faast:webpack");
+export const logQueue = debug("faast:queue");
+export const logProvider = debug("faast:provider");
 
 warn.enabled = true;
 stats.enabled = true;

@@ -1,18 +1,23 @@
 import { SNSEvent } from "aws-lambda";
 import * as aws from "aws-sdk";
 import { info, warn } from "../log";
-import * as cloudqueue from "../queue";
-import { computeHttpResponseBytes, sum } from "../shared";
+import {
+    CALLID_ATTR,
+    Invocation,
+    KIND_ATTR,
+    PollResult,
+    ReceivableKind,
+    ReceivableMessage,
+    SendableMessage
+} from "../provider";
+import { assertNever, computeHttpResponseBytes, defined, sum } from "../shared";
 import { Attributes } from "../types";
-import { FunctionCall } from "../wrapper";
+import { FunctionCall, serializeCall, serializeReturn } from "../wrapper";
 import { AWSMetrics } from "./aws-faast";
 
-export function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
+function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
     const a = message.MessageAttributes;
-    if (!a) {
-        return undefined;
-    }
-    return a[attr] && a[attr].StringValue;
+    return a && a[attr] && a[attr].StringValue;
 }
 
 export async function createSNSTopic(sns: aws.SNS, Name: string) {
@@ -24,7 +29,7 @@ function countRequests(bytes: number) {
     return Math.ceil(bytes / (64 * 1024));
 }
 
-export function convertMapToAWSMessageAttributes(
+function convertMapToAWSMessageAttributes(
     attributes?: Attributes
 ): aws.SNS.MessageAttributeMap {
     const attr: aws.SNS.MessageAttributeMap = {};
@@ -35,45 +40,60 @@ export function convertMapToAWSMessageAttributes(
     return attr;
 }
 
-export function publishSQS(
+function publishSQS(
     sqs: aws.SQS,
     QueueUrl: string,
     MessageBody: string,
     attr?: Attributes
-): Promise<any> {
+): Promise<void> {
     const message = {
         QueueUrl,
         MessageBody,
         MessageAttributes: convertMapToAWSMessageAttributes(attr)
     };
-    return sqs.sendMessage(message).promise();
+    return sqs
+        .sendMessage(message)
+        .promise()
+        .then(_ => {});
 }
 
-export function publishSQSControlMessage(
-    type: cloudqueue.ControlMessageType,
+export function publishResponseMessage(
     sqs: aws.SQS,
     QueueUrl: string,
-    attr?: Attributes
+    message: SendableMessage
 ) {
-    return publishSQS(sqs, QueueUrl, "control message", {
-        faast: type,
-        ...attr
-    });
+    switch (message.kind) {
+        case "stopqueue":
+            return publishSQS(sqs, QueueUrl, "{}", { [KIND_ATTR]: message.kind });
+        case "functionstarted":
+            return publishSQS(sqs, QueueUrl, "{}", {
+                [KIND_ATTR]: message.kind,
+                [CALLID_ATTR]: message.CallId
+            });
+        case "response":
+            const body =
+                typeof message.body === "string"
+                    ? message.body
+                    : serializeReturn(message.body);
+            return publishSQS(sqs, QueueUrl, body, {
+                [KIND_ATTR]: message.kind,
+                [CALLID_ATTR]: message.CallId
+            });
+    }
+    assertNever(message);
 }
 
-export function publishSNS(
+export function publishInvocationMessage(
     sns: aws.SNS,
     TopicArn: string,
-    body: string,
-    costMetrics: AWSMetrics,
-    attributes?: Attributes
+    message: Invocation,
+    metrics: AWSMetrics
 ) {
-    costMetrics.sns64kRequests += countRequests(body.length);
+    metrics.sns64kRequests += countRequests(message.body.length);
     return sns
         .publish({
             TopicArn,
-            Message: body,
-            MessageAttributes: convertMapToAWSMessageAttributes(attributes)
+            Message: message.body
         })
         .promise();
 }
@@ -94,21 +114,18 @@ export async function createSQSQueue(QueueName: string, VTimeout: number, sqs: a
     return { QueueUrl, QueueArn };
 }
 
-export function isControlMessage(
-    message: aws.SQS.Message,
-    type: cloudqueue.ControlMessageType
-) {
-    const attr = message.MessageAttributes;
-    const faast = attr && attr.faast;
-    const value = faast && faast.StringValue;
-    return value === type;
+export function processAWSErrorMessage(message: string) {
+    if (message && message.match(/Process exited before completing/)) {
+        message += " (faast: possibly out of memory)";
+    }
+    return message;
 }
 
 export async function receiveMessages(
     sqs: aws.SQS,
     ResponseQueueUrl: string,
     metrics: AWSMetrics
-): Promise<cloudqueue.ReceivedMessages<aws.SQS.Message>> {
+): Promise<PollResult> {
     const MaxNumberOfMessages = 10;
     const response = await sqs
         .receiveMessage({
@@ -139,37 +156,54 @@ export async function receiveMessages(
         metrics.sqs64kRequests++;
     }
     return {
-        Messages,
+        Messages: Messages.map(processIncomingQueueMessage).filter(defined),
         isFullMessageBatch: Messages.length === MaxNumberOfMessages
     };
 }
 
-export function processAWSErrorMessage(message: string) {
-    if (message && message.match(/Process exited before completing/)) {
-        message += " (faast: possibly out of memory)";
-    }
-    return message;
-}
+function processIncomingQueueMessage(m: aws.SQS.Message): ReceivableMessage | void {
+    const kind = sqsMessageAttribute(m, KIND_ATTR) as ReceivableKind;
+    const CallId = sqsMessageAttribute(m, CALLID_ATTR);
+    const timestamp = Number(m.Attributes!.SentTimestamp);
 
-export function deadLetterMessages(
-    m: aws.SQS.Message
-): cloudqueue.DeadLetter[] | undefined {
-    // https://docs.aws.amazon.com/lambda/latest/dg/dlq.html
-    const errorMessage = sqsMessageAttribute(m, "ErrorMessage");
-    if (!errorMessage) {
-        return;
+    switch (kind) {
+        case "deadletter":
+            // https://docs.aws.amazon.com/lambda/latest/dg/dlq.html
+            const errorMessage = sqsMessageAttribute(m, "ErrorMessage");
+            if (!errorMessage) {
+                return;
+            }
+            info(`Received DLQ message: %O`, m);
+            const body = m.Body && JSON.parse(m.Body);
+            const snsMessage: SNSEvent = body;
+            const record = snsMessage.Records[0];
+            try {
+                // Dead letter messages are generated by AWS and do not have a CallId attribute, we must get the call ID from the message body.
+                const callRequest: FunctionCall = JSON.parse(record.Sns.Message);
+                const message = processAWSErrorMessage(errorMessage!);
+                return { kind, CallId: callRequest.CallId, message };
+            } catch (err) {
+                warn(err);
+                return;
+            }
+        case "response":
+            if (!CallId || !m.Body) {
+                return;
+            }
+            return {
+                kind,
+                CallId,
+                body: m.Body,
+                rawResponse: m,
+                timestamp
+            };
+        case "functionstarted":
+            if (!CallId) {
+                return;
+            }
+            return { kind, CallId };
+        case "stopqueue":
+            return { kind };
     }
-    info(`Received DLQ message: %O`, m);
-    const body = m.Body && JSON.parse(m.Body);
-    const snsMessage: SNSEvent = body;
-    const rv = [];
-    for (const record of snsMessage.Records) {
-        try {
-            const callRequest: FunctionCall = JSON.parse(record.Sns.Message);
-            rv.push({ callRequest, message: processAWSErrorMessage(errorMessage!) });
-        } catch (err) {
-            warn(err);
-        }
-    }
-    return rv;
+    assertNever(kind);
 }

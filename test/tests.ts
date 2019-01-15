@@ -4,15 +4,15 @@ import { PassThrough } from "stream";
 import * as awsFaast from "../src/aws/aws-faast";
 import * as faast from "../src/faast";
 import { faastify } from "../src/faast";
-import { createWriteStream, readdir, rmrf, stat } from "../src/fs";
+import { createWriteStream, rmrf, stat } from "../src/fs";
 import { info, stats, warn, logGc } from "../src/log";
 import { unzipInDir } from "../src/packer";
 import { sleep, keys } from "../src/shared";
 import { Pump } from "../src/throttle";
 import * as funcs from "./functions";
-import { Timing } from "./functions";
 import { CommonOptions } from "../src/options";
 import { Fn } from "../src/types";
+import { CloudFunctionImpl } from "../src/provider";
 
 export function testFunctions(
     cloudProvider: "aws",
@@ -127,7 +127,7 @@ function exec(cmd: string) {
 }
 
 export function testCodeBundle<O, S>(
-    cloud: faast.CloudFunctionImpl<O, S>,
+    cloud: CloudFunctionImpl<O, S>,
     packageType: string,
     maxZipFileSize?: number,
     options?: O,
@@ -404,15 +404,6 @@ export function testMemoryLimit(
     );
 }
 
-export const sum = (a: number[]) => a.reduce((total, n) => total + n, 0);
-
-export const avg = (a: number[]) => sum(a) / a.length;
-
-export const stdev = (a: number[]) => {
-    const average = avg(a);
-    return Math.sqrt(avg(a.map(v => (v - average) ** 2)));
-};
-
 export function quietly<T>(p: Promise<T>) {
     return p.catch(_ => {});
 }
@@ -526,13 +517,6 @@ export function checkResourcesExist<T extends object>(resources: T) {
     for (const key of keys(resources)) {
         expect(resources[key]).toBeTruthy();
     }
-}
-
-export function measureConcurrency(timings: Timing[]) {
-    return timings
-        .map(t => t.start)
-        .map(t => timings.filter(({ start, end }) => start <= t && t < end).length)
-        .reduce((a, b) => Math.max(a, b));
 }
 
 export interface RecordedCall<A, R> {

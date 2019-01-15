@@ -1,6 +1,6 @@
 import { Statistics } from "../src/shared";
 import { deepCopyUndefined } from "../src/wrapper";
-import { avg, stdev } from "./tests";
+import { avg, stdev } from "./util";
 
 describe("shared module tests", () => {
     test("Copy of undefined properties", () => {

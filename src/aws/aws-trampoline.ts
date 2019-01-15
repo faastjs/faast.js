@@ -5,11 +5,13 @@ import {
     CallingContext,
     createErrorResponse,
     FunctionCall,
+    Wrapper,
     FunctionReturn,
-    Wrapper
+    serializeReturn
 } from "../wrapper";
-import { publishSQS, publishSQSControlMessage } from "./aws-queue";
+import { publishResponseMessage } from "./aws-queue";
 import { getExecutionLogUrl } from "./aws-shared";
+import { ResponseMessage } from "../provider";
 
 const awsSqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
@@ -47,53 +49,34 @@ export function makeTrampoline(wrapper: Wrapper) {
             console.log(`SNS event: ${snsEvent.Records.length} records`);
             for (const record of snsEvent.Records) {
                 const call = JSON.parse(record.Sns.Message) as FunctionCall;
-                const { CallId, ResponseQueueId } = call;
+                const { CallId, ResponseQueueId: Queue } = call;
                 const startedMessageTimer = setTimeout(
                     () =>
-                        publishSQSControlMessage(
-                            "functionstarted",
-                            awsSqs,
-                            ResponseQueueId!,
-                            {
-                                CallId
-                            }
-                        ),
+                        publishResponseMessage(awsSqs, Queue!, {
+                            kind: "functionstarted",
+                            CallId
+                        }),
                     2 * 1000
                 );
-                const result = await wrapper.execute({
-                    call,
-                    ...callingContext
-                });
+                const cc: CallingContext = { call, ...callingContext };
+                const result = await wrapper.execute(cc);
                 clearTimeout(startedMessageTimer);
-                return publishSQS(awsSqs, ResponseQueueId!, JSON.stringify(result), {
-                    CallId
-                }).catch(puberr => {
-                    console.error(puberr);
-                    sendError(puberr, ResponseQueueId!, { call, ...callingContext });
+                const response: ResponseMessage = {
+                    kind: "response",
+                    CallId,
+                    body: result
+                };
+                return publishResponseMessage(awsSqs, Queue!, response).catch(err => {
+                    console.error(err);
+                    const errResponse: ResponseMessage = {
+                        kind: "response",
+                        CallId,
+                        body: createErrorResponse(err, cc)
+                    };
+                    publishResponseMessage(awsSqs, Queue!, errResponse).catch(_ => {});
                 });
             }
         }
     }
     return { trampoline };
-}
-
-function ignore(p: Promise<any>) {
-    return p.catch(_ => {});
-}
-
-async function sendError(
-    err: any,
-    ResponseQueueUrl: string,
-    callingContext: CallingContext
-) {
-    console.error(err);
-    const errorResponse = {
-        QueueUrl: ResponseQueueUrl,
-        MessageBody: JSON.stringify(createErrorResponse(err, callingContext))
-    };
-    return ignore(
-        publishSQS(awsSqs, ResponseQueueUrl, JSON.stringify(errorResponse), {
-            CallId: callingContext.call.CallId
-        })
-    );
 }

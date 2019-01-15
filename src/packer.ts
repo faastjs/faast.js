@@ -5,7 +5,7 @@ import * as webpack from "webpack";
 import * as yauzl from "yauzl";
 import { LoaderOptions } from "./loader";
 import { exists, mkdir, readFile, createWriteStream } from "./fs";
-import { info, warn, logWebpack } from "./log";
+import { info, warn, logWebpack, logWrapper } from "./log";
 import { WrapperOptions, TrampolineFactory } from "./wrapper";
 import { streamToBuffer, keys } from "./shared";
 import { PackerOptions } from "./options";
@@ -148,7 +148,7 @@ export async function packer(
 
     const loader = `loader?${getUrlEncodedQueryParameters({
         trampolineFactoryModule: trampolineFactory.filename,
-        wrapperOptions: wrapperOptions || {},
+        wrapperOptions: { verbose: logWrapper.enabled, ...wrapperOptions },
         functionModule
     })}!`;
     await runWebpack(loader, "index.js");

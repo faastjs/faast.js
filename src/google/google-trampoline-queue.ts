@@ -1,7 +1,7 @@
 import { google, pubsub_v1 } from "googleapis";
 import { env } from "process";
 import { createErrorResponse, FunctionCall, Wrapper } from "../wrapper";
-import { publish, publishControlMessage } from "./google-queue";
+import { publishPubSub, publishResponseMessage } from "./google-queue";
 import { getExecutionLogUrl } from "./google-shared";
 import PubSubApi = pubsub_v1;
 
@@ -37,11 +37,13 @@ export function makeTrampoline(wrapper: Wrapper) {
         const functionName = env["FUNCTION_NAME"]!;
         const logUrl = getExecutionLogUrl(project, functionName, executionId);
         const str = Buffer.from(data.data!, "base64");
-        const call: FunctionCall = JSON.parse(str.toString());
+        const call: FunctionCall = JSON.parse(str.toString()) as FunctionCall;
+
         const { CallId, ResponseQueueId } = call;
         const startedMessageTimer = setTimeout(
             () =>
-                publishControlMessage("functionstarted", pubsub, ResponseQueueId!, {
+                publishResponseMessage(pubsub, ResponseQueueId!, {
+                    kind: "functionstarted",
                     CallId
                 }),
             2 * 1000
@@ -57,15 +59,19 @@ export function makeTrampoline(wrapper: Wrapper) {
         try {
             const returned = await wrapper.execute(callingContext);
             clearTimeout(startedMessageTimer);
-            await publish(pubsub, call.ResponseQueueId!, JSON.stringify(returned), {
-                CallId
+            await publishResponseMessage(pubsub, call.ResponseQueueId!, {
+                kind: "response",
+                CallId,
+                body: returned
             });
         } catch (err) {
             console.error(err);
             if (ResponseQueueId) {
-                const response = createErrorResponse(err, callingContext);
-                await publish(pubsub, ResponseQueueId!, JSON.stringify(response), {
-                    CallId
+                const error = createErrorResponse(err, callingContext);
+                await publishResponseMessage(pubsub, call.ResponseQueueId!, {
+                    kind: "response",
+                    CallId,
+                    body: error
                 });
             }
         }

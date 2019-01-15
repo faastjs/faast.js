@@ -9,9 +9,9 @@ import {
     cacheFn
 } from "../src/throttle";
 import { timer, Timing } from "./functions";
-import { measureConcurrency } from "./tests";
 import { LocalCache } from "../src/cache";
 import * as uuidv4 from "uuid/v4";
+import { measureConcurrency } from "./util";
 
 const nonce = uuidv4();
 

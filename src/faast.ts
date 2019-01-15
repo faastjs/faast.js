@@ -1,3 +1,4 @@
+import { EventEmitter } from "events";
 import * as path from "path";
 import * as util from "util";
 import * as uuidv4 from "uuid/v4";
@@ -5,21 +6,33 @@ import * as aws from "./aws/aws-faast";
 import * as costAnalyzer from "./cost";
 import * as google from "./google/google-faast";
 import * as local from "./local/local-faast";
-import { info, logCalls, logLeaks, stats, warn } from "./log";
-import { PackerResult } from "./packer";
+import { info, logCalls, logLeaks, warn, logQueue, logProvider } from "./log";
+import { CommonOptionDefaults, CommonOptions } from "./options";
 import {
+    CloudFunctionImpl,
+    FunctionCounters,
+    FunctionStats,
+    ResponseMessageReceived,
+    StopQueueMessage,
+    Invocation
+} from "./provider";
+import {
+    assertNever,
     ExponentiallyDecayingAverageValue,
     FactoryMap,
     roundTo100ms,
     sleep,
     Statistics
 } from "./shared";
-import { Deferred, Funnel } from "./throttle";
+import { Deferred, Funnel, Pump } from "./throttle";
 import { NonFunctionProperties, Unpacked } from "./types";
-import { FunctionCall, FunctionReturn, FunctionReturnWithMetrics } from "./wrapper";
+import {
+    FunctionCall,
+    FunctionReturn,
+    FunctionReturnWithMetrics,
+    serializeCall
+} from "./wrapper";
 import Module = require("module");
-import { PackerOptions, CommonOptions, CommonOptionDefaults } from "./options";
-import { EventEmitter } from "events";
 
 export { aws, google, local, costAnalyzer };
 
@@ -87,34 +100,6 @@ function resolveModule(fmodule: string) {
         return fmodule;
     }
     return (Module as any)._resolveFilename(fmodule, module.parent);
-}
-
-export class FunctionCounters {
-    invocations = 0;
-    completed = 0;
-    retries = 0;
-    errors = 0;
-
-    toString() {
-        return `completed: ${this.completed}, retries: ${this.retries}, errors: ${
-            this.errors
-        }`;
-    }
-}
-
-export class FunctionStats {
-    localStartLatency = new Statistics();
-    remoteStartLatency = new Statistics();
-    executionLatency = new Statistics();
-    sendResponseLatency = new Statistics();
-    returnLatency = new Statistics();
-    estimatedBilledTime = new Statistics();
-
-    toString() {
-        return Object.keys(this)
-            .map(key => `${key}: ${(<any>this)[key]}`)
-            .join(", ");
-    }
 }
 
 export class FunctionCountersMap {
@@ -215,7 +200,7 @@ export class MemoryLeakDetector {
 }
 
 function processResponse<R>(
-    returnedMetrics: FunctionReturnWithMetrics,
+    returned: FunctionReturnWithMetrics,
     callRequest: FunctionCall,
     localStartTime: number,
     fcounters: FunctionCountersMap,
@@ -223,7 +208,6 @@ function processResponse<R>(
     prevSkew: ExponentiallyDecayingAverageValue,
     memoryLeakDetector: MemoryLeakDetector
 ) {
-    const returned = returnedMetrics.returned;
     const { executionId, logUrl, instanceId, memoryUsage } = returned;
     let value: Promise<Unpacked<R>>;
     if (returned.type === "error") {
@@ -241,7 +225,7 @@ function processResponse<R>(
         remoteResponseSentTime,
         localEndTime,
         rawResponse
-    } = returnedMetrics;
+    } = returned;
     let rv: Response<R> = {
         value,
         executionId,
@@ -249,7 +233,7 @@ function processResponse<R>(
         rawResponse
     };
     const fn = callRequest.name;
-    const { remoteExecutionStartTime, remoteExecutionEndTime } = returnedMetrics.returned;
+    const { remoteExecutionStartTime, remoteExecutionEndTime } = returned;
 
     if (remoteExecutionStartTime && remoteExecutionEndTime) {
         const localStartLatency = localRequestSentTime - localStartTime;
@@ -347,6 +331,16 @@ export class FunctionStatsEvent {
     }
 }
 
+export class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
+    created: number = Date.now();
+    executing?: boolean;
+    constructor(readonly callArgsStr: string) {
+        super();
+    }
+}
+
+type CallId = string;
+
 export class CloudFunction<
     M extends object,
     O extends CommonOptions = CommonOptions,
@@ -367,6 +361,8 @@ export class CloudFunction<
     protected maxRetries = CommonOptionDefaults.maxRetries;
     protected tailLatencyRetryStdev = CommonOptionDefaults.speculativeRetryThreshold;
     protected childProcess = CommonOptionDefaults.childProcess;
+    protected callResultsPending: Map<CallId, PendingRequest> = new Map();
+    readonly collectorPump: Pump<void>;
 
     get defaults() {
         return this.impl.defaults;
@@ -381,6 +377,10 @@ export class CloudFunction<
     ) {
         super();
         info(`Node version: ${process.version}`);
+        logProvider(`name: ${this.impl.name}`);
+        logProvider(`responseQueueId: ${this.impl.responseQueueId(state)}`);
+        logProvider(`logUrl: ${this.impl.logUrl(state)}`);
+        info(`Log url: ${impl.logUrl(state)}`);
 
         let concurrency = (options && options.concurrency) || impl.defaults.concurrency;
         if (!concurrency) {
@@ -405,7 +405,6 @@ export class CloudFunction<
             this.childProcess = options.childProcess;
         }
 
-        info(`Log url: ${impl.logUrl(state)}`);
         const functions: any = {};
         for (const name of Object.keys(fmodule)) {
             if (typeof (fmodule as any)[name] === "function") {
@@ -413,6 +412,8 @@ export class CloudFunction<
             }
         }
         this.functions = functions;
+        this.collectorPump = new Pump(2, () => this.resultCollector());
+        this.collectorPump.start();
     }
 
     async cleanup() {
@@ -420,19 +421,41 @@ export class CloudFunction<
         this.cleanupHooks.forEach(hook => hook());
         this.cleanupHooks.clear();
         this.stopStats();
-        return this.impl.cleanup(this.state);
+        this.collectorPump.stop();
+        await this.stopQueues();
+        logProvider(`cleanup`);
+        await this.impl.cleanup(this.state);
+        logProvider(`cleanup done`);
     }
 
-    stop() {
+    protected async stopQueues() {
+        let count = 0;
+        const tasks = [];
+        while (this.collectorPump.getConcurrency() > 0 && count++ < 100) {
+            const msg: StopQueueMessage = { kind: "stopqueue" };
+            logProvider(`publish %O`, msg);
+            tasks.push(this.impl.publish(this.state, msg));
+            await sleep(100);
+        }
+        await Promise.all(tasks);
+    }
+
+    async stop() {
         this.funnel.clear();
         this.cleanupHooks.forEach(hook => hook());
         this.cleanupHooks.clear();
         this.stopStats();
-        return this.impl.stop(this.state);
+        this.collectorPump.stop();
+        await this.stopQueues();
+        logProvider(`stop`);
+        await this.impl.stop(this.state);
+        logProvider(`stop done`);
     }
 
     logUrl() {
-        return this.impl.logUrl(this.state);
+        const rv = this.impl.logUrl(this.state);
+        logProvider(`logUrl ${rv}`);
+        return rv;
     }
 
     startStats(interval: number = 1000) {
@@ -477,32 +500,63 @@ export class CloudFunction<
             const invoke = async () => {
                 const CallId = uuidv4();
                 logCalls(`Calling '${fn.name}' (${CallId})`);
-                const deferred = new Deferred<FunctionReturnWithMetrics>();
-                const callRequest: FunctionCall = {
+                const ResponseQueueId =
+                    this.impl.responseQueueId(this.state) || undefined;
+                const callObject: FunctionCall = {
                     name: fn.name,
                     args,
                     CallId,
-                    modulePath: this.modulePath
+                    modulePath: this.modulePath,
+                    ResponseQueueId
                 };
+                const pending = new PendingRequest(serializeCall(callObject));
+                this.callResultsPending.set(CallId, pending);
 
                 const invokeCloudFunction = () => {
                     this.functionCounters.incr(fn.name, "invocations");
-                    return this.impl
-                        .callFunction(this.state, callRequest)
-                        .catch(value => {
-                            const returned: FunctionReturn = {
+                    const invocation: Invocation = {
+                        CallId,
+                        body: pending.callArgsStr
+                    };
+                    logProvider(`invoke %O`, invocation);
+                    this.impl
+                        .invoke(this.state, invocation)
+                        .catch<ResponseMessageReceived>(err => {
+                            logProvider(`invoke promise rejection: ${err}`);
+                            const errorReturn: FunctionReturn = {
                                 type: "error",
-                                value,
-                                CallId
+                                CallId,
+                                isErrorObject:
+                                    typeof err === "object" && err instanceof Error,
+                                value: err
                             };
                             return {
-                                returned,
-                                rawResponse: {},
-                                localRequestSentTime: startTime,
-                                localEndTime: Date.now()
+                                kind: "response",
+                                CallId,
+                                body: JSON.stringify(errorReturn),
+                                rawResponse: err,
+                                timestamp: Date.now()
                             };
                         })
-                        .then(deferred.resolve);
+                        .then(message => {
+                            logProvider(`invoke returned %O`, message);
+                            if (message) {
+                                this.callResultsPending.delete(CallId);
+                                let returned = message.body;
+                                if (typeof returned === "string")
+                                    returned = JSON.parse(returned) as FunctionReturn;
+                                const response: FunctionReturnWithMetrics = {
+                                    ...returned,
+                                    CallId,
+                                    rawResponse: message.rawResponse,
+                                    localRequestSentTime: pending.created,
+                                    localEndTime: Date.now(),
+                                    remoteResponseSentTime: returned.remoteExecutionEndTime!
+                                };
+                                logProvider(`pending resolved: %O`, response);
+                                pending.resolve(response);
+                            }
+                        });
                 };
 
                 const fnStats = this.functionStats.fAggregate.getOrCreate(fn.name);
@@ -522,15 +576,13 @@ export class CloudFunction<
                     ms => sleep(ms, addHook).then(clearHook)
                 );
 
-                const rv = await deferred.promise;
+                const rv = await pending.promise;
 
-                logCalls(
-                    `Returning '${fn.name}' (${CallId}): ${util.inspect(rv.returned)}`
-                );
+                logCalls(`Returning '${fn.name}' (${CallId}): ${util.inspect(rv)}`);
 
                 return processResponse<R>(
                     rv,
-                    callRequest,
+                    callObject,
                     startTime,
                     this.functionCounters,
                     this.functionStats,
@@ -560,6 +612,7 @@ export class CloudFunction<
                 this.functionCounters.aggregate,
                 this.functionStats.aggregate
             );
+            logProvider(`costEstimate`);
             if (this.functionCounters.aggregate.retries > 0) {
                 const { retries, invocations } = this.functionCounters.aggregate;
                 const retryPct = ((retries / invocations) * 100).toFixed(1);
@@ -578,6 +631,94 @@ export class CloudFunction<
             return estimate;
         } else {
             return new costAnalyzer.CostBreakdown();
+        }
+    }
+
+    async resultCollector() {
+        const { callResultsPending } = this;
+        if (!callResultsPending.size) {
+            return;
+        }
+        logQueue(
+            `Polling response queue (size ${
+                callResultsPending.size
+            }: ${this.impl.responseQueueId(this.state)}`
+        );
+
+        const pollResult = await this.impl.poll(this.state);
+        logProvider(`poll %O`, pollResult);
+        const { Messages, isFullMessageBatch } = pollResult;
+        const localEndTime = Date.now();
+        logQueue(`Result collector received ${Messages.length} messages.`);
+        this.adjustCollectorConcurrencyLevel(isFullMessageBatch);
+
+        for (const m of Messages) {
+            switch (m.kind) {
+                case "stopqueue":
+                    return;
+                case "deadletter":
+                    const callRequest = callResultsPending.get(m.CallId);
+                    info(`Error "${m.message}" in call request %O`, callRequest);
+                    if (callRequest) {
+                        info(`Rejecting CallId: ${m.CallId}`);
+                        callResultsPending.delete(m.CallId);
+                        callRequest.reject(new Error(m.message));
+                    }
+                    break;
+                case "functionstarted":
+                    logQueue(`Received Function Started message CallID: ${m.CallId}`);
+                    const deferred = callResultsPending.get(m.CallId);
+                    if (deferred) {
+                        deferred!.executing = true;
+                    }
+                    break;
+                case "response":
+                    try {
+                        const { body, timestamp } = m;
+                        const returned: FunctionReturn =
+                            typeof body === "string" ? JSON.parse(body) : body;
+                        const deferred = callResultsPending.get(m.CallId);
+                        callResultsPending.delete(m.CallId);
+                        if (deferred) {
+                            const rv: FunctionReturnWithMetrics = {
+                                ...returned,
+                                rawResponse: m,
+                                remoteResponseSentTime:
+                                    timestamp || returned.remoteExecutionEndTime!,
+                                localRequestSentTime: deferred.created,
+                                localEndTime
+                            };
+                            logProvider(`resolved deferred: %O`, rv);
+                            deferred.resolve(rv);
+                        } else {
+                            info(`Deferred promise not found for CallId: ${m.CallId}`);
+                        }
+                    } catch (err) {
+                        warn(err);
+                    }
+                    break;
+
+                default:
+                    assertNever(m);
+            }
+        }
+    }
+
+    adjustCollectorConcurrencyLevel(full?: boolean) {
+        const nPending = this.callResultsPending.size;
+        if (nPending > 0) {
+            let nCollectors = full ? Math.floor(nPending / 20) + 2 : 2;
+            nCollectors = Math.min(nCollectors, 10);
+            const pump = this.collectorPump;
+            const previous = pump.concurrency;
+            pump.setMaxConcurrency(nCollectors);
+            if (previous !== pump.concurrency) {
+                info(
+                    `Result collectors running: ${pump.getConcurrency()}, new max: ${
+                        pump.concurrency
+                    }`
+                );
+            }
         }
     }
 }
@@ -654,32 +795,6 @@ export async function faastify<M extends object, O extends CommonOptions, S>(
     return createFunction<M, O, S>(fmodule, modulePath, impl, options);
 }
 
-export interface CloudFunctionImpl<O, S> {
-    name: string;
-    defaults: O;
-
-    initialize(serverModule: string, functionId: string, options?: O): Promise<S>;
-
-    pack(functionModule: string, options?: PackerOptions): Promise<PackerResult>;
-
-    costEstimate?: (
-        state: S,
-        counters: FunctionCounters,
-        stats: FunctionStats
-    ) => Promise<costAnalyzer.CostBreakdown>;
-
-    callFunction(state: S, call: FunctionCall): Promise<FunctionReturnWithMetrics>;
-
-    cleanup(state: S): Promise<void>;
-    stop(state: S): Promise<void>;
-    logUrl(state: S): string;
-}
-
-export interface LogEntry {
-    timestamp: number;
-    message: string;
-}
-
 function estimateFunctionLatency(fnStats: FunctionStats) {
     const {
         executionLatency,
@@ -703,7 +818,7 @@ function estimateTailLatency(fnStats: FunctionStats, nStdDev: number) {
 async function retryFunctionIfNeededToReduceTailLatency(
     timeSinceInitialInvocation: () => number,
     getTimeout: () => number,
-    worker: () => Promise<void>,
+    worker: () => void,
     shouldRetry: () => boolean,
     wait: (ms: number) => Promise<unknown>
 ) {
@@ -712,7 +827,7 @@ async function retryFunctionIfNeededToReduceTailLatency(
 
     const doWork = async () => {
         lastInvocationTime = Date.now();
-        await worker();
+        worker();
         pending = false;
     };
 

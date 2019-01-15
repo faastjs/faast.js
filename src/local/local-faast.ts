@@ -3,19 +3,19 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { Writable } from "stream";
 import { promisify } from "util";
-import { CloudFunctionImpl } from "../faast";
 import { createWriteStream, exists, mkdir, readdir, rmrf, stat } from "../fs";
-import { info, logGc, warn } from "../log";
+import { info, logGc, logProvider, warn } from "../log";
 import { CommonOptionDefaults, CommonOptions, PackerOptions } from "../options";
 import { packer, PackerResult, unzipInDir } from "../packer";
-import { hasExpired, uuidv4Pattern } from "../shared";
 import {
-    FunctionCall,
-    FunctionReturn,
-    FunctionReturnWithMetrics,
-    serializeCall,
-    Wrapper
-} from "../wrapper";
+    CloudFunctionImpl,
+    Invocation,
+    PollResult,
+    ResponseMessageReceived,
+    SendableMessage
+} from "../provider";
+import { hasExpired, uuidv4Pattern } from "../shared";
+import { Wrapper } from "../wrapper";
 import * as localTrampolineFactory from "./local-trampoline";
 
 const exec = promisify(sys.exec);
@@ -33,7 +33,7 @@ export interface Options extends CommonOptions {
     gcWorker?: (tempdir: string) => Promise<void>;
 }
 
-function gcWorker(dir: string) {
+function defaultGcWorker(dir: string) {
     return rmrf(dir);
 }
 
@@ -42,7 +42,7 @@ export const defaults: Required<Options> = {
     concurrency: 10,
     memorySize: 512,
     timeout: 300,
-    gcWorker
+    gcWorker: defaultGcWorker
 };
 
 export const Impl: CloudFunctionImpl<Options, State> = {
@@ -50,28 +50,28 @@ export const Impl: CloudFunctionImpl<Options, State> = {
     initialize,
     pack,
     defaults,
-    callFunction,
     cleanup,
     stop,
-    logUrl
+    logUrl,
+    invoke,
+    poll,
+    publish,
+    responseQueueId
 };
 
 async function initialize(
     serverModule: string,
     nonce: string,
-    options?: Options
+    userOptions?: Options
 ): Promise<State> {
     const wrappers: Wrapper[] = [];
     const logStreams: Writable[] = [];
 
-    const {
-        childProcess = defaults.childProcess,
-        gc = defaults.gc,
-        retentionInDays = defaults.retentionInDays,
-        memorySize = defaults.memorySize,
-        timeout = defaults.timeout,
-        gcWorker = defaults.gcWorker
-    } = options || {};
+    logProvider(`defaults: %O`, defaults);
+    const options = Object.assign({}, defaults, userOptions);
+    logProvider(`options: %O`, options);
+
+    const { gc, retentionInDays, gcWorker } = options;
 
     let gcPromise;
     if (gc) {
@@ -85,6 +85,8 @@ async function initialize(
     const log = `file://${logDir}`;
 
     info(`logURL: ${log}`);
+
+    const { childProcess, memorySize, timeout } = options;
 
     const getWrapper = async () => {
         const idleWrapper = wrappers.find(w => w.executing === false);
@@ -151,24 +153,35 @@ async function pack(functionModule: string, options?: Options): Promise<PackerRe
     return packer(localTrampolineFactory, functionModule, popts);
 }
 
-async function callFunction(
+async function invoke(
     state: State,
-    call: FunctionCall
-): Promise<FunctionReturnWithMetrics> {
-    const scall = JSON.parse(serializeCall(call));
+    request: Invocation
+): Promise<ResponseMessageReceived | void> {
+    const {} = state;
     const startTime = Date.now();
-    let returned: FunctionReturn;
     const wrapper = await state.getWrapper();
-    returned = await wrapper.execute({ call: scall, startTime });
-
+    const returned = await wrapper.execute({
+        call: JSON.parse(request.body),
+        startTime
+    });
     return {
-        returned,
-        rawResponse: {},
-        localRequestSentTime: startTime,
-        remoteResponseSentTime: returned.remoteExecutionEndTime!,
-        localEndTime: Date.now()
+        kind: "response",
+        body: returned,
+        CallId: request.CallId,
+        rawResponse: undefined,
+        timestamp: Date.now()
     };
 }
+
+async function publish(_state: State, _message: SendableMessage): Promise<void> {}
+
+async function poll(_state: State): Promise<PollResult> {
+    return {
+        Messages: []
+    };
+}
+
+function responseQueueId(_state: State): string | void {}
 
 async function cleanup(state: State): Promise<void> {
     await stop(state);

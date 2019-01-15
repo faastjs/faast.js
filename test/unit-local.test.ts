@@ -2,8 +2,9 @@ import { URL } from "url";
 import { faastify, local } from "../src/faast";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
-import { testFunctions, testMemoryLimit, testTimeout, measureConcurrency } from "./tests";
+import { testFunctions, testMemoryLimit, testTimeout } from "./tests";
 import { readFile } from "../src/fs";
+import { measureConcurrency } from "./util";
 
 async function testCleanup(options: local.Options) {
     const cloudFunc = await faastify("local", funcs, "./functions", options);
