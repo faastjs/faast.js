@@ -37,6 +37,7 @@ import {
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
+import { FunctionReturn } from "../wrapper";
 
 export interface Options extends CommonOptions {
     region?: AWSRegion;
@@ -527,7 +528,7 @@ async function invoke(
             // XXX Use response queue even with https mode?
             const { lambda } = services;
             const { FunctionName } = resources;
-            return callFunctionHttps(lambda, FunctionName, call, metrics);
+            return invokeHttps(lambda, FunctionName, call, metrics);
         case "queue":
             const { sns } = services;
             const { RequestTopicArn } = resources;
@@ -555,13 +556,13 @@ function responseQueueId(state: State): string | undefined {
     return state.resources.ResponseQueueUrl;
 }
 
-async function callFunctionHttps(
+async function invokeHttps(
     lambda: aws.Lambda,
     FunctionName: string,
     message: Invocation,
     metrics: AWSMetrics
 ): Promise<ResponseMessageReceived> {
-    let body: string;
+    let body: string | FunctionReturn;
     let rawResponse: AWSInvocationResponse;
 
     const request: aws.Lambda.Types.InvocationRequest = {
@@ -576,11 +577,11 @@ async function callFunctionHttps(
     }
     if (rawResponse.FunctionError) {
         const response = processAWSErrorMessage(rawResponse.Payload as string);
-        body = JSON.stringify({
+        body = {
             type: "error",
             CallId: message.CallId,
             value: new Error(response)
-        });
+        };
     } else {
         body = rawResponse.Payload! as string;
     }
