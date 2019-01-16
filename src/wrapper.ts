@@ -60,7 +60,7 @@ export interface ModuleType {
 }
 
 export function createErrorResponse(
-    err: unknown,
+    err: any,
     { call, startTime, logUrl, executionId }: CallingContext
 ): FunctionReturn {
     let errObj: any = err;

@@ -533,14 +533,14 @@ export class CloudFunction<
                             return {
                                 kind: "response",
                                 CallId,
-                                body: JSON.stringify(errorReturn),
+                                body: errorReturn,
                                 rawResponse: err,
                                 timestamp: Date.now()
                             };
                         })
                         .then(message => {
-                            logProvider(`invoke returned %O`, message);
                             if (message) {
+                                logProvider(`invoke returned %O`, message);
                                 this.callResultsPending.delete(CallId);
                                 let returned = message.body;
                                 if (typeof returned === "string")
