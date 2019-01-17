@@ -571,7 +571,10 @@ export class CloudFunction<
                             estimateTailLatency(fnStats, this.tailLatencyRetryStdev),
                             5000
                         ),
-                    invokeCloudFunction,
+                    async () => {
+                        invokeCloudFunction();
+                        await pending.promise;
+                    },
                     shouldRetry,
                     ms => sleep(ms, addHook).then(clearHook)
                 );
@@ -818,7 +821,7 @@ function estimateTailLatency(fnStats: FunctionStats, nStdDev: number) {
 async function retryFunctionIfNeededToReduceTailLatency(
     timeSinceInitialInvocation: () => number,
     getTimeout: () => number,
-    worker: () => void,
+    worker: () => Promise<void>,
     shouldRetry: () => boolean,
     wait: (ms: number) => Promise<unknown>
 ) {
@@ -827,7 +830,7 @@ async function retryFunctionIfNeededToReduceTailLatency(
 
     const doWork = async () => {
         lastInvocationTime = Date.now();
-        worker();
+        await worker();
         pending = false;
     };
 
