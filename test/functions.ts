@@ -2,6 +2,10 @@ export function test() {
     return "Successfully called test function.";
 }
 
+export function identity(name: string) {
+    return name;
+}
+
 export function hello(name: string) {
     return `Hello ${name}!`;
 }

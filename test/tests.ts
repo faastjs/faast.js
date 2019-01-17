@@ -58,6 +58,10 @@ export function testFunctions(
         expect(await remote.hello("Andy")).toBe("Hello Andy!");
     });
 
+    test("multibyte characters in arguments and return value", async () => {
+        expect(await remote.identity("你好")).toBe("你好");
+    });
+
     test("fact: number => number", async () => {
         expect(await remote.fact(5)).toBe(120);
     });
