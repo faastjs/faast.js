@@ -48,13 +48,6 @@ export interface CallingContext {
     instanceId?: string;
 }
 
-export interface FunctionReturnWithMetrics extends FunctionReturn {
-    rawResponse: any;
-    localRequestSentTime: number;
-    remoteResponseSentTime: number;
-    localEndTime: number;
-}
-
 export interface ModuleType {
     [name: string]: AnyFunction;
 }

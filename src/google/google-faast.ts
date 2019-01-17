@@ -322,7 +322,7 @@ async function initializeWithApi(
     if (gc) {
         logGc(`Starting garbage collector`);
         state.gcPromise = collectGarbage(gcWorker, services, project, retentionInDays);
-        state.gcPromise.catch(_ => {});
+        state.gcPromise.catch(_silenceWarningLackOfSynchronousCatch => {});
     }
 
     const pricingPromise = getGoogleCloudFunctionsPricing(services.cloudBilling, region);

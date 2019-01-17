@@ -26,12 +26,7 @@ import {
 } from "./shared";
 import { Deferred, Funnel, Pump } from "./throttle";
 import { NonFunctionProperties, Unpacked } from "./types";
-import {
-    FunctionCall,
-    FunctionReturn,
-    FunctionReturnWithMetrics,
-    serializeCall
-} from "./wrapper";
+import { FunctionCall, FunctionReturn, serializeCall } from "./wrapper";
 import Module = require("module");
 
 export { aws, google, local, costAnalyzer };
@@ -199,6 +194,13 @@ export class MemoryLeakDetector {
     }
 }
 
+interface FunctionReturnWithMetrics extends FunctionReturn {
+    rawResponse: any;
+    localRequestSentTime: number;
+    localEndTime: number;
+    remoteResponseSentTime?: number;
+}
+
 function processResponse<R>(
     returned: FunctionReturnWithMetrics,
     callRequest: FunctionCall,
@@ -216,7 +218,7 @@ function processResponse<R>(
             error = new FaastError(returned.value, logUrl);
         }
         value = Promise.reject(error);
-        value.catch(_ => {});
+        value.catch(_silenceWarningLackOfSynchronousCatch => {});
     } else {
         value = Promise.resolve(returned.value);
     }
@@ -331,7 +333,7 @@ export class FunctionStatsEvent {
     }
 }
 
-export class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
+class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
     created: number = Date.now();
     executing?: boolean;
     constructor(readonly callArgsStr: string) {
@@ -521,27 +523,10 @@ export class CloudFunction<
                     logProvider(`invoke %O`, invocation);
                     this.impl
                         .invoke(this.state, invocation)
-                        .catch<ResponseMessageReceived>(err => {
-                            logProvider(`invoke promise rejection: ${err}`);
-                            const errorReturn: FunctionReturn = {
-                                type: "error",
-                                CallId,
-                                isErrorObject:
-                                    typeof err === "object" && err instanceof Error,
-                                value: err
-                            };
-                            return {
-                                kind: "response",
-                                CallId,
-                                body: errorReturn,
-                                rawResponse: err,
-                                timestamp: Date.now()
-                            };
-                        })
+                        .catch(err => pending.reject(err))
                         .then(message => {
                             if (message) {
                                 logProvider(`invoke returned %O`, message);
-                                this.callResultsPending.delete(CallId);
                                 let returned = message.body;
                                 if (typeof returned === "string")
                                     returned = JSON.parse(returned) as FunctionReturn;
@@ -550,8 +535,7 @@ export class CloudFunction<
                                     CallId,
                                     rawResponse: message.rawResponse,
                                     localRequestSentTime: pending.created,
-                                    localEndTime: Date.now(),
-                                    remoteResponseSentTime: returned.remoteExecutionEndTime!
+                                    localEndTime: Date.now()
                                 };
                                 logProvider(`pending resolved: %O`, response);
                                 pending.resolve(response);
@@ -579,7 +563,24 @@ export class CloudFunction<
                     ms => sleep(ms, addHook).then(clearHook)
                 );
 
-                const rv = await pending.promise;
+                const rv = await pending.promise
+                    .catch<FunctionReturnWithMetrics>(err => {
+                        logProvider(`invoke promise rejection: ${err}`);
+                        return {
+                            type: "error",
+                            CallId,
+                            isErrorObject:
+                                typeof err === "object" && err instanceof Error,
+                            value: err,
+                            rawResponse: err,
+                            localEndTime: Date.now(),
+                            localRequestSentTime: pending.created
+                        };
+                    })
+                    .then(m => {
+                        this.callResultsPending.delete(m.CallId);
+                        return m;
+                    });
 
                 logCalls(`Returning '${fn.name}' (${CallId}): ${util.inspect(rv)}`);
 
@@ -602,7 +603,7 @@ export class CloudFunction<
         const wrappedFunc = (...args: A) => {
             const cfn = this.wrapFunctionWithResponse(fn);
             const promise = cfn(...args).then(response => response.value);
-            promise.catch(_ => {});
+            promise.catch(_silenceWarningLackOfSynchronousCatch => {});
             return promise;
         };
         return wrappedFunc as any;
@@ -664,7 +665,6 @@ export class CloudFunction<
                     info(`Error "${m.message}" in call request %O`, callRequest);
                     if (callRequest) {
                         info(`Rejecting CallId: ${m.CallId}`);
-                        callResultsPending.delete(m.CallId);
                         callRequest.reject(new Error(m.message));
                     }
                     break;
@@ -681,13 +681,11 @@ export class CloudFunction<
                         const returned: FunctionReturn =
                             typeof body === "string" ? JSON.parse(body) : body;
                         const deferred = callResultsPending.get(m.CallId);
-                        callResultsPending.delete(m.CallId);
                         if (deferred) {
                             const rv: FunctionReturnWithMetrics = {
                                 ...returned,
                                 rawResponse: m,
-                                remoteResponseSentTime:
-                                    timestamp || returned.remoteExecutionEndTime!,
+                                remoteResponseSentTime: timestamp,
                                 localRequestSentTime: deferred.created,
                                 localEndTime
                             };
@@ -830,7 +828,7 @@ async function retryFunctionIfNeededToReduceTailLatency(
 
     const doWork = async () => {
         lastInvocationTime = Date.now();
-        await worker();
+        await worker().catch(_ => {});
         pending = false;
     };
 

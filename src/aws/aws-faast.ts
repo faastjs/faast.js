@@ -455,7 +455,7 @@ export async function initialize(
             CacheBucket,
             retentionInDays
         );
-        state.gcPromise.catch(_ => {});
+        state.gcPromise.catch(_silenceWarningLackOfSynchronousCatch => {});
     }
 
     const { PolicyArn } = options;
