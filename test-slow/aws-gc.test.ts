@@ -9,7 +9,7 @@ test(
     "garbage collector works for functions that are called",
     async () => {
         // Idea behind this test: create a faast function and make a call.
-        // Then call stop() to leave the resources in place. Then create another
+        // Then cleanup while leaving the resources in place. Then create another
         // function and set its retention to 0, and use a recorder to observe
         // its garbage collector to verify that it would clean up the first function,
         // which shows that the garbage collector did its job.

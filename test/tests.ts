@@ -51,7 +51,6 @@ export function testFunctions(
 
     afterAll(async () => {
         await cloudFunc.cleanup();
-        // await cloudFunc.stop();
     }, initTimeout);
 
     test("hello: string => string", async () => {
@@ -188,7 +187,6 @@ export function testCosts(
 
     afterAll(async () => {
         await cloudFunc.cleanup();
-        // await cloudFunc.stop();
     }, 60 * 1000);
 
     test(
@@ -342,7 +340,6 @@ export function testTimeout(cloudProvider: faast.CloudProvider, options?: Common
 
     afterAll(async () => {
         await lambda.cleanup();
-        // await lambda.stop();
     }, 60 * 1000);
 
     test(
@@ -380,7 +377,6 @@ export function testMemoryLimit(
 
     afterAll(async () => {
         await lambda.cleanup();
-        // await lambda.stop();
     }, 60 * 1000);
 
     test(

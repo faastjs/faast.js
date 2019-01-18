@@ -36,7 +36,6 @@ async function testOrder(options: local.Options) {
         expect(err).toBeUndefined();
     } finally {
         await cloudFunc.cleanup();
-        // await cloudFunc.stop();
     }
 }
 

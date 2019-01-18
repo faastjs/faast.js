@@ -362,7 +362,6 @@ export async function buildModulesOnLambda(
         throw err;
     } finally {
         await lambda.cleanup();
-        // await lambda.stop();
     }
 }
 
