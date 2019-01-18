@@ -10,7 +10,12 @@ import {
 import * as util from "util";
 import { CostBreakdown, CostMetric } from "../cost";
 import { info, logGc, logPricing, logProvider, warn } from "../log";
-import { CommonOptionDefaults, CommonOptions, PackerOptions } from "../options";
+import {
+    CommonOptionDefaults,
+    CommonOptions,
+    PackerOptions,
+    CleanupOptions
+} from "../options";
 import { packer, PackerResult } from "../packer";
 import {
     CloudFunctionImpl,
@@ -38,7 +43,6 @@ import * as googleTrampolineQueue from "./google-trampoline-queue";
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
-import { serializeReturn } from "../wrapper";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -83,7 +87,7 @@ export interface State {
     functionName: string;
     pricing?: GoogleCloudPricing;
     metrics: GoogleMetrics;
-    options: Options & { mode: "https" | "queue" };
+    options: Required<Options>;
     gcPromise?: Promise<void>;
 }
 
@@ -112,7 +116,6 @@ export const Impl: CloudFunctionImpl<Options, State> = {
     pack,
     defaults,
     cleanup,
-    stop,
     costEstimate,
     logUrl,
     invoke,
@@ -126,9 +129,9 @@ export const EmulatorImpl: CloudFunctionImpl<Options, State> = {
     initialize: initializeEmulator
 };
 
-export async function initializeGoogleServices(
-    useEmulator: boolean = false
-): Promise<GoogleServices> {
+export async function initializeGoogleServices({ useEmulator = false } = {}): Promise<
+    GoogleServices
+> {
     const auth = await google.auth.getClient({
         scopes: ["https://www.googleapis.com/auth/cloud-platform"]
     });
@@ -227,7 +230,7 @@ async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) 
 export async function initialize(
     fmodule: string,
     nonce: string,
-    options: Options = {}
+    options: Required<Options>
 ): Promise<State> {
     const services = await initializeGoogleServices();
     const project = await google.auth.getProjectId();
@@ -251,39 +254,23 @@ async function getEmulator(): Promise<CloudFunctions.Cloudfunctions> {
 export async function initializeEmulator(
     fmodule: string,
     nonce: string,
-    options: Options = {}
+    options: Required<Options>
 ) {
-    const services = await initializeGoogleServices(true);
+    const services = await initializeGoogleServices({ useEmulator: true });
     const project = await google.auth.getProjectId();
-    return initializeWithApi(
-        services,
-        fmodule,
-        nonce,
-        {
-            ...options,
-            mode: "https"
-        },
-        project,
-        true
-    );
+    return initializeWithApi(services, fmodule, nonce, options, project, true);
 }
 
 async function initializeWithApi(
     services: GoogleServices,
     serverModule: string,
     nonce: string,
-    userOptions: Options,
+    options: Required<Options>,
     project: string,
     isEmulator: boolean
 ): Promise<State> {
     info(`Create cloud function`);
     const { cloudFunctions } = services;
-    const mode =
-        !userOptions.mode || userOptions.mode === "auto" ? "queue" : userOptions.mode;
-    logProvider(`defaults: %O`, defaults);
-    const options = Object.assign({}, defaults, { ...userOptions, mode });
-    logProvider(`options: %O`, options);
-
     const { region } = options;
 
     info(`Nonce: ${nonce}`);
@@ -327,9 +314,10 @@ async function initializeWithApi(
 
     const pricingPromise = getGoogleCloudFunctionsPricing(services.cloudBilling, region);
 
+    const { mode } = options;
     if (mode === "queue") {
         info(`Initializing queue`);
-        const googleQueueImpl = await initializeGoogleQueue(state, project, functionName);
+        await initializeGoogleQueue(state, project, functionName);
     }
 
     const sourceUploadUrl = await createCodeBundle();
@@ -369,7 +357,7 @@ async function initializeWithApi(
         await deleteFunction(cloudFunctions, trampoline).catch();
         throw err;
     }
-    if (mode === "https") {
+    if (mode === "https" || mode === "auto") {
         const func = await carefully(
             cloudFunctions.projects.locations.functions.get({ name: trampoline })
         );
@@ -489,6 +477,7 @@ async function invoke(
 ): Promise<ResponseMessageReceived | void> {
     const { options, resources, services, url, metrics } = state;
     switch (options.mode) {
+        case "auto":
         case "https":
             // XXX Use response queue even with https mode?
             return callFunctionHttps(url!, call, metrics);
@@ -520,8 +509,6 @@ function poll(state: State): Promise<PollResult> {
 function responseQueueId(state: State): string | undefined {
     return state.resources.responseQueueTopic;
 }
-
-type PartialState = Partial<State> & Pick<State, "services" | "resources">;
 
 async function deleteResources(
     services: GoogleServices,
@@ -568,10 +555,18 @@ async function deleteResources(
     }
 }
 
-export async function cleanup(state: PartialState) {
-    info(`cleanup`);
-    await stop(state);
-    await deleteResources(state.services, state.resources);
+export async function cleanup(state: State, options: Required<CleanupOptions>) {
+    info(`google cleanup starting.`);
+    if (state.gcPromise) {
+        info(`Waiting for garbage collection...`);
+        await state.gcPromise;
+        info(`Garbage collection done.`);
+    }
+
+    if (options.deleteResources) {
+        await deleteResources(state.services, state.resources);
+    }
+    info(`google cleanup done.`);
 }
 
 let garbageCollectorRunning = false;
@@ -705,14 +700,6 @@ export async function pack(
         packageJson: mode === "queue" ? "package.json" : undefined,
         ...packerOptions
     });
-}
-
-export async function stop(state: Partial<State>) {
-    if (state.gcPromise) {
-        info(`Waiting for garbage collection...`);
-        await state.gcPromise;
-        info(`Garbage collection done.`);
-    }
 }
 
 const getGoogleCloudFunctionsPricing = throttle(

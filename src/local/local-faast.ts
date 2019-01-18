@@ -5,7 +5,12 @@ import { Writable } from "stream";
 import { promisify } from "util";
 import { createWriteStream, exists, mkdir, readdir, rmrf, stat } from "../fs";
 import { info, logGc, logProvider, warn } from "../log";
-import { CommonOptionDefaults, CommonOptions, PackerOptions } from "../options";
+import {
+    CommonOptionDefaults,
+    CommonOptions,
+    PackerOptions,
+    CleanupOptions
+} from "../options";
 import { packer, PackerResult, unzipInDir } from "../packer";
 import {
     CloudFunctionImpl,
@@ -51,7 +56,6 @@ export const Impl: CloudFunctionImpl<Options, State> = {
     pack,
     defaults,
     cleanup,
-    stop,
     logUrl,
     invoke,
     poll,
@@ -62,15 +66,10 @@ export const Impl: CloudFunctionImpl<Options, State> = {
 async function initialize(
     serverModule: string,
     nonce: string,
-    userOptions?: Options
+    options: Required<Options>
 ): Promise<State> {
     const wrappers: Wrapper[] = [];
     const logStreams: Writable[] = [];
-
-    logProvider(`defaults: %O`, defaults);
-    const options = Object.assign({}, defaults, userOptions);
-    logProvider(`options: %O`, options);
-
     const { gc, retentionInDays, gcWorker } = options;
 
     let gcPromise;
@@ -183,18 +182,9 @@ async function poll(_state: State): Promise<PollResult> {
 
 function responseQueueId(_state: State): string | void {}
 
-async function cleanup(state: State): Promise<void> {
-    await stop(state);
-    const { tempDir } = state;
-    const pattern = new RegExp(`/faast/${uuidv4Pattern}$`);
-    if (tempDir && tempDir.match(pattern) && (await exists(tempDir))) {
-        info(`Deleting temp dir ${tempDir}`);
-        await rmrf(tempDir);
-    }
-}
+async function cleanup(state: State, options: Required<CleanupOptions>): Promise<void> {
+    info(`local cleanup starting.`);
 
-async function stop(state: State) {
-    info(`Stopping`);
     await Promise.all(state.wrappers.map(wrapper => wrapper.stop()));
     await Promise.all(
         state.logStreams.map(stream => new Promise(resolve => stream.end(resolve)))
@@ -204,7 +194,16 @@ async function stop(state: State) {
     if (state.gcPromise) {
         await state.gcPromise;
     }
-    info(`Stopping done`);
+
+    if (options.deleteResources) {
+        const { tempDir } = state;
+        const pattern = new RegExp(`/faast/${uuidv4Pattern}$`);
+        if (tempDir && tempDir.match(pattern) && (await exists(tempDir))) {
+            info(`Deleting temp dir ${tempDir}`);
+            await rmrf(tempDir);
+        }
+    }
+    info(`local cleanup done.`);
 }
 
 let garbageCollectorRunning = false;

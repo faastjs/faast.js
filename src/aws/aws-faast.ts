@@ -6,7 +6,12 @@ import { CostBreakdown, CostMetric } from "../cost";
 import { createFunction } from "../faast";
 import { readFile } from "../fs";
 import { info, logGc, logProvider, warn } from "../log";
-import { CommonOptionDefaults, CommonOptions, PackerOptions } from "../options";
+import {
+    CommonOptionDefaults,
+    CommonOptions,
+    PackerOptions,
+    CleanupOptions
+} from "../options";
 import { packer, PackerResult } from "../packer";
 import {
     CloudFunctionImpl,
@@ -93,7 +98,7 @@ type AWSInvocationResponse = PromiseResult<aws.Lambda.InvocationResponse, aws.AW
 export interface State {
     resources: AWSResources;
     services: AWSServices;
-    options: Options & { mode: "queue" | "https" };
+    options: Required<Options>;
     metrics: AWSMetrics;
     gcPromise?: Promise<void>;
 }
@@ -153,7 +158,6 @@ export const Impl: CloudFunctionImpl<Options, State> = {
     pack,
     defaults,
     cleanup,
-    stop,
     costEstimate,
     logUrl,
     invoke,
@@ -370,14 +374,9 @@ export function logUrl(state: State) {
 export async function initialize(
     fModule: string,
     nonce: string,
-    userOptions: Options = {}
+    options: Required<Options>
 ): Promise<State> {
     info(`Nonce: ${nonce}`);
-    const mode =
-        !userOptions.mode || userOptions.mode === "auto" ? "queue" : userOptions.mode;
-    logProvider(`defaults: %O`, defaults);
-    const options = Object.assign({}, defaults, { ...userOptions, mode });
-    logProvider(`options: %O`, options);
 
     const { region, timeout, memorySize } = options;
 
@@ -497,7 +496,8 @@ export async function initialize(
             )
         );
 
-        if (mode === "queue") {
+        const { mode } = options;
+        if (mode === "queue" || mode === "auto") {
             promises.push(
                 createFunctionPromise.then(async func =>
                     createRequestQueueImpl(state, FunctionName, func.FunctionArn!)
@@ -513,7 +513,7 @@ export async function initialize(
         warn(`ERROR: ${newError}`);
         warn(`${newError.stack}`);
         warn(`Underlying error: ${err}`);
-        await cleanup(state);
+        await cleanup(state, { deleteResources: true });
         throw err;
     }
 }
@@ -530,6 +530,7 @@ async function invoke(
             const { FunctionName } = resources;
             return invokeHttps(lambda, FunctionName, call, metrics);
         case "queue":
+        case "auto":
             const { sns } = services;
             const { RequestTopicArn } = resources;
             await publishInvocationMessage(sns, RequestTopicArn!, call, metrics);
@@ -616,8 +617,6 @@ export async function deleteRole(RoleName: string, iam: aws.IAM) {
     await carefully(iam.deleteRole({ RoleName }));
 }
 
-export type PartialState = Partial<State> & Pick<State, "services" | "resources">;
-
 async function deleteResources(
     resources: Partial<AWSResources>,
     services: AWSServices,
@@ -690,17 +689,24 @@ async function addLogRetentionPolicy(
     }
 }
 
-export async function cleanup(state: PartialState) {
-    await stop(state);
-    info(`Cleaning up faast infrastructure for ${state.resources.FunctionName}...`);
+export async function cleanup(state: State, options: Required<CleanupOptions>) {
+    info(`aws cleanup starting.`);
+    await addLogRetentionPolicy(state.resources.FunctionName, state.services.cloudwatch);
+    if (state.gcPromise) {
+        info(`Waiting for garbage collection...`);
+        await state.gcPromise;
+        info(`Garbage collection done.`);
+    }
 
-    // Don't delete cached role. It may be in use by other instances of faast.
-    // Don't delete logs. They are often useful. By default log stream retention will
-    // be 1 day, and gc will clean out the log group after the streams are expired.
-    const { logGroupName, RoleName, ...rest } = state.resources;
-
-    await deleteResources(rest, state.services);
-    info(`Cleanup done.`);
+    if (options.deleteResources) {
+        info(`Cleaning up faast infrastructure for ${state.resources.FunctionName}...`);
+        // Don't delete cached role. It may be in use by other instances of faast.
+        // Don't delete logs. They are often useful. By default log stream retention will
+        // be 1 day, and gc will clean out the log group after the streams are expired.
+        const { logGroupName, RoleName, ...rest } = state.resources;
+        await deleteResources(rest, state.services);
+    }
+    info(`aws cleanup done.`);
 }
 
 let garbageCollectorRunning = false;
@@ -868,15 +874,6 @@ export async function pack(
         webpackOptions: { externals: "aws-sdk", ...webpackOptions },
         ...rest
     });
-}
-
-export async function stop(state: PartialState) {
-    await addLogRetentionPolicy(state.resources.FunctionName, state.services.cloudwatch);
-    if (state.gcPromise) {
-        info(`Waiting for garbage collection...`);
-        await state.gcPromise;
-        info(`Garbage collection done.`);
-    }
 }
 
 function getSNSTopicName(FunctionName: string) {

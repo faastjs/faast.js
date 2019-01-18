@@ -7,12 +7,16 @@ import * as costAnalyzer from "./cost";
 import * as google from "./google/google-faast";
 import * as local from "./local/local-faast";
 import { info, logCalls, logLeaks, warn, logQueue, logProvider } from "./log";
-import { CommonOptionDefaults, CommonOptions } from "./options";
+import {
+    CommonOptionDefaults,
+    CommonOptions,
+    CleanupOptionDefaults,
+    CleanupOptions
+} from "./options";
 import {
     CloudFunctionImpl,
     FunctionCounters,
     FunctionStats,
-    ResponseMessageReceived,
     StopQueueMessage,
     Invocation
 } from "./provider";
@@ -305,10 +309,13 @@ export async function createFunction<M extends object, O extends CommonOptions, 
     fmodule: M,
     modulePath: string,
     impl: CloudFunctionImpl<O, S>,
-    options?: O
+    userOptions?: O
 ): Promise<CloudFunction<M, O, S>> {
     const resolvedModule = resolveModule(modulePath);
     const functionId = uuidv4();
+    logProvider(`defaults: %O`, impl.defaults);
+    const options = Object.assign({}, impl.defaults, userOptions);
+    logProvider(`options: %O`, options);
     return new CloudFunction(
         impl,
         await impl.initialize(resolvedModule, functionId, options),
@@ -364,11 +371,7 @@ export class CloudFunction<
     protected tailLatencyRetryStdev = CommonOptionDefaults.speculativeRetryThreshold;
     protected childProcess = CommonOptionDefaults.childProcess;
     protected callResultsPending: Map<CallId, PendingRequest> = new Map();
-    readonly collectorPump: Pump<void>;
-
-    get defaults() {
-        return this.impl.defaults;
-    }
+    protected collectorPump: Pump<void>;
 
     constructor(
         protected impl: CloudFunctionImpl<O, S>,
@@ -418,19 +421,14 @@ export class CloudFunction<
         this.collectorPump.start();
     }
 
-    async cleanup() {
+    async cleanup(userCleanupOptions: CleanupOptions = {}) {
+        const options = Object.assign({}, CleanupOptionDefaults, userCleanupOptions);
         this.funnel.clear();
         this.cleanupHooks.forEach(hook => hook());
         this.cleanupHooks.clear();
         this.stopStats();
         this.collectorPump.stop();
-        await this.stopQueues();
-        logProvider(`cleanup`);
-        await this.impl.cleanup(this.state);
-        logProvider(`cleanup done`);
-    }
 
-    protected async stopQueues() {
         let count = 0;
         const tasks = [];
         while (this.collectorPump.getConcurrency() > 0 && count++ < 100) {
@@ -440,18 +438,10 @@ export class CloudFunction<
             await sleep(100);
         }
         await Promise.all(tasks);
-    }
 
-    async stop() {
-        this.funnel.clear();
-        this.cleanupHooks.forEach(hook => hook());
-        this.cleanupHooks.clear();
-        this.stopStats();
-        this.collectorPump.stop();
-        await this.stopQueues();
-        logProvider(`stop`);
-        await this.impl.stop(this.state);
-        logProvider(`stop done`);
+        logProvider(`cleanup`);
+        await this.impl.cleanup(this.state, options);
+        logProvider(`cleanup done`);
     }
 
     logUrl() {
@@ -481,7 +471,7 @@ export class CloudFunction<
         return super.on(name, listener);
     }
 
-    wrapFunctionWithResponse<A extends any[], R>(
+    protected wrapFunctionWithResponse<A extends any[], R>(
         fn: (...args: A) => R
     ): ResponsifiedFunction<A, R> {
         return async (...args: A) => {
@@ -599,7 +589,9 @@ export class CloudFunction<
         };
     }
 
-    wrapFunction<A extends any[], R>(fn: (...args: A) => R): PromisifiedFunction<A, R> {
+    protected wrapFunction<A extends any[], R>(
+        fn: (...args: A) => R
+    ): PromisifiedFunction<A, R> {
         const wrappedFunc = (...args: A) => {
             const cfn = this.wrapFunctionWithResponse(fn);
             const promise = cfn(...args).then(response => response.value);
@@ -705,7 +697,7 @@ export class CloudFunction<
         }
     }
 
-    adjustCollectorConcurrencyLevel(full?: boolean) {
+    protected adjustCollectorConcurrencyLevel(full?: boolean) {
         const nPending = this.callResultsPending.size;
         if (nPending > 0) {
             let nCollectors = full ? Math.floor(nPending / 20) + 2 : 2;

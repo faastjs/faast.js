@@ -1,4 +1,4 @@
-import { PackerOptions } from "./options";
+import { PackerOptions, CleanupOptions } from "./options";
 import { PackerResult } from "./packer";
 import { CostBreakdown } from "./cost";
 import { Statistics } from "./shared";
@@ -86,9 +86,13 @@ export type Kind = ReceivableKind | SendableKind;
 
 export interface CloudFunctionImpl<O, S> {
     name: string;
-    defaults: O;
+    defaults: Required<O>;
 
-    initialize(serverModule: string, functionId: string, options?: O): Promise<S>;
+    initialize(
+        serverModule: string,
+        functionId: string,
+        options?: Required<O>
+    ): Promise<S>;
 
     pack(functionModule: string, options?: PackerOptions): Promise<PackerResult>;
 
@@ -98,8 +102,7 @@ export interface CloudFunctionImpl<O, S> {
         stats: FunctionStats
     ) => Promise<CostBreakdown>;
 
-    cleanup(state: S): Promise<void>;
-    stop(state: S): Promise<void>;
+    cleanup(state: S, options: Required<CleanupOptions>): Promise<void>;
     logUrl(state: S): string;
     invoke(state: S, request: Invocation): Promise<ResponseMessageReceived | void>;
     publish(state: S, message: SendableMessage): Promise<void>;

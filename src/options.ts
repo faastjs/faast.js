@@ -1,10 +1,10 @@
 import * as webpack from "webpack";
 
 export interface PackerOptions {
-    webpackOptions?: webpack.Configuration;
-    packageJson?: string | object | false;
     addDirectory?: string | string[];
     addZipFile?: string | string[];
+    packageJson?: string | object | false;
+    webpackOptions?: webpack.Configuration;
 }
 
 export interface CommonOptions extends PackerOptions {
@@ -20,17 +20,25 @@ export interface CommonOptions extends PackerOptions {
 }
 
 export const CommonOptionDefaults: Required<CommonOptions> = {
+    addDirectory: [],
+    addZipFile: [],
     childProcess: false,
     concurrency: 100,
     gc: true,
     maxRetries: 2,
     memorySize: 1024,
     mode: "auto",
+    packageJson: false,
     retentionInDays: 1,
     speculativeRetryThreshold: 3,
     timeout: 60,
-    webpackOptions: {},
-    packageJson: false,
-    addDirectory: [],
-    addZipFile: []
+    webpackOptions: {}
+};
+
+export interface CleanupOptions {
+    deleteResources?: boolean;
+}
+
+export const CleanupOptionDefaults: Required<CleanupOptions> = {
+    deleteResources: true
 };

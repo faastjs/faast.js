@@ -42,7 +42,7 @@ test(
             }
         });
 
-        await func.stop();
+        await func.cleanup({ deleteResources: false });
         const func2 = await faastify("aws", functions, "../test/functions", {
             gcWorker: gcRecorder,
             retentionInDays: 0
@@ -87,7 +87,7 @@ test(
         const gcRecorder = record(async (_: AWSServices, _work: GcWork) => {});
 
         const func = await faastify("aws", functions, "../test/functions");
-        await func.stop();
+        await func.cleanup({ deleteResources: false });
         const func2 = await faastify("aws", functions, "../test/functions", {
             gcWorker: gcRecorder,
             retentionInDays: 0

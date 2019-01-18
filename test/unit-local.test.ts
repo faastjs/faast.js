@@ -115,7 +115,7 @@ describe("faast.js local mode", () => {
             await cloudFunc.functions.consoleWarn("Remote console.warn output");
             await cloudFunc.functions.consoleError("Remote console.error output");
 
-            await cloudFunc.stop();
+            await cloudFunc.cleanup({ deleteResources: false });
             const messages = await readFirstLogfile(cloudFunc.logUrl());
 
             expect(messages).toContain("Remote console.log output");
