@@ -1,8 +1,7 @@
 import * as Listr from "listr";
 import { inspect } from "util";
 import { aws, faastify, google, Promisified } from "./faast";
-import { CommonOptions } from "./options";
-import { FunctionCounters, FunctionStats } from "./provider";
+import { FunctionCounters, FunctionStats, CommonOptions } from "./provider";
 import { f1, keys, Statistics, sum } from "./shared";
 import { throttle } from "./throttle";
 import { NonFunctionProperties } from "./types";
@@ -217,13 +216,13 @@ async function estimate<T, K extends string>(
     const rv = (await Promise.all(results)).filter(r => r) as Metrics<K>[];
     await cloudFunc.cleanup();
     const costEstimate = await cloudFunc.costEstimate();
-    const stats = cloudFunc.functionStats.aggregate;
-    const counters = cloudFunc.functionCounters.aggregate;
+    const stats = cloudFunc.stats.aggregate;
+    const counters = cloudFunc.counters.aggregate;
     let summarize = workload.summarize || summarizeMean;
     const metrics = summarize(rv);
     return {
         cloudProvider,
-        options,
+        options: cloudFunc.options,
         costEstimate,
         stats,
         counters,

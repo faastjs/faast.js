@@ -9,13 +9,7 @@ import {
 } from "googleapis";
 import * as util from "util";
 import { CostBreakdown, CostMetric } from "../cost";
-import { info, logGc, logPricing, logProvider, warn } from "../log";
-import {
-    CommonOptionDefaults,
-    CommonOptions,
-    PackerOptions,
-    CleanupOptions
-} from "../options";
+import { info, logGc, logPricing, warn } from "../log";
 import { packer, PackerResult } from "../packer";
 import {
     CloudFunctionImpl,
@@ -24,7 +18,11 @@ import {
     Invocation,
     PollResult,
     ResponseMessageReceived,
-    SendableMessage
+    SendableMessage,
+    CommonOptions,
+    CommonOptionDefaults,
+    CleanupOptions,
+    PackerOptions
 } from "../provider";
 import {
     assertNever,
@@ -555,7 +553,7 @@ async function deleteResources(
     }
 }
 
-export async function cleanup(state: State, options: Required<CleanupOptions>) {
+export async function cleanup(state: State, options: CleanupOptions) {
     info(`google cleanup starting.`);
     if (state.gcPromise) {
         info(`Waiting for garbage collection...`);

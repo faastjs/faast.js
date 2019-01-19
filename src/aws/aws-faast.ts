@@ -5,13 +5,7 @@ import { caches } from "../cache";
 import { CostBreakdown, CostMetric } from "../cost";
 import { createFunction } from "../faast";
 import { readFile } from "../fs";
-import { info, logGc, logProvider, warn } from "../log";
-import {
-    CommonOptionDefaults,
-    CommonOptions,
-    PackerOptions,
-    CleanupOptions
-} from "../options";
+import { info, logGc, warn } from "../log";
 import { packer, PackerResult } from "../packer";
 import {
     CloudFunctionImpl,
@@ -20,7 +14,11 @@ import {
     Invocation,
     PollResult,
     ResponseMessageReceived,
-    SendableMessage
+    SendableMessage,
+    CommonOptions,
+    CommonOptionDefaults,
+    CleanupOptions,
+    PackerOptions
 } from "../provider";
 import {
     assertNever,

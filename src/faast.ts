@@ -8,17 +8,14 @@ import * as google from "./google/google-faast";
 import * as local from "./local/local-faast";
 import { info, logCalls, logLeaks, warn, logQueue, logProvider } from "./log";
 import {
-    CommonOptionDefaults,
-    CommonOptions,
-    CleanupOptionDefaults,
-    CleanupOptions
-} from "./options";
-import {
     CloudFunctionImpl,
     FunctionCounters,
     FunctionStats,
     StopQueueMessage,
-    Invocation
+    Invocation,
+    CommonOptions,
+    CleanupOptions,
+    CleanupOptionDefaults
 } from "./provider";
 import {
     assertNever,
@@ -119,6 +116,11 @@ export class FunctionCountersMap {
     toString() {
         return [...this.fAggregate].map(([key, value]) => `[${key}] ${value}`).join("\n");
     }
+
+    clear() {
+        this.fIncremental.clear();
+        this.fAggregate.clear();
+    }
 }
 
 export class FunctionStatsMap {
@@ -138,6 +140,11 @@ export class FunctionStatsMap {
 
     toString() {
         return [...this.fAggregate].map(([key, value]) => `[${key}] ${value}`).join("\n");
+    }
+
+    clear() {
+        this.fIncremental.clear();
+        this.fAggregate.clear();
     }
 }
 
@@ -195,6 +202,12 @@ export class MemoryLeakDetector {
             }
         }
         return false;
+    }
+
+    clear() {
+        this.instances.clear();
+        this.counters.clear();
+        this.warned.clear();
     }
 }
 
@@ -356,20 +369,15 @@ export class CloudFunction<
     S = any
 > extends EventEmitter {
     cloudName = this.impl.name;
-    functionCounters = new FunctionCountersMap();
-    functionStats = new FunctionStatsMap();
+    counters = new FunctionCountersMap();
+    stats = new FunctionStatsMap();
     functions: Promisified<M>;
     protected memoryLeakDetector: MemoryLeakDetector;
     protected funnel: Funnel<any>;
-    protected memorySize: number | undefined;
-    protected timeout: number | undefined;
     protected skew = new ExponentiallyDecayingAverageValue(0.3);
     protected statsTimer?: NodeJS.Timer;
     protected cleanupHooks: Set<() => void> = new Set();
     protected initialInvocationTime = new FactoryMap(() => Date.now());
-    protected maxRetries = CommonOptionDefaults.maxRetries;
-    protected tailLatencyRetryStdev = CommonOptionDefaults.speculativeRetryThreshold;
-    protected childProcess = CommonOptionDefaults.childProcess;
     protected callResultsPending: Map<CallId, PendingRequest> = new Map();
     protected collectorPump: Pump<void>;
 
@@ -378,7 +386,7 @@ export class CloudFunction<
         readonly state: S,
         readonly fmodule: M,
         readonly modulePath: string,
-        readonly options?: O
+        readonly options: Required<CommonOptions>
     ) {
         super();
         info(`Node version: ${process.version}`);
@@ -387,29 +395,8 @@ export class CloudFunction<
         logProvider(`logUrl: ${this.impl.logUrl(state)}`);
         info(`Log url: ${impl.logUrl(state)}`);
 
-        let concurrency = (options && options.concurrency) || impl.defaults.concurrency;
-        if (!concurrency) {
-            warn(
-                `Default concurrency level not defined for cloud type '${
-                    impl.name
-                }', defaulting to 1`
-            );
-            concurrency = 1;
-        }
-        this.funnel = new Funnel<any>(concurrency);
-        this.memorySize = (options && options.memorySize) || impl.defaults.memorySize!;
-        this.timeout = (options && options.timeout) || impl.defaults.timeout;
-        this.memoryLeakDetector = new MemoryLeakDetector(this.memorySize);
-        if (options && options.maxRetries !== undefined) {
-            this.maxRetries = options.maxRetries;
-        }
-        if (options && options.speculativeRetryThreshold !== undefined) {
-            this.tailLatencyRetryStdev = Math.max(0, options.speculativeRetryThreshold);
-        }
-        if (options && options.childProcess !== undefined) {
-            this.childProcess = options.childProcess;
-        }
-
+        this.funnel = new Funnel<any>(options.concurrency);
+        this.memoryLeakDetector = new MemoryLeakDetector(options.memorySize);
         const functions: any = {};
         for (const name of Object.keys(fmodule)) {
             if (typeof (fmodule as any)[name] === "function") {
@@ -423,10 +410,15 @@ export class CloudFunction<
 
     async cleanup(userCleanupOptions: CleanupOptions = {}) {
         const options = Object.assign({}, CleanupOptionDefaults, userCleanupOptions);
+        this.counters.clear();
+        this.stats.clear();
+        this.memoryLeakDetector.clear();
         this.funnel.clear();
         this.cleanupHooks.forEach(hook => hook());
         this.cleanupHooks.clear();
         this.stopStats();
+        this.initialInvocationTime.clear();
+        this.callResultsPending.clear();
         this.collectorPump.stop();
 
         let count = 0;
@@ -452,13 +444,13 @@ export class CloudFunction<
 
     startStats(interval: number = 1000) {
         this.statsTimer = setInterval(() => {
-            this.functionCounters.fIncremental.forEach((counters, fn) => {
-                const stats = this.functionStats.fIncremental.get(fn);
+            this.counters.fIncremental.forEach((counters, fn) => {
+                const stats = this.stats.fIncremental.get(fn);
                 this.emit("stats", new FunctionStatsEvent(fn, counters, stats));
             });
 
-            this.functionCounters.resetIncremental();
-            this.functionStats.resetIncremental();
+            this.counters.resetIncremental();
+            this.stats.resetIncremental();
         }, interval);
     }
 
@@ -481,9 +473,9 @@ export class CloudFunction<
             // XXX capture google retries in stats?
 
             const shouldRetry = () => {
-                if (retries < this.maxRetries) {
+                if (retries < this.options.maxRetries) {
                     retries++;
-                    this.functionCounters.incr(fn.name, "retries");
+                    this.counters.incr(fn.name, "retries");
                     return true;
                 }
                 return false;
@@ -505,7 +497,7 @@ export class CloudFunction<
                 this.callResultsPending.set(CallId, pending);
 
                 const invokeCloudFunction = () => {
-                    this.functionCounters.incr(fn.name, "invocations");
+                    this.counters.incr(fn.name, "invocations");
                     const invocation: Invocation = {
                         CallId,
                         body: pending.callArgsStr
@@ -533,7 +525,7 @@ export class CloudFunction<
                         });
                 };
 
-                const fnStats = this.functionStats.fAggregate.getOrCreate(fn.name);
+                const fnStats = this.stats.fAggregate.getOrCreate(fn.name);
 
                 const addHook = (f: () => void) => this.cleanupHooks.add(f);
                 const clearHook = (f: () => void) => this.cleanupHooks.delete(f);
@@ -542,7 +534,10 @@ export class CloudFunction<
                     () => Date.now() - initialInvocationTime,
                     () =>
                         Math.max(
-                            estimateTailLatency(fnStats, this.tailLatencyRetryStdev),
+                            estimateTailLatency(
+                                fnStats,
+                                this.options.speculativeRetryThreshold
+                            ),
                             5000
                         ),
                     async () => {
@@ -578,8 +573,8 @@ export class CloudFunction<
                     rv,
                     callObject,
                     startTime,
-                    this.functionCounters,
-                    this.functionStats,
+                    this.counters,
+                    this.stats,
                     this.skew,
                     this.memoryLeakDetector
                 );
@@ -605,12 +600,12 @@ export class CloudFunction<
         if (this.impl.costEstimate) {
             const estimate = await this.impl.costEstimate(
                 this.state,
-                this.functionCounters.aggregate,
-                this.functionStats.aggregate
+                this.counters.aggregate,
+                this.stats.aggregate
             );
             logProvider(`costEstimate`);
-            if (this.functionCounters.aggregate.retries > 0) {
-                const { retries, invocations } = this.functionCounters.aggregate;
+            if (this.counters.aggregate.retries > 0) {
+                const { retries, invocations } = this.counters.aggregate;
                 const retryPct = ((retries / invocations) * 100).toFixed(1);
                 estimate.push(
                     new costAnalyzer.CostMetric({

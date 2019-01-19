@@ -4,20 +4,18 @@ import { join } from "path";
 import { Writable } from "stream";
 import { promisify } from "util";
 import { createWriteStream, exists, mkdir, readdir, rmrf, stat } from "../fs";
-import { info, logGc, logProvider, warn } from "../log";
-import {
-    CommonOptionDefaults,
-    CommonOptions,
-    PackerOptions,
-    CleanupOptions
-} from "../options";
+import { info, logGc, warn } from "../log";
 import { packer, PackerResult, unzipInDir } from "../packer";
 import {
     CloudFunctionImpl,
     Invocation,
     PollResult,
     ResponseMessageReceived,
-    SendableMessage
+    SendableMessage,
+    CommonOptions,
+    CommonOptionDefaults,
+    PackerOptions,
+    CleanupOptions
 } from "../provider";
 import { hasExpired, uuidv4Pattern } from "../shared";
 import { Wrapper } from "../wrapper";
@@ -182,7 +180,7 @@ async function poll(_state: State): Promise<PollResult> {
 
 function responseQueueId(_state: State): string | void {}
 
-async function cleanup(state: State, options: Required<CleanupOptions>): Promise<void> {
+async function cleanup(state: State, options: CleanupOptions): Promise<void> {
     info(`local cleanup starting.`);
 
     await Promise.all(state.wrappers.map(wrapper => wrapper.stop()));

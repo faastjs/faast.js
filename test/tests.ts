@@ -10,9 +10,8 @@ import { unzipInDir } from "../src/packer";
 import { sleep, keys } from "../src/shared";
 import { Pump } from "../src/throttle";
 import * as funcs from "./functions";
-import { CommonOptions } from "../src/options";
 import { Fn } from "../src/types";
-import { CloudFunctionImpl } from "../src/provider";
+import { CloudFunctionImpl, CommonOptions } from "../src/provider";
 
 export function testFunctions(
     cloudProvider: "aws",
@@ -197,7 +196,7 @@ export function testCosts(
             info(`${costs}`);
             info(`CSV costs:\n${costs.csv()}`);
 
-            const { estimatedBilledTime } = cloudFunc.functionStats.aggregate;
+            const { estimatedBilledTime } = cloudFunc.stats.aggregate;
             expect((estimatedBilledTime.mean * estimatedBilledTime.samples) / 1000).toBe(
                 costs.metrics.find(m => m.name === "functionCallDuration")!.measured
             );
@@ -264,8 +263,8 @@ export function testRampUp(
                 samplePoints += m.samples;
             });
 
-            info(`Stats:\n${lambda.functionStats}`);
-            info(`Counters:\n${lambda.functionCounters}`);
+            info(`Stats:\n${lambda.stats}`);
+            info(`Counters:\n${lambda.counters}`);
 
             info(`inside: ${insidePoints}, samples: ${samplePoints}`);
             expect(samplePoints).toBe(nParallelFunctions * nSamplesPerFunction);
@@ -312,8 +311,8 @@ export function testThroughput(
             await sleep(duration);
             await pump.drain();
             const cost = await lambda.costEstimate();
-            info(`Stats: ${lambda.functionStats}`);
-            info(`Counters: ${lambda.functionCounters}`);
+            info(`Stats: ${lambda.stats}`);
+            info(`Counters: ${lambda.counters}`);
 
             info(`Cost:`);
             info(`${cost}`);

@@ -1,11 +1,59 @@
-import { PackerOptions, CleanupOptions } from "./options";
-import { PackerResult } from "./packer";
 import { CostBreakdown } from "./cost";
 import { Statistics } from "./shared";
-import { FunctionReturn, FunctionCall } from "./wrapper";
+import { FunctionReturn } from "./wrapper";
+import { PackerResult } from "./packer";
 
 export const CALLID_ATTR = "__faast_callid__";
 export const KIND_ATTR = "__faast_kind__";
+
+import * as webpack from "webpack";
+
+export interface PackerOptions {
+    addDirectory?: string | string[];
+    addZipFile?: string | string[];
+    packageJson?: string | object | false;
+    webpackOptions?: webpack.Configuration;
+}
+
+export const PackerOptionDefaults: Required<PackerOptions> = {
+    addDirectory: [],
+    addZipFile: [],
+    packageJson: false,
+    webpackOptions: {}
+};
+
+export interface CommonOptions extends PackerOptions {
+    childProcess?: boolean;
+    concurrency?: number;
+    gc?: boolean;
+    maxRetries?: number;
+    memorySize?: number;
+    mode?: "https" | "queue" | "auto";
+    retentionInDays?: number;
+    speculativeRetryThreshold?: number;
+    timeout?: number;
+}
+
+export const CommonOptionDefaults: Required<CommonOptions> = {
+    ...PackerOptionDefaults,
+    childProcess: false,
+    concurrency: 100,
+    gc: true,
+    maxRetries: 2,
+    memorySize: 1024,
+    mode: "auto",
+    retentionInDays: 1,
+    speculativeRetryThreshold: 3,
+    timeout: 60
+};
+
+export interface CleanupOptions {
+    deleteResources?: boolean;
+}
+
+export const CleanupOptionDefaults: Required<CleanupOptions> = {
+    deleteResources: true
+};
 
 export class FunctionCounters {
     invocations = 0;
@@ -84,14 +132,14 @@ export type SendableKind = SendableMessage["kind"];
 export type ReceivableKind = ReceivableMessage["kind"];
 export type Kind = ReceivableKind | SendableKind;
 
-export interface CloudFunctionImpl<O, S> {
+export interface CloudFunctionImpl<O extends CommonOptions, S> {
     name: string;
     defaults: Required<O>;
 
     initialize(
         serverModule: string,
         functionId: string,
-        options?: Required<O>
+        options: Required<O>
     ): Promise<S>;
 
     pack(functionModule: string, options?: PackerOptions): Promise<PackerResult>;

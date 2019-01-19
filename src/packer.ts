@@ -8,12 +8,12 @@ import { exists, mkdir, readFile, createWriteStream } from "./fs";
 import { info, warn, logWebpack, logWrapper } from "./log";
 import { WrapperOptions, TrampolineFactory } from "./wrapper";
 import { streamToBuffer, keys } from "./shared";
-import { PackerOptions } from "./options";
 
 type ZipFile = yauzl.ZipFile;
 
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
+import { PackerOptions } from "./provider";
 
 export interface PackerResult {
     archive: NodeJS.ReadableStream;
