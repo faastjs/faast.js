@@ -183,7 +183,7 @@ describe("faast.js local mode", () => {
         expect(cloudFunc.state.wrappers.length).toBe(0);
     });
 
-    test("cleanup does not leak resources", async () => {
+    test.skip("cleanup does not leak resources", async () => {
         const cloudFunc = await faastify("local", funcs, "./functions");
         // try allocating a lot of functions, then do cleanup, do we run out of resources?
     });
