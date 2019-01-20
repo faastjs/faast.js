@@ -269,7 +269,7 @@ async function initializeWithApi(
     isEmulator: boolean
 ): Promise<State> {
     info(`Create cloud function`);
-    const { cloudFunctions } = services;
+    const { cloudFunctions, pubsub } = services;
     const { region } = options;
 
     info(`Nonce: ${nonce}`);
@@ -314,9 +314,31 @@ async function initializeWithApi(
     const pricingPromise = getGoogleCloudFunctionsPricing(services.cloudBilling, region);
 
     const { mode } = options;
+
+    const responseQueuePromise = pubsub.projects.topics
+        .create({ name: getResponseQueueTopic(project, functionName) })
+        .then(topic => {
+            resources.responseQueueTopic = topic.data.name;
+            resources.responseSubscription = getResponseSubscription(
+                project,
+                functionName
+            );
+            info(`Creating response queue subscription`);
+            return pubsub.projects.subscriptions.create({
+                name: resources.responseSubscription,
+                requestBody: {
+                    topic: resources.responseQueueTopic
+                }
+            });
+        });
+
+    let requestQueuePromise;
     if (mode === "queue") {
         info(`Initializing queue`);
-        await initializeGoogleQueue(state, project, functionName);
+        resources.requestQueueTopic = getRequestQueueTopic(project, functionName);
+        requestQueuePromise = pubsub.projects.topics.create({
+            name: resources.requestQueueTopic
+        });
     }
 
     const sourceUploadUrl = await createCodeBundle();
@@ -331,6 +353,7 @@ async function initializeWithApi(
         ...googleCloudFunctionOptions
     };
     if (mode === "queue") {
+        await requestQueuePromise;
         requestBody.eventTrigger = {
             eventType: "providers/cloud.pubsub/eventTypes/topic.publish",
             resource: resources.requestQueueTopic
@@ -371,6 +394,7 @@ async function initializeWithApi(
         state.url = url;
     }
     await pricingPromise;
+    await responseQueuePromise;
     return state;
 }
 
@@ -384,37 +408,6 @@ function getResponseQueueTopic(project: string, functionName: string) {
 
 function getResponseSubscription(project: string, functionName: string) {
     return `projects/${project}/subscriptions/${functionName}-Responses`;
-}
-
-async function initializeGoogleQueue(
-    state: State,
-    project: string,
-    functionName: string
-): Promise<void> {
-    const { resources, services } = state;
-    const { pubsub } = services;
-    resources.requestQueueTopic = getRequestQueueTopic(project, functionName);
-    const requestPromise = pubsub.projects.topics.create({
-        name: resources.requestQueueTopic
-    });
-    resources.responseQueueTopic = getResponseQueueTopic(project, functionName);
-    const responsePromise = pubsub.projects.topics
-        .create({ name: resources.responseQueueTopic })
-        .then(_ => {
-            resources.responseSubscription = getResponseSubscription(
-                project,
-                functionName
-            );
-            info(`Creating response queue subscription`);
-            return pubsub.projects.subscriptions.create({
-                name: resources.responseSubscription,
-                requestBody: {
-                    topic: resources.responseQueueTopic
-                }
-            });
-        });
-
-    await Promise.all([requestPromise, responsePromise]);
 }
 
 export function exec(cmd: string) {
