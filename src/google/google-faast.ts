@@ -22,7 +22,8 @@ import {
     CommonOptions,
     CommonOptionDefaults,
     CleanupOptions,
-    PackerOptions
+    PackerOptions,
+    UUID
 } from "../provider";
 import {
     assertNever,
@@ -109,7 +110,7 @@ export const defaults: Required<Options> = {
 };
 
 export const Impl: CloudFunctionImpl<Options, State> = {
-    name: "google",
+    provider: "google",
     initialize,
     pack,
     defaults,
@@ -227,7 +228,7 @@ async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) 
 
 export async function initialize(
     fmodule: string,
-    nonce: string,
+    nonce: UUID,
     options: Required<Options>
 ): Promise<State> {
     const services = await initializeGoogleServices();
@@ -251,7 +252,7 @@ async function getEmulator(): Promise<CloudFunctions.Cloudfunctions> {
 
 export async function initializeEmulator(
     fmodule: string,
-    nonce: string,
+    nonce: UUID,
     options: Required<Options>
 ) {
     const services = await initializeGoogleServices({ useEmulator: true });
@@ -262,7 +263,7 @@ export async function initializeEmulator(
 async function initializeWithApi(
     services: GoogleServices,
     serverModule: string,
-    nonce: string,
+    nonce: UUID,
     options: Required<Options>,
     project: string,
     isEmulator: boolean

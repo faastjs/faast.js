@@ -25,3 +25,10 @@ export interface Headers {
 export type PromiseFn<A extends any[], R> = (...args: A) => Promise<R>;
 
 export type Fn<A extends any[], R> = (...args: A) => R;
+
+declare const OpaqueTagSymbol: unique symbol;
+declare class OpaqueTag<S extends symbol> {
+    private [OpaqueTagSymbol]: S;
+}
+
+export type Opaque<T, S extends symbol> = T & OpaqueTag<S>;

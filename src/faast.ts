@@ -15,7 +15,8 @@ import {
     Invocation,
     CommonOptions,
     CleanupOptions,
-    CleanupOptionDefaults
+    CleanupOptionDefaults,
+    UUID
 } from "./provider";
 import {
     assertNever,
@@ -325,7 +326,7 @@ export async function createFunction<M extends object, O extends CommonOptions, 
     userOptions?: O
 ): Promise<CloudFunction<M, O, S>> {
     const resolvedModule = resolveModule(modulePath);
-    const functionId = uuidv4();
+    const functionId = uuidv4() as UUID;
     logProvider(`defaults: %O`, impl.defaults);
     const options = Object.assign({}, impl.defaults, userOptions);
     logProvider(`options: %O`, options);
@@ -368,7 +369,7 @@ export class CloudFunction<
     O extends CommonOptions = CommonOptions,
     S = any
 > extends EventEmitter {
-    cloudName = this.impl.name;
+    cloudName = this.impl.provider;
     counters = new FunctionCountersMap();
     stats = new FunctionStatsMap();
     functions: Promisified<M>;
@@ -390,7 +391,7 @@ export class CloudFunction<
     ) {
         super();
         info(`Node version: ${process.version}`);
-        logProvider(`name: ${this.impl.name}`);
+        logProvider(`name: ${this.impl.provider}`);
         logProvider(`responseQueueId: ${this.impl.responseQueueId(state)}`);
         logProvider(`logUrl: ${this.impl.logUrl(state)}`);
         info(`Log url: ${impl.logUrl(state)}`);

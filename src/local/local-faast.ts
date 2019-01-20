@@ -15,7 +15,8 @@ import {
     CommonOptions,
     CommonOptionDefaults,
     PackerOptions,
-    CleanupOptions
+    CleanupOptions,
+    UUID
 } from "../provider";
 import { hasExpired, uuidv4Pattern } from "../shared";
 import { Wrapper } from "../wrapper";
@@ -49,7 +50,7 @@ export const defaults: Required<Options> = {
 };
 
 export const Impl: CloudFunctionImpl<Options, State> = {
-    name: "local",
+    provider: "local",
     initialize,
     pack,
     defaults,
@@ -63,7 +64,7 @@ export const Impl: CloudFunctionImpl<Options, State> = {
 
 async function initialize(
     serverModule: string,
-    nonce: string,
+    nonce: UUID,
     options: Required<Options>
 ): Promise<State> {
     const wrappers: Wrapper[] = [];

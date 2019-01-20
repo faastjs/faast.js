@@ -18,7 +18,8 @@ import {
     CommonOptions,
     CommonOptionDefaults,
     CleanupOptions,
-    PackerOptions
+    PackerOptions,
+    UUID
 } from "../provider";
 import {
     assertNever,
@@ -151,7 +152,7 @@ export let defaults: Required<Options> = {
 };
 
 export const Impl: CloudFunctionImpl<Options, State> = {
-    name: "aws",
+    provider: "aws",
     initialize,
     pack,
     defaults,
@@ -370,7 +371,7 @@ export function logUrl(state: State) {
 
 export async function initialize(
     fModule: string,
-    nonce: string,
+    nonce: UUID,
     options: Required<Options>
 ): Promise<State> {
     info(`Nonce: ${nonce}`);

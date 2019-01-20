@@ -1,12 +1,13 @@
 import { CostBreakdown } from "./cost";
 import { Statistics } from "./shared";
-import { FunctionReturn } from "./wrapper";
+import { FunctionReturn, FunctionCall } from "./wrapper";
 import { PackerResult } from "./packer";
 
 export const CALLID_ATTR = "__faast_callid__";
 export const KIND_ATTR = "__faast_kind__";
 
 import * as webpack from "webpack";
+import { Opaque } from "./types";
 
 export interface PackerOptions {
     addDirectory?: string | string[];
@@ -83,15 +84,19 @@ export class FunctionStats {
     }
 }
 
+export type StringifiedFunctionCall = string;
+export type StringifiedFunctionReturn = string;
+export type CallId = string;
+
 export interface Invocation {
-    CallId: string;
-    body: string;
+    CallId: CallId;
+    body: StringifiedFunctionCall;
 }
 
 export interface ResponseMessage {
     kind: "response";
-    CallId: string;
-    body: string | FunctionReturn;
+    CallId: CallId;
+    body: StringifiedFunctionReturn | FunctionReturn;
 }
 
 export interface ResponseMessageReceived extends ResponseMessage {
@@ -101,8 +106,7 @@ export interface ResponseMessageReceived extends ResponseMessage {
 
 export interface DeadLetterMessage {
     kind: "deadletter";
-    CallId: string;
-    // callRequest?: FunctionCall;
+    CallId: CallId;
     message?: string;
 }
 
@@ -112,7 +116,7 @@ export interface StopQueueMessage {
 
 export interface FunctionStartedMessage {
     kind: "functionstarted";
-    CallId: string;
+    CallId: CallId;
 }
 
 export interface PollResult {
@@ -132,15 +136,14 @@ export type SendableKind = SendableMessage["kind"];
 export type ReceivableKind = ReceivableMessage["kind"];
 export type Kind = ReceivableKind | SendableKind;
 
+declare const UUID: unique symbol;
+export type UUID = Opaque<string, typeof UUID>;
+
 export interface CloudFunctionImpl<O extends CommonOptions, S> {
-    name: string;
+    provider: string;
     defaults: Required<O>;
 
-    initialize(
-        serverModule: string,
-        functionId: string,
-        options: Required<O>
-    ): Promise<S>;
+    initialize(serverModule: string, nonce: UUID, options: Required<O>): Promise<S>;
 
     pack(functionModule: string, options?: PackerOptions): Promise<PackerResult>;
 

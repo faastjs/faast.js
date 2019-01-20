@@ -6,8 +6,7 @@ import {
     createErrorResponse,
     FunctionCall,
     Wrapper,
-    FunctionReturn,
-    serializeReturn
+    FunctionReturn
 } from "../wrapper";
 import { publishResponseMessage } from "./aws-queue";
 import { getExecutionLogUrl } from "./aws-shared";

@@ -138,7 +138,7 @@ export function testCodeBundle<O, S>(
     test(
         "package zip file",
         async () => {
-            const identifier = `func-${cloud.name}-${packageType}`;
+            const identifier = `func-${cloud.provider}-${packageType}`;
             const tmpDir = path.join("tmp", identifier);
             exec(`mkdir -p ${tmpDir}`);
 
