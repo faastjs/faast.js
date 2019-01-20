@@ -21,6 +21,7 @@ import {
 import { hasExpired, uuidv4Pattern } from "../shared";
 import { Wrapper } from "../wrapper";
 import * as localTrampolineFactory from "./local-trampoline";
+import { Deferred } from "../throttle";
 
 const exec = promisify(sys.exec);
 
@@ -31,6 +32,7 @@ export interface State {
     tempDir: string;
     logUrl: string;
     gcPromise?: Promise<void>;
+    stopQueue: Deferred<void>;
 }
 
 export interface Options extends CommonOptions {
@@ -138,7 +140,8 @@ async function initialize(
         logStreams,
         tempDir,
         logUrl: log,
-        gcPromise
+        gcPromise,
+        stopQueue: new Deferred()
     };
 }
 
@@ -171,11 +174,16 @@ async function invoke(
     };
 }
 
-async function publish(_state: State, _message: SendableMessage): Promise<void> {}
+async function publish(state: State, message: SendableMessage): Promise<void> {
+    if (message.kind === "stopqueue") {
+        state.stopQueue.resolve();
+    }
+}
 
-async function poll(_state: State): Promise<PollResult> {
+async function poll(state: State): Promise<PollResult> {
+    await state.stopQueue.promise;
     return {
-        Messages: []
+        Messages: [{ kind: "stopqueue" }]
     };
 }
 
