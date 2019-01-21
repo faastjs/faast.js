@@ -6,7 +6,8 @@ import {
     PollResult,
     ReceivableKind,
     ReceivableMessage,
-    SendableMessage
+    DeadLetterMessage,
+    Message
 } from "../provider";
 import { assertNever, computeHttpResponseBytes, defined } from "../shared";
 import { Attributes } from "../types";
@@ -99,7 +100,7 @@ export async function publishPubSub(
 export function publishResponseMessage(
     pubsub: PubSubApi.Pubsub,
     ResponseQueue: string,
-    message: SendableMessage
+    message: Exclude<Message, DeadLetterMessage>
 ) {
     switch (message.kind) {
         case "stopqueue":

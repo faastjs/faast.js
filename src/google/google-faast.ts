@@ -17,7 +17,7 @@ import {
     FunctionStats,
     Invocation,
     PollResult,
-    ResponseMessageReceived,
+    ResponseMessage,
     SendableMessage,
     CommonOptions,
     CommonOptionDefaults,
@@ -420,7 +420,7 @@ async function callFunctionHttps(
     url: string,
     call: Invocation,
     metrics: GoogleMetrics
-): Promise<ResponseMessageReceived> {
+): Promise<ResponseMessage> {
     const shouldRetry = (err: AxiosError) => {
         if (err.response) {
             const { status } = err.response;
@@ -463,10 +463,7 @@ async function callFunctionHttps(
     }
 }
 
-async function invoke(
-    state: State,
-    call: Invocation
-): Promise<ResponseMessageReceived | void> {
+async function invoke(state: State, call: Invocation): Promise<ResponseMessage | void> {
     const { options, resources, services, url, metrics } = state;
     switch (options.mode) {
         case "auto":

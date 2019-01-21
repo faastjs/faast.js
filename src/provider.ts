@@ -97,11 +97,8 @@ export interface ResponseMessage {
     kind: "response";
     CallId: CallId;
     body: StringifiedFunctionReturn | FunctionReturn;
-}
-
-export interface ResponseMessageReceived extends ResponseMessage {
-    rawResponse: any;
-    timestamp: number; // timestamp when response message was sent according to cloud service, this is optional and used to provide more accurate metrics.
+    rawResponse?: any;
+    timestamp?: number; // timestamp when response message was sent according to cloud service, this is optional and used to provide more accurate metrics.
 }
 
 export interface DeadLetterMessage {
@@ -124,17 +121,18 @@ export interface PollResult {
     isFullMessageBatch?: boolean;
 }
 
-export type SendableMessage = ResponseMessage | FunctionStartedMessage | StopQueueMessage;
+export type SendableMessage = StopQueueMessage;
 
 export type ReceivableMessage =
     | DeadLetterMessage
-    | ResponseMessageReceived
+    | ResponseMessage
     | FunctionStartedMessage
     | StopQueueMessage;
 
+export type Message = SendableMessage | ReceivableMessage;
 export type SendableKind = SendableMessage["kind"];
 export type ReceivableKind = ReceivableMessage["kind"];
-export type Kind = ReceivableKind | SendableKind;
+export type Kind = Message["kind"];
 
 declare const UUID: unique symbol;
 export type UUID = Opaque<string, typeof UUID>;
@@ -155,7 +153,7 @@ export interface CloudFunctionImpl<O extends CommonOptions, S> {
 
     cleanup(state: S, options: Required<CleanupOptions>): Promise<void>;
     logUrl(state: S): string;
-    invoke(state: S, request: Invocation): Promise<ResponseMessageReceived | void>;
+    invoke(state: S, request: Invocation): Promise<ResponseMessage | void>;
     publish(state: S, message: SendableMessage): Promise<void>;
     poll(state: S): Promise<PollResult>;
     responseQueueId(state: S): string | void;

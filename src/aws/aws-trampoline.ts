@@ -8,7 +8,7 @@ import {
     Wrapper,
     FunctionReturn
 } from "../wrapper";
-import { publishResponseMessage } from "./aws-queue";
+import { sendResponseQueueMessage } from "./aws-queue";
 import { getExecutionLogUrl } from "./aws-shared";
 import { ResponseMessage } from "../provider";
 
@@ -51,7 +51,7 @@ export function makeTrampoline(wrapper: Wrapper) {
                 const { CallId, ResponseQueueId: Queue } = call;
                 const startedMessageTimer = setTimeout(
                     () =>
-                        publishResponseMessage(awsSqs, Queue!, {
+                        sendResponseQueueMessage(awsSqs, Queue!, {
                             kind: "functionstarted",
                             CallId
                         }),
@@ -65,14 +65,14 @@ export function makeTrampoline(wrapper: Wrapper) {
                     CallId,
                     body: result
                 };
-                return publishResponseMessage(awsSqs, Queue!, response).catch(err => {
+                return sendResponseQueueMessage(awsSqs, Queue!, response).catch(err => {
                     console.error(err);
                     const errResponse: ResponseMessage = {
                         kind: "response",
                         CallId,
                         body: createErrorResponse(err, cc)
                     };
-                    publishResponseMessage(awsSqs, Queue!, errResponse).catch(_ => {});
+                    sendResponseQueueMessage(awsSqs, Queue!, errResponse).catch(_ => {});
                 });
             }
         }

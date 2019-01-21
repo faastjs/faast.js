@@ -10,13 +10,13 @@ import {
     CloudFunctionImpl,
     Invocation,
     PollResult,
-    ResponseMessageReceived,
-    SendableMessage,
+    ResponseMessage,
     CommonOptions,
     CommonOptionDefaults,
     PackerOptions,
     CleanupOptions,
-    UUID
+    UUID,
+    SendableMessage
 } from "../provider";
 import { hasExpired, uuidv4Pattern } from "../shared";
 import { Wrapper } from "../wrapper";
@@ -32,7 +32,7 @@ export interface State {
     tempDir: string;
     logUrl: string;
     gcPromise?: Promise<void>;
-    stopQueue: Deferred<void>;
+    receivedMessages: Deferred<void>;
 }
 
 export interface Options extends CommonOptions {
@@ -141,7 +141,7 @@ async function initialize(
         tempDir,
         logUrl: log,
         gcPromise,
-        stopQueue: new Deferred()
+        receivedMessages: new Deferred()
     };
 }
 
@@ -157,7 +157,7 @@ async function pack(functionModule: string, options?: Options): Promise<PackerRe
 async function invoke(
     state: State,
     request: Invocation
-): Promise<ResponseMessageReceived | void> {
+): Promise<ResponseMessage | void> {
     const {} = state;
     const startTime = Date.now();
     const wrapper = await state.getWrapper();
@@ -175,13 +175,15 @@ async function invoke(
 }
 
 async function publish(state: State, message: SendableMessage): Promise<void> {
-    if (message.kind === "stopqueue") {
-        state.stopQueue.resolve();
+    switch (message.kind) {
+        case "stopqueue":
+            state.receivedMessages.resolve();
+            return;
     }
 }
 
 async function poll(state: State): Promise<PollResult> {
-    await state.stopQueue.promise;
+    await state.receivedMessages.promise;
     return {
         Messages: [{ kind: "stopqueue" }]
     };

@@ -13,7 +13,7 @@ import {
     FunctionStats,
     Invocation,
     PollResult,
-    ResponseMessageReceived,
+    ResponseMessage,
     SendableMessage,
     CommonOptions,
     CommonOptionDefaults,
@@ -36,7 +36,7 @@ import {
     createSQSQueue,
     processAWSErrorMessage,
     publishInvocationMessage,
-    publishResponseMessage,
+    sendResponseQueueMessage,
     receiveMessages
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
@@ -516,10 +516,7 @@ export async function initialize(
     }
 }
 
-async function invoke(
-    state: State,
-    call: Invocation
-): Promise<ResponseMessageReceived | void> {
+async function invoke(state: State, call: Invocation): Promise<ResponseMessage | void> {
     const { metrics, services, resources, options } = state;
     switch (options.mode) {
         case "https":
@@ -538,9 +535,9 @@ async function invoke(
     }
 }
 
-async function publish(state: State, message: SendableMessage): Promise<void> {
+function publish(state: State, message: SendableMessage): Promise<void> {
     const { services, resources } = state;
-    publishResponseMessage(services.sqs, resources.ResponseQueueUrl!, message);
+    return sendResponseQueueMessage(services.sqs, resources.ResponseQueueUrl!, message);
 }
 
 function poll(state: State): Promise<PollResult> {
@@ -560,7 +557,7 @@ async function invokeHttps(
     FunctionName: string,
     message: Invocation,
     metrics: AWSMetrics
-): Promise<ResponseMessageReceived> {
+): Promise<ResponseMessage> {
     let body: string | FunctionReturn;
     let rawResponse: AWSInvocationResponse;
 

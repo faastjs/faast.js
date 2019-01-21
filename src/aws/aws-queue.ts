@@ -8,7 +8,8 @@ import {
     PollResult,
     ReceivableKind,
     ReceivableMessage,
-    SendableMessage
+    Message,
+    DeadLetterMessage
 } from "../provider";
 import { assertNever, computeHttpResponseBytes, defined, sum } from "../shared";
 import { Attributes } from "../types";
@@ -57,10 +58,10 @@ function publishSQS(
         .then(_ => {});
 }
 
-export function publishResponseMessage(
+export function sendResponseQueueMessage(
     sqs: aws.SQS,
     QueueUrl: string,
-    message: SendableMessage
+    message: Exclude<Message, DeadLetterMessage>
 ) {
     switch (message.kind) {
         case "stopqueue":
