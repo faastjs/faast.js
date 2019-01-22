@@ -18,7 +18,7 @@ import {
     UUID,
     SendableMessage
 } from "../provider";
-import { hasExpired, uuidv4Pattern } from "../shared";
+import { hasExpired, uuidv4Pattern, assertNever } from "../shared";
 import { Wrapper } from "../wrapper";
 import * as localTrampolineFactory from "./local-trampoline";
 import { Deferred } from "../throttle";
@@ -32,7 +32,7 @@ export interface State {
     tempDir: string;
     logUrl: string;
     gcPromise?: Promise<void>;
-    receivedMessages: Deferred<void>;
+    receivedMessagesNotification: Deferred<void>;
 }
 
 export interface Options extends CommonOptions {
@@ -141,7 +141,7 @@ async function initialize(
         tempDir,
         logUrl: log,
         gcPromise,
-        receivedMessages: new Deferred()
+        receivedMessagesNotification: new Deferred()
     };
 }
 
@@ -177,13 +177,14 @@ async function invoke(
 async function publish(state: State, message: SendableMessage): Promise<void> {
     switch (message.kind) {
         case "stopqueue":
-            state.receivedMessages.resolve();
+            state.receivedMessagesNotification.resolve();
             return;
     }
+    assertNever(message.kind);
 }
 
 async function poll(state: State): Promise<PollResult> {
-    await state.receivedMessages.promise;
+    await state.receivedMessagesNotification.promise;
     return {
         Messages: [{ kind: "stopqueue" }]
     };
