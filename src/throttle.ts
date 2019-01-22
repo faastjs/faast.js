@@ -146,7 +146,7 @@ export class Pump<T = void> extends Funnel<T | void> {
                     this.worker()
                         .catch(_ => {})
                         .then(x => {
-                            setTimeout(() => restart(), 0);
+                            setImmediate(restart);
                             return x;
                         })
                 );
