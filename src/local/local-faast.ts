@@ -168,7 +168,7 @@ async function invoke(
     return {
         kind: "response",
         body: returned,
-        CallId: request.CallId,
+        callId: request.callId,
         rawResponse: undefined,
         timestamp: Date.now()
     };

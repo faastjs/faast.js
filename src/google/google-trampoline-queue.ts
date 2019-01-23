@@ -1,7 +1,7 @@
 import { google, pubsub_v1 } from "googleapis";
 import { env } from "process";
 import { createErrorResponse, FunctionCall, Wrapper } from "../wrapper";
-import { publishPubSub, publishResponseMessage } from "./google-queue";
+import { publishResponseMessage } from "./google-queue";
 import { getExecutionLogUrl } from "./google-shared";
 import PubSubApi = pubsub_v1;
 
@@ -39,12 +39,12 @@ export function makeTrampoline(wrapper: Wrapper) {
         const str = Buffer.from(data.data!, "base64");
         const call: FunctionCall = JSON.parse(str.toString()) as FunctionCall;
 
-        const { CallId, ResponseQueueId } = call;
+        const { callId, ResponseQueueId } = call;
         const startedMessageTimer = setTimeout(
             () =>
                 publishResponseMessage(pubsub, ResponseQueueId!, {
                     kind: "functionstarted",
-                    CallId
+                    callId
                 }),
             2 * 1000
         );
@@ -61,7 +61,7 @@ export function makeTrampoline(wrapper: Wrapper) {
             clearTimeout(startedMessageTimer);
             await publishResponseMessage(pubsub, call.ResponseQueueId!, {
                 kind: "response",
-                CallId,
+                callId,
                 body: returned
             });
         } catch (err) {
@@ -70,7 +70,7 @@ export function makeTrampoline(wrapper: Wrapper) {
                 const error = createErrorResponse(err, callingContext);
                 await publishResponseMessage(pubsub, call.ResponseQueueId!, {
                     kind: "response",
-                    CallId,
+                    callId,
                     body: error
                 });
             }

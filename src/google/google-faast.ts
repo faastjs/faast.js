@@ -440,7 +440,7 @@ async function callFunctionHttps(
         metrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
         return {
             kind: "response",
-            CallId: call.CallId,
+            callId: call.callId,
             body: returned,
             rawResponse,
             timestamp: Date.now()

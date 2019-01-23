@@ -1,15 +1,17 @@
 import { deepStrictEqual } from "assert";
 import * as childProcess from "child_process";
 import * as process from "process";
+import * as proctor from "process-doctor";
 import { inspect } from "util";
+import { logWrapper } from "./log";
 import { Deferred } from "./throttle";
 import { AnyFunction } from "./types";
-import { logWrapper } from "./log";
+import { EventEmitter } from "events";
 
 export const filename = module.filename;
 
 export interface CallId {
-    CallId: string;
+    callId: string;
 }
 
 export interface Trampoline {
@@ -69,7 +71,7 @@ export function createErrorResponse(
         type: "error",
         value: errObj,
         isErrorObject: typeof err === "object" && err instanceof Error,
-        CallId: call.CallId || "",
+        callId: call.callId || "",
         remoteExecutionStartTime: startTime,
         remoteExecutionEndTime: Date.now(),
         logUrl,
@@ -97,15 +99,18 @@ export interface WrapperOptions {
     verbose?: boolean;
 }
 
+type CpuUsageCallback = (err?: Error, usage?: CpuMeasurement) => void;
+
 const oomPattern = /Allocation failed - JavaScript heap out of memory/;
 
 export class Wrapper {
-    funcs: ModuleType = {};
-    child?: childProcess.ChildProcess;
-    deferred?: Deferred<FunctionReturn>;
-    log: (msg: string) => void;
     executing = false;
-    verbose = false;
+    protected verbose = false;
+    protected funcs: ModuleType = {};
+    protected child?: childProcess.ChildProcess;
+    protected log: (msg: string) => void;
+    protected deferred?: Deferred<FunctionReturn>;
+    protected emitter = new EventEmitter();
 
     constructor(fModule: ModuleType, public options: WrapperOptions = {}) {
         this.log = options.log || console.log;
@@ -124,11 +129,14 @@ export class Wrapper {
                 }
             });
         } else {
+            if (options.useChildProcess) {
+                this.child = this.setupChildProcess();
+            }
             this.log(`faast: successful cold start.`);
         }
     }
 
-    lookupFunction(request: object): AnyFunction {
+    protected lookupFunction(request: object): AnyFunction {
         const { name, args } = request as FunctionCall;
         if (!name) {
             throw new Error("Invalid function call request: no name");
@@ -145,12 +153,30 @@ export class Wrapper {
         return func;
     }
 
+    protected cpuMeasurementTimer: NodeJS.Timer | undefined;
+
+    protected stopCpuMonitoring() {
+        this.emitter.removeAllListeners();
+        this.cpuMeasurementTimer && clearInterval(this.cpuMeasurementTimer);
+        this.cpuMeasurementTimer = undefined;
+    }
+
+    protected ensureCpuMonitoring() {
+        if (!this.cpuMeasurementTimer && this.child) {
+            this.cpuMeasurementTimer = cpuMonitor(this.child.pid, 1000, (err, result) =>
+                this.emitter.emit("cpuUsage", err, result)
+            );
+        }
+    }
+
     stop() {
+        this.stopCpuMonitoring();
         if (this.child) {
             this.child.stdout.removeListener("data", this.logLines);
             this.child.stderr.removeListener("data", this.logLines);
             this.child!.disconnect();
             this.child!.kill();
+            this.child = undefined;
         }
     }
 
@@ -176,6 +202,8 @@ export class Wrapper {
                         this.deferred!.reject(err);
                     }
                 });
+                this.ensureCpuMonitoring();
+
                 let timer;
                 const timeout = this.options.childProcessTimeout;
                 if (timeout) {
@@ -219,7 +247,7 @@ export class Wrapper {
                 return {
                     type: "returned",
                     value: returned,
-                    CallId: call.CallId,
+                    callId: call.callId,
                     remoteExecutionStartTime: startTime,
                     remoteExecutionEndTime: Date.now(),
                     logUrl,
@@ -233,8 +261,23 @@ export class Wrapper {
             this.log(`faast: wrapped function exception or promise rejection: ${err}`);
             return createErrorResponse(err, callingContext);
         } finally {
+            this.stopCpuMonitoring();
             this.executing = false;
         }
+    }
+
+    on(event: "cpuUsage", callback: CpuUsageCallback) {
+        const rv = this.emitter.on(event, callback);
+        this.ensureCpuMonitoring();
+        return rv;
+    }
+
+    off(event: "cpuUsage", callback: CpuUsageCallback) {
+        const rv = this.emitter.off(event, callback);
+        if (this.emitter.listenerCount(event) === 0 && this.cpuMeasurementTimer) {
+            this.stopCpuMonitoring();
+        }
+        return rv;
     }
 
     protected logLines = (msg: string) => {
@@ -247,7 +290,7 @@ export class Wrapper {
         }
     };
 
-    private setupChildProcess() {
+    protected setupChildProcess() {
         this.log(`faast: creating child process`);
 
         let execArgv = process.execArgv.slice();
@@ -371,4 +414,40 @@ serialized arguments: ${inspect(deserialized.value)}`
         );
     }
     return rv;
+}
+
+export type CpuMeasurement = Pick<proctor.Result, "time" | "stime" | "utime">;
+
+function diffCpu(next: CpuMeasurement, prev?: CpuMeasurement): CpuMeasurement {
+    if (!prev) {
+        prev = {
+            time: 0,
+            stime: 0,
+            utime: 0
+        };
+    }
+    return {
+        time: next.time - prev.time,
+        stime: next.stime - prev.stime,
+        utime: next.utime - prev.utime
+    };
+}
+
+function cpuMonitor(
+    pid: number,
+    interval: number,
+    callback: (err?: Error, result?: CpuMeasurement) => void
+) {
+    let prev: CpuMeasurement | undefined;
+    const timer = setInterval(
+        () =>
+            proctor.lookup(pid, (err, result) => {
+                callback(err, result && diffCpu(result, prev));
+                if (result) {
+                    prev = result;
+                }
+            }),
+        interval
+    );
+    return timer;
 }

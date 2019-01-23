@@ -520,7 +520,6 @@ async function invoke(state: State, call: Invocation): Promise<ResponseMessage |
     const { metrics, services, resources, options } = state;
     switch (options.mode) {
         case "https":
-            // XXX Use response queue even with https mode?
             const { lambda } = services;
             const { FunctionName } = resources;
             return invokeHttps(lambda, FunctionName, call, metrics);
@@ -575,7 +574,7 @@ async function invokeHttps(
         const response = processAWSErrorMessage(rawResponse.Payload as string);
         body = {
             type: "error",
-            CallId: message.CallId,
+            callId: message.callId,
             value: new Error(response)
         };
     } else {
@@ -586,7 +585,7 @@ async function invokeHttps(
     );
     return {
         kind: "response",
-        CallId: message.CallId,
+        callId: message.callId,
         body,
         rawResponse,
         timestamp: Date.now()

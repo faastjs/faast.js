@@ -1,6 +1,6 @@
 import { CostBreakdown } from "./cost";
 import { Statistics } from "./shared";
-import { FunctionReturn, FunctionCall } from "./wrapper";
+import { FunctionReturn, CpuMeasurement } from "./wrapper";
 import { PackerResult } from "./packer";
 
 export const CALLID_ATTR = "__faast_callid__";
@@ -84,18 +84,22 @@ export class FunctionStats {
     }
 }
 
+export class FunctionExecutionMetrics {
+    secondMetrics: Statistics[] = [];
+}
+
 export type StringifiedFunctionCall = string;
 export type StringifiedFunctionReturn = string;
 export type CallId = string;
 
 export interface Invocation {
-    CallId: CallId;
+    callId: CallId;
     body: StringifiedFunctionCall;
 }
 
 export interface ResponseMessage {
     kind: "response";
-    CallId: CallId;
+    callId: CallId;
     body: StringifiedFunctionReturn | FunctionReturn;
     rawResponse?: any;
     timestamp?: number; // timestamp when response message was sent according to cloud service, this is optional and used to provide more accurate metrics.
@@ -103,7 +107,7 @@ export interface ResponseMessage {
 
 export interface DeadLetterMessage {
     kind: "deadletter";
-    CallId: CallId;
+    callId: CallId;
     message?: string;
 }
 
@@ -113,7 +117,14 @@ export interface StopQueueMessage {
 
 export interface FunctionStartedMessage {
     kind: "functionstarted";
-    CallId: CallId;
+    callId: CallId;
+}
+
+export interface CpuMetricsMessage {
+    kind: "cpumetrics";
+    callId: CallId;
+    metrics: CpuMeasurement;
+    elapsed: number;
 }
 
 export interface PollResult {
@@ -127,7 +138,8 @@ export type ReceivableMessage =
     | DeadLetterMessage
     | ResponseMessage
     | FunctionStartedMessage
-    | StopQueueMessage;
+    | StopQueueMessage
+    | CpuMetricsMessage;
 
 export type Message = SendableMessage | ReceivableMessage;
 export type SendableKind = SendableMessage["kind"];

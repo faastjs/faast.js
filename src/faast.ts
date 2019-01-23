@@ -149,21 +149,30 @@ export class FunctionStatsMap {
     }
 }
 
-export class FunctionInstanceStats {
+class FunctionCpuUsage {
+    utime = new Statistics();
+    stime = new Statistics();
+}
+
+class FunctionCpuUsagePerSecond {
+    secondMap = new FactoryMap(() => new FunctionCpuUsage());
+}
+
+class FunctionMemoryStats {
     rss = new Statistics();
     heapTotal = new Statistics();
     heapUsed = new Statistics();
     external = new Statistics();
 }
 
-export class FunctionInstanceCounters {
+class FunctionMemoryCounters {
     heapUsedGrowth = 0;
     externalGrowth = 0;
 }
 
-export class MemoryLeakDetector {
-    protected instances = new FactoryMap(() => new FunctionInstanceStats());
-    protected counters = new FactoryMap(() => new FunctionInstanceCounters());
+class MemoryLeakDetector {
+    protected instances = new FactoryMap(() => new FunctionMemoryStats());
+    protected counters = new FactoryMap(() => new FunctionMemoryCounters());
     protected warned = new Set<string>();
     protected memorySize: number;
 
@@ -357,8 +366,11 @@ export class FunctionStatsEvent {
 class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
     created: number = Date.now();
     executing?: boolean;
-    constructor(readonly callArgsStr: string) {
+    serialized: string;
+
+    constructor(readonly call: FunctionCall) {
         super();
+        this.serialized = serializeCall(call);
     }
 }
 
@@ -381,6 +393,9 @@ export class CloudFunction<
     protected initialInvocationTime = new FactoryMap(() => Date.now());
     protected callResultsPending: Map<CallId, PendingRequest> = new Map();
     protected collectorPump: Pump<void>;
+    protected functionCpuUsagePerSecond = new FactoryMap(
+        () => new FunctionCpuUsagePerSecond()
+    );
 
     constructor(
         protected impl: CloudFunctionImpl<O, S>,
@@ -483,25 +498,25 @@ export class CloudFunction<
             };
 
             const invoke = async () => {
-                const CallId = uuidv4();
-                logCalls(`Calling '${fn.name}' (${CallId})`);
+                const callId = uuidv4();
+                logCalls(`Calling '${fn.name}' (${callId})`);
                 const ResponseQueueId =
                     this.impl.responseQueueId(this.state) || undefined;
                 const callObject: FunctionCall = {
                     name: fn.name,
                     args,
-                    CallId,
+                    callId,
                     modulePath: this.modulePath,
                     ResponseQueueId
                 };
-                const pending = new PendingRequest(serializeCall(callObject));
-                this.callResultsPending.set(CallId, pending);
+                const pending = new PendingRequest(callObject);
+                this.callResultsPending.set(callId, pending);
 
                 const invokeCloudFunction = () => {
                     this.counters.incr(fn.name, "invocations");
                     const invocation: Invocation = {
-                        CallId,
-                        body: pending.callArgsStr
+                        callId,
+                        body: pending.serialized
                     };
                     logProvider(`invoke %O`, invocation);
                     this.impl
@@ -515,7 +530,7 @@ export class CloudFunction<
                                     returned = JSON.parse(returned) as FunctionReturn;
                                 const response: FunctionReturnWithMetrics = {
                                     ...returned,
-                                    CallId,
+                                    callId,
                                     rawResponse: message.rawResponse,
                                     localRequestSentTime: pending.created,
                                     localEndTime: Date.now()
@@ -554,7 +569,7 @@ export class CloudFunction<
                         logProvider(`invoke promise rejection: ${err}`);
                         return {
                             type: "error",
-                            CallId,
+                            callId,
                             isErrorObject:
                                 typeof err === "object" && err instanceof Error,
                             value: err,
@@ -564,11 +579,11 @@ export class CloudFunction<
                         };
                     })
                     .then(m => {
-                        this.callResultsPending.delete(m.CallId);
+                        this.callResultsPending.delete(m.callId);
                         return m;
                     });
 
-                logCalls(`Returning '${fn.name}' (${CallId}): ${util.inspect(rv)}`);
+                logCalls(`Returning '${fn.name}' (${callId}): ${util.inspect(rv)}`);
 
                 return processResponse<R>(
                     rv,
@@ -649,16 +664,16 @@ export class CloudFunction<
                 case "stopqueue":
                     return;
                 case "deadletter":
-                    const callRequest = callResultsPending.get(m.CallId);
+                    const callRequest = callResultsPending.get(m.callId);
                     info(`Error "${m.message}" in call request %O`, callRequest);
                     if (callRequest) {
-                        info(`Rejecting CallId: ${m.CallId}`);
+                        info(`Rejecting CallId: ${m.callId}`);
                         callRequest.reject(new Error(m.message));
                     }
                     break;
                 case "functionstarted":
-                    logQueue(`Received Function Started message CallID: ${m.CallId}`);
-                    const deferred = callResultsPending.get(m.CallId);
+                    logQueue(`Received Function Started message CallID: ${m.callId}`);
+                    const deferred = callResultsPending.get(m.callId);
                     if (deferred) {
                         deferred!.executing = true;
                     }
@@ -668,7 +683,7 @@ export class CloudFunction<
                         const { body, timestamp } = m;
                         const returned: FunctionReturn =
                             typeof body === "string" ? JSON.parse(body) : body;
-                        const deferred = callResultsPending.get(m.CallId);
+                        const deferred = callResultsPending.get(m.callId);
                         if (deferred) {
                             const rv: FunctionReturnWithMetrics = {
                                 ...returned,
@@ -680,13 +695,28 @@ export class CloudFunction<
                             logProvider(`resolved deferred: %O`, rv);
                             deferred.resolve(rv);
                         } else {
-                            info(`Deferred promise not found for CallId: ${m.CallId}`);
+                            info(`Deferred promise not found for CallId: ${m.callId}`);
                         }
                     } catch (err) {
                         warn(err);
                     }
                     break;
-
+                case "cpumetrics":
+                    const { callId, elapsed, metrics } = m;
+                    logProvider(`cpu metrics callId: ${callId}: %O`, metrics);
+                    const pending = callResultsPending.get(m.callId);
+                    if (!pending) {
+                        return;
+                    }
+                    const stats = this.functionCpuUsagePerSecond.getOrCreate(
+                        pending.call.name
+                    );
+                    const secondMetrics = stats.secondMap.getOrCreate(
+                        Math.round(elapsed).toString()
+                    );
+                    secondMetrics.stime.update(metrics.stime);
+                    secondMetrics.utime.update(metrics.utime);
+                    break;
                 default:
                     assertNever(m);
             }

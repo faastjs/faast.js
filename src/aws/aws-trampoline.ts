@@ -10,11 +10,13 @@ import {
 } from "../wrapper";
 import { sendResponseQueueMessage } from "./aws-queue";
 import { getExecutionLogUrl } from "./aws-shared";
-import { ResponseMessage } from "../provider";
+import { ResponseMessage, Invocation } from "../provider";
 
 const awsSqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
 export const filename = module.filename;
+
+const CallIdAttribute: Extract<keyof Invocation, "callId"> = "callId";
 
 export function makeTrampoline(wrapper: Wrapper) {
     async function trampoline(
@@ -39,7 +41,7 @@ export function makeTrampoline(wrapper: Wrapper) {
             executionId,
             instanceId: logStreamName
         };
-        if ("CallId" in event) {
+        if (CallIdAttribute in event) {
             const call = event as FunctionCall;
             const result = await wrapper.execute({ call, ...callingContext });
             callback(null, result);
@@ -48,12 +50,12 @@ export function makeTrampoline(wrapper: Wrapper) {
             console.log(`SNS event: ${snsEvent.Records.length} records`);
             for (const record of snsEvent.Records) {
                 const call = JSON.parse(record.Sns.Message) as FunctionCall;
-                const { CallId, ResponseQueueId: Queue } = call;
+                const { callId, ResponseQueueId: Queue } = call;
                 const startedMessageTimer = setTimeout(
                     () =>
                         sendResponseQueueMessage(awsSqs, Queue!, {
                             kind: "functionstarted",
-                            CallId
+                            callId
                         }),
                     2 * 1000
                 );
@@ -62,14 +64,14 @@ export function makeTrampoline(wrapper: Wrapper) {
                 clearTimeout(startedMessageTimer);
                 const response: ResponseMessage = {
                     kind: "response",
-                    CallId,
+                    callId,
                     body: result
                 };
                 return sendResponseQueueMessage(awsSqs, Queue!, response).catch(err => {
                     console.error(err);
                     const errResponse: ResponseMessage = {
                         kind: "response",
-                        CallId,
+                        callId,
                         body: createErrorResponse(err, cc)
                     };
                     sendResponseQueueMessage(awsSqs, Queue!, errResponse).catch(_ => {});

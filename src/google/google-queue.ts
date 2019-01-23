@@ -59,8 +59,10 @@ function parseTimestamp(timestampStr: string | undefined) {
 
 function processMessage(m: PubSubMessage): ReceivableMessage | void {
     const kind = pubsubMessageAttribute(m, KIND_ATTR) as ReceivableKind;
-    const CallId = pubsubMessageAttribute(m, CALLID_ATTR);
+    const callId = pubsubMessageAttribute(m, CALLID_ATTR);
     const timestamp = parseTimestamp(m.publishTime!);
+    const data = m.data || "";
+    const body = Buffer.from(data, "base64").toString();
 
     switch (kind) {
         case "deadletter":
@@ -69,17 +71,17 @@ function processMessage(m: PubSubMessage): ReceivableMessage | void {
         case "stopqueue":
             return { kind };
         case "functionstarted":
-            if (!CallId) {
+            if (!callId) {
                 return;
             }
-            return { kind, CallId };
+            return { kind, callId };
         case "response":
-            if (!CallId || !m.data) {
+            if (!callId || !m.data) {
                 return;
             }
-            const data = m.data || "";
-            const body = Buffer.from(data, "base64").toString();
-            return { kind, CallId, body, rawResponse: m, timestamp };
+            return { kind, callId, body, rawResponse: m, timestamp };
+        case "cpumetrics":
+            return JSON.parse(body);
     }
     assertNever(kind);
 }
@@ -102,15 +104,14 @@ export function publishResponseMessage(
     ResponseQueue: string,
     message: Exclude<Message, DeadLetterMessage>
 ) {
+    const kind = { [KIND_ATTR]: message.kind };
     switch (message.kind) {
         case "stopqueue":
-            return publishPubSub(pubsub, ResponseQueue, "", {
-                [KIND_ATTR]: message.kind
-            });
+            return publishPubSub(pubsub, ResponseQueue, "", kind);
         case "functionstarted":
             return publishPubSub(pubsub, ResponseQueue, "", {
-                [KIND_ATTR]: message.kind,
-                [CALLID_ATTR]: message.CallId
+                ...kind,
+                [CALLID_ATTR]: message.callId
             });
         case "response":
             const body =
@@ -118,9 +119,11 @@ export function publishResponseMessage(
                     ? message.body
                     : serializeReturn(message.body);
             return publishPubSub(pubsub, ResponseQueue, body, {
-                [KIND_ATTR]: message.kind,
-                [CALLID_ATTR]: message.CallId
+                ...kind,
+                [CALLID_ATTR]: message.callId
             });
+        case "cpumetrics":
+            return publishPubSub(pubsub, ResponseQueue, JSON.stringify(message), kind);
     }
     assertNever(message);
 }
