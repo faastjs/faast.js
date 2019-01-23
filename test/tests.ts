@@ -381,7 +381,7 @@ export function testMemoryLimit(
     test(
         "can allocate under memory limit",
         async () => {
-            const bytes = (256 - 100) * 1024 * 1024;
+            const bytes = 64 * 1024 * 1024;
             const rv = await lambda.functions.allocate(bytes);
             expect(rv.elems).toBe(bytes / 8);
         },
