@@ -12,7 +12,7 @@ import { sendResponseQueueMessage } from "./aws-queue";
 import { getExecutionLogUrl } from "./aws-shared";
 import { ResponseMessage, Invocation } from "../provider";
 
-const awsSqs = new aws.SQS({ apiVersion: "2012-11-05" });
+const sqs = new aws.SQS({ apiVersion: "2012-11-05" });
 
 export const filename = module.filename;
 
@@ -43,7 +43,15 @@ export function makeTrampoline(wrapper: Wrapper) {
         };
         if (CallIdAttribute in event) {
             const call = event as FunctionCall;
-            const result = await wrapper.execute({ call, ...callingContext });
+            const { callId, ResponseQueueId: Queue } = call;
+            const result = await wrapper.execute({ call, ...callingContext }, metrics =>
+                sendResponseQueueMessage(sqs, Queue!, {
+                    kind: "cpumetrics",
+                    callId,
+                    elapsed: Date.now() - startTime,
+                    metrics
+                })
+            );
             callback(null, result);
         } else {
             const snsEvent = event as SNSEvent;
@@ -53,28 +61,36 @@ export function makeTrampoline(wrapper: Wrapper) {
                 const { callId, ResponseQueueId: Queue } = call;
                 const startedMessageTimer = setTimeout(
                     () =>
-                        sendResponseQueueMessage(awsSqs, Queue!, {
+                        sendResponseQueueMessage(sqs, Queue!, {
                             kind: "functionstarted",
                             callId
                         }),
                     2 * 1000
                 );
                 const cc: CallingContext = { call, ...callingContext };
-                const result = await wrapper.execute(cc);
+                const executeStart = Date.now();
+                const result = await wrapper.execute(cc, metrics =>
+                    sendResponseQueueMessage(sqs, Queue!, {
+                        kind: "cpumetrics",
+                        callId,
+                        elapsed: Date.now() - executeStart,
+                        metrics
+                    })
+                );
                 clearTimeout(startedMessageTimer);
                 const response: ResponseMessage = {
                     kind: "response",
                     callId,
                     body: result
                 };
-                return sendResponseQueueMessage(awsSqs, Queue!, response).catch(err => {
+                return sendResponseQueueMessage(sqs, Queue!, response).catch(err => {
                     console.error(err);
                     const errResponse: ResponseMessage = {
                         kind: "response",
                         callId,
                         body: createErrorResponse(err, cc)
                     };
-                    sendResponseQueueMessage(awsSqs, Queue!, errResponse).catch(_ => {});
+                    sendResponseQueueMessage(sqs, Queue!, errResponse).catch(_ => {});
                 });
             }
         }

@@ -712,7 +712,7 @@ export class CloudFunction<
                         pending.call.name
                     );
                     const secondMetrics = stats.secondMap.getOrCreate(
-                        Math.round(elapsed).toString()
+                        Math.round(elapsed / 1000).toString()
                     );
                     secondMetrics.stime.update(metrics.stime);
                     secondMetrics.utime.update(metrics.utime);

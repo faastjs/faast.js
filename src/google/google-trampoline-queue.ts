@@ -1,5 +1,4 @@
 import { google, pubsub_v1 } from "googleapis";
-import { env } from "process";
 import { createErrorResponse, FunctionCall, Wrapper } from "../wrapper";
 import { publishResponseMessage } from "./google-queue";
 import { getExecutionLogUrl } from "./google-shared";
@@ -33,8 +32,8 @@ export function makeTrampoline(wrapper: Wrapper) {
         await initialize();
 
         const executionId = context.eventId;
-        const project = env["GCP_PROJECT"]!;
-        const functionName = env["FUNCTION_NAME"]!;
+        const project = process.env["GCP_PROJECT"]!;
+        const functionName = process.env["FUNCTION_NAME"]!;
         const logUrl = getExecutionLogUrl(project, functionName, executionId);
         const str = Buffer.from(data.data!, "base64");
         const call: FunctionCall = JSON.parse(str.toString()) as FunctionCall;
@@ -57,7 +56,14 @@ export function makeTrampoline(wrapper: Wrapper) {
         };
 
         try {
-            const returned = await wrapper.execute(callingContext);
+            const returned = await wrapper.execute(callingContext, metrics =>
+                publishResponseMessage(pubsub, ResponseQueueId!, {
+                    kind: "cpumetrics",
+                    callId,
+                    elapsed: Date.now() - startTime,
+                    metrics
+                })
+            );
             clearTimeout(startedMessageTimer);
             await publishResponseMessage(pubsub, call.ResponseQueueId!, {
                 kind: "response",

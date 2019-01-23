@@ -99,7 +99,7 @@ export interface WrapperOptions {
     verbose?: boolean;
 }
 
-type CpuUsageCallback = (err?: Error, usage?: CpuMeasurement) => void;
+type CpuUsageCallback = (usage: CpuMeasurement) => void;
 
 const oomPattern = /Allocation failed - JavaScript heap out of memory/;
 
@@ -110,7 +110,6 @@ export class Wrapper {
     protected child?: childProcess.ChildProcess;
     protected log: (msg: string) => void;
     protected deferred?: Deferred<FunctionReturn>;
-    protected emitter = new EventEmitter();
 
     constructor(fModule: ModuleType, public options: WrapperOptions = {}) {
         this.log = options.log || console.log;
@@ -153,24 +152,23 @@ export class Wrapper {
         return func;
     }
 
-    protected cpuMeasurementTimer: NodeJS.Timer | undefined;
-
-    protected stopCpuMonitoring() {
-        this.emitter.removeAllListeners();
-        this.cpuMeasurementTimer && clearInterval(this.cpuMeasurementTimer);
-        this.cpuMeasurementTimer = undefined;
+    protected stopCpuMonitoring(timer: NodeJS.Timer) {
+        timer && clearInterval(timer);
     }
 
-    protected ensureCpuMonitoring() {
-        if (!this.cpuMeasurementTimer && this.child) {
-            this.cpuMeasurementTimer = cpuMonitor(this.child.pid, 1000, (err, result) =>
-                this.emitter.emit("cpuUsage", err, result)
-            );
-        }
+    protected startCpuMonitoring(pid: number, callback: CpuUsageCallback) {
+        const timer = cpuMonitor(pid, 1000, (err, result) => {
+            if (err) {
+                this.log(`cpu monitor error: ${err}`);
+            }
+            if (result) {
+                callback(result);
+            }
+        });
+        return timer;
     }
 
     stop() {
-        this.stopCpuMonitoring();
         if (this.child) {
             this.child.stdout.removeListener("data", this.logLines);
             this.child.stderr.removeListener("data", this.logLines);
@@ -180,7 +178,10 @@ export class Wrapper {
         }
     }
 
-    async execute(callingContext: CallingContext): Promise<FunctionReturn> {
+    async execute(
+        callingContext: CallingContext,
+        callback?: CpuUsageCallback
+    ): Promise<FunctionReturn> {
         try {
             if (this.executing) {
                 this.log(`faast: warning: module wrapper execute is not re-entrant`);
@@ -202,7 +203,10 @@ export class Wrapper {
                         this.deferred!.reject(err);
                     }
                 });
-                this.ensureCpuMonitoring();
+                let monitoringTimer: NodeJS.Timer | undefined;
+                if (callback) {
+                    monitoringTimer = this.startCpuMonitoring(this.child.pid, callback);
+                }
 
                 let timer;
                 const timeout = this.options.childProcessTimeout;
@@ -226,6 +230,7 @@ export class Wrapper {
                         this.log(`returned from child process: ${inspect(rv)}`);
                     return rv;
                 } finally {
+                    monitoringTimer && this.stopCpuMonitoring(monitoringTimer);
                     timer && clearTimeout(timer);
                     this.deferred = undefined;
                 }
@@ -261,23 +266,8 @@ export class Wrapper {
             this.log(`faast: wrapped function exception or promise rejection: ${err}`);
             return createErrorResponse(err, callingContext);
         } finally {
-            this.stopCpuMonitoring();
             this.executing = false;
         }
-    }
-
-    on(event: "cpuUsage", callback: CpuUsageCallback) {
-        const rv = this.emitter.on(event, callback);
-        this.ensureCpuMonitoring();
-        return rv;
-    }
-
-    off(event: "cpuUsage", callback: CpuUsageCallback) {
-        const rv = this.emitter.off(event, callback);
-        if (this.emitter.listenerCount(event) === 0 && this.cpuMeasurementTimer) {
-            this.stopCpuMonitoring();
-        }
-        return rv;
     }
 
     protected logLines = (msg: string) => {
