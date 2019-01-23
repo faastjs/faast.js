@@ -14,7 +14,7 @@ async function work(remote: faast.Promisified<typeof funcs>) {
 }
 
 const repetitions = 10;
-const memorySizes = [128, 2048];
+const memorySizes = [256, 2048];
 
 const configs = [...googleConfigurations, ...awsConfigurations]
     .filter(c => memorySizes.includes(c.options.memorySize!))
