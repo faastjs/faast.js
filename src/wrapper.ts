@@ -6,7 +6,6 @@ import { inspect } from "util";
 import { logWrapper } from "./log";
 import { Deferred } from "./throttle";
 import { AnyFunction } from "./types";
-import { EventEmitter } from "events";
 
 export const filename = module.filename;
 
