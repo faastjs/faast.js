@@ -336,7 +336,6 @@ export async function createFunction<M extends object, O extends CommonOptions, 
 ): Promise<CloudFunction<M, O, S>> {
     const resolvedModule = resolveModule(modulePath);
     const functionId = uuidv4() as UUID;
-    logProvider(`defaults: %O`, impl.defaults);
     const options = Object.assign({}, impl.defaults, userOptions);
     logProvider(`options: %O`, options);
     return new CloudFunction(
