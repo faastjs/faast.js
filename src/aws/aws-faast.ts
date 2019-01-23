@@ -1035,7 +1035,7 @@ export const awsPrice = throttle(
             const price = extractPrice(first(pList.terms.OnDemand));
             return price;
         } catch (err) {
-            if (!err.message.match(/ThrottlingException/)) {
+            if (!err.message.match(/Rate exceeded/)) {
                 warn(`Could not get AWS pricing for '${ServiceCode}' (%O)`, filter);
                 warn(err);
             }
