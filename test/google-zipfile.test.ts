@@ -5,7 +5,7 @@ const kb = 1024;
 
 describe("google zip file package", () => {
     describe("https function with bundling", () =>
-        testCodeBundle(googleFaast.Impl, "https-bundle", 100 * kb));
+        testCodeBundle(googleFaast.Impl, "https-bundle", 700 * kb));
 
     describe("https function with package.json", () =>
         testCodeBundle(googleFaast.Impl, "https-package", 100 * kb, {
@@ -13,7 +13,7 @@ describe("google zip file package", () => {
         }));
 
     describe("https function with bundling and childprocess", () =>
-        testCodeBundle(googleFaast.Impl, "https-bundle-childprocess", 100 * kb, {
+        testCodeBundle(googleFaast.Impl, "https-bundle-childprocess", 700 * kb, {
             childProcess: true
         }));
 
