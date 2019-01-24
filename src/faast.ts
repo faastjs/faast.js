@@ -711,8 +711,7 @@ export class CloudFunction<
                     }
                     break;
                 case "cpumetrics":
-                    const { callId, elapsed, metrics } = m;
-                    logProvider(`cpu metrics callId: ${callId}: %O`, metrics);
+                    const { elapsed, metrics } = m;
                     const pending = callResultsPending.get(m.callId);
                     if (!pending) {
                         return;

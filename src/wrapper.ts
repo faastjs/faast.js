@@ -417,36 +417,18 @@ serialized arguments: ${inspect(deserialized.value)}`
     return rv;
 }
 
-export type CpuMeasurement = Pick<proctor.Result, "time" | "stime" | "utime">;
-
-function diffCpu(next: CpuMeasurement, prev?: CpuMeasurement): CpuMeasurement {
-    if (!prev) {
-        prev = {
-            time: 0,
-            stime: 0,
-            utime: 0
-        };
-    }
-    return {
-        time: next.time - prev.time,
-        stime: next.stime - prev.stime,
-        utime: next.utime - prev.utime
-    };
-}
+export type CpuMeasurement = Pick<proctor.Result, "stime" | "utime">;
 
 function cpuMonitor(
     pid: number,
     interval: number,
     callback: (err?: Error, result?: CpuMeasurement) => void
 ) {
-    let prev: CpuMeasurement | undefined;
     const timer = setInterval(
         () =>
             proctor.lookup(pid, (err, result) => {
-                callback(err, result && diffCpu(result, prev));
-                if (result) {
-                    prev = result;
-                }
+                const { stime, utime } = result;
+                callback(err, result && { stime: stime * 10, utime: utime * 10 });
             }),
         interval
     );

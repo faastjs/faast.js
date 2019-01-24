@@ -427,7 +427,7 @@ export function testCpuMetrics(
 
     test("cpu metrics are received", async () => {
         const N = 5;
-        const NSec = 7;
+        const NSec = 5;
         const promises: Promise<unknown>[] = [];
         for (let i = 0; i < N; i++) {
             promises.push(lambda.functions.spin(NSec * 1000));
@@ -436,7 +436,7 @@ export function testCpuMetrics(
         const sleepCpu = lambda.cpuUsage.get("spin");
         expect(sleepCpu).toBeDefined();
         expect(sleepCpu!.secondMap.size).toBeGreaterThan(0);
-    }, 10000);
+    }, 15000);
 }
 
 export function quietly<T>(p: Promise<T>) {
