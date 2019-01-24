@@ -86,17 +86,25 @@ export interface WrapperOptions {
      * cloud logging service (e.g. Cloudwatch Logs, or Google Stackdriver logs).
      * Defaults to console.log.
      */
-    log?: (msg: string) => void;
+    wrapperLog?: (msg: string) => void;
     /**
      * If true, create a child process to execute the wrapped module's functions.
      */
-    useChildProcess?: boolean;
-
+    childProcess?: boolean;
     childProcessMemoryLimitMb?: number;
     childProcessTimeout?: number;
     childDir?: string;
-    verbose?: boolean;
+    wrapperVerbose?: boolean;
 }
+
+export const WrapperOptionDefaults: Required<WrapperOptions> = {
+    wrapperLog: console.log,
+    childProcess: true,
+    childProcessMemoryLimitMb: 0,
+    childProcessTimeout: 0,
+    childDir: ".",
+    wrapperVerbose: false
+};
 
 type CpuUsageCallback = (usage: CpuMeasurement) => void;
 
@@ -109,13 +117,16 @@ export class Wrapper {
     protected child?: childProcess.ChildProcess;
     protected log: (msg: string) => void;
     protected deferred?: Deferred<FunctionReturn>;
+    readonly options: Required<WrapperOptions>;
 
-    constructor(fModule: ModuleType, public options: WrapperOptions = {}) {
-        this.log = options.log || console.log;
-        this.verbose = options.verbose || false;
+    constructor(fModule: ModuleType, options: WrapperOptions = {}) {
+        this.options = Object.assign({}, WrapperOptionDefaults, options);
+        this.log = this.options.wrapperLog;
+        this.verbose = this.options.wrapperVerbose;
         this.funcs = fModule;
 
         if (process.env["FAAST_CHILD"]) {
+            this.options.childProcess = false;
             this.log(`faast: started child process for module wrapper.`);
             process.on("message", async (call: FunctionCall) => {
                 const startTime = Date.now();
@@ -127,7 +138,7 @@ export class Wrapper {
                 }
             });
         } else {
-            if (options.useChildProcess) {
+            if (this.options.childProcess) {
                 this.child = this.setupChildProcess();
             }
             this.log(`faast: successful cold start.`);
@@ -190,13 +201,13 @@ export class Wrapper {
             this.verbose && this.log(`callingContext: ${inspect(callingContext)}`);
             const memoryUsage = process.memoryUsage();
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
-            if (this.options.useChildProcess) {
+            if (this.options.childProcess) {
                 this.deferred = new Deferred();
                 if (!this.child) {
                     this.child = this.setupChildProcess();
                 }
                 this.log(`faast: invoking '${call.name}' in child process`);
-                this.child.send({ ...call, useChildProcess: false }, err => {
+                this.child.send(call, err => {
                     if (err) {
                         logWrapper(`child send error: rejecting deferred on ${err}`);
                         this.deferred!.reject(err);
@@ -204,6 +215,7 @@ export class Wrapper {
                 });
                 let monitoringTimer: NodeJS.Timer | undefined;
                 if (callback) {
+                    this.log(`Starting CPU monitor for pid ${this.child.pid}`);
                     monitoringTimer = this.startCpuMonitoring(this.child.pid, callback);
                 }
 
@@ -275,7 +287,7 @@ export class Wrapper {
             lines = lines.slice(0, lines.length - 1);
         }
         for (const line of lines) {
-            this.log(line);
+            this.log(`[${this.child!.pid}]: ${line}`);
         }
     };
 
@@ -294,7 +306,7 @@ export class Wrapper {
 
         const child = childProcess.fork("./index.js", [], {
             silent: true, // redirects stdout and stderr to IPC.
-            env: { FAAST_CHILD: "true" },
+            env: { ...process.env, FAAST_CHILD: "true" },
             cwd: this.options.childDir,
             execArgv
         });

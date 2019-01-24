@@ -25,8 +25,7 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         childProcess: true
         // awsLambdaOptions: { TracingConfig: { Mode: "Active" } }
     });
-    console.log(`Logs: ${cloudFunc.logUrl()}`);
-    cloudFunc.startStats(1000);
+    console.log(`Logs: ${cloudFunc.logUrl()} `);
     cloudFunc.on("stats", s => {
         console.log(`${s}`);
     });
@@ -134,7 +133,6 @@ export async function copyObjects(
         mode: "queue"
     });
 
-    cloudFunc.startStats(1000);
     cloudFunc.on("stats", console.log);
     const objects = await listAllObjects(fromBucket);
     const promises: Promise<void>[] = [];

@@ -2,7 +2,7 @@ import { URL } from "url";
 import { faastify, local } from "../src/faast";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
-import { testFunctions, testMemoryLimit, testTimeout } from "./tests";
+import { testFunctions, testMemoryLimit, testTimeout, testCpuMetrics } from "./tests";
 import { readFile } from "../src/fs";
 import { measureConcurrency } from "./util";
 
@@ -98,10 +98,15 @@ describe("faast.js local mode", () => {
 
     describe("process timeout test", () => testTimeout("local", { childProcess: true }));
 
+    describe.skip("cpu metrics test", () => testCpuMetrics("local"));
+
     async function readFirstLogfile(logDirectoryUrl: string) {
         const logFileUrl = new URL(logDirectoryUrl + "/0.log");
         const buf = await readFile(logFileUrl);
-        return buf.toString().split("\n");
+        return buf
+            .toString()
+            .split("\n")
+            .map(m => m.replace(/^\[(\d+)\]/, "[$pid]"));
     }
 
     test("console.log and console.warn with child process", async () => {
@@ -116,10 +121,9 @@ describe("faast.js local mode", () => {
 
             await cloudFunc.cleanup({ deleteResources: false });
             const messages = await readFirstLogfile(cloudFunc.logUrl());
-
-            expect(messages).toContain("Remote console.log output");
-            expect(messages).toContain("Remote console.warn output");
-            expect(messages).toContain("Remote console.error output");
+            expect(messages).toContain("[$pid]: Remote console.log output");
+            expect(messages).toContain("[$pid]: Remote console.warn output");
+            expect(messages).toContain("[$pid]: Remote console.error output");
         } finally {
             await cloudFunc.cleanup();
         }
@@ -140,8 +144,8 @@ describe("faast.js local mode", () => {
 
             const messages = await readFirstLogfile(cloudFunc.logUrl());
 
-            expect(messages).toContain("output 1");
-            expect(messages).toContain("output 2");
+            expect(messages).toContain("[$pid]: output 1");
+            expect(messages).toContain("[$pid]: output 2");
         } finally {
             await cloudFunc.cleanup();
         }

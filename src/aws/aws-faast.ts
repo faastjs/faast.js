@@ -19,7 +19,8 @@ import {
     CommonOptionDefaults,
     CleanupOptions,
     PackerOptions,
-    UUID
+    UUID,
+    PackerOptionDefaults
 } from "../provider";
 import {
     assertNever,
@@ -861,12 +862,12 @@ function deleteGarbageFunctions(
 
 export async function pack(
     functionModule: string,
-    options?: PackerOptions
+    userOptions?: PackerOptions
 ): Promise<PackerResult> {
-    const { webpackOptions, ...rest }: PackerOptions = options || {};
+    const options = Object.assign({}, PackerOptionDefaults, userOptions);
     return packer(awsTrampoline, functionModule, {
-        webpackOptions: { externals: "aws-sdk", ...webpackOptions },
-        ...rest
+        ...options,
+        webpackOptions: { externals: "aws-sdk", ...options.webpackOptions }
     });
 }
 

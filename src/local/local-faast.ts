@@ -13,10 +13,10 @@ import {
     ResponseMessage,
     CommonOptions,
     CommonOptionDefaults,
-    PackerOptions,
     CleanupOptions,
     UUID,
-    SendableMessage
+    SendableMessage,
+    PackerOptionDefaults
 } from "../provider";
 import { hasExpired, uuidv4Pattern, assertNever } from "../shared";
 import { Wrapper } from "../wrapper";
@@ -32,7 +32,7 @@ export interface State {
     tempDir: string;
     logUrl: string;
     gcPromise?: Promise<void>;
-    receivedMessagesNotification: Deferred<void>;
+    stopQueueNotification: Deferred<void>;
 }
 
 export interface Options extends CommonOptions {
@@ -110,8 +110,8 @@ async function initialize(
             childlog = console.log;
         }
         const wrapper = new Wrapper(require(serverModule), {
-            log: childlog,
-            useChildProcess: childProcess,
+            wrapperLog: childlog,
+            childProcess: childProcess,
             childProcessMemoryLimitMb: memorySize,
             childProcessTimeout: timeout,
             childDir: tempDir
@@ -141,7 +141,7 @@ async function initialize(
         tempDir,
         logUrl: log,
         gcPromise,
-        receivedMessagesNotification: new Deferred()
+        stopQueueNotification: new Deferred()
     };
 }
 
@@ -149,9 +149,12 @@ export function logUrl(state: State) {
     return state.logUrl;
 }
 
-async function pack(functionModule: string, options?: Options): Promise<PackerResult> {
-    const popts: PackerOptions = options || {};
-    return packer(localTrampolineFactory, functionModule, popts);
+async function pack(
+    functionModule: string,
+    userOptions?: Options
+): Promise<PackerResult> {
+    const options = Object.assign({}, PackerOptionDefaults, userOptions);
+    return packer(localTrampolineFactory, functionModule, options);
 }
 
 async function invoke(
@@ -177,14 +180,14 @@ async function invoke(
 async function publish(state: State, message: SendableMessage): Promise<void> {
     switch (message.kind) {
         case "stopqueue":
-            state.receivedMessagesNotification.resolve();
+            state.stopQueueNotification.resolve();
             return;
     }
     assertNever(message.kind);
 }
 
 async function poll(state: State): Promise<PollResult> {
-    await state.receivedMessagesNotification.promise;
+    await state.stopQueueNotification.promise;
     return {
         Messages: [{ kind: "stopqueue" }]
     };

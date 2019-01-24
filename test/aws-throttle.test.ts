@@ -8,7 +8,6 @@ describe("aws throttling to reduce concurrency", () => {
     beforeAll(async () => {
         try {
             cloudFunc = await faast.faastify("aws", funcs, "./functions", {
-                // Timeout: 120
                 mode: "https",
                 memorySize: 1024,
                 concurrency: 1
