@@ -23,7 +23,8 @@ import {
     CommonOptionDefaults,
     CleanupOptions,
     PackerOptions,
-    UUID
+    UUID,
+    PackerOptionDefaults
 } from "../provider";
 import {
     assertNever,
@@ -679,15 +680,15 @@ async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
 
 export async function pack(
     functionModule: string,
-    options: Options = {}
+    userOptions: Options = {}
 ): Promise<PackerResult> {
-    const { mode = "https" } = options;
+    const { mode = "https" } = userOptions;
     const trampolineModule =
         mode === "queue" ? googleTrampolineQueue : googleTrampolineHttps;
-    const packerOptions: PackerOptions = options;
+    const options = Object.assign({}, PackerOptionDefaults, userOptions);
     return packer(trampolineModule, functionModule, {
-        packageJson: mode === "queue" ? "package.json" : undefined,
-        ...packerOptions
+        ...options,
+        packageJson: mode === "queue" ? "package.json" : false
     });
 }
 

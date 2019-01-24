@@ -234,7 +234,6 @@ export function testRampUp(
                 ...options,
                 concurrency
             });
-            lambda.startStats();
             lambda.on("stats", s => stats.log(s.toString()));
         } catch (err) {
             warn(err);
@@ -289,7 +288,6 @@ export function testThroughput(
     beforeAll(async () => {
         try {
             lambda = await faastify(cloudProvider, funcs, "./functions", options);
-            lambda.startStats();
             lambda.on("stats", s => stats.log(s.toString()));
         } catch (err) {
             warn(err);
@@ -401,6 +399,44 @@ export function testMemoryLimit(
         },
         600 * 1000
     );
+}
+
+export function testCpuMetrics(
+    cloudProvider: faast.CloudProvider,
+    options?: CommonOptions
+) {
+    let lambda: faast.CloudFunction<typeof funcs>;
+
+    beforeAll(async () => {
+        try {
+            lambda = await faastify(cloudProvider, funcs, "./functions", {
+                childProcess: true,
+                timeout: 30,
+                memorySize: 512,
+                maxRetries: 0,
+                ...options
+            });
+        } catch (err) {
+            warn(err);
+        }
+    }, 90 * 1000);
+
+    afterAll(async () => {
+        await lambda.cleanup();
+    }, 60 * 1000);
+
+    test("cpu metrics are received", async () => {
+        const N = 5;
+        const NSec = 7;
+        const promises: Promise<unknown>[] = [];
+        for (let i = 0; i < N; i++) {
+            promises.push(lambda.functions.spin(NSec * 1000));
+        }
+        await Promise.all(promises);
+        const sleepCpu = lambda.cpuUsage.get("spin");
+        expect(sleepCpu).toBeDefined();
+        expect(sleepCpu!.secondMap.size).toBeGreaterThan(0);
+    }, 10000);
 }
 
 export function quietly<T>(p: Promise<T>) {

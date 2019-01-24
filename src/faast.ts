@@ -30,6 +30,7 @@ import { Deferred, Funnel, Pump } from "./throttle";
 import { NonFunctionProperties, Unpacked } from "./types";
 import { FunctionCall, FunctionReturn, serializeCall } from "./wrapper";
 import Module = require("module");
+import { inspect } from "util";
 
 export { aws, google, local, costAnalyzer };
 
@@ -38,7 +39,7 @@ export class FaastError extends Error {
     constructor(errObj: any, logUrl?: string) {
         let message = errObj.message;
         if (logUrl) {
-            message += `\n(logs: ${logUrl})`;
+            message += `\nlogs: ${logUrl} `;
         }
         super(message);
         if (Object.keys(errObj).length === 0 && !(errObj instanceof Error)) {
@@ -155,7 +156,7 @@ class FunctionCpuUsage {
 }
 
 class FunctionCpuUsagePerSecond {
-    secondMap = new FactoryMap(() => new FunctionCpuUsage());
+    secondMap = new FactoryMap<number, FunctionCpuUsage>(() => new FunctionCpuUsage());
 }
 
 class FunctionMemoryStats {
@@ -318,7 +319,7 @@ function processResponse<R>(
                 `Memory use before execution leaked from prior calls: %O`,
                 memoryUsage
             );
-            logLeaks(`Logs: ${logUrl}`);
+            logLeaks(`Logs: ${logUrl} `);
             logLeaks(
                 `These logs show only one example faast function invocation that may have a leak.`
             );
@@ -384,6 +385,7 @@ export class CloudFunction<
     counters = new FunctionCountersMap();
     stats = new FunctionStatsMap();
     functions: Promisified<M>;
+    cpuUsage = new FactoryMap(() => new FunctionCpuUsagePerSecond());
     protected memoryLeakDetector: MemoryLeakDetector;
     protected funnel: Funnel<any>;
     protected skew = new ExponentiallyDecayingAverageValue(0.3);
@@ -392,9 +394,6 @@ export class CloudFunction<
     protected initialInvocationTime = new FactoryMap(() => Date.now());
     protected callResultsPending: Map<CallId, PendingRequest> = new Map();
     protected collectorPump: Pump<void>;
-    protected functionCpuUsagePerSecond = new FactoryMap(
-        () => new FunctionCpuUsagePerSecond()
-    );
 
     constructor(
         protected impl: CloudFunctionImpl<O, S>,
@@ -457,7 +456,7 @@ export class CloudFunction<
         return rv;
     }
 
-    startStats(interval: number = 1000) {
+    protected startStats(interval: number = 1000) {
         this.statsTimer = setInterval(() => {
             this.counters.fIncremental.forEach((counters, fn) => {
                 const stats = this.stats.fIncremental.get(fn);
@@ -469,13 +468,24 @@ export class CloudFunction<
         }, interval);
     }
 
-    stopStats() {
+    protected stopStats() {
         this.statsTimer && clearInterval(this.statsTimer);
         this.statsTimer = undefined;
     }
 
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void) {
+        if (!this.statsTimer) {
+            this.startStats();
+        }
         return super.on(name, listener);
+    }
+
+    off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void) {
+        const rv = super.off(name, listener);
+        if (super.listenerCount(name) === 0) {
+            this.stopStats();
+        }
+        return rv;
     }
 
     protected wrapFunctionWithResponse<A extends any[], R>(
@@ -652,7 +662,7 @@ export class CloudFunction<
         );
 
         const pollResult = await this.impl.poll(this.state);
-        logProvider(`poll %O`, pollResult);
+        logProvider(`poll ${inspect(pollResult, false, 3)}`);
         const { Messages, isFullMessageBatch } = pollResult;
         const localEndTime = Date.now();
         logQueue(`Result collector received ${Messages.length} messages.`);
@@ -691,7 +701,7 @@ export class CloudFunction<
                                 localRequestSentTime: deferred.created,
                                 localEndTime
                             };
-                            logProvider(`resolved deferred: %O`, rv);
+                            logProvider(`returned %O`, returned);
                             deferred.resolve(rv);
                         } else {
                             info(`Deferred promise not found for CallId: ${m.callId}`);
@@ -707,11 +717,9 @@ export class CloudFunction<
                     if (!pending) {
                         return;
                     }
-                    const stats = this.functionCpuUsagePerSecond.getOrCreate(
-                        pending.call.name
-                    );
+                    const stats = this.cpuUsage.getOrCreate(pending.call.name);
                     const secondMetrics = stats.secondMap.getOrCreate(
-                        Math.round(elapsed / 1000).toString()
+                        Math.round(elapsed / 1000)
                     );
                     secondMetrics.stime.update(metrics.stime);
                     secondMetrics.utime.update(metrics.utime);

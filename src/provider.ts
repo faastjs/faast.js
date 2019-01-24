@@ -1,6 +1,11 @@
 import { CostBreakdown } from "./cost";
 import { Statistics } from "./shared";
-import { FunctionReturn, CpuMeasurement } from "./wrapper";
+import {
+    FunctionReturn,
+    CpuMeasurement,
+    WrapperOptions,
+    WrapperOptionDefaults
+} from "./wrapper";
 import { PackerResult } from "./packer";
 
 export const CALLID_ATTR = "__faast_callid__";
@@ -9,7 +14,7 @@ export const KIND_ATTR = "__faast_kind__";
 import * as webpack from "webpack";
 import { Opaque } from "./types";
 
-export interface PackerOptions {
+export interface PackerOptions extends WrapperOptions {
     addDirectory?: string | string[];
     addZipFile?: string | string[];
     packageJson?: string | object | false;
@@ -17,6 +22,7 @@ export interface PackerOptions {
 }
 
 export const PackerOptionDefaults: Required<PackerOptions> = {
+    ...WrapperOptionDefaults,
     addDirectory: [],
     addZipFile: [],
     packageJson: false,
@@ -24,7 +30,6 @@ export const PackerOptionDefaults: Required<PackerOptions> = {
 };
 
 export interface CommonOptions extends PackerOptions {
-    childProcess?: boolean;
     concurrency?: number;
     gc?: boolean;
     maxRetries?: number;
@@ -37,7 +42,6 @@ export interface CommonOptions extends PackerOptions {
 
 export const CommonOptionDefaults: Required<CommonOptions> = {
     ...PackerOptionDefaults,
-    childProcess: false,
     concurrency: 100,
     gc: true,
     maxRetries: 2,

@@ -39,7 +39,7 @@ export class Statistics {
     }
 }
 
-export class FactoryMap<V, K = string> extends Map<K, V> {
+export class FactoryMap<K = string, V = {}> extends Map<K, V> {
     constructor(readonly factory: (key: K) => V) {
         super();
     }

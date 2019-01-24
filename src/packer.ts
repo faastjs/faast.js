@@ -6,7 +6,7 @@ import * as yauzl from "yauzl";
 import { LoaderOptions } from "./loader";
 import { exists, mkdir, readFile, createWriteStream } from "./fs";
 import { info, warn, logWebpack, logWrapper } from "./log";
-import { WrapperOptions, TrampolineFactory } from "./wrapper";
+import { TrampolineFactory, WrapperOptionDefaults } from "./wrapper";
 import { streamToBuffer, keys } from "./shared";
 
 type ZipFile = yauzl.ZipFile;
@@ -35,11 +35,10 @@ export async function packer(
         packageJson,
         addDirectory,
         addZipFile,
-        ...rest
-    }: PackerOptions,
-    wrapperOptions?: WrapperOptions
+        ...wrapperOptions
+    }: Required<PackerOptions>
 ): Promise<PackerResult> {
-    const _exhaustiveCheck: Required<typeof rest> = {};
+    const _exhaustiveCheck: Required<typeof wrapperOptions> = WrapperOptionDefaults;
     info(`Running webpack`);
     const mfs = new MemoryFileSystem();
 
@@ -146,9 +145,27 @@ export async function packer(
         );
     }
 
+    const {
+        wrapperVerbose,
+        childProcess,
+        childDir,
+        childProcessMemoryLimitMb,
+        childProcessTimeout,
+        wrapperLog,
+        ...rest
+    } = wrapperOptions;
+    const _exhaustiveCheck2: Required<typeof rest> = {};
+    const isVerbose = wrapperVerbose || logWrapper.enabled;
+
     const loader = `loader?${getUrlEncodedQueryParameters({
         trampolineFactoryModule: trampolineFactory.filename,
-        wrapperOptions: { verbose: logWrapper.enabled, ...wrapperOptions },
+        wrapperOptions: {
+            wrapperVerbose: isVerbose,
+            childProcess,
+            childDir,
+            childProcessMemoryLimitMb,
+            childProcessTimeout
+        },
         functionModule
     })}!`;
     await runWebpack(loader, "index.js");
