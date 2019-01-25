@@ -5,7 +5,7 @@ import * as webpack from "webpack";
 import * as yauzl from "yauzl";
 import { LoaderOptions } from "./loader";
 import { exists, mkdir, readFile, createWriteStream } from "./fs";
-import { info, warn, logWebpack, logWrapper } from "./log";
+import { info, warn, logWebpack, logProvider } from "./log";
 import { TrampolineFactory, WrapperOptionDefaults } from "./wrapper";
 import { streamToBuffer, keys } from "./shared";
 
@@ -155,7 +155,7 @@ export async function packer(
         ...rest
     } = wrapperOptions;
     const _exhaustiveCheck2: Required<typeof rest> = {};
-    const isVerbose = wrapperVerbose || logWrapper.enabled;
+    const isVerbose = wrapperVerbose || logProvider.enabled;
 
     const loader = `loader?${getUrlEncodedQueryParameters({
         trampolineFactoryModule: trampolineFactory.filename,

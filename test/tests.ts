@@ -433,9 +433,9 @@ export function testCpuMetrics(
             promises.push(lambda.functions.spin(NSec * 1000));
         }
         await Promise.all(promises);
-        const sleepCpu = lambda.cpuUsage.get("spin");
-        expect(sleepCpu).toBeDefined();
-        expect(sleepCpu!.secondMap.size).toBeGreaterThan(0);
+        const usage = lambda.cpuUsage.get("spin");
+        expect(usage).toBeDefined();
+        expect(usage!.size).toBeGreaterThan(0);
     }, 15000);
 }
 

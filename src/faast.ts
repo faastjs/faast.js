@@ -6,7 +6,7 @@ import * as aws from "./aws/aws-faast";
 import * as costAnalyzer from "./cost";
 import * as google from "./google/google-faast";
 import * as local from "./local/local-faast";
-import { info, logCalls, logLeaks, warn, logQueue, logProvider } from "./log";
+import { info, logCalls, logLeaks, warn, logProvider } from "./log";
 import {
     CloudFunctionImpl,
     FunctionCounters,
@@ -28,7 +28,7 @@ import {
 } from "./shared";
 import { Deferred, Funnel, Pump } from "./throttle";
 import { NonFunctionProperties, Unpacked } from "./types";
-import { FunctionCall, FunctionReturn, serializeCall } from "./wrapper";
+import { FunctionCall, FunctionReturn, serializeCall, CpuMeasurement } from "./wrapper";
 import Module = require("module");
 import { inspect } from "util";
 
@@ -155,8 +155,10 @@ class FunctionCpuUsage {
     stime = new Statistics();
 }
 
-class FunctionCpuUsagePerSecond {
-    secondMap = new FactoryMap<number, FunctionCpuUsage>(() => new FunctionCpuUsage());
+class FunctionCpuUsagePerSecond extends FactoryMap<number, FunctionCpuUsage> {
+    constructor() {
+        super(() => new FunctionCpuUsage());
+    }
 }
 
 class FunctionMemoryStats {
@@ -338,7 +340,7 @@ export async function createFunction<M extends object, O extends CommonOptions, 
     const resolvedModule = resolveModule(modulePath);
     const functionId = uuidv4() as UUID;
     const options = Object.assign({}, impl.defaults, userOptions);
-    logProvider(`options: %O`, options);
+    logProvider(`options %O`, options);
     return new CloudFunction(
         impl,
         await impl.initialize(resolvedModule, functionId, options),
@@ -437,13 +439,17 @@ export class CloudFunction<
 
         let count = 0;
         const tasks = [];
-        while (this.collectorPump.getConcurrency() > 0 && count++ < 100) {
-            const msg: StopQueueMessage = { kind: "stopqueue" };
-            logProvider(`publish %O`, msg);
-            tasks.push(this.impl.publish(this.state, msg));
-            await sleep(100);
+        const stopMessage: StopQueueMessage = { kind: "stopqueue" };
+        while (this.collectorPump.getConcurrency() > 0 && count++ < 10) {
+            for (let i = 0; i < this.collectorPump.getConcurrency(); i++) {
+                logProvider(`publish %O`, stopMessage);
+                tasks.push(this.impl.publish(this.state, stopMessage));
+            }
+            await Promise.all(tasks);
+            if (this.collectorPump.getConcurrency() > 0) {
+                await sleep(1000);
+            }
         }
-        await Promise.all(tasks);
 
         logProvider(`cleanup`);
         await this.impl.cleanup(this.state, options);
@@ -544,7 +550,6 @@ export class CloudFunction<
                                     localRequestSentTime: pending.created,
                                     localEndTime: Date.now()
                                 };
-                                logProvider(`pending resolved: %O`, response);
                                 pending.resolve(response);
                             }
                         });
@@ -628,7 +633,7 @@ export class CloudFunction<
                 this.counters.aggregate,
                 this.stats.aggregate
             );
-            logProvider(`costEstimate`);
+            logProvider(`costEstimate returned %O`, estimate);
             if (this.counters.aggregate.retries > 0) {
                 const { retries, invocations } = this.counters.aggregate;
                 const retryPct = ((retries / invocations) * 100).toFixed(1);
@@ -655,17 +660,12 @@ export class CloudFunction<
         if (!callResultsPending.size) {
             return;
         }
-        logQueue(
-            `Polling response queue (size ${
-                callResultsPending.size
-            }: ${this.impl.responseQueueId(this.state)}`
-        );
 
+        logProvider(`polling ${this.impl.responseQueueId(this.state)}`);
         const pollResult = await this.impl.poll(this.state);
-        logProvider(`poll ${inspect(pollResult, false, 3)}`);
+        logProvider(`poll returned ${inspect(pollResult, false, 3)}`);
         const { Messages, isFullMessageBatch } = pollResult;
         const localEndTime = Date.now();
-        logQueue(`Result collector received ${Messages.length} messages.`);
         this.adjustCollectorConcurrencyLevel(isFullMessageBatch);
 
         for (const m of Messages) {
@@ -681,7 +681,6 @@ export class CloudFunction<
                     }
                     break;
                 case "functionstarted":
-                    logQueue(`Received Function Started message CallID: ${m.callId}`);
                     const deferred = callResultsPending.get(m.callId);
                     if (deferred) {
                         deferred!.executing = true;
@@ -717,9 +716,7 @@ export class CloudFunction<
                         return;
                     }
                     const stats = this.cpuUsage.getOrCreate(pending.call.name);
-                    const secondMetrics = stats.secondMap.getOrCreate(
-                        Math.round(elapsed / 1000)
-                    );
+                    const secondMetrics = stats.getOrCreate(Math.round(elapsed / 1000));
                     secondMetrics.stime.update(metrics.stime);
                     secondMetrics.utime.update(metrics.utime);
                     break;
@@ -871,5 +868,17 @@ async function retryFunctionIfNeededToReduceTailLatency(
         }
         const waitTime = roundTo100ms(Math.max(timeout - latency(), 5000));
         await wait(waitTime);
+    }
+}
+
+async function proactiveRetry(
+    cpuUsage: CpuMeasurement,
+    elapsed: number,
+    secondMap: FunctionCpuUsagePerSecond
+) {
+    const time = cpuUsage.utime + cpuUsage.stime;
+    const rounded = Math.round(elapsed);
+    const stats = secondMap.get(rounded);
+    if (stats) {
     }
 }

@@ -1,6 +1,6 @@
 import { getOptions } from "loader-utils";
 import { WrapperOptions } from "./wrapper";
-import { logTrampoline } from "./log";
+import { logProvider } from "./log";
 
 export interface LoaderOptions {
     trampolineFactoryModule: string;
@@ -16,7 +16,7 @@ export default function webpackLoader(this: any, _source: string) {
             const Wrapper = require("${require.resolve("./wrapper")}").Wrapper;
             const wrapped = new Wrapper(fModule, ${options.wrapperOptions});
             module.exports = trampolineFactory.makeTrampoline(wrapped);
-    `;
-    logTrampoline(rv);
+`;
+    logProvider(`trampoline {${rv}}`);
     return rv;
 }
