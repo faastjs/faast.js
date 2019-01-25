@@ -98,15 +98,7 @@ function gcWorkerDefault(services: GoogleServices, resources: GoogleResources) {
 export const defaults: Required<Options> = {
     ...CommonOptionDefaults,
     region: "us-central1",
-    timeout: 60,
-    memorySize: 256,
-    concurrency: 500,
-    mode: "https",
     googleCloudFunctionOptions: {},
-    addZipFile: [],
-    addDirectory: [],
-    packageJson: false,
-    webpackOptions: {},
     gcWorker: gcWorkerDefault
 };
 
@@ -682,14 +674,11 @@ export async function pack(
     functionModule: string,
     userOptions: Options = {}
 ): Promise<PackerResult> {
-    const { mode = "https" } = userOptions;
+    const { mode } = userOptions;
     const trampolineModule =
         mode === "queue" ? googleTrampolineQueue : googleTrampolineHttps;
     const options = Object.assign({}, PackerOptionDefaults, userOptions);
-    return packer(trampolineModule, functionModule, {
-        ...options,
-        packageJson: mode === "queue" ? "package.json" : false
-    });
+    return packer(trampolineModule, functionModule, options);
 }
 
 const getGoogleCloudFunctionsPricing = throttle(

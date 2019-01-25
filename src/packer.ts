@@ -31,7 +31,7 @@ export async function packer(
     trampolineFactory: TrampolineFactory,
     functionModule: string,
     {
-        webpackOptions = {},
+        webpackOptions,
         packageJson,
         addDirectory,
         addZipFile,
