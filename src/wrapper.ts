@@ -424,6 +424,10 @@ function cpuMonitor(
     const timer = setInterval(
         () =>
             proctor.lookup(pid, (err, result) => {
+                if (err) {
+                    callback(err);
+                    return;
+                }
                 const { stime, utime } = result;
                 callback(err, result && { stime: stime * 10, utime: utime * 10 });
             }),
