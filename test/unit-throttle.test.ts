@@ -6,7 +6,8 @@ import {
     RateLimiter,
     retry,
     throttle,
-    cacheFn
+    cacheFn,
+    AsyncQueue
 } from "../src/throttle";
 import { timer, Timing } from "./functions";
 import { LocalCache } from "../src/cache";
@@ -567,5 +568,85 @@ describe("throttle", () => {
         expect(u3).toBe(0);
 
         expect(counter).toBe(2);
+    });
+});
+
+describe.only("async queue", () => {
+    test("enqueue before dequeue", async () => {
+        const q = new AsyncQueue<number>();
+        q.enqueue(42);
+        expect(await q.dequeue()).toBe(42);
+    });
+
+    test("dequeue before enqueue", async () => {
+        const q = new AsyncQueue<number>();
+        const promise = q.dequeue();
+        q.enqueue(42);
+        expect(await promise).toBe(42);
+    });
+
+    test("transition from more enqueues to dequeues", async () => {
+        const q = new AsyncQueue<number>();
+        q.enqueue(42);
+        expect(await q.dequeue()).toBe(42);
+        const promise = q.dequeue();
+        q.enqueue(100);
+        expect(await promise).toBe(100);
+    });
+
+    test("transition from more dequeues to enqueues", async () => {
+        const q = new AsyncQueue<number>();
+        const promise = q.dequeue();
+        q.enqueue(42);
+        q.enqueue(100);
+        expect(await promise).toBe(42);
+        expect(await q.dequeue()).toBe(100);
+    });
+
+    test("multiple dequeues before enqueues", async () => {
+        const q = new AsyncQueue<number>();
+        const p1 = q.dequeue();
+        const p2 = q.dequeue();
+        const p3 = q.dequeue();
+
+        q.enqueue(42);
+        expect(await p1).toBe(42);
+        q.enqueue(100);
+        expect(await p2).toBe(100);
+        q.enqueue(0);
+        expect(await p3).toBe(0);
+    });
+
+    test("async enqueue", async () => {
+        const q = new AsyncQueue<number>();
+        const promise = q.dequeue();
+        setTimeout(() => q.enqueue(99), 100);
+        expect(await promise).toBe(99);
+    });
+
+    test("async dequeue", async () => {
+        expect.assertions(1);
+        const q = new AsyncQueue<number>();
+        q.enqueue(88);
+        await new Promise(resolve =>
+            setTimeout(async () => {
+                expect(await q.dequeue()).toBe(88);
+                resolve();
+            }, 100)
+        );
+    });
+
+    test("clear", async () => {
+        const q = new AsyncQueue<number>();
+        q.enqueue(1);
+        q.clear();
+        q.enqueue(2);
+        expect(await q.dequeue()).toBe(2);
+
+        const p1 = q.dequeue();
+        q.clear();
+        const p2 = q.dequeue();
+        q.enqueue(3);
+        expect(await p2).toBe(3);
     });
 });

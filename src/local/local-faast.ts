@@ -7,21 +7,22 @@ import { createWriteStream, exists, mkdir, readdir, rmrf, stat } from "../fs";
 import { info, logGc, warn } from "../log";
 import { packer, PackerResult, unzipInDir } from "../packer";
 import {
-    CloudFunctionImpl,
-    Invocation,
-    PollResult,
-    ResponseMessage,
-    CommonOptions,
-    CommonOptionDefaults,
     CleanupOptions,
-    UUID,
+    CloudFunctionImpl,
+    CommonOptionDefaults,
+    CommonOptions,
+    Invocation,
+    PackerOptionDefaults,
+    PollResult,
+    ReceivableMessage,
+    ResponseMessage,
     SendableMessage,
-    PackerOptionDefaults
+    UUID
 } from "../provider";
-import { hasExpired, uuidv4Pattern, assertNever } from "../shared";
-import { Wrapper } from "../wrapper";
+import { hasExpired, uuidv4Pattern } from "../shared";
+import { AsyncQueue } from "../throttle";
+import { FunctionCall, Wrapper } from "../wrapper";
 import * as localTrampolineFactory from "./local-trampoline";
-import { Deferred } from "../throttle";
 
 const exec = promisify(sys.exec);
 
@@ -32,7 +33,7 @@ export interface State {
     tempDir: string;
     logUrl: string;
     gcPromise?: Promise<void>;
-    stopQueueNotification: Deferred<void>;
+    queue: AsyncQueue<ReceivableMessage>;
 }
 
 export interface Options extends CommonOptions {
@@ -141,7 +142,7 @@ async function initialize(
         tempDir,
         logUrl: log,
         gcPromise,
-        stopQueueNotification: new Deferred()
+        queue: new AsyncQueue()
     };
 }
 
@@ -164,10 +165,15 @@ async function invoke(
     const {} = state;
     const startTime = Date.now();
     const wrapper = await state.getWrapper();
-    const returned = await wrapper.execute({
-        call: JSON.parse(request.body),
-        startTime
-    });
+    const call: FunctionCall = JSON.parse(request.body);
+    const returned = await wrapper.execute({ call, startTime }, metrics =>
+        state.queue.enqueue({
+            kind: "cpumetrics",
+            metrics,
+            callId: call.callId,
+            elapsed: Date.now() - startTime
+        })
+    );
     return {
         kind: "response",
         body: returned,
@@ -178,18 +184,13 @@ async function invoke(
 }
 
 async function publish(state: State, message: SendableMessage): Promise<void> {
-    switch (message.kind) {
-        case "stopqueue":
-            state.stopQueueNotification.resolve();
-            return;
-    }
-    assertNever(message.kind);
+    state.queue.enqueue(message);
 }
 
 async function poll(state: State): Promise<PollResult> {
-    await state.stopQueueNotification.promise;
+    const message = await state.queue.dequeue();
     return {
-        Messages: [{ kind: "stopqueue" }]
+        Messages: [message]
     };
 }
 

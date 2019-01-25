@@ -299,3 +299,32 @@ export function throttle<A extends any[], R>(
     }
     return conditionedFunc;
 }
+
+export class AsyncQueue<T> {
+    protected deferred: Array<Deferred<T>> = [];
+    protected enqueued: T[] = [];
+
+    enqueue(value: T) {
+        if (this.deferred.length > 0) {
+            const d = this.deferred.shift();
+            d!.resolve(value);
+        } else {
+            this.enqueued.push(value);
+        }
+    }
+
+    dequeue(): Promise<T> {
+        if (this.enqueued.length > 0) {
+            const value = this.enqueued.shift()!;
+            return Promise.resolve(value);
+        }
+        const d = new Deferred<T>();
+        this.deferred.push(d);
+        return d.promise;
+    }
+
+    clear() {
+        this.deferred = [];
+        this.enqueued = [];
+    }
+}

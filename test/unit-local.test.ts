@@ -98,7 +98,7 @@ describe("faast.js local mode", () => {
 
     describe("process timeout test", () => testTimeout("local", { childProcess: true }));
 
-    describe.skip("cpu metrics test", () => testCpuMetrics("local"));
+    describe("cpu metrics test", () => testCpuMetrics("local"));
 
     async function readFirstLogfile(logDirectoryUrl: string) {
         const logFileUrl = new URL(logDirectoryUrl + "/0.log");
