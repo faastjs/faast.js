@@ -9,6 +9,7 @@
         "inlineSourceMap": true,
         "inlineSources": true,
         "declaration": true,
+        "declarationDir": "build/decls",
         "moduleResolution": "node",
         "forceConsistentCasingInFileNames": true,
         "noImplicitReturns": true,

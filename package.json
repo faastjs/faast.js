@@ -7,7 +7,7 @@
         "type": "git",
         "url": "https://github.com/acchou/faast.js"
     },
-    "types": "build/src/faast.d.ts",
+    "types": "build/decls/faast.d.ts",
     "scripts": {
         "build": "npm run clean && tsc",
         "watch": "npm run clean && tsc --watch",
