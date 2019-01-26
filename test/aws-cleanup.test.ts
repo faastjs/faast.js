@@ -6,7 +6,8 @@ describe("aws cleanup", () => {
         "removes ephemeral resources",
         async () => {
             const func = await faast.faastify("aws", {}, "./functions", {
-                mode: "queue"
+                mode: "queue",
+                gc: false
             });
             await func.cleanup();
             await checkResourcesCleanedUp(await getAWSResources(func));
@@ -18,7 +19,8 @@ describe("aws cleanup", () => {
         "removes s3 buckets",
         async () => {
             const func = await faast.faastify("aws", {}, "./functions", {
-                packageJson: "test/package.json"
+                packageJson: "test/package.json",
+                gc: false
             });
             await func.cleanup();
             await checkResourcesCleanedUp(await getAWSResources(func));
