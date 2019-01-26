@@ -118,6 +118,7 @@ export class Wrapper {
     protected log: (msg: string) => void;
     protected deferred?: Deferred<FunctionReturn>;
     readonly options: Required<WrapperOptions>;
+    protected monitoringTimer?: NodeJS.Timer;
 
     constructor(fModule: ModuleType, options: WrapperOptions = {}) {
         this.options = Object.assign({}, WrapperOptionDefaults, options);
@@ -159,12 +160,16 @@ export class Wrapper {
         return func;
     }
 
-    protected stopCpuMonitoring(timer: NodeJS.Timer) {
-        timer && clearInterval(timer);
+    protected stopCpuMonitoring() {
+        this.monitoringTimer && clearInterval(this.monitoringTimer);
+        this.monitoringTimer = undefined;
     }
 
     protected startCpuMonitoring(pid: number, callback: CpuUsageCallback) {
-        const timer = cpuMonitor(pid, 1000, (err, result) => {
+        if (this.monitoringTimer) {
+            this.stopCpuMonitoring();
+        }
+        this.monitoringTimer = cpuMonitor(pid, 1000, (err, result) => {
             if (err) {
                 this.log(`cpu monitor error: ${err}`);
             }
@@ -172,10 +177,10 @@ export class Wrapper {
                 callback(result);
             }
         });
-        return timer;
     }
 
     stop() {
+        this.stopCpuMonitoring();
         if (this.child) {
             this.child.stdout.removeListener("data", this.logLines);
             this.child.stderr.removeListener("data", this.logLines);
@@ -210,10 +215,9 @@ export class Wrapper {
                         this.deferred!.reject(err);
                     }
                 });
-                let monitoringTimer: NodeJS.Timer | undefined;
                 if (callback) {
                     this.log(`Starting CPU monitor for pid ${this.child.pid}`);
-                    monitoringTimer = this.startCpuMonitoring(this.child.pid, callback);
+                    this.startCpuMonitoring(this.child.pid, callback);
                 }
 
                 let timer;
@@ -238,7 +242,7 @@ export class Wrapper {
                         this.log(`returned from child process: ${inspect(rv)}`);
                     return rv;
                 } finally {
-                    monitoringTimer && this.stopCpuMonitoring(monitoringTimer);
+                    this.stopCpuMonitoring();
                     timer && clearTimeout(timer);
                     this.deferred = undefined;
                 }
