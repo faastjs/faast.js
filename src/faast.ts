@@ -341,7 +341,7 @@ export async function createFunction<M extends object, O extends CommonOptions, 
     const resolvedModule = resolveModule(modulePath);
     const functionId = uuidv4() as UUID;
     const options = Object.assign({}, impl.defaults, userOptions);
-    logProvider(`options %O`, options);
+    logProvider(`options ${inspect(options, { compact: false })}`);
     return new CloudFunction(
         impl,
         await impl.initialize(resolvedModule, functionId, options),
