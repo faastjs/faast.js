@@ -18,7 +18,7 @@ export function inspectProvider(o: object) {
     if (!logProvider.enabled) {
         return "";
     }
-    return truncate(inspect(o, false, 3).replace(/\n([ ]*)/g, `\n.$1`), 1024);
+    return truncate(inspect(o, false, 3).replace(/([ ][ ])/g, `. `), 1024);
 }
 
 warn.enabled = true;
