@@ -22,7 +22,6 @@ import {
     CommonOptions,
     CommonOptionDefaults,
     CleanupOptions,
-    PackerOptions,
     UUID,
     PackerOptionDefaults
 } from "../provider";
