@@ -39,7 +39,7 @@ export function testFunctions(
     beforeAll(async () => {
         try {
             const start = Date.now();
-            const opts = { timeout: 30, memorySize: 512, ...options };
+            const opts = { timeout: 30, memorySize: 512, gc: false, ...options };
             cloudFunc = await faastify(cloudProvider, funcs, "./functions", opts);
             remote = cloudFunc.functions;
             info(`Function creation took ${((Date.now() - start) / 1000).toFixed(1)}s`);
@@ -176,7 +176,8 @@ export function testCosts(
         const args: CommonOptions = {
             timeout: 30,
             memorySize: 512,
-            mode: "queue"
+            mode: "queue",
+            gc: false
         };
         cloudFunc = await faastify(cloudProvider, funcs, "./functions", {
             ...args,
@@ -231,6 +232,7 @@ export function testRampUp(
     beforeAll(async () => {
         try {
             lambda = await faastify(cloudProvider, funcs, "./functions", {
+                gc: false,
                 ...options,
                 concurrency
             });
@@ -287,7 +289,10 @@ export function testThroughput(
 
     beforeAll(async () => {
         try {
-            lambda = await faastify(cloudProvider, funcs, "./functions", options);
+            lambda = await faastify(cloudProvider, funcs, "./functions", {
+                gc: false,
+                ...options
+            });
             lambda.on("stats", s => stats.log(s.toString()));
         } catch (err) {
             warn(err);
@@ -328,7 +333,8 @@ export function testTimeout(cloudProvider: faast.CloudProvider, options?: Common
             lambda = await faastify(cloudProvider, funcs, "./functions", {
                 ...options,
                 timeout: 2,
-                maxRetries: 0
+                maxRetries: 0,
+                gc: false
             });
         } catch (err) {
             warn(err);
@@ -365,7 +371,8 @@ export function testMemoryLimit(
                 ...options,
                 timeout: 200,
                 memorySize: 256,
-                maxRetries: 0
+                maxRetries: 0,
+                gc: false
             });
         } catch (err) {
             warn(err);
@@ -414,6 +421,7 @@ export function testCpuMetrics(
                 timeout: 30,
                 memorySize: 512,
                 maxRetries: 0,
+                gc: false,
                 ...options
             });
         } catch (err) {
