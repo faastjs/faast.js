@@ -18,7 +18,8 @@
         "test-aws": "jest -w 2 build/test/unit-* build/test/aws-*",
         "test-google": "jest -w 2 build/test/unit-* build/test/google-*",
         "test-pipeline-debug": "DEBUG=faast:provider,faast:info jest --bail -w 1 build/test/* && jest -w 1 build/test-slow/*",
-        "test-pipeline": "jest -w 8 build/test/* && jest -w 8 build/test-slow/*",
+        "test-pipeline": "npm run cleanup-cloud && jest -w 8 build/test/* && jest -w 8 build/test-slow/*",
+        "cleanup-cloud": "node build/src/cleanup.js aws -x -f && node build/src/cleanup.js google -x -f",
         "clean": "rm -rf build",
         "tslint": "tslint -p tsconfig.json"
     },
