@@ -6,7 +6,7 @@ import * as aws from "./aws/aws-faast";
 import * as costAnalyzer from "./cost";
 import * as google from "./google/google-faast";
 import * as local from "./local/local-faast";
-import { info, logCalls, logLeaks, warn, logProvider } from "./log";
+import { info, logCalls, logLeaks, warn, logProvider, inspectProvider } from "./log";
 import {
     CloudFunctionImpl,
     FunctionCounters,
@@ -24,14 +24,12 @@ import {
     FactoryMap,
     roundTo100ms,
     sleep,
-    Statistics,
-    truncate
+    Statistics
 } from "./shared";
 import { Deferred, Funnel, Pump } from "./throttle";
 import { NonFunctionProperties, Unpacked } from "./types";
 import { FunctionCall, FunctionReturn, serializeCall, CpuMeasurement } from "./wrapper";
 import Module = require("module");
-import { inspect } from "util";
 
 export { aws, google, local, costAnalyzer };
 
@@ -341,7 +339,7 @@ export async function createFunction<M extends object, O extends CommonOptions, 
     const resolvedModule = resolveModule(modulePath);
     const functionId = uuidv4() as UUID;
     const options = Object.assign({}, impl.defaults, userOptions);
-    logProvider(`options ${inspect(options).replace("\n", "\n|  ")}`);
+    logProvider(`options ${inspectProvider(options)}`);
     return new CloudFunction(
         impl,
         await impl.initialize(resolvedModule, functionId, options),
@@ -443,7 +441,7 @@ export class CloudFunction<
         const stopMessage: StopQueueMessage = { kind: "stopqueue" };
         while (this.collectorPump.getConcurrency() > 0 && count++ < 10) {
             for (let i = 0; i < this.collectorPump.getConcurrency(); i++) {
-                logProvider(`publish %O`, stopMessage);
+                logProvider(`publish ${inspectProvider(stopMessage)}`);
                 tasks.push(this.impl.publish(this.state, stopMessage));
             }
             await Promise.all(tasks);
@@ -534,16 +532,15 @@ export class CloudFunction<
                         callId,
                         body: pending.serialized
                     };
-                    logProvider(`invoke %O`, {
-                        ...invocation,
-                        body: truncate(invocation.body, 1024)
-                    });
+                    logProvider(`invoke ${inspectProvider(invocation)}`);
                     this.impl
                         .invoke(this.state, invocation)
                         .catch(err => pending.reject(err))
                         .then(message => {
                             if (message) {
-                                logProvider(`invoke returned %O`, message);
+                                logProvider(
+                                    `invoke returned ${inspectProvider(message)}`
+                                );
                                 let returned = message.body;
                                 if (typeof returned === "string")
                                     returned = JSON.parse(returned) as FunctionReturn;
@@ -637,7 +634,7 @@ export class CloudFunction<
                 this.counters.aggregate,
                 this.stats.aggregate
             );
-            logProvider(`costEstimate returned %O`, estimate);
+            logProvider(`costEstimate returned ${inspectProvider(estimate)}`);
             if (this.counters.aggregate.retries > 0) {
                 const { retries, invocations } = this.counters.aggregate;
                 const retryPct = ((retries / invocations) * 100).toFixed(1);
@@ -667,7 +664,7 @@ export class CloudFunction<
 
         logProvider(`polling ${this.impl.responseQueueId(this.state)}`);
         const pollResult = await this.impl.poll(this.state);
-        logProvider(`poll returned ${inspect(pollResult, false, 3)}`);
+        logProvider(`poll returned ${inspectProvider(pollResult)}`);
         const { Messages, isFullMessageBatch } = pollResult;
         const localEndTime = Date.now();
         this.adjustCollectorConcurrencyLevel(isFullMessageBatch);
@@ -704,7 +701,7 @@ export class CloudFunction<
                                 localRequestSentTime: deferred.created,
                                 localEndTime
                             };
-                            logProvider(`returned %O`, returned);
+                            logProvider(`returned ${inspectProvider(returned)}`);
                             deferred.resolve(rv);
                         } else {
                             info(`Deferred promise not found for CallId: ${m.callId}`);
