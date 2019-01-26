@@ -17,7 +17,8 @@
         "test-unit": "jest build/test/unit-*",
         "test-aws": "jest -w 2 build/test/unit-* build/test/aws-*",
         "test-google": "jest -w 2 build/test/unit-* build/test/google-*",
-        "test-pipeline": "DEBUG=faast:provider,faast:info jest -w 8 build/test/* && jest -w 8 build/test-slow/*",
+        "test-pipeline": "DEBUG=faast:provider,faast:info jest --colors --bail -w 1 build/test/* && jest -w 1 build/test-slow/*",
+        "test-pipeline-orig": "jest -w 8 build/test/* && jest -w 8 build/test-slow/*",
         "clean": "rm -rf build",
         "tslint": "tslint -p tsconfig.json"
     },

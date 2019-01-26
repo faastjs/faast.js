@@ -24,7 +24,8 @@ import {
     FactoryMap,
     roundTo100ms,
     sleep,
-    Statistics
+    Statistics,
+    truncate
 } from "./shared";
 import { Deferred, Funnel, Pump } from "./throttle";
 import { NonFunctionProperties, Unpacked } from "./types";
@@ -533,7 +534,10 @@ export class CloudFunction<
                         callId,
                         body: pending.serialized
                     };
-                    logProvider(`invoke %O`, invocation);
+                    logProvider(`invoke %O`, {
+                        ...invocation,
+                        body: truncate(invocation.body, 1024)
+                    });
                     this.impl
                         .invoke(this.state, invocation)
                         .catch(err => pending.reject(err))
