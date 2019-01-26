@@ -166,7 +166,3 @@ export function keys<O extends object>(obj: O): Array<keyof O> {
 export function defined<T>(arg: T | undefined | null | void): arg is T {
     return !!arg;
 }
-
-export function truncate(s: string, len: number) {
-    return s.length > len ? `${s.substr(0, len)}...` : s;
-}

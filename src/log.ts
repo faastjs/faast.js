@@ -10,11 +10,15 @@ export const logCalls = debug("faast:calls");
 export const logWebpack = debug("faast:webpack");
 export const logProvider = debug("faast:provider");
 
+function truncate(s: string, len: number) {
+    return s.length > len ? `${s.substr(0, len)}...` : s;
+}
+
 export function inspectProvider(o: object) {
     if (!logProvider.enabled) {
         return "";
     }
-    return inspect(o, false, 3).replace(/\n([ ]*)/g, `\n${String.fromCharCode(24)}$1`);
+    return truncate(inspect(o, false, 3).replace(/\n([ ]*)/g, `\n.$1`), 1024);
 }
 
 warn.enabled = true;
