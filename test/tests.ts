@@ -370,7 +370,7 @@ export function testMemoryLimit(
             lambda = await faastify(cloudProvider, funcs, "./functions", {
                 ...options,
                 timeout: 200,
-                memorySize: 256,
+                memorySize: 512,
                 maxRetries: 0,
                 gc: false
             });
@@ -397,7 +397,7 @@ export function testMemoryLimit(
         "out of memory error",
         async () => {
             expect.assertions(1);
-            const bytes = 256 * 1024 * 1024;
+            const bytes = 512 * 1024 * 1024;
             try {
                 await lambda.functions.allocate(bytes);
             } catch (err) {

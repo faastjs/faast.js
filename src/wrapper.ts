@@ -202,13 +202,19 @@ export class Wrapper {
             this.executing = true;
             this.verbose && this.log(`callingContext: ${inspect(callingContext)}`);
             const memoryUsage = process.memoryUsage();
+            const memInfo = inspect(memoryUsage, {
+                compact: true,
+                breakLength: Infinity
+            });
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
             if (this.options.childProcess) {
                 this.deferred = new Deferred();
                 if (!this.child) {
                     this.child = this.setupChildProcess();
                 }
-                this.log(`faast: invoking '${call.name}' in child process`);
+                this.log(
+                    `faast: invoking '${call.name}' in child process, memory: ${memInfo}`
+                );
                 this.child.send(call, err => {
                     if (err) {
                         logProvider(`child send error: rejecting deferred on ${err}`);
@@ -247,10 +253,6 @@ export class Wrapper {
                     this.deferred = undefined;
                 }
             } else {
-                const memInfo = inspect(memoryUsage, {
-                    compact: true,
-                    breakLength: Infinity
-                });
                 this.log(`faast: Invoking '${call.name}', memory: ${memInfo}`);
                 const func = this.lookupFunction(call);
                 if (!func) {
