@@ -509,9 +509,8 @@ export async function initialize(
         return state;
     } catch (err) {
         const newError = new Error("Could not initialize cloud function");
-        warn(`ERROR: ${newError}`);
         warn(`${newError.stack}`);
-        warn(`Underlying error: ${err}`);
+        warn(`Underlying error: ${err.stack}`);
         await cleanup(state, { deleteResources: true });
         throw err;
     }
