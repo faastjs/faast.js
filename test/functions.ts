@@ -109,6 +109,9 @@ export function processExit() {
 export async function allocate(bytes: number) {
     const array = new Array(bytes / 8);
     const elems = array.length;
+    for (let i = 0; i < elems; i++) {
+        array[i] = i;
+    }
     console.log(`allocated: %O`, { bytes, elems });
     console.log(`post allocate memory usage: %O`, process.memoryUsage());
     await sleep(1000);

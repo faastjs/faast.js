@@ -307,12 +307,16 @@ export class Wrapper {
             );
         }
 
-        const child = childProcess.fork("./index.js", [], {
+        const forkOptions: childProcess.ForkOptions = {
             silent: true, // redirects stdout and stderr to IPC.
             env: { ...process.env, FAAST_CHILD: "true" },
             cwd: this.options.childDir,
             execArgv
-        });
+        };
+
+        // logProvider(`childProcess.fork %O`, forkOptions);
+
+        const child = childProcess.fork("./index.js", [], forkOptions);
 
         child.stdout.setEncoding("utf8");
         child.stderr.setEncoding("utf8");
