@@ -160,13 +160,14 @@ async function pack(
 
 async function invoke(
     state: State,
-    request: Invocation
+    request: Invocation,
+    cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
     const {} = state;
     const startTime = Date.now();
     const wrapper = await state.getWrapper();
     const call: FunctionCall = JSON.parse(request.body);
-    const returned = await wrapper.execute({ call, startTime }, metrics =>
+    const promise = wrapper.execute({ call, startTime }, metrics =>
         state.queue.enqueue({
             kind: "cpumetrics",
             metrics,
@@ -174,6 +175,11 @@ async function invoke(
             elapsed: Date.now() - startTime
         })
     );
+    const returned = await Promise.race([promise, cancel]);
+    if (!returned) {
+        wrapper.stop();
+        return;
+    }
     return {
         kind: "response",
         body: returned,
@@ -187,11 +193,12 @@ async function publish(state: State, message: SendableMessage): Promise<void> {
     state.queue.enqueue(message);
 }
 
-async function poll(state: State): Promise<PollResult> {
-    const message = await state.queue.dequeue();
-    return {
-        Messages: [message]
-    };
+async function poll(state: State, cancel: Promise<void>): Promise<PollResult> {
+    let message = await Promise.race([state.queue.dequeue(), cancel]);
+    if (!message) {
+        return { Messages: [] };
+    }
+    return { Messages: [message] };
 }
 
 function responseQueueId(_state: State): string | void {}

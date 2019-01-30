@@ -16,6 +16,7 @@ import PubSubApi = pubsub_v1;
 
 import PubSubMessage = pubsub_v1.Schema$PubsubMessage;
 import { serializeReturn } from "../wrapper";
+import Axios from "axios";
 
 function pubsubMessageAttribute(message: PubSubMessage, attr: string) {
     const attributes = message && message.attributes;
@@ -24,22 +25,34 @@ function pubsubMessageAttribute(message: PubSubMessage, attr: string) {
 
 export async function receiveMessages(
     pubsub: PubSubApi.Pubsub,
-    responseSubscription: string,
-    metrics: GoogleMetrics
+    subscription: string,
+    metrics: GoogleMetrics,
+    cancel: Promise<void>
 ): Promise<PollResult> {
     // Does higher message batching lead to better throughput? 10 is the max that AWS SQS allows.
     const maxMessages = 10;
-    const response = await pubsub.projects.subscriptions.pull({
-        subscription: responseSubscription,
-        requestBody: { returnImmediately: false, maxMessages }
-    });
+    const source = Axios.CancelToken.source();
+    const request = pubsub.projects.subscriptions.pull(
+        {
+            subscription,
+            requestBody: { returnImmediately: false, maxMessages }
+        },
+        { cancelToken: source.token }
+    );
+
+    const response = await Promise.race([request, cancel]);
+    if (!response) {
+        source.cancel();
+        return { Messages: [] };
+    }
+
     metrics.outboundBytes += computeHttpResponseBytes(response.headers);
     metrics.pubSubBytes +=
         computeHttpResponseBytes(response.headers, { httpHeaders: false, min: 1024 }) * 2;
     const Messages = response.data.receivedMessages || [];
     if (Messages.length > 0) {
         pubsub.projects.subscriptions.acknowledge({
-            subscription: responseSubscription,
+            subscription: subscription,
             requestBody: {
                 ackIds: Messages.map(m => m.ackId || "").filter(m => m !== "")
             }

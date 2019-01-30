@@ -187,6 +187,7 @@ export class Wrapper {
             this.child!.disconnect();
             this.child!.kill();
             this.child = undefined;
+            this.executing = false;
         }
     }
 

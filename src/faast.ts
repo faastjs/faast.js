@@ -391,7 +391,7 @@ export class CloudFunction<
     protected funnel: Funnel<any>;
     protected skew = new ExponentiallyDecayingAverageValue(0.3);
     protected statsTimer?: NodeJS.Timer;
-    protected cleanupHooks: Set<() => void> = new Set();
+    protected cleanupHooks: Set<Deferred> = new Set();
     protected initialInvocationTime = new FactoryMap(() => Date.now());
     protected callResultsPending: Map<CallId, PendingRequest> = new Map();
     protected collectorPump: Pump<void>;
@@ -429,7 +429,7 @@ export class CloudFunction<
         this.stats.clear();
         this.memoryLeakDetector.clear();
         this.funnel.clear();
-        this.cleanupHooks.forEach(hook => hook());
+        this.cleanupHooks.forEach(hook => hook.resolve());
         this.cleanupHooks.clear();
         this.stopStats();
         this.initialInvocationTime.clear();
@@ -493,6 +493,14 @@ export class CloudFunction<
         return rv;
     }
 
+    protected withCancellation<T>(fn: (cancel: Promise<void>) => Promise<T>): Promise<T> {
+        const deferred = new Deferred();
+        this.cleanupHooks.add(deferred);
+        const promise = fn(deferred.promise);
+        promise.catch(() => {}).then(() => this.cleanupHooks.delete(deferred));
+        return promise;
+    }
+
     protected wrapFunctionWithResponse<A extends any[], R>(
         fn: (...args: A) => R
     ): ResponsifiedFunction<A, R> {
@@ -533,71 +541,63 @@ export class CloudFunction<
                         body: pending.serialized
                     };
                     logProvider(`invoke ${inspectProvider(invocation)}`);
-                    this.impl
-                        .invoke(this.state, invocation)
-                        .catch(err => pending.reject(err))
-                        .then(message => {
-                            if (message) {
-                                logProvider(
-                                    `invoke returned ${inspectProvider(message)}`
-                                );
-                                let returned = message.body;
-                                if (typeof returned === "string")
-                                    returned = JSON.parse(returned) as FunctionReturn;
-                                const response: FunctionReturnWithMetrics = {
-                                    ...returned,
-                                    callId,
-                                    rawResponse: message.rawResponse,
-                                    localRequestSentTime: pending.created,
-                                    localEndTime: Date.now()
-                                };
-                                pending.resolve(response);
-                            }
-                        });
+                    this.withCancellation(async cancel => {
+                        const message = await this.impl
+                            .invoke(this.state, invocation, cancel)
+                            .catch(err => pending.reject(err));
+                        if (message) {
+                            logProvider(`invoke returned ${inspectProvider(message)}`);
+                            let returned = message.body;
+                            if (typeof returned === "string")
+                                returned = JSON.parse(returned) as FunctionReturn;
+                            const response: FunctionReturnWithMetrics = {
+                                ...returned,
+                                callId,
+                                rawResponse: message.rawResponse,
+                                localRequestSentTime: pending.created,
+                                localEndTime: Date.now()
+                            };
+                            pending.resolve(response);
+                        }
+                    });
                 };
 
                 const fnStats = this.stats.fAggregate.getOrCreate(fn.name);
 
-                const addHook = (f: () => void) => this.cleanupHooks.add(f);
-                const clearHook = (f: () => void) => this.cleanupHooks.delete(f);
-
-                retryFunctionIfNeededToReduceTailLatency(
-                    () => Date.now() - initialInvocationTime,
-                    () =>
-                        Math.max(
-                            estimateTailLatency(
-                                fnStats,
-                                this.options.speculativeRetryThreshold
+                this.withCancellation(cancel =>
+                    retryFunctionIfNeededToReduceTailLatency(
+                        () => Date.now() - initialInvocationTime,
+                        () =>
+                            Math.max(
+                                estimateTailLatency(
+                                    fnStats,
+                                    this.options.speculativeRetryThreshold
+                                ),
+                                5000
                             ),
-                            5000
-                        ),
-                    async () => {
-                        invokeCloudFunction();
-                        await pending.promise;
-                    },
-                    shouldRetry,
-                    ms => sleep(ms, addHook).then(clearHook)
+                        async () => {
+                            invokeCloudFunction();
+                            await pending.promise;
+                        },
+                        shouldRetry,
+                        cancel
+                    )
                 );
 
-                const rv = await pending.promise
-                    .catch<FunctionReturnWithMetrics>(err => {
-                        logProvider(`invoke promise rejection: ${err}`);
-                        return {
-                            type: "error",
-                            callId,
-                            isErrorObject:
-                                typeof err === "object" && err instanceof Error,
-                            value: err,
-                            rawResponse: err,
-                            localEndTime: Date.now(),
-                            localRequestSentTime: pending.created
-                        };
-                    })
-                    .then(m => {
-                        this.callResultsPending.delete(m.callId);
-                        return m;
-                    });
+                const rv = await pending.promise.catch<FunctionReturnWithMetrics>(err => {
+                    logProvider(`invoke promise rejection: ${err}`);
+                    return {
+                        type: "error",
+                        callId,
+                        isErrorObject: typeof err === "object" && err instanceof Error,
+                        value: err,
+                        rawResponse: err,
+                        localEndTime: Date.now(),
+                        localRequestSentTime: pending.created
+                    };
+                });
 
+                this.callResultsPending.delete(rv.callId);
                 logCalls(`Returning '${fn.name}' (${callId}): ${util.inspect(rv)}`);
 
                 return processResponse<R>(
@@ -663,7 +663,9 @@ export class CloudFunction<
         }
 
         logProvider(`polling ${this.impl.responseQueueId(this.state)}`);
-        const pollResult = await this.impl.poll(this.state);
+        const pollResult = await this.withCancellation(cancel =>
+            this.impl.poll(this.state, cancel)
+        );
         logProvider(`poll returned ${inspectProvider(pollResult)}`);
         const { Messages, isFullMessageBatch } = pollResult;
         const localEndTime = Date.now();
@@ -843,10 +845,12 @@ async function retryFunctionIfNeededToReduceTailLatency(
     getTimeout: () => number,
     worker: () => Promise<void>,
     shouldRetry: () => boolean,
-    wait: (ms: number) => Promise<unknown>
+    cancel: Promise<void>
 ) {
     let pending = true;
     let lastInvocationTime: number = Date.now();
+
+    cancel.then(() => (pending = false));
 
     const doWork = async () => {
         lastInvocationTime = Date.now();
@@ -868,7 +872,7 @@ async function retryFunctionIfNeededToReduceTailLatency(
             }
         }
         const waitTime = roundTo100ms(Math.max(timeout - latency(), 5000));
-        await wait(waitTime);
+        await sleep(waitTime, cancel);
     }
 }
 

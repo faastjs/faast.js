@@ -411,8 +411,11 @@ export function exec(cmd: string) {
 async function callFunctionHttps(
     url: string,
     call: Invocation,
-    metrics: GoogleMetrics
-): Promise<ResponseMessage> {
+    metrics: GoogleMetrics,
+    cancel: Promise<void>
+): Promise<ResponseMessage | void> {
+    const source = Axios.CancelToken.source();
+
     const shouldRetry = (err: AxiosError) => {
         if (err.response) {
             const { status } = err.response;
@@ -423,11 +426,21 @@ async function callFunctionHttps(
 
     try {
         const axiosConfig: AxiosRequestConfig = {
-            headers: { "Content-Type": "text/plain" }
+            headers: { "Content-Type": "text/plain" },
+            cancelToken: source.token
         };
-        const rawResponse = await retry(shouldRetry, () => {
-            return Axios.put<string>(url!, call.body, axiosConfig);
-        });
+        const rawResponse = await Promise.race([
+            retry(shouldRetry, () => {
+                return Axios.put<string>(url!, call.body, axiosConfig);
+            }),
+            cancel
+        ]);
+
+        if (!rawResponse) {
+            info(`cancelling gcp invoke`);
+            source.cancel();
+            return;
+        }
         const returned: string = rawResponse.data;
         metrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
         return {
@@ -455,13 +468,17 @@ async function callFunctionHttps(
     }
 }
 
-async function invoke(state: State, call: Invocation): Promise<ResponseMessage | void> {
+async function invoke(
+    state: State,
+    call: Invocation,
+    cancel: Promise<void>
+): Promise<ResponseMessage | void> {
     const { options, resources, services, url, metrics } = state;
     switch (options.mode) {
         case "auto":
         case "https":
             // XXX Use response queue even with https mode?
-            return callFunctionHttps(url!, call, metrics);
+            return callFunctionHttps(url!, call, metrics, cancel);
         case "queue":
             const { requestQueueTopic } = resources;
             const { pubsub } = services;
@@ -479,11 +496,12 @@ async function publish(state: State, message: SendableMessage): Promise<void> {
     return publishResponseMessage(pubsub, queue, message);
 }
 
-function poll(state: State): Promise<PollResult> {
+function poll(state: State, cancel: Promise<void>): Promise<PollResult> {
     return receiveMessages(
         state.services.pubsub,
         state.resources.responseSubscription!,
-        state.metrics
+        state.metrics,
+        cancel
     );
 }
 

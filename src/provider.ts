@@ -169,8 +169,12 @@ export interface CloudFunctionImpl<O extends CommonOptions, S> {
 
     cleanup(state: S, options: Required<CleanupOptions>): Promise<void>;
     logUrl(state: S): string;
-    invoke(state: S, request: Invocation): Promise<ResponseMessage | void>;
+    invoke(
+        state: S,
+        request: Invocation,
+        cancel: Promise<void>
+    ): Promise<ResponseMessage | void>;
     publish(state: S, message: SendableMessage): Promise<void>;
-    poll(state: S): Promise<PollResult>;
+    poll(state: S, cancel: Promise<void>): Promise<PollResult>;
     responseQueueId(state: S): string | void;
 }

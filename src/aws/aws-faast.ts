@@ -516,13 +516,17 @@ export async function initialize(
     }
 }
 
-async function invoke(state: State, call: Invocation): Promise<ResponseMessage | void> {
+async function invoke(
+    state: State,
+    call: Invocation,
+    cancel: Promise<void>
+): Promise<ResponseMessage | void> {
     const { metrics, services, resources, options } = state;
     switch (options.mode) {
         case "https":
             const { lambda } = services;
             const { FunctionName } = resources;
-            return invokeHttps(lambda, FunctionName, call, metrics);
+            return invokeHttps(lambda, FunctionName, call, metrics, cancel);
         case "queue":
         case "auto":
             const { sns } = services;
@@ -539,11 +543,12 @@ function publish(state: State, message: SendableMessage): Promise<void> {
     return sendResponseQueueMessage(services.sqs, resources.ResponseQueueUrl!, message);
 }
 
-function poll(state: State): Promise<PollResult> {
+function poll(state: State, cancel: Promise<void>): Promise<PollResult> {
     return receiveMessages(
         state.services.sqs,
         state.resources.ResponseQueueUrl!,
-        state.metrics
+        state.metrics,
+        cancel
     );
 }
 
@@ -555,21 +560,28 @@ async function invokeHttps(
     lambda: aws.Lambda,
     FunctionName: string,
     message: Invocation,
-    metrics: AWSMetrics
-): Promise<ResponseMessage> {
-    let body: string | FunctionReturn;
-    let rawResponse: AWSInvocationResponse;
-
+    metrics: AWSMetrics,
+    cancel: Promise<void>
+): Promise<ResponseMessage | void> {
     const request: aws.Lambda.Types.InvocationRequest = {
         FunctionName,
         Payload: message.body,
         LogType: "None"
     };
-    const awsRequest = lambda.invoke(request);
-    rawResponse = await awsRequest.promise();
+    let awsRequest = lambda.invoke(request);
+    const rawResponse = await Promise.race([awsRequest.promise(), cancel]);
+    if (!rawResponse) {
+        info(`cancelling lambda invoke`);
+
+        awsRequest.abort();
+        return;
+    }
+
     if (rawResponse.LogResult) {
         info(Buffer.from(rawResponse.LogResult!, "base64").toString());
     }
+
+    let body: string | FunctionReturn;
     if (rawResponse.FunctionError) {
         const response = processAWSErrorMessage(rawResponse.Payload as string);
         body = {

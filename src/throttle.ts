@@ -1,12 +1,12 @@
 import * as assert from "assert";
 import { sleep } from "./shared";
-import { PromiseFn, Fn } from "./types";
+import { PromiseFn } from "./types";
 import { LocalCache } from "./cache";
 import { createHash } from "crypto";
 
 export class Deferred<T = void> {
     promise: Promise<T>;
-    resolve!: (arg?: T) => void;
+    resolve!: (arg: T) => void;
     reject!: (err?: any) => void;
     constructor() {
         this.promise = new Promise<T>((resolve, reject) => {

@@ -128,18 +128,24 @@ export function processAWSErrorMessage(message: string) {
 export async function receiveMessages(
     sqs: aws.SQS,
     ResponseQueueUrl: string,
-    metrics: AWSMetrics
+    metrics: AWSMetrics,
+    cancel: Promise<void>
 ): Promise<PollResult> {
     const MaxNumberOfMessages = 10;
-    const response = await sqs
-        .receiveMessage({
-            QueueUrl: ResponseQueueUrl!,
-            WaitTimeSeconds: 20,
-            MaxNumberOfMessages,
-            MessageAttributeNames: ["All"],
-            AttributeNames: ["SentTimestamp"]
-        })
-        .promise();
+    const request = sqs.receiveMessage({
+        QueueUrl: ResponseQueueUrl!,
+        WaitTimeSeconds: 20,
+        MaxNumberOfMessages,
+        MessageAttributeNames: ["All"],
+        AttributeNames: ["SentTimestamp"]
+    });
+
+    const response = await Promise.race([request.promise(), cancel]);
+    if (!response) {
+        request.abort();
+        return { Messages: [] };
+    }
+
     const { Messages = [] } = response;
     const { httpResponse } = response.$response;
     const receivedBytes = computeHttpResponseBytes(httpResponse.headers);

@@ -1,3 +1,5 @@
+import { info } from "./log";
+
 export class Statistics {
     samples = 0;
     max = Number.NEGATIVE_INFINITY;
@@ -72,15 +74,14 @@ export class ExponentiallyDecayingAverageValue {
     }
 }
 
-export function sleep(ms: number, callback: (cancel: () => void) => void = () => {}) {
-    return new Promise<() => void>(resolve => {
-        let timer: NodeJS.Timer;
-        const cancel = () => clearTimeout(timer);
-        timer = setTimeout(() => {
-            resolve(cancel);
-        }, ms);
-        callback(cancel);
-    });
+export function sleep(ms: number, cancel = new Promise<void>(() => {})) {
+    let id: NodeJS.Timer;
+    cancel.then(_ => clearTimeout(id)).catch(_ => clearTimeout(id));
+    return Promise.race([
+        new Promise(resolve => (id = setTimeout(resolve, ms))).then(() =>
+        ),
+        cancel
+    ]);
 }
 
 export function streamToBuffer(s: NodeJS.ReadableStream) {
