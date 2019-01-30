@@ -571,7 +571,7 @@ describe("throttle", () => {
     });
 });
 
-describe.only("async queue", () => {
+describe("async queue", () => {
     test("enqueue before dequeue", async () => {
         const q = new AsyncQueue<number>();
         q.enqueue(42);
