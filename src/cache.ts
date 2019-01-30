@@ -93,5 +93,6 @@ const days = 24 * 3600 * 1000;
 
 export const caches = {
     awsPackage: new LocalCache(".faast/aws/packages", 7 * days),
-    awsPrices: new LocalCache(".faast/aws/pricing", 1 * days)
+    awsPrices: new LocalCache(".faast/aws/pricing", 1 * days),
+    googlePrices: new LocalCache(".faast/google/pricing", 1 * days)
 };

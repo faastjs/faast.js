@@ -42,6 +42,7 @@ import * as googleTrampolineQueue from "./google-trampoline-queue";
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
+import { caches } from "../cache";
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -698,88 +699,98 @@ export async function pack(
     return packer(trampolineModule, functionModule, options);
 }
 
-const getGoogleCloudFunctionsPricing = throttle(
-    { concurrency: 1, rate: 1, retry: 3 },
-    async (
+const getGooglePrice = throttle(
+    { concurrency: 1, rate: 3, retry: 3, memoize: true, cache: caches.googlePrices },
+    async function(
         cloudBilling: CloudBilling.Cloudbilling,
-        region: string
-    ): Promise<GoogleCloudPricing> => {
+        region: string,
+        serviceName: string,
+        description: string,
+        conversionFactor: number
+    ) {
         try {
-            const services = await cloudBilling.services.list();
-            async function getPricing(
-                serviceName: string,
-                description: string,
-                conversionFactor: number = 1
-            ) {
-                try {
-                    const service = services.data.services!.find(
-                        s => s.displayName === serviceName
-                    )!;
-                    const skusResponse = await cloudBilling.services.skus.list({
-                        parent: service.name
-                    });
-                    const { skus = [] } = skusResponse.data;
-                    const matchingSkus = skus.filter(
-                        sku => sku.description === description
-                    );
-                    logPricing(
-                        `matching SKUs: ${util.inspect(matchingSkus, { depth: null })}`
-                    );
+            const skusResponse = await cloudBilling.services.skus.list({
+                parent: serviceName
+            });
+            const { skus = [] } = skusResponse.data;
+            const matchingSkus = skus.filter(sku => sku.description === description);
+            logPricing(`matching SKUs: ${util.inspect(matchingSkus, { depth: null })}`);
 
-                    const regionOrGlobalSku =
-                        matchingSkus.find(sku => sku.serviceRegions![0] === region) ||
-                        matchingSkus.find(sku => sku.serviceRegions![0] === "global");
+            const regionOrGlobalSku =
+                matchingSkus.find(sku => sku.serviceRegions![0] === region) ||
+                matchingSkus.find(sku => sku.serviceRegions![0] === "global");
 
-                    const pexp = regionOrGlobalSku!.pricingInfo![0].pricingExpression!;
-                    const prices = pexp.tieredRates!.map(
-                        rate =>
-                            Number(rate.unitPrice!.units || "0") +
-                            rate.unitPrice!.nanos! / 1e9
-                    );
-                    const price =
-                        Math.max(...prices) *
-                        (conversionFactor / pexp.baseUnitConversionFactor!);
-                    logPricing(
-                        `Found price for ${serviceName}, ${description}, ${region}: ${price}`
-                    );
-                    return price;
-                } catch (err) {
-                    warn(
-                        `Could not get Google Cloud Functions pricing for '${description}'`
-                    );
-                    warn(err);
-                    return 0;
-                }
-            }
-
-            return {
-                perInvocation: await getPricing("Cloud Functions", "Invocations"),
-                perGhzSecond: await getPricing("Cloud Functions", "CPU Time"),
-                perGbSecond: await getPricing("Cloud Functions", "Memory Time", 2 ** 30),
-                perGbOutboundData: await getPricing(
-                    "Cloud Functions",
-                    `Network Egress from ${region}`,
-                    2 ** 30
-                ),
-                perGbPubSub: await getPricing(
-                    "Cloud Pub/Sub",
-                    "Message Delivery Basic",
-                    2 ** 30
-                )
-            };
+            const pexp = regionOrGlobalSku!.pricingInfo![0].pricingExpression!;
+            const prices = pexp.tieredRates!.map(
+                rate =>
+                    Number(rate.unitPrice!.units || "0") + rate.unitPrice!.nanos! / 1e9
+            );
+            const price =
+                Math.max(...prices) * (conversionFactor / pexp.baseUnitConversionFactor!);
+            logPricing(
+                `Found price for ${serviceName}, ${description}, ${region}: ${price}`
+            );
+            return price;
         } catch (err) {
-            warn(`Could not get Google Cloud Functions pricing`);
+            warn(`Could not get Google Cloud Functions pricing for '${description}'`);
             warn(err);
-            return {
-                perInvocation: 0,
-                perGhzSecond: 0,
-                perGbSecond: 0,
-                perGbOutboundData: 0,
-                perGbPubSub: 0
-            };
+            return 0;
         }
     }
 );
+
+async function getGoogleCloudFunctionsPricing(
+    cloudBilling: CloudBilling.Cloudbilling,
+    region: string
+): Promise<GoogleCloudPricing> {
+    try {
+        const services = await cloudBilling.services.list();
+
+        const getPricing = (
+            serviceName: string,
+            description: string,
+            conversionFactor: number = 1
+        ) => {
+            const service = services.data.services!.find(
+                s => s.displayName === serviceName
+            )!;
+
+            return getGooglePrice(
+                cloudBilling,
+                region,
+                service.name!,
+                description,
+                conversionFactor
+            );
+        };
+
+        return {
+            perInvocation: await getPricing("Cloud Functions", "Invocations"),
+            perGhzSecond: await getPricing("Cloud Functions", "CPU Time"),
+            perGbSecond: await getPricing("Cloud Functions", "Memory Time", 2 ** 30),
+            perGbOutboundData: await getPricing(
+                "Cloud Functions",
+                `Network Egress from ${region}`,
+                2 ** 30
+            ),
+            perGbPubSub: await getPricing(
+                "Cloud Pub/Sub",
+                "Message Delivery Basic",
+                2 ** 30
+            )
+        };
+    } catch (err) {
+        warn(`Could not get Google Cloud Functions pricing`);
+        warn(err);
+        return {
+            perInvocation: 0,
+            perGhzSecond: 0,
+            perGbSecond: 0,
+            perGbOutboundData: 0,
+            perGbPubSub: 0
+        };
+    }
+}
 
 // https://cloud.google.com/functions/pricing
 const gcfProvisonableMemoryTable: { [mem: number]: number } = {
