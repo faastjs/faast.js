@@ -148,7 +148,7 @@ export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
         rv.push({
             cloudProvider: "aws",
             repetitions: 10,
-            options: { mode: "https", memorySize, timeout: 300 },
+            options: { mode: "https", memorySize, timeout: 300, gc: false },
             repetitionConcurrency: 10
         });
     }
@@ -161,7 +161,7 @@ export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
         rv.push({
             cloudProvider: "google",
             repetitions: 10,
-            options: { mode: "https", memorySize, timeout: 300 },
+            options: { mode: "https", memorySize, timeout: 300, gc: false },
             repetitionConcurrency: 10
         });
     }
