@@ -122,7 +122,7 @@ export class CostBreakdown {
 export type Options = CommonOptions | aws.Options | google.Options;
 
 export interface CostAnalyzerConfiguration {
-    cloudProvider: "aws" | "google";
+    provider: "aws" | "google";
     repetitions: number;
     options: Options;
     repetitionConcurrency: number;
@@ -146,7 +146,7 @@ export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
     const rv: CostAnalyzerConfiguration[] = [];
     for (const memorySize of AWSLambdaMemorySizes) {
         rv.push({
-            cloudProvider: "aws",
+            provider: "aws",
             repetitions: 10,
             options: { mode: "https", memorySize, timeout: 300, gc: false },
             repetitionConcurrency: 10
@@ -159,7 +159,7 @@ export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
     const rv: CostAnalyzerConfiguration[] = [];
     for (const memorySize of GoogleCloudFunctionsMemorySizes) {
         rv.push({
-            cloudProvider: "google",
+            provider: "google",
             repetitions: 10,
             options: { mode: "https", memorySize, timeout: 300, gc: false },
             repetitionConcurrency: 10
@@ -169,7 +169,7 @@ export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
 })();
 
 export interface CostAnalysisProfile<K extends string> {
-    cloudProvider: string;
+    provider: string;
     options: Options;
     costEstimate: CostBreakdown;
     stats: FunctionStats;
@@ -206,8 +206,8 @@ async function estimate<T, K extends string>(
     workload: Workload<T, K>,
     config: CostAnalyzerConfiguration
 ): Promise<CostAnalysisProfile<K>> {
-    const { cloudProvider, repetitions, options, repetitionConcurrency } = config;
-    const cloudFunc = await faastify(cloudProvider, require(fmodule), fmodule, options);
+    const { provider, repetitions, options, repetitionConcurrency } = config;
+    const cloudFunc = await faastify(provider, require(fmodule), fmodule, options);
     const doWork = throttle({ concurrency: repetitionConcurrency }, workload.work);
     const results: Promise<Metrics<K> | void>[] = [];
     for (let i = 0; i < repetitions; i++) {
@@ -221,7 +221,7 @@ async function estimate<T, K extends string>(
     let summarize = workload.summarize || summarizeMean;
     const metrics = summarize(rv);
     return {
-        cloudProvider,
+        provider,
         options: cloudFunc.options,
         costEstimate,
         stats,
@@ -257,11 +257,11 @@ export async function estimateWorkloadCost<T, K extends string>(
 
     const list = new Listr(
         promises.map((promise, i) => {
-            const { cloudProvider, repetitions, options } = configurations[i];
+            const { provider, repetitions, options } = configurations[i];
             const { memorySize, mode } = options;
 
             return {
-                title: `${cloudProvider} ${memorySize}MB ${mode}`,
+                title: `${provider} ${memorySize}MB ${mode}`,
                 task: async (_: any, task: Listr.ListrTaskWrapper) => {
                     const est = await promise;
                     const total = (est.costEstimate.total() / repetitions).toFixed(8);
@@ -318,7 +318,7 @@ export function toCSV<K extends string>(
         }
 
         const row = {
-            cloud: r.cloudProvider,
+            cloud: r.provider,
             memory: memorySize,
             mode: mode,
             options: options,

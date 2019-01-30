@@ -768,40 +768,40 @@ export class LocalFunction<M extends object = object> extends CloudFunction<
     local.State
 > {}
 
-export type CloudProvider = "aws" | "google" | "google-emulator" | "local";
+export type Provider = "aws" | "google" | "google-emulator" | "local";
 
 export function faastify<M extends object>(
-    cloudName: "aws",
+    provider: "aws",
     fmodule: M,
     modulePath: string,
     options?: aws.Options
 ): Promise<CloudFunction<M, aws.Options, aws.State>>;
 export function faastify<M extends object>(
-    cloudName: "google" | "google-emulator",
+    provider: "google" | "google-emulator",
     fmodule: M,
     modulePath: string,
     options?: google.Options
 ): Promise<CloudFunction<M, google.Options, google.State>>;
 export function faastify<M extends object>(
-    cloudName: "local",
+    provider: "local",
     fmodule: M,
     modulePath: string,
     options?: local.Options
 ): Promise<CloudFunction<M, local.Options, local.State>>;
 export function faastify<M extends object, S>(
-    cloudName: CloudProvider,
+    provider: Provider,
     fmodule: M,
     modulePath: string,
     options?: CommonOptions
 ): Promise<CloudFunction<M, CommonOptions, S>>;
 export async function faastify<M extends object, O extends CommonOptions, S>(
-    cloudProvider: CloudProvider,
+    provider: Provider,
     fmodule: M,
     modulePath: string,
     options?: O
 ): Promise<CloudFunction<M, O, S>> {
     let impl: any;
-    switch (cloudProvider) {
+    switch (provider) {
         case "aws":
             impl = aws.Impl;
             break;
@@ -815,7 +815,7 @@ export async function faastify<M extends object, O extends CommonOptions, S>(
             impl = local.Impl;
             break;
         default:
-            throw new Error(`Unknown cloud provider option '${cloudProvider}'`);
+            throw new Error(`Unknown cloud provider option '${provider}'`);
     }
     return createFunction<M, O, S>(fmodule, modulePath, impl, options);
 }

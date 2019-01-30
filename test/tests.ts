@@ -7,29 +7,29 @@ import { faastify } from "../src/faast";
 import { createWriteStream, rmrf, stat } from "../src/fs";
 import { info, stats, warn, logGc } from "../src/log";
 import { unzipInDir } from "../src/packer";
-import { sleep, keys } from "../src/shared";
+import { sleep, keys, Statistics } from "../src/shared";
 import { Pump } from "../src/throttle";
 import * as funcs from "./functions";
 import { Fn } from "../src/types";
 import { CloudFunctionImpl, CommonOptions } from "../src/provider";
 
 export function testFunctions(
-    cloudProvider: "aws",
+    provider: "aws",
     options: awsFaast.Options,
     initTimeout?: number
 ): void;
 export function testFunctions(
-    cloudProvider: "local",
+    provider: "local",
     options: faast.local.Options,
     initTimeout?: number
 ): void;
 export function testFunctions(
-    cloudProvider: faast.CloudProvider,
+    provider: faast.Provider,
     options: CommonOptions,
     initTimeout?: number
 ): void;
 export function testFunctions(
-    cloudProvider: faast.CloudProvider,
+    provider: faast.Provider,
     options: CommonOptions,
     initTimeout = 60 * 1000
 ): void {
@@ -40,7 +40,7 @@ export function testFunctions(
         try {
             const start = Date.now();
             const opts = { timeout: 30, memorySize: 512, gc: false, ...options };
-            cloudFunc = await faastify(cloudProvider, funcs, "./functions", opts);
+            cloudFunc = await faastify(provider, funcs, "./functions", opts);
             remote = cloudFunc.functions;
             info(`Function creation took ${((Date.now() - start) / 1000).toFixed(1)}s`);
         } catch (err) {
@@ -166,10 +166,7 @@ export function testCodeBundle<O, S>(
     );
 }
 
-export function testCosts(
-    cloudProvider: faast.CloudProvider,
-    options: CommonOptions = {}
-) {
+export function testCosts(provider: faast.Provider, options: CommonOptions = {}) {
     let cloudFunc: faast.CloudFunction<typeof funcs>;
 
     beforeAll(async () => {
@@ -179,7 +176,7 @@ export function testCosts(
             mode: "queue",
             gc: false
         };
-        cloudFunc = await faastify(cloudProvider, funcs, "./functions", {
+        cloudFunc = await faastify(provider, funcs, "./functions", {
             ...args,
             ...options
         });
@@ -223,7 +220,7 @@ export function testCosts(
 }
 
 export function testRampUp(
-    cloudProvider: faast.CloudProvider,
+    provider: faast.Provider,
     concurrency: number,
     options?: CommonOptions
 ) {
@@ -231,7 +228,7 @@ export function testRampUp(
 
     beforeAll(async () => {
         try {
-            lambda = await faastify(cloudProvider, funcs, "./functions", {
+            lambda = await faastify(provider, funcs, "./functions", {
                 gc: false,
                 ...options,
                 concurrency
@@ -280,7 +277,7 @@ export function testRampUp(
 }
 
 export function testThroughput(
-    cloudProvider: faast.CloudProvider,
+    provider: faast.Provider,
     duration: number,
     concurrency: number = 500,
     options?: CommonOptions
@@ -289,7 +286,7 @@ export function testThroughput(
 
     beforeAll(async () => {
         try {
-            lambda = await faastify(cloudProvider, funcs, "./functions", {
+            lambda = await faastify(provider, funcs, "./functions", {
                 gc: false,
                 ...options
             });
@@ -325,12 +322,12 @@ export function testThroughput(
     );
 }
 
-export function testTimeout(cloudProvider: faast.CloudProvider, options?: CommonOptions) {
+export function testTimeout(provider: faast.Provider, options?: CommonOptions) {
     let lambda: faast.CloudFunction<typeof funcs>;
 
     beforeAll(async () => {
         try {
-            lambda = await faastify(cloudProvider, funcs, "./functions", {
+            lambda = await faastify(provider, funcs, "./functions", {
                 ...options,
                 timeout: 2,
                 maxRetries: 0,
@@ -359,15 +356,12 @@ export function testTimeout(cloudProvider: faast.CloudProvider, options?: Common
     );
 }
 
-export function testMemoryLimit(
-    cloudProvider: faast.CloudProvider,
-    options?: CommonOptions
-) {
+export function testMemoryLimit(provider: faast.Provider, options?: CommonOptions) {
     let lambda: faast.CloudFunction<typeof funcs>;
 
     beforeAll(async () => {
         try {
-            lambda = await faastify(cloudProvider, funcs, "./functions", {
+            lambda = await faastify(provider, funcs, "./functions", {
                 ...options,
                 timeout: 200,
                 memorySize: 512,
@@ -408,15 +402,12 @@ export function testMemoryLimit(
     );
 }
 
-export function testCpuMetrics(
-    cloudProvider: faast.CloudProvider,
-    options?: CommonOptions
-) {
+export function testCpuMetrics(provider: faast.Provider, options?: CommonOptions) {
     let lambda: faast.CloudFunction<typeof funcs>;
 
     beforeAll(async () => {
         try {
-            lambda = await faastify(cloudProvider, funcs, "./functions", {
+            lambda = await faastify(provider, funcs, "./functions", {
                 childProcess: true,
                 timeout: 30,
                 memorySize: 512,
@@ -444,7 +435,26 @@ export function testCpuMetrics(
         const usage = lambda.cpuUsage.get("spin");
         expect(usage).toBeDefined();
         expect(usage!.size).toBeGreaterThan(0);
+        expect(usage!.get(1)!.stime).toBeInstanceOf(Statistics);
+        expect(usage!.get(1)!.utime).toBeInstanceOf(Statistics);
     }, 15000);
+}
+
+export function testCancellation(provider: faast.Provider, options?: CommonOptions) {
+    test(
+        "cleanup waits for all child processes to exit",
+        async () => {
+            const cloudFunc = await faastify(provider, funcs, "./functions", {
+                ...options,
+                childProcess: true
+            });
+            cloudFunc.functions.spin(10000).catch(_ => {});
+            await sleep(1000);
+            await cloudFunc.cleanup();
+            // XXX use async hooks to determine if any hooks remain after cleanup.
+        },
+        120 * 1000
+    );
 }
 
 export function quietly<T>(p: Promise<T>) {
