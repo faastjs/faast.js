@@ -404,10 +404,10 @@ export function testCancellation(provider: faast.Provider, options?: CommonOptio
                 gc: false
             });
             cloudFunc.functions.spin(10000).catch(_ => {});
-            await sleep(100); // wait until the request actually starts
+            await sleep(500); // wait until the request actually starts
             await cloudFunc.cleanup();
             stopAsyncTracing();
-            await sleep(0);
+            await sleep(500);
             const leaks = detectAsyncLeaks();
             expect(leaks).toEqual([]);
         },
