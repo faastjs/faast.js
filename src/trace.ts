@@ -1,5 +1,6 @@
 import * as asyncHooks from "async_hooks";
 import * as util from "util";
+import { inspect } from "util";
 
 let hook: () => void | undefined;
 
@@ -20,21 +21,28 @@ const asyncObjects: Map<number, AsyncObject> = new Map();
 const objectMapping: Map<object, AsyncObject> = new Map();
 
 export function startAsyncTracing() {
-    console.log(`Starting tracing`);
     hook = onAsyncHook();
 }
 
-export function trace(obj: object) {
+interface Trace {
+    obj: object;
+    trace: string;
+}
+
+export function trace(obj: object): Trace | void {
     let res = objectMapping.get(obj);
     if (!res) {
-        console.log(`trace: object not found: ${util.inspect(obj)}`);
+        // console.log(`trace: object not found: ${util.inspect(obj)}`);
         return;
     }
+    let trace = `== Tracing leaked object ${res.asyncId} ==`;
     while (res) {
         const { stack, ...rest } = res;
-        console.log(`%O\n${stack}`, rest);
+        trace += `${inspect(rest)}\n${stack}`;
         res = asyncObjects.get(res.triggerId);
     }
+    console.log(trace);
+    return { obj, trace };
 }
 
 export function printAsyncStack() {
@@ -47,19 +55,19 @@ export function printAsyncStack() {
     }
 }
 
-export function detectAsyncLeaks() {
-    console.log(`=== Handles ===`);
+export function detectAsyncLeaks(): object[] {
+    const leaks: Trace[] = [];
     (process as any)._getActiveHandles().forEach((h: object) => {
         if (h !== process.stdout && h !== process.stderr) {
-            console.log(`== Tracing handle object ==`);
-            trace(h);
+            const leak = trace(h);
+            leak && leaks.push(leak);
         }
     });
-    console.log(`=== Requests ===`);
     (process as any)._getActiveRequests().forEach((h: object) => {
-        console.log(`== Tracing request object ==`);
-        trace(h);
+        const leak = trace(h);
+        leak && leaks.push(leak);
     });
+    return leaks;
 }
 
 export function printHooks() {
@@ -97,7 +105,7 @@ export function onAsyncHook() {
             state: "init",
             startedCount: 0,
             finishedCount: 0,
-            stack: new Error().stack
+            stack: new Error("stack:").stack!.replace(/Error:/, "")
         };
         asyncObjects.set(asyncId, obj);
         objectMapping.set(resource, obj);

@@ -2,7 +2,13 @@ import { URL } from "url";
 import { faastify, local } from "../src/faast";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
-import { testFunctions, testMemoryLimit, testTimeout, testCpuMetrics } from "./tests";
+import {
+    testFunctions,
+    testMemoryLimit,
+    testTimeout,
+    testCpuMetrics,
+    testCancellation
+} from "./tests";
 import { readFile } from "../src/fs";
 import { measureConcurrency } from "./util";
 
@@ -185,5 +191,9 @@ describe("faast.js local mode", () => {
         expect(cloudFunc.state.wrappers.length).toBe(1);
         await cloudFunc.cleanup();
         expect(cloudFunc.state.wrappers.length).toBe(0);
+    });
+
+    describe("cancellation", () => {
+        testCancellation("local");
     });
 });

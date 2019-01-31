@@ -12,6 +12,7 @@ import { Pump } from "../src/throttle";
 import * as funcs from "./functions";
 import { Fn } from "../src/types";
 import { CloudFunctionImpl, CommonOptions } from "../src/provider";
+import { startAsyncTracing, stopAsyncTracing, detectAsyncLeaks } from "../src/trace";
 
 export function testFunctions(
     provider: "aws",
@@ -444,6 +445,8 @@ export function testCancellation(provider: faast.Provider, options?: CommonOptio
     test(
         "cleanup waits for all child processes to exit",
         async () => {
+            await sleep(0);
+            startAsyncTracing();
             const cloudFunc = await faastify(provider, funcs, "./functions", {
                 ...options,
                 childProcess: true
@@ -451,7 +454,10 @@ export function testCancellation(provider: faast.Provider, options?: CommonOptio
             cloudFunc.functions.spin(10000).catch(_ => {});
             await sleep(1000);
             await cloudFunc.cleanup();
-            // XXX use async hooks to determine if any hooks remain after cleanup.
+            stopAsyncTracing();
+            await sleep(0);
+            const leaks = detectAsyncLeaks();
+            expect(leaks).toEqual([]);
         },
         120 * 1000
     );
