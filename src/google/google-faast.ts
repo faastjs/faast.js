@@ -55,7 +55,6 @@ export interface GoogleResources {
     requestQueueTopic?: string;
     responseQueueTopic?: string;
     responseSubscription?: string;
-    isEmulator: boolean;
     region: string;
 }
 
@@ -103,7 +102,7 @@ export const defaults: Required<Options> = {
 };
 
 export const Impl: CloudFunctionImpl<Options, State> = {
-    provider: "google",
+    name: "google",
     initialize,
     pack,
     defaults,
@@ -116,20 +115,13 @@ export const Impl: CloudFunctionImpl<Options, State> = {
     responseQueueId
 };
 
-export const EmulatorImpl: CloudFunctionImpl<Options, State> = {
-    ...Impl,
-    initialize: initializeEmulator
-};
-
-export async function initializeGoogleServices({ useEmulator = false } = {}): Promise<
-    GoogleServices
-> {
+export async function initializeGoogleServices(): Promise<GoogleServices> {
     const auth = await google.auth.getClient({
         scopes: ["https://www.googleapis.com/auth/cloud-platform"]
     });
     google.options({ auth });
     return {
-        cloudFunctions: useEmulator ? await getEmulator() : google.cloudfunctions("v1"),
+        cloudFunctions: google.cloudfunctions("v1"),
         pubsub: google.pubsub("v1"),
         cloudBilling: google.cloudbilling("v1"),
         google
@@ -224,44 +216,9 @@ export async function initialize(
     nonce: UUID,
     options: Required<Options>
 ): Promise<State> {
+    info(`Create google cloud function`);
     const services = await initializeGoogleServices();
     const project = await google.auth.getProjectId();
-    return initializeWithApi(services, fmodule, nonce, options, project, false);
-}
-
-async function getEmulator(): Promise<CloudFunctions.Cloudfunctions> {
-    exec("functions start");
-    const output = exec(`functions status`);
-    const rest = output.match(/REST Service\s+│\s+(http:\/\/localhost:\S+)/);
-    if (!rest || !rest[1]) {
-        throw new Error("Could not find cloud functions service REST url");
-    }
-    const url = rest[1];
-    const DISCOVERY_URL = `${url}$discovery/rest?version=v1`;
-    info(`DISCOVERY_URL: ${DISCOVERY_URL}`);
-    const emulator = await google.discoverAPI(DISCOVERY_URL);
-    return emulator as any;
-}
-
-export async function initializeEmulator(
-    fmodule: string,
-    nonce: UUID,
-    options: Required<Options>
-) {
-    const services = await initializeGoogleServices({ useEmulator: true });
-    const project = await google.auth.getProjectId();
-    return initializeWithApi(services, fmodule, nonce, options, project, true);
-}
-
-async function initializeWithApi(
-    services: GoogleServices,
-    serverModule: string,
-    nonce: UUID,
-    options: Required<Options>,
-    project: string,
-    isEmulator: boolean
-): Promise<State> {
-    info(`Create cloud function`);
     const { cloudFunctions, pubsub } = services;
     const { region } = options;
 
@@ -269,7 +226,7 @@ async function initializeWithApi(
     const location = `projects/${project}/locations/${region}`;
 
     async function createCodeBundle() {
-        const { archive } = await pack(serverModule, options);
+        const { archive } = await pack(fmodule, options);
         const uploadUrlResponse = await carefully(
             cloudFunctions.projects.locations.functions.generateUploadUrl({
                 parent: location
@@ -285,7 +242,6 @@ async function initializeWithApi(
 
     const resources: Mutable<GoogleResources> = {
         trampoline,
-        isEmulator,
         region
     };
     const state: State = {
@@ -520,7 +476,6 @@ async function deleteResources(
         requestQueueTopic,
         responseSubscription,
         responseQueueTopic,
-        isEmulator,
         region,
         ...rest
     } = resources;
@@ -597,7 +552,6 @@ async function collectGarbage(
                 const { region, name, project } = parseFunctionName(fn.name!)!;
 
                 const resources: GoogleResources = {
-                    isEmulator: false,
                     region,
                     trampoline: fn.name!,
                     requestQueueTopic: getRequestQueueTopic(project, name),

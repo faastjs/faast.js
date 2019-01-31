@@ -33,6 +33,12 @@ import Module = require("module");
 
 export { aws, google, local, costAnalyzer };
 
+export const _providers: Array<[string, CloudFunctionImpl<any, any>]> = [
+    ["aws", aws.Impl],
+    ["google", google.Impl],
+    ["local", local.Impl]
+];
+
 export class FaastError extends Error {
     logUrl?: string;
     constructor(errObj: any, logUrl?: string) {
@@ -382,7 +388,7 @@ export class CloudFunction<
     O extends CommonOptions = CommonOptions,
     S = any
 > extends EventEmitter {
-    cloudName = this.impl.provider;
+    cloudName = this.impl.name;
     counters = new FunctionCountersMap();
     stats = new FunctionStatsMap();
     functions: Promisified<M>;
@@ -405,7 +411,7 @@ export class CloudFunction<
     ) {
         super();
         info(`Node version: ${process.version}`);
-        logProvider(`name: ${this.impl.provider}`);
+        logProvider(`name: ${this.impl.name}`);
         logProvider(`responseQueueId: ${this.impl.responseQueueId(state)}`);
         logProvider(`logUrl: ${this.impl.logUrl(state)}`);
         info(`Log url: ${impl.logUrl(state)}`);
@@ -768,7 +774,7 @@ export class LocalFunction<M extends object = object> extends CloudFunction<
     local.State
 > {}
 
-export type Provider = "aws" | "google" | "google-emulator" | "local";
+export type Provider = "aws" | "google" | "local";
 
 export function faastify<M extends object>(
     provider: "aws",
@@ -777,7 +783,7 @@ export function faastify<M extends object>(
     options?: aws.Options
 ): Promise<CloudFunction<M, aws.Options, aws.State>>;
 export function faastify<M extends object>(
-    provider: "google" | "google-emulator",
+    provider: "google",
     fmodule: M,
     modulePath: string,
     options?: google.Options
@@ -807,9 +813,6 @@ export async function faastify<M extends object, O extends CommonOptions, S>(
             break;
         case "google":
             impl = google.Impl;
-            break;
-        case "google-emulator":
-            impl = google.EmulatorImpl;
             break;
         case "local":
             impl = local.Impl;

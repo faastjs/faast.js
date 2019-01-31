@@ -153,7 +153,7 @@ export let defaults: Required<Options> = {
 };
 
 export const Impl: CloudFunctionImpl<Options, State> = {
-    provider: "aws",
+    name: "aws",
     initialize,
     pack,
     defaults,

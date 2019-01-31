@@ -154,7 +154,7 @@ declare const UUID: unique symbol;
 export type UUID = Opaque<string, typeof UUID>;
 
 export interface CloudFunctionImpl<O extends CommonOptions, S> {
-    provider: string;
+    name: string;
     defaults: Required<O>;
 
     initialize(serverModule: string, nonce: UUID, options: Required<O>): Promise<S>;

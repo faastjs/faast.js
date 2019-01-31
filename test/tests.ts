@@ -1,18 +1,13 @@
-import * as sys from "child_process";
-import * as path from "path";
-import { PassThrough } from "stream";
 import * as awsFaast from "../src/aws/aws-faast";
 import * as faast from "../src/faast";
 import { faastify } from "../src/faast";
-import { createWriteStream, rmrf, stat } from "../src/fs";
-import { info, stats, warn, logGc } from "../src/log";
-import { unzipInDir } from "../src/packer";
-import { sleep, keys, Statistics } from "../src/shared";
+import { info, logGc, stats, warn } from "../src/log";
+import { CommonOptions } from "../src/provider";
+import { keys, sleep, Statistics } from "../src/shared";
 import { Pump } from "../src/throttle";
-import * as funcs from "./functions";
+import { detectAsyncLeaks, startAsyncTracing, stopAsyncTracing } from "../src/trace";
 import { Fn } from "../src/types";
-import { CloudFunctionImpl, CommonOptions } from "../src/provider";
-import { startAsyncTracing, stopAsyncTracing, detectAsyncLeaks } from "../src/trace";
+import * as funcs from "./functions";
 
 export function testFunctions(
     provider: "aws",
@@ -121,50 +116,6 @@ export function testFunctions(
         expect(await remote.optionalArg()).toBe("No arg");
         expect(await remote.optionalArg("has arg")).toBe("has arg");
     });
-}
-
-function exec(cmd: string) {
-    const result = sys.execSync(cmd).toString();
-    info(result);
-    return result;
-}
-
-export function testCodeBundle<O, S>(
-    cloud: CloudFunctionImpl<O, S>,
-    packageType: string,
-    maxZipFileSize?: number,
-    options?: O,
-    expectations?: (root: string) => void
-) {
-    test(
-        "package zip file",
-        async () => {
-            const identifier = `func-${cloud.provider}-${packageType}`;
-            const tmpDir = path.join("tmp", identifier);
-            exec(`mkdir -p ${tmpDir}`);
-
-            const { archive } = await cloud.pack(require.resolve("./functions"), options);
-
-            const stream1 = archive.pipe(new PassThrough());
-            const stream2 = archive.pipe(new PassThrough());
-
-            const zipFile = path.join("tmp", identifier + ".zip");
-            stream2.pipe(createWriteStream(zipFile));
-            const writePromise = new Promise(resolve => stream2.on("end", resolve));
-
-            await rmrf(tmpDir);
-            const unzipPromise = unzipInDir(tmpDir, stream1);
-
-            await Promise.all([writePromise, unzipPromise]);
-            const bytes = (await stat(zipFile)).size;
-            maxZipFileSize && expect(bytes).toBeLessThan(maxZipFileSize);
-            expect(exec(`cd ${tmpDir} && node index.js`)).toMatch(
-                "faast: successful cold start."
-            );
-            expectations && expectations(tmpDir);
-        },
-        30 * 1000
-    );
 }
 
 export function testCosts(provider: faast.Provider, options: CommonOptions = {}) {
@@ -445,14 +396,15 @@ export function testCancellation(provider: faast.Provider, options?: CommonOptio
     test(
         "cleanup waits for all child processes to exit",
         async () => {
-            await sleep(0);
+            await sleep(0); // wait until jest sets its timeout so it doesn't get picked up by async_hooks.
             startAsyncTracing();
             const cloudFunc = await faastify(provider, funcs, "./functions", {
                 ...options,
-                childProcess: true
+                childProcess: true,
+                gc: false
             });
             cloudFunc.functions.spin(10000).catch(_ => {});
-            await sleep(1000);
+            await sleep(100); // wait until the request actually starts
             await cloudFunc.cleanup();
             stopAsyncTracing();
             await sleep(0);
@@ -526,7 +478,6 @@ export async function getGoogleResources(func: faast.GoogleCloudFunction) {
     const { cloudFunctions, pubsub } = func.state.services;
     const {
         trampoline,
-        isEmulator,
         requestQueueTopic,
         responseQueueTopic,
         responseSubscription,

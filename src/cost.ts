@@ -1,6 +1,6 @@
 import * as Listr from "listr";
 import { inspect } from "util";
-import { aws, faastify, google, Promisified } from "./faast";
+import { faastify, Promisified, aws, google } from "./faast";
 import { FunctionCounters, FunctionStats, CommonOptions } from "./provider";
 import { f1, keys, Statistics, sum } from "./shared";
 import { throttle } from "./throttle";

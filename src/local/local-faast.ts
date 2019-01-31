@@ -53,7 +53,7 @@ export const defaults: Required<Options> = {
 };
 
 export const Impl: CloudFunctionImpl<Options, State> = {
-    provider: "local",
+    name: "local",
     initialize,
     pack,
     defaults,
