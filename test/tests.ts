@@ -15,6 +15,7 @@ import {
 import { Fn } from "../src/types";
 import * as funcs from "./functions";
 import { inspect } from "util";
+import { eqMacro, rejectMacro, once } from "./util";
 
 export function testFunctions(provider: "aws", options: awsFaast.Options): void;
 export function testFunctions(provider: "local", options: faast.local.Options): void;
@@ -23,14 +24,9 @@ export function testFunctions(provider: faast.Provider, options: CommonOptions):
     let cloudFunc: faast.CloudFunction<typeof funcs>;
     let remote: faast.Promisified<typeof funcs>;
     const opts = inspect(options, { breakLength: Infinity });
-    let initialized = false;
 
-    async function init() {
+    const init = once(async () => {
         try {
-            if (initialized) {
-                return;
-            }
-            initialized = true;
             const start = Date.now();
             const opts = { timeout: 30, memorySize: 512, gc: false, ...options };
             cloudFunc = await faastify(provider, funcs, "./functions", opts);
@@ -39,82 +35,42 @@ export function testFunctions(provider: faast.Provider, options: CommonOptions):
         } catch (err) {
             warn(err);
         }
-    }
+    });
 
     test.after.always(() => cloudFunc && cloudFunc.cleanup());
 
-    test(`${provider} ${opts} hello: string => string`, async t => {
-        await init();
-        t.is(await remote.hello("Andy"), "Hello Andy!");
-    });
+    const title = (name?: string) => `${provider} ${opts} ${name}`;
+    const eq = eqMacro(init, title);
+    const reject = rejectMacro(init, title);
 
-    test(`${provider} ${opts} multibyte characters in arguments and return value`, async t => {
+    test(`hello`, eq, () => remote.hello("Andy"), "Hello Andy!");
+    test(`multibyte characters`, eq, () => remote.identity("你好"), "你好");
+    test(`factorial`, eq, () => remote.fact(5), 120);
+    test(`concat`, eq, () => remote.concat("abc", "def"), "abcdef");
+    test(`exception`, reject, () => remote.error("hey"), "Expected error. Arg: hey");
+    test(`no arguments`, eq, () => remote.noargs(), "called function with no args.");
+    test(`async function`, eq, () => remote.async(), "async function: success");
+    test(`get $PATH`, eq, async () => typeof (await remote.path()), "string");
+    test(`empty promise rejection`, reject, () => remote.emptyReject(), "");
+    test(`no promise args`, reject, () => remote.promiseArg(Promise.resolve()), "");
+    test(`optional arg absent`, eq, () => remote.optionalArg(), "No arg");
+    test(`optional arg present`, eq, () => remote.optionalArg("has arg"), "has arg");
+    test(title(`rejected promise`), async t => {
         await init();
-        t.is(await remote.identity("你好"), "你好");
-    });
-
-    test(`${provider} ${opts} fact: number => number`, async t => {
-        await init();
-        t.is(await remote.fact(5), 120);
-    });
-
-    test(`${provider} ${opts} concat: (string, string) => string`, async t => {
-        await init();
-        t.is(await remote.concat("abc", "def"), "abcdef");
-    });
-
-    test(`${provider} ${opts} error: string => raise exception`, async t => {
-        await init();
-        await t.throwsAsync(remote.error("hey"), "Expected this error. Argument: hey");
-    });
-
-    test(`${provider} ${opts} noargs: () => string`, async t => {
-        await init();
-        t.is(await remote.noargs(), "successfully called function with no args.");
-    });
-
-    test(`${provider} ${opts} async: () => Promise<string>`, async t => {
-        await init();
-        t.is(await remote.async(), "returned successfully from async function");
-    });
-
-    test(`${provider} ${opts} path: () => Promise<string>`, async t => {
-        await init();
-        t.is(typeof (await remote.path()), "string");
-    });
-
-    test(`${provider} ${opts} rejected: () => rejected promise`, async t => {
-        await init();
-        await t.throwsAsync(remote.rejected(), "This promise is intentionally rejected.");
-    });
-
-    test(`${provider} ${opts} empty promise rejection`, async t => {
-        await init();
-        await t.throwsAsync(remote.emptyReject());
-    });
-
-    test(`${provider} ${opts} promise args not supported`, async t => {
-        await init();
-        await t.throwsAsync(remote.promiseArg(Promise.resolve("hello")));
-    });
-
-    test(`${provider} ${opts} optional arguments are supported`, async t => {
-        await init();
-        t.is(await remote.optionalArg(), "No arg");
-        t.is(await remote.optionalArg("has arg"), "has arg");
+        t.plan(1);
+        try {
+            await remote.rejected();
+        } catch (err) {
+            t.is(err, "This promise is intentionally rejected.");
+        }
     });
 }
 
 export function testCosts(provider: faast.Provider, options: CommonOptions = {}) {
     let cloudFunc: faast.CloudFunction<typeof funcs>;
     const opts = inspect(options, { breakLength: Infinity });
-    let initialized = false;
 
-    async function init() {
-        if (initialized) {
-            return;
-        }
-        initialized = true;
+    const init = once(async () => {
         const args: CommonOptions = {
             timeout: 30,
             memorySize: 512,
@@ -125,7 +81,7 @@ export function testCosts(provider: faast.Provider, options: CommonOptions = {})
             ...args,
             ...options
         });
-    }
+    });
 
     test.after.always(() => cloudFunc && cloudFunc.cleanup());
 
@@ -167,13 +123,8 @@ export function testRampUp(
 ) {
     const opts = inspect(options, { breakLength: Infinity });
     let lambda: faast.CloudFunction<typeof funcs>;
-    let initialized = false;
-    async function init() {
+    const init = once(async () => {
         try {
-            if (initialized) {
-                return;
-            }
-            initialized = true;
             lambda = await faastify(provider, funcs, "./functions", {
                 gc: false,
                 ...options,
@@ -183,7 +134,7 @@ export function testRampUp(
         } catch (err) {
             warn(err);
         }
-    }
+    });
 
     test.after.always(() => lambda && lambda.cleanup());
 
@@ -226,14 +177,9 @@ export function testThroughput(
 ) {
     const opts = inspect(options, { breakLength: Infinity });
     let lambda: faast.CloudFunction<typeof funcs>;
-    let initialized = false;
 
-    async function init() {
+    const init = once(async () => {
         try {
-            if (!initialized) {
-                return;
-            }
-            initialized = true;
             lambda = await faastify(provider, funcs, "./functions", {
                 gc: false,
                 ...options
@@ -242,7 +188,7 @@ export function testThroughput(
         } catch (err) {
             warn(err);
         }
-    }
+    });
 
     test.after.always(() => lambda && lambda.cleanup());
     // test.after.always(() => lambda.cancelAll(), 30 * 1000);
@@ -270,14 +216,9 @@ export function testThroughput(
 export function testTimeout(provider: faast.Provider, options?: CommonOptions) {
     let lambda: faast.CloudFunction<typeof funcs>;
     const opts = inspect(options, { breakLength: Infinity });
-    let initialized = false;
 
-    async function init() {
+    const init = once(async () => {
         try {
-            if (initialized) {
-                return;
-            }
-            initialized = true;
             lambda = await faastify(provider, funcs, "./functions", {
                 ...options,
                 timeout: 2,
@@ -287,7 +228,7 @@ export function testTimeout(provider: faast.Provider, options?: CommonOptions) {
         } catch (err) {
             warn(err);
         }
-    }
+    });
 
     test.after.always(() => lambda && lambda.cleanup());
 
@@ -300,14 +241,9 @@ export function testTimeout(provider: faast.Provider, options?: CommonOptions) {
 export function testMemoryLimit(provider: faast.Provider, options?: CommonOptions) {
     const opts = inspect(options, { breakLength: Infinity });
     let lambda: faast.CloudFunction<typeof funcs>;
-    let initialized = false;
 
-    async function init() {
+    const init = once(async () => {
         try {
-            if (initialized) {
-                return;
-            }
-            initialized = true;
             lambda = await faastify(provider, funcs, "./functions", {
                 ...options,
                 timeout: 200,
@@ -318,7 +254,7 @@ export function testMemoryLimit(provider: faast.Provider, options?: CommonOption
         } catch (err) {
             warn(err);
         }
-    }
+    });
 
     test.after.always(() => lambda && lambda.cleanup());
 
@@ -339,13 +275,8 @@ export function testMemoryLimit(provider: faast.Provider, options?: CommonOption
 export function testCpuMetrics(provider: faast.Provider, options?: CommonOptions) {
     const opts = inspect(options, { breakLength: Infinity });
     let lambda: faast.CloudFunction<typeof funcs>;
-    let initialized = false;
 
-    async function init() {
-        if (initialized) {
-            return;
-        }
-        initialized = true;
+    const init = once(async () => {
         lambda = await faastify(provider, funcs, "./functions", {
             childProcess: true,
             timeout: 30,
@@ -354,7 +285,7 @@ export function testCpuMetrics(provider: faast.Provider, options?: CommonOptions
             gc: false,
             ...options
         });
-    }
+    });
 
     test.after.always(() => lambda && lambda.cleanup());
 

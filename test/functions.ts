@@ -19,11 +19,11 @@ export function concat(a: string, b: string) {
 }
 
 export function error(a: string) {
-    throw new Error(`Expected this error. Argument: ${a}`);
+    throw new Error(`Expected error. Arg: ${a}`);
 }
 
 export function noargs() {
-    return "successfully called function with no args.";
+    return "called function with no args.";
 }
 
 export function sleep(ms: number) {
@@ -40,7 +40,7 @@ export function echo(n: number) {
 
 export async function async() {
     await sleep(200);
-    return "returned successfully from async function";
+    return "async function: success";
 }
 
 export function path(): Promise<string> {
