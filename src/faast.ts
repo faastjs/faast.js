@@ -33,11 +33,11 @@ import Module = require("module");
 
 export { aws, google, local, costAnalyzer };
 
-export const _providers: Array<[string, CloudFunctionImpl<any, any>]> = [
-    ["aws", aws.Impl],
-    ["google", google.Impl],
-    ["local", local.Impl]
-];
+export const _providers = {
+    aws: aws.Impl,
+    google: google.Impl,
+    local: local.Impl
+};
 
 export class FaastError extends Error {
     logUrl?: string;

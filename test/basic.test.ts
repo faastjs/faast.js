@@ -1,5 +1,7 @@
 import { testFunctions, testCancellation } from "./tests";
 import { CommonOptions } from "../src/provider";
+import { _providers } from "../src/faast";
+import { keys } from "../src/shared";
 
 const configs: CommonOptions[] = [
     { mode: "https", childProcess: false },
@@ -8,7 +10,11 @@ const configs: CommonOptions[] = [
     { mode: "queue", childProcess: true }
 ];
 
-describe.each(configs)("aws with options %p", (options: CommonOptions) => {
-    testFunctions("aws", options);
-    testCancellation("aws", options);
-});
+const providers = keys(_providers);
+
+for (const provider of providers) {
+    for (const config of configs) {
+        testFunctions(provider, config);
+        testCancellation(provider, config);
+    }
+}

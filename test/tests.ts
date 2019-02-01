@@ -1,3 +1,4 @@
+import test, { ExecutionContext } from "ava";
 import * as awsFaast from "../src/aws/aws-faast";
 import * as faast from "../src/faast";
 import { faastify } from "../src/faast";
@@ -5,35 +6,31 @@ import { info, logGc, stats, warn } from "../src/log";
 import { CommonOptions } from "../src/provider";
 import { keys, sleep, Statistics } from "../src/shared";
 import { Pump } from "../src/throttle";
-import { detectAsyncLeaks, startAsyncTracing, stopAsyncTracing } from "../src/trace";
+import {
+    detectAsyncLeaks,
+    startAsyncTracing,
+    stopAsyncTracing,
+    clearLeakDetector
+} from "../src/trace";
 import { Fn } from "../src/types";
 import * as funcs from "./functions";
+import { inspect } from "util";
 
-export function testFunctions(
-    provider: "aws",
-    options: awsFaast.Options,
-    initTimeout?: number
-): void;
-export function testFunctions(
-    provider: "local",
-    options: faast.local.Options,
-    initTimeout?: number
-): void;
-export function testFunctions(
-    provider: faast.Provider,
-    options: CommonOptions,
-    initTimeout?: number
-): void;
-export function testFunctions(
-    provider: faast.Provider,
-    options: CommonOptions,
-    initTimeout = 60 * 1000
-): void {
+export function testFunctions(provider: "aws", options: awsFaast.Options): void;
+export function testFunctions(provider: "local", options: faast.local.Options): void;
+export function testFunctions(provider: faast.Provider, options: CommonOptions): void;
+export function testFunctions(provider: faast.Provider, options: CommonOptions): void {
     let cloudFunc: faast.CloudFunction<typeof funcs>;
     let remote: faast.Promisified<typeof funcs>;
+    const opts = inspect(options, { breakLength: Infinity });
+    let initialized = false;
 
-    beforeAll(async () => {
+    async function init() {
         try {
+            if (initialized) {
+                return;
+            }
+            initialized = true;
             const start = Date.now();
             const opts = { timeout: 30, memorySize: 512, gc: false, ...options };
             cloudFunc = await faastify(provider, funcs, "./functions", opts);
@@ -42,86 +39,82 @@ export function testFunctions(
         } catch (err) {
             warn(err);
         }
-    }, initTimeout);
+    }
 
-    afterAll(async () => {
-        await cloudFunc.cleanup();
-    }, initTimeout);
+    test.after.always(() => cloudFunc && cloudFunc.cleanup());
 
-    test("hello: string => string", async () => {
-        expect(await remote.hello("Andy")).toBe("Hello Andy!");
+    test(`${provider} ${opts} hello: string => string`, async t => {
+        await init();
+        t.is(await remote.hello("Andy"), "Hello Andy!");
     });
 
-    test("multibyte characters in arguments and return value", async () => {
-        expect(await remote.identity("你好")).toBe("你好");
+    test(`${provider} ${opts} multibyte characters in arguments and return value`, async t => {
+        await init();
+        t.is(await remote.identity("你好"), "你好");
     });
 
-    test("fact: number => number", async () => {
-        expect(await remote.fact(5)).toBe(120);
+    test(`${provider} ${opts} fact: number => number`, async t => {
+        await init();
+        t.is(await remote.fact(5), 120);
     });
 
-    test("concat: (string, string) => string", async () => {
-        expect(await remote.concat("abc", "def")).toBe("abcdef");
+    test(`${provider} ${opts} concat: (string, string) => string`, async t => {
+        await init();
+        t.is(await remote.concat("abc", "def"), "abcdef");
     });
 
-    test("error: string => raise exception", async () => {
-        expect.assertions(1);
-        try {
-            const rv = await remote.error("hey");
-        } catch (err) {
-            expect(err.message).toMatch("Expected this error. Argument: hey");
-        }
+    test(`${provider} ${opts} error: string => raise exception`, async t => {
+        await init();
+        await t.throwsAsync(remote.error("hey"), "Expected this error. Argument: hey");
     });
 
-    test("noargs: () => string", async () => {
-        expect(await remote.noargs()).toBe("successfully called function with no args.");
+    test(`${provider} ${opts} noargs: () => string`, async t => {
+        await init();
+        t.is(await remote.noargs(), "successfully called function with no args.");
     });
 
-    test("async: () => Promise<string>", async () => {
-        expect(await remote.async()).toBe("returned successfully from async function");
+    test(`${provider} ${opts} async: () => Promise<string>`, async t => {
+        await init();
+        t.is(await remote.async(), "returned successfully from async function");
     });
 
-    test("path: () => Promise<string>", async () => {
-        expect(typeof (await remote.path())).toBe("string");
+    test(`${provider} ${opts} path: () => Promise<string>`, async t => {
+        await init();
+        t.is(typeof (await remote.path()), "string");
     });
 
-    test("rejected: () => rejected promise", async () => {
-        expect.assertions(1);
-        try {
-            await remote.rejected();
-        } catch (err) {
-            expect(err).toBe("This promise is intentionally rejected.");
-        }
+    test(`${provider} ${opts} rejected: () => rejected promise`, async t => {
+        await init();
+        await t.throwsAsync(remote.rejected(), "This promise is intentionally rejected.");
     });
 
-    test("empty promise rejection", async () => {
-        expect.assertions(1);
-        try {
-            await remote.emptyReject();
-        } catch (err) {
-            expect(err).toBeUndefined();
-        }
+    test(`${provider} ${opts} empty promise rejection`, async t => {
+        await init();
+        await t.throwsAsync(remote.emptyReject());
     });
 
-    test("promise args not supported", async () => {
-        expect.assertions(1);
-        try {
-            await remote.promiseArg(Promise.resolve("hello"));
-        } catch (err) {
-            expect(err).toBeInstanceOf(Error);
-        }
+    test(`${provider} ${opts} promise args not supported`, async t => {
+        await init();
+        await t.throwsAsync(remote.promiseArg(Promise.resolve("hello")));
     });
 
-    test("optional arguments are supported", async () => {
-        expect(await remote.optionalArg()).toBe("No arg");
-        expect(await remote.optionalArg("has arg")).toBe("has arg");
+    test(`${provider} ${opts} optional arguments are supported`, async t => {
+        await init();
+        t.is(await remote.optionalArg(), "No arg");
+        t.is(await remote.optionalArg("has arg"), "has arg");
     });
 }
 
 export function testCosts(provider: faast.Provider, options: CommonOptions = {}) {
     let cloudFunc: faast.CloudFunction<typeof funcs>;
+    const opts = inspect(options, { breakLength: Infinity });
+    let initialized = false;
 
-    beforeAll(async () => {
+    async function init() {
+        if (initialized) {
+            return;
+        }
+        initialized = true;
         const args: CommonOptions = {
             timeout: 30,
             memorySize: 512,
@@ -132,43 +125,39 @@ export function testCosts(provider: faast.Provider, options: CommonOptions = {})
             ...args,
             ...options
         });
-    }, 120 * 1000);
+    }
 
-    afterAll(async () => {
-        await cloudFunc.cleanup();
-    }, 60 * 1000);
+    test.after.always(() => cloudFunc && cloudFunc.cleanup());
 
-    test(
-        "cost for basic call",
-        async () => {
-            await cloudFunc.functions.hello("there");
-            const costs = await cloudFunc.costEstimate();
-            info(`${costs}`);
-            info(`CSV costs:\n${costs.csv()}`);
+    test(`${provider} ${opts} cost for basic call`, async t => {
+        await init();
+        await cloudFunc.functions.hello("there");
+        const costs = await cloudFunc.costEstimate();
+        info(`${costs}`);
+        info(`CSV costs:\n${costs.csv()}`);
 
-            const { estimatedBilledTime } = cloudFunc.stats.aggregate;
-            expect((estimatedBilledTime.mean * estimatedBilledTime.samples) / 1000).toBe(
-                costs.metrics.find(m => m.name === "functionCallDuration")!.measured
-            );
+        const { estimatedBilledTime } = cloudFunc.stats.aggregate;
+        t.is(
+            (estimatedBilledTime.mean * estimatedBilledTime.samples) / 1000,
+            costs.metrics.find(m => m.name === "functionCallDuration")!.measured
+        );
 
-            expect(costs.metrics.length).toBeGreaterThan(1);
-            expect(costs.find("functionCallRequests")!.measured).toBe(1);
-            for (const metric of costs.metrics) {
-                if (!metric.alwaysZero) {
-                    expect(metric.cost()).toBeGreaterThan(0);
-                    expect(metric.measured).toBeGreaterThan(0);
-                    expect(metric.pricing).toBeGreaterThan(0);
-                }
-
-                expect(metric.cost()).toBeLessThan(0.00001);
-                expect(metric.name.length).toBeGreaterThan(0);
-                expect(metric.unit.length).toBeGreaterThan(0);
-                expect(metric.cost()).toBe(metric.pricing * metric.measured);
+        t.true(costs.metrics.length > 1);
+        t.true(costs.find("functionCallRequests")!.measured === 1);
+        for (const metric of costs.metrics) {
+            if (!metric.alwaysZero) {
+                t.true(metric.cost() > 0);
+                t.true(metric.measured > 0);
+                t.true(metric.pricing > 0);
             }
-            expect(costs.total()).toBeGreaterThan(0);
-        },
-        30 * 1000
-    );
+
+            t.true(metric.cost() < 0.00001);
+            t.true(metric.name.length > 0);
+            t.true(metric.unit.length > 0);
+            t.true(metric.cost() === metric.pricing * metric.measured);
+        }
+        t.true(costs.total() > 0);
+    });
 }
 
 export function testRampUp(
@@ -176,10 +165,15 @@ export function testRampUp(
     concurrency: number,
     options?: CommonOptions
 ) {
+    const opts = inspect(options, { breakLength: Infinity });
     let lambda: faast.CloudFunction<typeof funcs>;
-
-    beforeAll(async () => {
+    let initialized = false;
+    async function init() {
         try {
+            if (initialized) {
+                return;
+            }
+            initialized = true;
             lambda = await faastify(provider, funcs, "./functions", {
                 gc: false,
                 ...options,
@@ -189,43 +183,39 @@ export function testRampUp(
         } catch (err) {
             warn(err);
         }
-    }, 90 * 1000);
+    }
 
-    afterAll(() => lambda.cleanup(), 60 * 1000);
-    // afterAll(() => lambda.cancelAll(), 30 * 1000);
+    test.after.always(() => lambda && lambda.cleanup());
 
-    test(
-        "Monte Carlo estimate of PI using 1B samples and 500 invocations",
-        async () => {
-            const nParallelFunctions = 500;
-            const nSamplesPerFunction = 2000000;
-            const promises: Promise<funcs.MonteCarloReturn>[] = [];
-            for (let i = 0; i < nParallelFunctions; i++) {
-                promises.push(lambda.functions.monteCarloPI(nSamplesPerFunction));
-            }
+    test(`${provider} ${opts} Monte Carlo estimate of PI using 1B samples and 500 invocations`, async t => {
+        await init();
+        const nParallelFunctions = 500;
+        const nSamplesPerFunction = 2000000;
+        const promises: Promise<funcs.MonteCarloReturn>[] = [];
+        for (let i = 0; i < nParallelFunctions; i++) {
+            promises.push(lambda.functions.monteCarloPI(nSamplesPerFunction));
+        }
 
-            const results = await Promise.all(promises);
-            let insidePoints = 0;
-            let samplePoints = 0;
+        const results = await Promise.all(promises);
+        let insidePoints = 0;
+        let samplePoints = 0;
 
-            results.forEach(m => {
-                insidePoints += m.inside;
-                samplePoints += m.samples;
-            });
+        results.forEach(m => {
+            insidePoints += m.inside;
+            samplePoints += m.samples;
+        });
 
-            info(`Stats:\n${lambda.stats}`);
-            info(`Counters:\n${lambda.counters}`);
+        info(`Stats:\n${lambda.stats}`);
+        info(`Counters:\n${lambda.counters}`);
 
-            info(`inside: ${insidePoints}, samples: ${samplePoints}`);
-            expect(samplePoints).toBe(nParallelFunctions * nSamplesPerFunction);
-            const estimatedPI = (insidePoints / samplePoints) * 4;
-            info(`PI estimate: ${estimatedPI}`);
-            expect(Number(estimatedPI.toFixed(2))).toBe(3.14);
-            const cost = await lambda.costEstimate();
-            info(`Cost: ${cost}`);
-        },
-        600 * 1000
-    );
+        info(`inside: ${insidePoints}, samples: ${samplePoints}`);
+        t.is(samplePoints, nParallelFunctions * nSamplesPerFunction);
+        const estimatedPI = (insidePoints / samplePoints) * 4;
+        info(`PI estimate: ${estimatedPI}`);
+        t.is(Number(estimatedPI.toFixed(2)), 3.14);
+        const cost = await lambda.costEstimate();
+        info(`Cost: ${cost}`);
+    });
 }
 
 export function testThroughput(
@@ -234,10 +224,16 @@ export function testThroughput(
     concurrency: number = 500,
     options?: CommonOptions
 ) {
+    const opts = inspect(options, { breakLength: Infinity });
     let lambda: faast.CloudFunction<typeof funcs>;
+    let initialized = false;
 
-    beforeAll(async () => {
+    async function init() {
         try {
+            if (!initialized) {
+                return;
+            }
+            initialized = true;
             lambda = await faastify(provider, funcs, "./functions", {
                 gc: false,
                 ...options
@@ -246,39 +242,42 @@ export function testThroughput(
         } catch (err) {
             warn(err);
         }
-    }, 120 * 1000);
+    }
 
-    afterAll(() => lambda.cleanup(), 60 * 1000);
-    // afterAll(() => lambda.cancelAll(), 30 * 1000);
+    test.after.always(() => lambda && lambda.cleanup());
+    // test.after.always(() => lambda.cancelAll(), 30 * 1000);
 
-    test(
-        "sustained load test",
-        async () => {
-            let completed = 0;
-            const nSamplesPerFunction = 100000000;
-            const pump = new Pump(concurrency, () =>
-                lambda.functions.monteCarloPI(nSamplesPerFunction).then(_ => completed++)
-            );
-            pump.start();
-            await sleep(duration);
-            await pump.drain();
-            const cost = await lambda.costEstimate();
-            info(`Stats: ${lambda.stats}`);
-            info(`Counters: ${lambda.counters}`);
+    test(`${provider} ${opts} sustained load test`, async () => {
+        await init();
+        let completed = 0;
+        const nSamplesPerFunction = 100000000;
+        const pump = new Pump(concurrency, () =>
+            lambda.functions.monteCarloPI(nSamplesPerFunction).then(_ => completed++)
+        );
+        pump.start();
+        await sleep(duration);
+        await pump.drain();
+        const cost = await lambda.costEstimate();
+        info(`Stats: ${lambda.stats}`);
+        info(`Counters: ${lambda.counters}`);
 
-            info(`Cost:`);
-            info(`${cost}`);
-            info(`Completed ${completed} calls in ${duration / (60 * 1000)} minute(s)`);
-        },
-        duration * 3
-    );
+        info(`Cost:`);
+        info(`${cost}`);
+        info(`Completed ${completed} calls in ${duration / (60 * 1000)} minute(s)`);
+    });
 }
 
 export function testTimeout(provider: faast.Provider, options?: CommonOptions) {
     let lambda: faast.CloudFunction<typeof funcs>;
+    const opts = inspect(options, { breakLength: Infinity });
+    let initialized = false;
 
-    beforeAll(async () => {
+    async function init() {
         try {
+            if (initialized) {
+                return;
+            }
+            initialized = true;
             lambda = await faastify(provider, funcs, "./functions", {
                 ...options,
                 timeout: 2,
@@ -288,31 +287,27 @@ export function testTimeout(provider: faast.Provider, options?: CommonOptions) {
         } catch (err) {
             warn(err);
         }
-    }, 90 * 1000);
+    }
 
-    afterAll(async () => {
-        await lambda.cleanup();
-    }, 60 * 1000);
+    test.after.always(() => lambda && lambda.cleanup());
 
-    test(
-        "timeout error",
-        async () => {
-            expect.assertions(1);
-            try {
-                await lambda.functions.sleep(4 * 1000);
-            } catch (err) {
-                expect(err.message).toMatch(/time/i);
-            }
-        },
-        600 * 1000
-    );
+    test(`${provider} ${opts} timeout error`, async t => {
+        await init();
+        await t.throwsAsync(lambda.functions.sleep(4 * 1000), /time/i);
+    });
 }
 
 export function testMemoryLimit(provider: faast.Provider, options?: CommonOptions) {
+    const opts = inspect(options, { breakLength: Infinity });
     let lambda: faast.CloudFunction<typeof funcs>;
+    let initialized = false;
 
-    beforeAll(async () => {
+    async function init() {
         try {
+            if (initialized) {
+                return;
+            }
+            initialized = true;
             lambda = await faastify(provider, funcs, "./functions", {
                 ...options,
                 timeout: 200,
@@ -323,60 +318,48 @@ export function testMemoryLimit(provider: faast.Provider, options?: CommonOption
         } catch (err) {
             warn(err);
         }
-    }, 90 * 1000);
+    }
 
-    afterAll(async () => {
-        await lambda.cleanup();
-    }, 60 * 1000);
+    test.after.always(() => lambda && lambda.cleanup());
 
-    test(
-        "can allocate under memory limit",
-        async () => {
-            const bytes = 64 * 1024 * 1024;
-            const rv = await lambda.functions.allocate(bytes);
-            expect(rv.elems).toBe(bytes / 8);
-        },
-        300 * 1000
-    );
+    test(`${provider} ${opts} can allocate under memory limit`, async t => {
+        await init();
+        const bytes = 64 * 1024 * 1024;
+        const rv = await lambda.functions.allocate(bytes);
+        t.is(rv.elems, bytes / 8);
+    });
 
-    test(
-        "out of memory error",
-        async () => {
-            expect.assertions(1);
-            const bytes = 512 * 1024 * 1024;
-            try {
-                await lambda.functions.allocate(bytes);
-            } catch (err) {
-                expect(err.message).toMatch(/memory/i);
-            }
-        },
-        600 * 1000
-    );
+    test(`${provider} ${opts} out of memory error`, async t => {
+        await init();
+        const bytes = 512 * 1024 * 1024;
+        await t.throwsAsync(lambda.functions.allocate(bytes), /memory/i);
+    });
 }
 
 export function testCpuMetrics(provider: faast.Provider, options?: CommonOptions) {
+    const opts = inspect(options, { breakLength: Infinity });
     let lambda: faast.CloudFunction<typeof funcs>;
+    let initialized = false;
 
-    beforeAll(async () => {
-        try {
-            lambda = await faastify(provider, funcs, "./functions", {
-                childProcess: true,
-                timeout: 30,
-                memorySize: 512,
-                maxRetries: 0,
-                gc: false,
-                ...options
-            });
-        } catch (err) {
-            warn(err);
+    async function init() {
+        if (initialized) {
+            return;
         }
-    }, 90 * 1000);
+        initialized = true;
+        lambda = await faastify(provider, funcs, "./functions", {
+            childProcess: true,
+            timeout: 30,
+            memorySize: 512,
+            maxRetries: 0,
+            gc: false,
+            ...options
+        });
+    }
 
-    afterAll(async () => {
-        await lambda.cleanup();
-    }, 60 * 1000);
+    test.after.always(() => lambda && lambda.cleanup());
 
-    test("cpu metrics are received", async () => {
+    test(`${provider} ${opts} cpu metrics are received`, async t => {
+        await init();
         const N = 5;
         const NSec = 5;
         const promises: Promise<unknown>[] = [];
@@ -385,17 +368,18 @@ export function testCpuMetrics(provider: faast.Provider, options?: CommonOptions
         }
         await Promise.all(promises);
         const usage = lambda.cpuUsage.get("spin");
-        expect(usage).toBeDefined();
-        expect(usage!.size).toBeGreaterThan(0);
-        expect(usage!.get(1)!.stime).toBeInstanceOf(Statistics);
-        expect(usage!.get(1)!.utime).toBeInstanceOf(Statistics);
-    }, 15000);
+        t.truthy(usage);
+        t.true(usage!.size > 0);
+        t.true(usage!.get(1)!.stime instanceof Statistics);
+        t.true(usage!.get(1)!.utime instanceof Statistics);
+    });
 }
 
 export function testCancellation(provider: faast.Provider, options?: CommonOptions) {
-    test(
-        "cleanup waits for all child processes to exit",
-        async () => {
+    const opts = inspect(options, { breakLength: Infinity });
+    test.serial(
+        `${provider} ${opts} cleanup waits for all child processes to exit`,
+        async t => {
             await sleep(0); // wait until jest sets its timeout so it doesn't get picked up by async_hooks.
             startAsyncTracing();
             const cloudFunc = await faastify(provider, funcs, "./functions", {
@@ -409,9 +393,9 @@ export function testCancellation(provider: faast.Provider, options?: CommonOptio
             stopAsyncTracing();
             await sleep(500);
             const leaks = detectAsyncLeaks();
-            expect(leaks).toEqual([]);
-        },
-        120 * 1000
+            t.true(leaks.length === 0);
+            clearLeakDetector();
+        }
     );
 }
 
@@ -516,16 +500,19 @@ export async function getGoogleResources(func: faast.GoogleCloudFunction) {
     };
 }
 
-export function checkResourcesCleanedUp<T extends object>(resources: T) {
+export function checkResourcesCleanedUp<T extends object>(
+    t: ExecutionContext,
+    resources: T
+) {
     for (const key of keys(resources)) {
-        expect(resources[key]).toBeUndefined();
+        t.true(resources[key] === undefined);
     }
 }
 
-export function checkResourcesExist<T extends object>(resources: T) {
-    expect(keys(resources).length).toBe(4);
+export function checkResourcesExist<T extends object>(t: ExecutionContext, resources: T) {
+    t.true(keys(resources).length === 4);
     for (const key of keys(resources)) {
-        expect(resources[key]).toBeTruthy();
+        t.truthy(resources[key]);
     }
 }
 

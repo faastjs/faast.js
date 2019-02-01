@@ -145,3 +145,8 @@ export function onAsyncHook() {
         }
     }
 }
+
+export function clearLeakDetector() {
+    asyncObjects.clear();
+    objectMapping.clear();
+}
