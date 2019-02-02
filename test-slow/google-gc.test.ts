@@ -4,7 +4,7 @@ import * as functions from "../test/functions";
 import { GoogleResources, GoogleServices } from "../src/google/google-faast";
 
 test(
-    "garbage collector works for functions that are called",
+    "google garbage collector works for functions that are called",
     async () => {
         // Idea behind this test: create a faast function and make a call.
         // Then cleanup while leaving the resources in place. Then create another
@@ -36,7 +36,7 @@ test(
 );
 
 test(
-    "garbage collector works for functions that are never called",
+    "google garbage collector works for functions that are never called",
     async () => {
         const func = await faastify("google", functions, "../test/functions", {
             mode: "queue"

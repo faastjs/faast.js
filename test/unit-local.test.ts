@@ -5,7 +5,6 @@ import { faastify, local } from "../src/faast";
 import { readFile } from "../src/fs";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
-import { testMemoryLimit, testTimeout } from "./tests";
 import { measureConcurrency } from "./util";
 
 const testCleanup: Macro<[local.Options]> = async (
@@ -92,9 +91,6 @@ const orderConfigs = [
 for (const config of orderConfigs) {
     test(`out of order await (async catch) with ${inspect(config)}`, testOrder, config);
 }
-
-testMemoryLimit("local", { childProcess: true });
-testTimeout("local", { childProcess: true });
 
 async function readFirstLogfile(logDirectoryUrl: string) {
     const logFileUrl = new URL(logDirectoryUrl + "/0.log");

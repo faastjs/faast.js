@@ -213,65 +213,6 @@ export function testThroughput(
     });
 }
 
-export function testTimeout(provider: faast.Provider, options?: CommonOptions) {
-    let lambda: faast.CloudFunction<typeof funcs>;
-    const opts = inspect(options, { breakLength: Infinity });
-
-    const init = once(async () => {
-        try {
-            lambda = await faastify(provider, funcs, "./functions", {
-                ...options,
-                timeout: 2,
-                maxRetries: 0,
-                gc: false
-            });
-        } catch (err) {
-            warn(err);
-        }
-    });
-
-    test.after.always(() => lambda && lambda.cleanup());
-
-    test(`${provider} ${opts} timeout error`, async t => {
-        await init();
-        await t.throwsAsync(lambda.functions.sleep(4 * 1000), /time/i);
-    });
-}
-
-export function testMemoryLimit(provider: faast.Provider, options?: CommonOptions) {
-    const opts = inspect(options, { breakLength: Infinity });
-    let lambda: faast.CloudFunction<typeof funcs>;
-
-    const init = once(async () => {
-        try {
-            lambda = await faastify(provider, funcs, "./functions", {
-                ...options,
-                timeout: 200,
-                memorySize: 512,
-                maxRetries: 0,
-                gc: false
-            });
-        } catch (err) {
-            warn(err);
-        }
-    });
-
-    test.after.always(() => lambda && lambda.cleanup());
-
-    test(`${provider} ${opts} can allocate under memory limit`, async t => {
-        await init();
-        const bytes = 64 * 1024 * 1024;
-        const rv = await lambda.functions.allocate(bytes);
-        t.is(rv.elems, bytes / 8);
-    });
-
-    test(`${provider} ${opts} out of memory error`, async t => {
-        await init();
-        const bytes = 512 * 1024 * 1024;
-        await t.throwsAsync(lambda.functions.allocate(bytes), /memory/i);
-    });
-}
-
 export function testCpuMetrics(provider: faast.Provider, options?: CommonOptions) {
     const opts = inspect(options, { breakLength: Infinity });
     let lambda: faast.CloudFunction<typeof funcs>;
