@@ -1,84 +1,84 @@
 import { Statistics } from "../src/shared";
 import { deepCopyUndefined } from "../src/wrapper";
 import { avg, stdev } from "./util";
+import test, { Assertions } from "ava";
 
-describe("shared module tests", () => {
-    test("Copy of undefined properties", () => {
-        const obj = { prop: undefined };
-        const obj2 = {};
-        deepCopyUndefined(obj2, obj);
-        expect(obj2).toEqual(obj);
-    });
+test("shared module deepCopyUndefined copies undefined properties", t => {
+    const obj = { prop: undefined };
+    const obj2 = {};
+    deepCopyUndefined(obj2, obj);
+    t.deepEqual(obj2, obj);
+});
 
-    test("Deep copy of undefined properties", () => {
-        const obj = { outer: { inner: undefined } };
-        const obj2 = { outer: {} };
-        deepCopyUndefined(obj2, obj);
-        expect(obj2).toEqual(obj);
-    });
+test("shared module deepCopyUndefined copies nested undefined properties", t => {
+    const obj = { outer: { inner: undefined } };
+    const obj2 = { outer: {} };
+    deepCopyUndefined(obj2, obj);
+    t.deepEqual(obj2, obj);
+});
 
-    test("Deep copy of undefined properties should not infinitely recurse on cyclical references", () => {
-        const obj = { ref: {} };
-        obj.ref = obj;
+test("shared module deepCopyUndefined should not hang on cyclical references", t => {
+    const obj = { ref: {} };
+    obj.ref = obj;
 
-        const obj2 = { ref: {} };
-        obj2.ref = obj2;
+    const obj2 = { ref: {} };
+    obj2.ref = obj2;
 
-        deepCopyUndefined(obj2, obj);
-        expect(obj2).toEqual(obj);
-    });
+    deepCopyUndefined(obj2, obj);
+    t.deepEqual(obj2, obj);
+});
 
-    test("Deep copy should not fail when objects are not shaped similarly", () => {
-        const obj = { geometry: { theorem: { name: "Pythagorean" } } };
-        const obj2 = { hypothesis: "Riemann" };
-        deepCopyUndefined(obj2, obj);
-    });
+test("shared module deep copy should not fail when objects are not shaped similarly", t => {
+    const obj = { geometry: { theorem: { name: "Pythagorean" } } };
+    const obj2 = { hypothesis: "Riemann" };
+    t.notThrows(() => deepCopyUndefined(obj2, obj));
+});
 
-    function check(values: number[]) {
-        const stat = new Statistics();
-        values.forEach(value => stat.update(value));
-        expect(stat.mean).toBeCloseTo(avg(values), 10);
-        expect(stat.stdev).toBeCloseTo(stdev(values), 10);
-        expect(stat.samples).toBe(values.length);
+function check(t: Assertions, values: number[]) {
+    const stat = new Statistics();
+    values.forEach(value => stat.update(value));
+    t.true(Math.abs(stat.mean - avg(values)) < 0.000000001);
+    t.true(Math.abs(stat.stdev - stdev(values)) < 0.000000001);
+    t.is(stat.samples, values.length);
+}
+
+test("statistics shared module empty values", t => {
+    const emptyStat = new Statistics();
+    t.is(emptyStat.mean, NaN);
+    t.is(emptyStat.stdev, 0);
+    t.is(emptyStat.samples, 0);
+});
+
+test("statistics shared module single values", t => {
+    check(t, [0]);
+    check(t, [1]);
+    check(t, [-1]);
+    check(t, [0.5]);
+    check(t, [-0.5]);
+    check(t, [0.1]);
+    check(t, [-0.1]);
+});
+
+test("statistics shared module multiple values", t => {
+    check(t, [0, 1]);
+    check(t, [0, 1, 2]);
+    check(t, [42, 100, 1000]);
+    check(t, [1, 0.1]);
+    check(t, [-0.5, 0.5]);
+    check(t, [-1, 1]);
+    check(t, [3.14159, 2.717]);
+});
+
+test("statistics shared module random values", t => {
+    const a = [];
+    const b = [];
+    const c = [];
+    for (let i = 0; i < 1000; i++) {
+        a.push(Math.random());
+        b.push(Math.random() * 10);
+        c.push(Math.random() * 100);
     }
-
-    describe("statistics", () => {
-        test("empty values", () => {
-            const emptyStat = new Statistics();
-            expect(emptyStat.mean).toBeNaN();
-            expect(emptyStat.stdev).toBe(0);
-            expect(emptyStat.samples).toBe(0);
-        });
-        test("single values", () => {
-            check([0]);
-            check([1]);
-            check([-1]);
-            check([0.5]);
-            check([-0.5]);
-            check([0.1]);
-            check([-0.1]);
-        });
-        test("multiple values", () => {
-            check([0, 1]);
-            check([0, 1, 2]);
-            check([42, 100, 1000]);
-            check([1, 0.1]);
-            check([-0.5, 0.5]);
-            check([-1, 1]);
-            check([3.14159, 2.717]);
-        });
-        test("random values", () => {
-            const a = [];
-            const b = [];
-            const c = [];
-            for (let i = 0; i < 1000; i++) {
-                a.push(Math.random());
-                b.push(Math.random() * 10);
-                c.push(Math.random() * 100);
-            }
-            check(a);
-            check(b);
-            check(c);
-        });
-    });
+    check(t, a);
+    check(t, b);
+    check(t, c);
 });

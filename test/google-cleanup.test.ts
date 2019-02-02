@@ -4,18 +4,13 @@ import {
     checkResourcesExist,
     getGoogleResources
 } from "./tests";
+import test from "ava";
 
-describe("google cleanup", () => {
-    test(
-        "removes ephemeral resources",
-        async () => {
-            const func = await faast.faastify("google", {}, "./functions", {
-                mode: "queue"
-            });
-            checkResourcesExist(await getGoogleResources(func));
-            await func.cleanup();
-            checkResourcesCleanedUp(await getGoogleResources(func));
-        },
-        180 * 1000
-    );
+test("google cleanup removes ephemeral resources", async t => {
+    const func = await faast.faastify("google", {}, "./functions", {
+        mode: "queue"
+    });
+    checkResourcesExist(t, await getGoogleResources(func));
+    await func.cleanup();
+    checkResourcesCleanedUp(t, await getGoogleResources(func));
 });

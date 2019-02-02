@@ -1,4 +1,4 @@
-import { testFunctions, testCancellation } from "./tests";
+import { testFunctions, testCancellation, testCosts, testCpuMetrics } from "./tests";
 import { CommonOptions } from "../src/provider";
 import { _providers } from "../src/faast";
 import { keys } from "../src/shared";
@@ -17,4 +17,6 @@ for (const provider of providers) {
         testFunctions(provider, config);
         testCancellation(provider, config);
     }
+    testCosts(provider);
+    testCpuMetrics(provider);
 }

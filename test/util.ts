@@ -1,5 +1,6 @@
 import { Timing } from "./functions";
 import { Macro, Assertions } from "ava";
+import { Deferred } from "../src/throttle";
 
 export const measureConcurrency = (timings: Timing[]) =>
     timings
