@@ -12,7 +12,7 @@ import {
 import { timer, Timing } from "./functions";
 import { LocalCache } from "../src/cache";
 import * as uuidv4 from "uuid/v4";
-import { measureConcurrency, describe } from "./util";
+import { measureConcurrency } from "./util";
 import test from "ava";
 
 test("deferred resolves its promise", async t => {

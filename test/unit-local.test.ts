@@ -1,18 +1,12 @@
+import test, { ExecutionContext, Macro } from "ava";
 import { URL } from "url";
+import { inspect } from "util";
 import { faastify, local } from "../src/faast";
+import { readFile } from "../src/fs";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
-import {
-    testFunctions,
-    testMemoryLimit,
-    testTimeout,
-    testCpuMetrics,
-    testCancellation
-} from "./tests";
-import { readFile } from "../src/fs";
+import { testMemoryLimit, testTimeout } from "./tests";
 import { measureConcurrency } from "./util";
-import test, { ExecutionContext, Macro } from "ava";
-import { inspect } from "util";
 
 const testCleanup: Macro<[local.Options]> = async (
     t: ExecutionContext,
@@ -81,8 +75,10 @@ async function testConcurrency(
     }
 }
 
-test("cleanup stops executions", testCleanup, {});
-test("cleanup stops executions with child process", testCleanup, { childProcess: true });
+test("local provider cleanup stops executions", testCleanup, {});
+test("local provider cleanup stops executions with child process", testCleanup, {
+    childProcess: true
+});
 
 const orderConfigs = [
     { childProcess: false, concurrency: 1, maxRetries: 0 },
@@ -97,12 +93,8 @@ for (const config of orderConfigs) {
     test(`out of order await (async catch) with ${inspect(config)}`, testOrder, config);
 }
 
-describe("process memory limit test", () =>
-    testMemoryLimit("local", { childProcess: true }));
-
-describe("process timeout test", () => testTimeout("local", { childProcess: true }));
-
-describe("cpu metrics test", () => testCpuMetrics("local"));
+testMemoryLimit("local", { childProcess: true });
+testTimeout("local", { childProcess: true });
 
 async function readFirstLogfile(logDirectoryUrl: string) {
     const logFileUrl = new URL(logDirectoryUrl + "/0.log");
@@ -113,7 +105,7 @@ async function readFirstLogfile(logDirectoryUrl: string) {
         .map(m => m.replace(/^\[(\d+)\]/, "[$pid]"));
 }
 
-test("console.log and console.warn with child process", async () => {
+test("local provider console.log and console.warn with child process", async t => {
     const cloudFunc = await faastify("local", funcs, "./functions", {
         childProcess: true,
         concurrency: 1
@@ -125,15 +117,15 @@ test("console.log and console.warn with child process", async () => {
 
         await cloudFunc.cleanup({ deleteResources: false });
         const messages = await readFirstLogfile(cloudFunc.logUrl());
-        expect(messages).toContain("[$pid]: Remote console.log output");
-        expect(messages).toContain("[$pid]: Remote console.warn output");
-        expect(messages).toContain("[$pid]: Remote console.error output");
+        t.truthy(messages.find(s => s === "[$pid]: Remote console.log output"));
+        t.truthy(messages.find(s => s === "[$pid]: Remote console.warn output"));
+        t.truthy(messages.find(s => s === "[$pid]: Remote console.error output"));
     } finally {
         await cloudFunc.cleanup();
     }
 });
 
-test("log files should be appended, not truncated, after child process crash", async () => {
+test("local provider log files should be appended, not truncated, after child process crash", async t => {
     const cloudFunc = await faastify("local", funcs, "./functions", {
         childProcess: true,
         concurrency: 1,
@@ -148,15 +140,15 @@ test("log files should be appended, not truncated, after child process crash", a
 
         const messages = await readFirstLogfile(cloudFunc.logUrl());
 
-        expect(messages).toContain("[$pid]: output 1");
-        expect(messages).toContain("[$pid]: output 2");
+        t.truthy(messages.find(s => s === "[$pid]: output 1"));
+        t.truthy(messages.find(s => s === "[$pid]: output 2"));
     } finally {
         await cloudFunc.cleanup();
     }
 });
 
-test("concurrent executions with child processes", async () => {
-    await testConcurrency({
+test("local provider concurrent executions with child processes", async t => {
+    await testConcurrency(t, {
         options: {
             childProcess: true
         },
@@ -165,8 +157,8 @@ test("concurrent executions with child processes", async () => {
     });
 });
 
-test("no concurrency for cpu bound work without child processes", async () => {
-    await testConcurrency({
+test("local provider no concurrency for cpu bound work without child processes", async t => {
+    await testConcurrency(t, {
         options: {
             childProcess: false
         },
@@ -175,7 +167,7 @@ test("no concurrency for cpu bound work without child processes", async () => {
     });
 });
 
-test("cleanup waits for all child processes to exit", async () => {
+test("local provider cleanup waits for all child processes to exit", async t => {
     const cloudFunc = await faastify("local", funcs, "./functions", {
         childProcess: true
     });
@@ -186,11 +178,7 @@ test("cleanup waits for all child processes to exit", async () => {
             break;
         }
     }
-    expect(cloudFunc.state.wrappers.length).toBe(1);
+    t.is(cloudFunc.state.wrappers.length, 1);
     await cloudFunc.cleanup();
-    expect(cloudFunc.state.wrappers.length).toBe(0);
-});
-
-describe("cancellation", () => {
-    testCancellation("local");
+    t.is(cloudFunc.state.wrappers.length, 0);
 });
