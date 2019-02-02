@@ -8,18 +8,12 @@ import * as funcs from "../test/functions";
 
 const testTimeout: Macro<[Provider, CommonOptions]> = async (t, provider, options) => {
     let lambda: faast.CloudFunction<typeof funcs>;
-
-    try {
-        lambda = await faastify(provider, funcs, "./functions", {
-            ...options,
-            timeout: 2,
-            maxRetries: 0,
-            gc: false
-        });
-    } catch (err) {
-        warn(err);
-    }
-
+    lambda = await faastify(provider, funcs, "./functions", {
+        ...options,
+        timeout: 2,
+        maxRetries: 0,
+        gc: false
+    });
     test.after.always(() => lambda && lambda.cleanup());
     await t.throwsAsync(lambda.functions.sleep(4 * 1000), /time/i);
 };
@@ -30,18 +24,13 @@ const testMemoryLimitOk: Macro<[Provider, CommonOptions]> = async (
     options
 ) => {
     let lambda: faast.CloudFunction<typeof funcs>;
-
-    try {
-        lambda = await faastify(provider, funcs, "./functions", {
-            ...options,
-            timeout: 200,
-            memorySize: 512,
-            maxRetries: 0,
-            gc: false
-        });
-    } catch (err) {
-        warn(err);
-    }
+    lambda = await faastify(provider, funcs, "./functions", {
+        ...options,
+        timeout: 200,
+        memorySize: 512,
+        maxRetries: 0,
+        gc: false
+    });
 
     test.after.always(() => lambda && lambda.cleanup());
 
@@ -57,17 +46,13 @@ const testMemoryLimitFail: Macro<[Provider, CommonOptions]> = async (
 ) => {
     let lambda: faast.CloudFunction<typeof funcs>;
 
-    try {
-        lambda = await faastify(provider, funcs, "./functions", {
-            ...options,
-            timeout: 200,
-            memorySize: 512,
-            maxRetries: 0,
-            gc: false
-        });
-    } catch (err) {
-        warn(err);
-    }
+    lambda = await faastify(provider, funcs, "./functions", {
+        ...options,
+        timeout: 200,
+        memorySize: 512,
+        maxRetries: 0,
+        gc: false
+    });
 
     test.after.always(() => lambda && lambda.cleanup());
 
