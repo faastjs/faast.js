@@ -1,5 +1,5 @@
 import { Timing } from "./functions";
-import { Macro, Assertions } from "ava";
+import test, { Macro, Assertions, ExecutionContext } from "ava";
 import { Deferred } from "../src/throttle";
 
 export const measureConcurrency = (timings: Timing[]) =>
@@ -19,8 +19,9 @@ export const stdev = (a: number[]) => {
 
 export type TestMacroString = Macro<[() => Promise<string>, string]>;
 export type TestMacroNumber = Macro<[() => Promise<number>, number]>;
-export type TestMacroError = Macro<[() => Promise<void>, string]>;
-export type TestMacro = TestMacroString | TestMacroNumber | TestMacroError;
+export type TestMacroError = Macro<[() => Promise<void>, any]>;
+export type TestMacroFn = Macro<[(t: ExecutionContext) => Promise<void>]>;
+export type TestMacro = TestMacroString | TestMacroNumber | TestMacroError | TestMacroFn;
 
 export const eqMacro = (init: () => Promise<void>, title: (name?: string) => string) => {
     const fn: TestMacro = async <T>(t: Assertions, fn: () => Promise<T>, expected: T) => {
@@ -31,7 +32,7 @@ export const eqMacro = (init: () => Promise<void>, title: (name?: string) => str
     return fn as TestMacro;
 };
 
-export const rejectMacro = (
+export const rejectErrorMacro = (
     init: () => Promise<void>,
     title: (name?: string) => string
 ) => {
@@ -41,6 +42,47 @@ export const rejectMacro = (
     };
     fn.title = title;
     return fn;
+};
+
+export const rejectMacro = (
+    init: () => Promise<void>,
+    title: (name?: string) => string
+) => {
+    const fn: TestMacroError = async (t, fn, expected) => {
+        t.plan(1);
+        await init();
+        try {
+            await fn();
+        } catch (err) {
+            t.is(err, expected);
+        }
+    };
+    fn.title = title;
+    return fn;
+};
+
+export const fnMacro = (init: () => Promise<void>, title: (name?: string) => string) => {
+    const mfn: TestMacroFn = async (t, fn) => {
+        await init();
+        await fn(t);
+    };
+    mfn.title = title;
+    return mfn;
+};
+
+export const macros = (
+    init: () => Promise<void>,
+    title: (name?: string) => string,
+    cleanup: () => Promise<void>
+) => {
+    const onceInit = once(init);
+    test.after.always(cleanup);
+    return {
+        reject: rejectMacro(onceInit, title),
+        eq: eqMacro(onceInit, title),
+        rejectError: rejectErrorMacro(onceInit, title),
+        fn: fnMacro(onceInit, title)
+    };
 };
 
 export function once<T>(fn: () => Promise<T>) {

@@ -21,7 +21,7 @@ export class CostMetric {
     unitPlural?: string;
     measured!: number;
     comment?: string;
-    alwaysZero?: boolean = false;
+    informationalOnly?: boolean = false;
 
     constructor(opts?: NonFunctionProperties<CostMetric>) {
         Object.assign(this, opts);
@@ -102,7 +102,7 @@ export class CostBreakdown {
         for (const entry of this.metrics) {
             rv += `${entry.name},${entry.unit},${p(entry.pricing)},${p(
                 entry.measured
-            )},${p(entry.cost())},${percent(entry)},"${entry.comment!.replace(
+            )},${p(entry.cost())},${percent(entry)},"${(entry.comment || "").replace(
                 '"',
                 '""'
             )}"\n`;

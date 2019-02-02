@@ -51,8 +51,8 @@ export function emptyReject() {
     return Promise.reject();
 }
 
-export function rejected(): Promise<string> {
-    return Promise.reject("This promise is intentionally rejected.");
+export function rejected(): Promise<void> {
+    return Promise.reject("intentionally rejected");
 }
 
 export interface Timing {

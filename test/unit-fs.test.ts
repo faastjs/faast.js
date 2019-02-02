@@ -35,7 +35,7 @@ test("fs module mkdir succeeds on directories that already exist", async t => {
 test("fs module mkdir recursive", async t => {
     const testDir = path.join(tmpdir(), "faast-test");
     const dir = path.join(testDir, uuidv4(), uuidv4());
-    t.falsy(await mkdir(dir, { recursive: true }));
+    await mkdir(dir, { recursive: true });
     t.true(await exists(dir));
     await rmrf(testDir);
 });

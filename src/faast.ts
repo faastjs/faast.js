@@ -30,6 +30,7 @@ import { Deferred, Funnel, Pump } from "./throttle";
 import { NonFunctionProperties, Unpacked } from "./types";
 import { FunctionCall, FunctionReturn, serializeCall, CpuMeasurement } from "./wrapper";
 import Module = require("module");
+import { CostMetric } from "./cost";
 
 export { aws, google, local, costAnalyzer };
 
@@ -652,13 +653,34 @@ export class CloudFunction<
                         unit: "retry",
                         unitPlural: "retries",
                         comment: `Retries were ${retryPct}% of requests and may have incurred charges not accounted for by faast.`,
-                        alwaysZero: true
+                        informationalOnly: true
                     })
                 );
             }
             return estimate;
         } else {
-            return new costAnalyzer.CostBreakdown();
+            const costs = new costAnalyzer.CostBreakdown();
+            const billedTimeStats = this.stats.aggregate.estimatedBilledTime;
+            const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples || 0;
+
+            const functionCallDuration = new CostMetric({
+                name: "functionCallDuration",
+                pricing: 0,
+                unit: "second",
+                measured: seconds,
+                informationalOnly: true
+            });
+            costs.push(functionCallDuration);
+
+            const functionCallRequests = new CostMetric({
+                name: "functionCallRequests",
+                pricing: 0,
+                measured: this.counters.aggregate.invocations,
+                unit: "request",
+                informationalOnly: true
+            });
+            costs.push(functionCallRequests);
+            return costs;
         }
     }
 

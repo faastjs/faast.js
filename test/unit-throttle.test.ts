@@ -583,7 +583,7 @@ test("async queue handles async dequeueing", async t => {
     const q = new AsyncQueue<number>();
     q.enqueue(88);
     await new Promise(resolve =>
-        setTimeout(async t => {
+        setTimeout(async () => {
             t.is(await q.dequeue(), 88);
             resolve();
         }, 100)

@@ -34,7 +34,7 @@ test("local cache ignores entries after they expire", async t => {
     const cache2 = new LocalCache(t.context.cache.dirRelativeToHomeDir, 100);
     await cache2.set("foo", "bar");
     let result = await cache2.get("foo");
-    t.falsy(result && result.toString());
+    t.is(result && result.toString(), "bar");
     await sleep(101);
     result = await cache2.get("foo");
     t.falsy(result && result.toString());

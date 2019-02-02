@@ -74,6 +74,6 @@
         "webpack-cli": "^3.2.1"
     },
     "ava": {
-        "files": "build/test/ava.test.js"
+        "files": "build/test/*.test.js"
     }
 }

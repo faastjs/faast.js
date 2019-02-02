@@ -1,21 +1,15 @@
 import test, { ExecutionContext } from "ava";
+import { inspect } from "util";
 import * as awsFaast from "../src/aws/aws-faast";
 import * as faast from "../src/faast";
 import { faastify } from "../src/faast";
 import { info, logGc, stats, warn } from "../src/log";
 import { CommonOptions } from "../src/provider";
-import { keys, sleep, Statistics } from "../src/shared";
+import { keys, sleep } from "../src/shared";
 import { Pump } from "../src/throttle";
-import {
-    detectAsyncLeaks,
-    startAsyncTracing,
-    stopAsyncTracing,
-    clearLeakDetector
-} from "../src/trace";
 import { Fn } from "../src/types";
 import * as funcs from "./functions";
-import { inspect } from "util";
-import { eqMacro, rejectMacro, once } from "./util";
+import { macros, once } from "./util";
 
 export function testFunctions(provider: "aws", options: awsFaast.Options): void;
 export function testFunctions(provider: "local", options: faast.local.Options): void;
@@ -25,7 +19,7 @@ export function testFunctions(provider: faast.Provider, options: CommonOptions):
     let remote: faast.Promisified<typeof funcs>;
     const opts = inspect(options, { breakLength: Infinity });
 
-    const init = once(async () => {
+    const init = async () => {
         try {
             const start = Date.now();
             const opts = { timeout: 30, memorySize: 512, gc: false, ...options };
@@ -35,85 +29,26 @@ export function testFunctions(provider: faast.Provider, options: CommonOptions):
         } catch (err) {
             warn(err);
         }
-    });
-
-    test.after.always(() => cloudFunc && cloudFunc.cleanup());
-
-    const title = (name?: string) => `${provider} ${opts} ${name}`;
-    const eq = eqMacro(init, title);
-    const reject = rejectMacro(init, title);
+    };
+    const cleanup = () => cloudFunc && cloudFunc.cleanup();
+    const title = (name?: string) => `${provider} ${name} ${opts}`;
+    const { eq, reject, rejectError } = macros(init, title, cleanup);
 
     test(`hello`, eq, () => remote.hello("Andy"), "Hello Andy!");
     test(`multibyte characters`, eq, () => remote.identity("你好"), "你好");
     test(`factorial`, eq, () => remote.fact(5), 120);
     test(`concat`, eq, () => remote.concat("abc", "def"), "abcdef");
-    test(`exception`, reject, () => remote.error("hey"), "Expected error. Arg: hey");
+    test(`exception`, rejectError, () => remote.error("hey"), "Expected error. Arg: hey");
     test(`no arguments`, eq, () => remote.noargs(), "called function with no args.");
     test(`async function`, eq, () => remote.async(), "async function: success");
     test(`get $PATH`, eq, async () => typeof (await remote.path()), "string");
-    test(`empty promise rejection`, reject, () => remote.emptyReject(), "");
-    test(`no promise args`, reject, () => remote.promiseArg(Promise.resolve()), "");
     test(`optional arg absent`, eq, () => remote.optionalArg(), "No arg");
     test(`optional arg present`, eq, () => remote.optionalArg("has arg"), "has arg");
-    test(title(`rejected promise`), async t => {
-        await init();
-        t.plan(1);
-        try {
-            await remote.rejected();
-        } catch (err) {
-            t.is(err, "This promise is intentionally rejected.");
-        }
-    });
-}
+    test(`empty promise rejection`, reject, () => remote.emptyReject(), undefined);
+    test(`rejected promise`, reject, () => remote.rejected(), "intentionally rejected");
 
-export function testCosts(provider: faast.Provider, options: CommonOptions = {}) {
-    let cloudFunc: faast.CloudFunction<typeof funcs>;
-    const opts = inspect(options, { breakLength: Infinity });
-
-    const init = once(async () => {
-        const args: CommonOptions = {
-            timeout: 30,
-            memorySize: 512,
-            mode: "queue",
-            gc: false
-        };
-        cloudFunc = await faastify(provider, funcs, "./functions", {
-            ...args,
-            ...options
-        });
-    });
-
-    test.after.always(() => cloudFunc && cloudFunc.cleanup());
-
-    test(`${provider} ${opts} cost for basic call`, async t => {
-        await init();
-        await cloudFunc.functions.hello("there");
-        const costs = await cloudFunc.costEstimate();
-        info(`${costs}`);
-        info(`CSV costs:\n${costs.csv()}`);
-
-        const { estimatedBilledTime } = cloudFunc.stats.aggregate;
-        t.is(
-            (estimatedBilledTime.mean * estimatedBilledTime.samples) / 1000,
-            costs.metrics.find(m => m.name === "functionCallDuration")!.measured
-        );
-
-        t.true(costs.metrics.length > 1);
-        t.true(costs.find("functionCallRequests")!.measured === 1);
-        for (const metric of costs.metrics) {
-            if (!metric.alwaysZero) {
-                t.true(metric.cost() > 0);
-                t.true(metric.measured > 0);
-                t.true(metric.pricing > 0);
-            }
-
-            t.true(metric.cost() < 0.00001);
-            t.true(metric.name.length > 0);
-            t.true(metric.unit.length > 0);
-            t.true(metric.cost() === metric.pricing * metric.measured);
-        }
-        t.true(costs.total() > 0);
-    });
+    const p = Promise.resolve();
+    test(`no promise args`, rejectError, () => remote.promiseArg(p), /not supported/);
 }
 
 export function testRampUp(
@@ -211,64 +146,6 @@ export function testThroughput(
         info(`${cost}`);
         info(`Completed ${completed} calls in ${duration / (60 * 1000)} minute(s)`);
     });
-}
-
-export function testCpuMetrics(provider: faast.Provider, options?: CommonOptions) {
-    const opts = inspect(options, { breakLength: Infinity });
-    let lambda: faast.CloudFunction<typeof funcs>;
-
-    const init = once(async () => {
-        lambda = await faastify(provider, funcs, "./functions", {
-            childProcess: true,
-            timeout: 30,
-            memorySize: 512,
-            maxRetries: 0,
-            gc: false,
-            ...options
-        });
-    });
-
-    test.after.always(() => lambda && lambda.cleanup());
-
-    test(`${provider} ${opts} cpu metrics are received`, async t => {
-        await init();
-        const N = 5;
-        const NSec = 5;
-        const promises: Promise<unknown>[] = [];
-        for (let i = 0; i < N; i++) {
-            promises.push(lambda.functions.spin(NSec * 1000));
-        }
-        await Promise.all(promises);
-        const usage = lambda.cpuUsage.get("spin");
-        t.truthy(usage);
-        t.true(usage!.size > 0);
-        t.true(usage!.get(1)!.stime instanceof Statistics);
-        t.true(usage!.get(1)!.utime instanceof Statistics);
-    });
-}
-
-export function testCancellation(provider: faast.Provider, options?: CommonOptions) {
-    const opts = inspect(options, { breakLength: Infinity });
-    test.serial(
-        `${provider} ${opts} cleanup waits for all child processes to exit`,
-        async t => {
-            await sleep(0); // wait until jest sets its timeout so it doesn't get picked up by async_hooks.
-            startAsyncTracing();
-            const cloudFunc = await faastify(provider, funcs, "./functions", {
-                ...options,
-                childProcess: true,
-                gc: false
-            });
-            cloudFunc.functions.spin(10000).catch(_ => {});
-            await sleep(500); // wait until the request actually starts
-            await cloudFunc.cleanup();
-            stopAsyncTracing();
-            await sleep(500);
-            const leaks = detectAsyncLeaks();
-            t.true(leaks.length === 0);
-            clearLeakDetector();
-        }
-    );
 }
 
 export function quietly<T>(p: Promise<T>) {

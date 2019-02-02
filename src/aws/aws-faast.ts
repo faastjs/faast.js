@@ -1161,7 +1161,7 @@ export async function costEstimate(
         unit: "GB",
         comment:
             "https://aws.amazon.com/cloudwatch/pricing/ - Log ingestion costs not currently included.",
-        alwaysZero: true
+        informationalOnly: true
     });
     costs.push(logIngestion);
 
