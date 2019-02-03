@@ -10,7 +10,7 @@ import {
     AsyncQueue
 } from "../src/throttle";
 import { timer, Timing } from "./functions";
-import { LocalCache } from "../src/cache";
+import { PersistentCache } from "../src/cache";
 import * as uuidv4 from "uuid/v4";
 import { measureConcurrency } from "./util";
 import test from "ava";
@@ -304,9 +304,9 @@ test("memoize runs the worker for different keys", async t => {
     t.is(measureConcurrency(times), 1);
 });
 
-async function withCache(fn: (cache: LocalCache) => Promise<void>) {
+async function withCache(fn: (cache: PersistentCache) => Promise<void>) {
     const nonce = uuidv4();
-    const cache = new LocalCache(`.faast/test/${nonce}`);
+    const cache = new PersistentCache(`.faast/test/${nonce}`);
     await fn(cache).catch(console.error);
     await cache.clear({ leaveEmptyDir: false });
 }

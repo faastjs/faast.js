@@ -2,9 +2,9 @@ import { AWSServices, GcWork } from "../src/aws/aws-faast";
 import { faastify } from "../src/faast";
 import { sleep } from "../src/shared";
 import * as functions from "../test/functions";
-import { quietly, record, contains } from "../test/tests";
 import { logGc } from "../src/log";
 import test from "ava";
+import { record, contains, quietly } from "../test/util";
 
 test("aws garbage collector works for functions that are called", async t => {
     // Idea behind this test: create a faast function and make a call.

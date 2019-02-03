@@ -314,7 +314,7 @@ export async function buildModulesOnLambda(
             ? (await readFile(packageJson)).toString()
             : JSON.stringify(packageJson);
 
-    const localCache = await caches.awsPackage;
+    const persistentCache = await caches.awsPackage;
 
     let cacheKey: string | undefined;
     if (useDependencyCaching) {
@@ -322,11 +322,11 @@ export async function buildModulesOnLambda(
         hasher.update(packageJsonContents);
         cacheKey = hasher.digest("hex");
 
-        const localCacheEntry = await localCache.get(cacheKey);
-        if (localCacheEntry) {
-            info(`Using local cache entry ${localCache.dir}/${cacheKey}`);
+        const cacheEntry = await persistentCache.get(cacheKey);
+        if (cacheEntry) {
+            info(`Using persistent cache entry ${persistentCache.dir}/${cacheKey}`);
 
-            const stream = await awsNpm.addIndexToPackage(localCacheEntry, indexContents);
+            const stream = await awsNpm.addIndexToPackage(cacheEntry, indexContents);
             const buf = await zipStreamToBuffer(stream);
             return { ZipFile: buf };
         }
@@ -354,7 +354,7 @@ export async function buildModulesOnLambda(
 
         if (cacheKey) {
             const cachedPackage = await s3.getObject({ Bucket, Key: cacheKey }).promise();
-            await localCache.set(cacheKey, cachedPackage.Body!);
+            await persistentCache.set(cacheKey, cachedPackage.Body!);
         }
         return { S3Bucket: Bucket, S3Key: Key };
     } catch (err) {

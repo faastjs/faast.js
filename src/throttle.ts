@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import { sleep } from "./shared";
 import { PromiseFn } from "./types";
-import { LocalCache } from "./cache";
+import { PersistentCache } from "./cache";
 import { createHash } from "crypto";
 
 export class Deferred<T = void> {
@@ -233,7 +233,7 @@ interface Limits {
     burst?: number;
     retry?: number | ((err: any, retries: number) => boolean);
     memoize?: boolean;
-    cache?: LocalCache;
+    cache?: PersistentCache;
 }
 
 export function memoizeFn<A extends any[], R>(fn: (...args: A) => R) {
@@ -251,7 +251,7 @@ export function memoizeFn<A extends any[], R>(fn: (...args: A) => R) {
 }
 
 export function cacheFn<A extends any[], R>(
-    cache: LocalCache,
+    cache: PersistentCache,
     fn: (...args: A) => Promise<R>
 ) {
     return async (...args: A) => {

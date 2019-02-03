@@ -1,37 +1,37 @@
-import { LocalCache } from "../src/cache";
+import { PersistentCache } from "../src/cache";
 import { sleep } from "./functions";
 import { createHash } from "crypto";
 import * as uuidv4 from "uuid/v4";
 import anytest, { TestInterface } from "ava";
 
-const test = anytest as TestInterface<{ cache: LocalCache }>;
+const test = anytest as TestInterface<{ cache: PersistentCache }>;
 
 test.beforeEach(t => {
     const nonce = uuidv4();
-    t.context.cache = new LocalCache(`.faast/test/${nonce}`);
+    t.context.cache = new PersistentCache(`.faast/test/${nonce}`);
 });
 
 test.afterEach.always(async t => {
     await t.context.cache.clear({ leaveEmptyDir: false });
 });
 
-test("local cache directory respects relative path", t => {
+test("persistent cache directory respects relative path", t => {
     t.regex(t.context.cache.dir, /test/);
 });
 
-test("local cache handles missing cache entries", async t => {
+test("persistent cache handles missing cache entries", async t => {
     t.falsy(await t.context.cache.get("foo"));
 });
 
-test("local cache can set and get cache entries", async t => {
+test("persistent cache can set and get cache entries", async t => {
     const { cache } = t.context;
     await cache.set("foo", "bar");
     const result = await cache.get("foo");
     t.is(result && result.toString(), "bar");
 });
 
-test("local cache ignores entries after they expire", async t => {
-    const cache2 = new LocalCache(t.context.cache.dirRelativeToHomeDir, 100);
+test("persistent cache ignores entries after they expire", async t => {
+    const cache2 = new PersistentCache(t.context.cache.dirRelativeToHomeDir, 100);
     await cache2.set("foo", "bar");
     let result = await cache2.get("foo");
     t.is(result && result.toString(), "bar");
@@ -40,7 +40,7 @@ test("local cache ignores entries after they expire", async t => {
     t.falsy(result && result.toString());
 });
 
-test("local cache keys can be sha256 hashes", async t => {
+test("persistent cache keys can be sha256 hashes", async t => {
     const hasher = createHash("sha256");
     hasher.update("input");
     const hash = hasher.digest("hex");
@@ -50,22 +50,22 @@ test("local cache keys can be sha256 hashes", async t => {
     t.is(result && result.toString(), "value");
 });
 
-test("local cache value can be a Buffer", async t => {
+test("persistent cache value can be a Buffer", async t => {
     const { cache } = t.context;
     await cache.set("key", Buffer.from("value"));
     const result = await cache.get("key");
     t.is(result && result.toString(), "value");
 });
 
-test("local cache values are persistent", async t => {
+test("persistent cache values are persistent", async t => {
     const { cache } = t.context;
     await cache.set("persistentKey", "persistent");
-    const cache2 = new LocalCache(cache.dirRelativeToHomeDir);
+    const cache2 = new PersistentCache(cache.dirRelativeToHomeDir);
     const result2 = await cache2.get("persistentKey");
     t.is(result2 && result2.toString(), "persistent");
 });
 
-test("local cache clearing", async t => {
+test("persistent cache clearing", async t => {
     const { cache } = t.context;
     await cache.set("key", "value");
     const value = await cache.get("key");

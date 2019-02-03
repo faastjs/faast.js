@@ -11,9 +11,9 @@ import { exists, mkdir, readdir, readFile, rmrf, stat, writeFile } from "./fs";
  * where 'package.json' is not expected to change too often)
  *
  * @export
- * @class LocalCache
+ * @class PersistentCache
  */
-export class LocalCache {
+export class PersistentCache {
     initialized: Promise<void>;
 
     protected static async initialize(dir: string) {
@@ -42,7 +42,7 @@ export class LocalCache {
         readonly expiration: number = 24 * 3600 * 1000
     ) {
         this.dir = join(homedir(), dirRelativeToHomeDir);
-        this.initialized = LocalCache.initialize(this.dir);
+        this.initialized = PersistentCache.initialize(this.dir);
     }
 
     /**
@@ -92,7 +92,7 @@ export class LocalCache {
 const days = 24 * 3600 * 1000;
 
 export const caches = {
-    awsPackage: new LocalCache(".faast/aws/packages", 7 * days),
-    awsPrices: new LocalCache(".faast/aws/pricing", 1 * days),
-    googlePrices: new LocalCache(".faast/google/pricing", 1 * days)
+    awsPackage: new PersistentCache(".faast/aws/packages", 7 * days),
+    awsPrices: new PersistentCache(".faast/aws/pricing", 1 * days),
+    googlePrices: new PersistentCache(".faast/google/pricing", 1 * days)
 };

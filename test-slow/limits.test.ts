@@ -2,20 +2,22 @@ import test, { Macro } from "ava";
 import { inspect } from "util";
 import * as faast from "../src/faast";
 import { faastify, Provider } from "../src/faast";
-import { warn } from "../src/log";
 import { CommonOptions } from "../src/provider";
 import * as funcs from "../test/functions";
 
 const testTimeout: Macro<[Provider, CommonOptions]> = async (t, provider, options) => {
-    let lambda: faast.CloudFunction<typeof funcs>;
-    lambda = await faastify(provider, funcs, "./functions", {
-        ...options,
-        timeout: 2,
-        maxRetries: 0,
-        gc: false
-    });
-    test.after.always(() => lambda && lambda.cleanup());
-    await t.throwsAsync(lambda.functions.sleep(4 * 1000), /time/i);
+    let lambda: faast.CloudFunction<typeof funcs> | undefined;
+    try {
+        lambda = await faastify(provider, funcs, "../test/functions", {
+            ...options,
+            timeout: 2,
+            maxRetries: 0,
+            gc: false
+        });
+        await t.throwsAsync(lambda.functions.sleep(4 * 1000), /time/i);
+    } finally {
+        lambda && (await lambda.cleanup());
+    }
 };
 
 const testMemoryLimitOk: Macro<[Provider, CommonOptions]> = async (
@@ -23,20 +25,22 @@ const testMemoryLimitOk: Macro<[Provider, CommonOptions]> = async (
     provider,
     options
 ) => {
-    let lambda: faast.CloudFunction<typeof funcs>;
-    lambda = await faastify(provider, funcs, "./functions", {
-        ...options,
-        timeout: 200,
-        memorySize: 512,
-        maxRetries: 0,
-        gc: false
-    });
+    let lambda: faast.CloudFunction<typeof funcs> | undefined;
+    try {
+        lambda = await faastify(provider, funcs, "../test/functions", {
+            ...options,
+            timeout: 200,
+            memorySize: 512,
+            maxRetries: 0,
+            gc: false
+        });
 
-    test.after.always(() => lambda && lambda.cleanup());
-
-    const bytes = 64 * 1024 * 1024;
-    const rv = await lambda.functions.allocate(bytes);
-    t.is(rv.elems, bytes / 8);
+        const bytes = 64 * 1024 * 1024;
+        const rv = await lambda.functions.allocate(bytes);
+        t.is(rv.elems, bytes / 8);
+    } finally {
+        lambda && (await lambda.cleanup());
+    }
 };
 
 const testMemoryLimitFail: Macro<[Provider, CommonOptions]> = async (
@@ -44,20 +48,21 @@ const testMemoryLimitFail: Macro<[Provider, CommonOptions]> = async (
     provider,
     options
 ) => {
-    let lambda: faast.CloudFunction<typeof funcs>;
+    let lambda: faast.CloudFunction<typeof funcs> | undefined;
+    try {
+        lambda = await faastify(provider, funcs, "../test/functions", {
+            ...options,
+            timeout: 200,
+            memorySize: 512,
+            maxRetries: 0,
+            gc: false
+        });
 
-    lambda = await faastify(provider, funcs, "./functions", {
-        ...options,
-        timeout: 200,
-        memorySize: 512,
-        maxRetries: 0,
-        gc: false
-    });
-
-    test.after.always(() => lambda && lambda.cleanup());
-
-    const bytes = 512 * 1024 * 1024;
-    await t.throwsAsync(lambda.functions.allocate(bytes), /memory/i);
+        const bytes = 512 * 1024 * 1024;
+        await t.throwsAsync(lambda.functions.allocate(bytes), /memory/i);
+    } finally {
+        lambda && (await lambda.cleanup());
+    }
 };
 
 const configurations: [Provider, faast.aws.Options][] = [

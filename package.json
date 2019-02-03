@@ -12,14 +12,14 @@
         "build": "npm run clean && tsc",
         "watch": "npm run clean && tsc --watch",
         "aws-set-gcp-key": "node build/src/aws/aws-set-gcp-key.js",
-        "test": "jest build/test/*",
-        "test-ava": "ava",
-        "test-slow": "jest -w 1 build/test-slow/",
-        "test-unit": "jest build/test/unit-*",
-        "test-aws": "jest -w 2 build/test/unit-* build/test/aws-*",
-        "test-google": "jest -w 2 build/test/unit-* build/test/google-*",
-        "test-pipeline-debug": "DEBUG=faast:provider,faast:info jest --bail -w 1 build/test/* && jest -w 1 build/test-slow/*",
-        "test-pipeline": "jest -w 8 build/test/* && jest -w 8 build/test-slow/*",
+        "test": "ava build/test/*.test.js",
+        "test-slow": "ava build/test-slow/*.test.js",
+        "test-unit": "ava build/test/unit-*.test.js",
+        "test-local": "ava -m='*local*'",
+        "test-aws": "ava -m='*aws*'",
+        "test-google": "ava -m='*google*",
+        "test-pipeline-debug": "DEBUG=faast:provider,faast:info ava --fail-fast --serial build/test/*.test.js build/test-slow/*.test.js",
+        "test-pipeline": "ava --concurrency=8",
         "cleanup-cloud": "node build/src/cleanup.js aws -x -f && node build/src/cleanup.js google -x -f",
         "clean": "rm -rf build",
         "tslint": "tslint -p tsconfig.json"
@@ -74,6 +74,9 @@
         "webpack-cli": "^3.2.1"
     },
     "ava": {
-        "files": "build/test/*.test.js"
+        "files": [
+            "build/test/*.test.js",
+            "build/test-slow/*.test.js"
+        ]
     }
 }

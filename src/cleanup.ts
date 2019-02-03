@@ -9,7 +9,7 @@ import * as ora from "ora";
 import { tmpdir } from "os";
 import * as path from "path";
 import * as awsFaast from "./aws/aws-faast";
-import { LocalCache, caches } from "./cache";
+import { PersistentCache, caches } from "./cache";
 import { readdir, rmrf } from "./fs";
 import * as googleFaast from "./google/google-faast";
 import { uuidv4Pattern, keys } from "./shared";
@@ -196,8 +196,8 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
         Bucket => s3.deleteBucket({ Bucket }).promise()
     );
 
-    async function cleanupCacheDir(cache: LocalCache) {
-        output(`Local cache: ${cache.dir}`);
+    async function cleanupCacheDir(cache: PersistentCache) {
+        output(`Persistent cache: ${cache.dir}`);
         const entries = await cache.entries();
         if (!execute) {
             output(`  cache entries: ${entries.length}`);

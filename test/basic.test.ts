@@ -1,14 +1,54 @@
 import test, { ExecutionContext } from "ava";
 import { inspect } from "util";
+import * as awsFaast from "../src/aws/aws-faast";
 import * as faast from "../src/faast";
 import { faastify } from "../src/faast";
-import { info } from "../src/log";
+import { info, warn } from "../src/log";
 import { CommonOptions } from "../src/provider";
 import { Statistics } from "../src/shared";
-import { providers, configs } from "./configurations";
+import { configs, providers } from "./configurations";
 import * as funcs from "./functions";
-import { testFunctions } from "./tests";
-import { once, macros } from "./util";
+import { macros, once } from "./util";
+
+export function testFunctions(provider: "aws", options: awsFaast.Options): void;
+export function testFunctions(provider: "local", options: faast.local.Options): void;
+export function testFunctions(provider: faast.Provider, options: CommonOptions): void;
+export function testFunctions(provider: faast.Provider, options: CommonOptions): void {
+    let cloudFunc: faast.CloudFunction<typeof funcs>;
+    let remote: faast.Promisified<typeof funcs>;
+    const opts = inspect(options, { breakLength: Infinity });
+
+    const init = async () => {
+        try {
+            const start = Date.now();
+            const opts = { timeout: 30, memorySize: 512, gc: false, ...options };
+            cloudFunc = await faastify(provider, funcs, "./functions", opts);
+            remote = cloudFunc.functions;
+            info(`Function creation took ${((Date.now() - start) / 1000).toFixed(1)}s`);
+        } catch (err) {
+            warn(err);
+        }
+    };
+    const cleanup = () => cloudFunc && cloudFunc.cleanup();
+    const title = (name?: string) => `${provider} ${name} ${opts}`;
+    const { eq, reject, rejectError } = macros(init, title, cleanup);
+
+    test(`hello`, eq, () => remote.hello("Andy"), "Hello Andy!");
+    test(`multibyte characters`, eq, () => remote.identity("你好"), "你好");
+    test(`factorial`, eq, () => remote.fact(5), 120);
+    test(`concat`, eq, () => remote.concat("abc", "def"), "abcdef");
+    test(`exception`, rejectError, () => remote.error("hey"), "Expected error. Arg: hey");
+    test(`no arguments`, eq, () => remote.noargs(), "called function with no args.");
+    test(`async function`, eq, () => remote.async(), "async function: success");
+    test(`get $PATH`, eq, async () => typeof (await remote.path()), "string");
+    test(`optional arg absent`, eq, () => remote.optionalArg(), "No arg");
+    test(`optional arg present`, eq, () => remote.optionalArg("has arg"), "has arg");
+    test(`empty promise rejection`, reject, () => remote.emptyReject(), undefined);
+    test(`rejected promise`, reject, () => remote.rejected(), "intentionally rejected");
+
+    const p = Promise.resolve();
+    test(`no promise args`, rejectError, () => remote.promiseArg(p), /not supported/);
+}
 
 export function testCosts(provider: faast.Provider, options: CommonOptions = {}) {
     let cloudFunc: faast.CloudFunction<typeof funcs>;
@@ -108,3 +148,15 @@ for (const provider of providers) {
     testCosts(provider);
     testCpuMetrics(provider);
 }
+
+testFunctions("aws", {
+    mode: "https",
+    packageJson: "test/package.json",
+    useDependencyCaching: false
+});
+
+testFunctions("aws", {
+    mode: "queue",
+    packageJson: "test/package.json",
+    useDependencyCaching: false
+});

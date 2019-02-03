@@ -1,8 +1,8 @@
 import { faastify } from "../src/faast";
-import { record, contains } from "../test/tests";
 import * as functions from "../test/functions";
 import { GoogleResources, GoogleServices } from "../src/google/google-faast";
 import test from "ava";
+import { record, contains } from "../test/util";
 
 test("google garbage collector works for functions that are called", async t => {
     // Idea behind this test: create a faast function and make a call.

@@ -1,55 +1,35 @@
+import test from "ava";
 import { faastify } from "../src/faast";
-import { topPackages, topPackagesAll, topPackagesFailures } from "./top-packages";
-import * as functions from "../test/functions";
-import { Funnel } from "../src/throttle";
+import { throttle } from "../src/throttle";
+import { topPackages } from "./top-packages";
 
-type Results = { [key in string]: string | Error };
+const testPackage = throttle({ concurrency: 500 }, async (pkg: string) => {
+    try {
+        const cloudFunc = await faastify(
+            "aws",
+            require("../test/functions"),
+            "../test/functions",
+            {
+                mode: "https",
+                useDependencyCaching: false,
+                packageJson: { dependencies: { [pkg]: "*" } },
+                gc: false
+            }
+        );
+        await cloudFunc.cleanup();
+        return pkg;
+    } catch (err) {
+        return err as Error;
+    }
+});
 
 function testPackages(packages: string[]) {
-    async function installPackages() {
-        const funnel = new Funnel<void>(500);
-        const promises: Promise<void>[] = [];
-        const results: Results = {};
-
-        for (const pkg of packages) {
-            promises.push(
-                funnel.push(async () => {
-                    try {
-                        const cloudFunc = await faastify(
-                            "aws",
-                            require("../test/functions"),
-                            "../test/functions",
-                            {
-                                mode: "https",
-                                useDependencyCaching: false,
-                                packageJson: { dependencies: { [pkg]: "*" } }
-                            }
-                        );
-                        await cloudFunc.cleanup();
-                        results[pkg] = pkg;
-                    } catch (err) {
-                        results[pkg] = err;
-                    }
-                })
-            );
-        }
-        await Promise.all(promises);
-        return results;
+    for (const pkg of packages) {
+        test(`top package ${pkg}`, async t => {
+            const rv = await testPackage(pkg);
+            t.is(rv, pkg);
+        });
     }
-
-    describe(`Install npm packages with the most dependencies`, async () => {
-        let results: Results;
-
-        beforeAll(async () => {
-            results = await installPackages();
-        }, 600 * 1000);
-
-        for (const pkg of packages) {
-            test(`Package '${pkg}'`, () => {
-                expect(results[pkg]).toBe(pkg);
-            });
-        }
-    });
 }
 
 // funnel(500) => 468s

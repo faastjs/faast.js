@@ -1,7 +1,7 @@
 import * as faast from "../src/faast";
 import * as functions from "../test/functions";
-import { record } from "../test/tests";
 import test from "ava";
+import { record } from "../test/util";
 
 test("garbage collector works for functions that are called", async t => {
     // Idea behind this test: create a cloudified function and make a call.
