@@ -137,7 +137,10 @@ test("funnel gets executed asynchronously, not at the moment of push", async t =
 test("funnel handles promise rejections without losing concurrency", async t => {
     const funnel = new Funnel<void>(1);
     let executed = false;
-    await t.throwsAsync(funnel.push(() => Promise.reject("message")), "message");
+    await t.throwsAsync(
+        funnel.push(() => Promise.reject(new Error("message"))),
+        "message"
+    );
     await funnel.push(async () => {
         executed = true;
     });
