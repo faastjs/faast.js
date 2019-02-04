@@ -96,8 +96,10 @@ async function initialize(
         }
         let logStream: Writable;
         let childlog = (msg: string) => {
-            logStream.write(msg);
-            logStream.write("\n");
+            if (logStream.writable) {
+                logStream.write(msg);
+                logStream.write("\n");
+            }
         };
         try {
             const logFile = join(logDir, `${wrappers.length}.log`);

@@ -449,7 +449,7 @@ test("throttle limits rate with single concurrency", async t => {
 
     const times = await Promise.all(promises);
     t.is(measureConcurrency(times), concurrency);
-    t.is(measureMaxRequestRatePerSecond(times), Math.min(rate, 1000 / processTimeMs));
+    t.true(measureMaxRequestRatePerSecond(times) <= 1000 / processTimeMs);
 });
 
 test("throttle memoize option", async t => {
