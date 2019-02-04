@@ -44,7 +44,7 @@ export function testFunctions(provider: faast.Provider, options: CommonOptions):
     test(`optional arg absent`, eq, () => remote.optionalArg(), "No arg");
     test(`optional arg present`, eq, () => remote.optionalArg("has arg"), "has arg");
     test(`empty promise rejection`, reject, () => remote.emptyReject(), undefined);
-    test(`rejected promise`, reject, () => remote.rejected(), /intentionally rejected/);
+    test(`rejected promise`, reject, () => remote.rejected(), "intentionally rejected");
 
     const p = Promise.resolve();
     test(`no promise args`, rejectError, () => remote.promiseArg(p), /not supported/);

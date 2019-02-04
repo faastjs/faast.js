@@ -47,7 +47,7 @@ export const rejectErrorMacro = (
     return fn;
 };
 
-export const rejectMacro = (
+export const rejectNonErrorMacro = (
     init: () => Promise<void>,
     title: (name?: string) => string
 ) => {
@@ -81,7 +81,7 @@ export const macros = (
     const onceInit = once(init);
     test.after.always(cleanup);
     return {
-        reject: rejectMacro(onceInit, title),
+        reject: rejectNonErrorMacro(onceInit, title),
         eq: eqMacro(onceInit, title),
         rejectError: rejectErrorMacro(onceInit, title),
         fn: fnMacro(onceInit, title)
