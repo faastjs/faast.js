@@ -37,14 +37,14 @@ export function testFunctions(provider: faast.Provider, options: CommonOptions):
     test(`multibyte characters`, eq, () => remote.identity("你好"), "你好");
     test(`factorial`, eq, () => remote.fact(5), 120);
     test(`concat`, eq, () => remote.concat("abc", "def"), "abcdef");
-    test(`exception`, rejectError, () => remote.error("hey"), "Expected error. Arg: hey");
+    test(`exception`, rejectError, () => remote.error("hey"), /Expected error. Arg: hey/);
     test(`no arguments`, eq, () => remote.noargs(), "called function with no args.");
     test(`async function`, eq, () => remote.async(), "async function: success");
     test(`get $PATH`, eq, async () => typeof (await remote.path()), "string");
     test(`optional arg absent`, eq, () => remote.optionalArg(), "No arg");
     test(`optional arg present`, eq, () => remote.optionalArg("has arg"), "has arg");
     test(`empty promise rejection`, reject, () => remote.emptyReject(), undefined);
-    test(`rejected promise`, reject, () => remote.rejected(), "intentionally rejected");
+    test(`rejected promise`, reject, () => remote.rejected(), /intentionally rejected/);
 
     const p = Promise.resolve();
     test(`no promise args`, rejectError, () => remote.promiseArg(p), /not supported/);
