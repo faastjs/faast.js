@@ -101,7 +101,7 @@ async function readFirstLogfile(logDirectoryUrl: string) {
         .map(m => m.replace(/^\[(\d+)\]/, "[$pid]"));
 }
 
-test("local provider console.log and console.warn with child process", async t => {
+test("local provider console.log, console.warn, and console.error with child process", async t => {
     const cloudFunc = await faastify("local", funcs, "./functions", {
         childProcess: true,
         concurrency: 1
@@ -111,7 +111,7 @@ test("local provider console.log and console.warn with child process", async t =
         await cloudFunc.functions.consoleWarn("Remote console.warn output");
         await cloudFunc.functions.consoleError("Remote console.error output");
         await cloudFunc.cleanup({ deleteResources: false });
-        await sleep(10);
+        await sleep(1000);
         const messages = await readFirstLogfile(cloudFunc.logUrl());
         t.truthy(messages.find(s => s === "[$pid]: Remote console.log output"));
         t.truthy(messages.find(s => s === "[$pid]: Remote console.warn output"));

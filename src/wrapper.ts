@@ -128,15 +128,6 @@ export class Wrapper {
 
         if (process.env["FAAST_CHILD"]) {
             this.options.childProcess = false;
-            // XXX try to flush stdout/stderr immediately.
-            [process.stdout, process.stderr].forEach(s => {
-                s &&
-                    s.isTTY &&
-                    (s as any)._handle &&
-                    (s as any)._handle.setBlocking &&
-                    (s as any)._handle.setBlocking(true);
-            });
-
             this.log(`faast: started child process for module wrapper.`);
             process.on("message", async (call: FunctionCall) => {
                 const startTime = Date.now();
