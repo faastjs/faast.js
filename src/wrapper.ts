@@ -191,7 +191,7 @@ export class Wrapper {
     stop() {
         this.stopCpuMonitoring();
         if (this.child) {
-            this.child.stdout.this.child.stdout.removeListener("data", this.logLines);
+            this.child.stdout.removeListener("data", this.logLines);
             this.child.stderr.removeListener("data", this.logLines);
             this.child!.disconnect();
             this.child!.kill();
