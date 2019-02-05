@@ -105,7 +105,7 @@ export function testCosts(provider: faast.Provider, options: CommonOptions = {})
     });
 }
 
-export function testCpuMetrics(provider: faast.Provider, options?: CommonOptions) {
+export function testCpuMetrics(provider: faast.Provider, options: CommonOptions = {}) {
     const opts = inspect(options, { breakLength: Infinity });
     let lambda: faast.CloudFunction<typeof funcs>;
 
@@ -126,13 +126,8 @@ export function testCpuMetrics(provider: faast.Provider, options?: CommonOptions
 
     test(`cpu metrics are received`, fn, async (t: ExecutionContext) => {
         await init();
-        const N = 5;
         const NSec = 5;
-        const promises: Promise<unknown>[] = [];
-        for (let i = 0; i < N; i++) {
-            promises.push(lambda.functions.spin(NSec * 1000));
-        }
-        await Promise.all(promises);
+        await lambda.functions.spin(NSec * 1000);
         const usage = lambda.cpuUsage.get("spin");
         t.truthy(usage);
         t.true(usage!.size > 0);
