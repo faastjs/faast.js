@@ -1,9 +1,10 @@
-import { Timing } from "./functions";
-import test, { Macro, Assertions, ExecutionContext } from "ava";
-import { Deferred } from "../src/throttle";
-import { keys } from "../src/shared";
-import { Fn } from "../src/types";
+import test, { Assertions, ExecutionContext, Macro } from "ava";
+import * as lolex from "lolex";
 import { info, logGc } from "../src/log";
+import { keys } from "../src/shared";
+import { Deferred } from "../src/throttle";
+import { Fn } from "../src/types";
+import { Timing } from "./functions";
 
 export const measureConcurrency = (timings: Timing[]) =>
     timings
@@ -99,6 +100,17 @@ export function once<T>(fn: () => Promise<T>) {
         deferred.resolve(rv);
         return rv;
     };
+}
+
+export type VClock = lolex.InstalledClock<lolex.Clock>;
+
+export async function withClock(fn: (clock: VClock) => Promise<void>) {
+    const clock = lolex.install({ shouldAdvanceTime: true });
+    try {
+        await fn(clock);
+    } finally {
+        clock.uninstall();
+    }
 }
 
 export function quietly<T>(p: Promise<T>) {

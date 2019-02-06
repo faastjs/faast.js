@@ -12,7 +12,7 @@ import {
 import { timer, Timing } from "./functions";
 import { PersistentCache } from "../src/cache";
 import * as uuidv4 from "uuid/v4";
-import { measureConcurrency } from "./util";
+import { measureConcurrency, withClock } from "./util";
 import test from "ava";
 
 test("deferred resolves its promise", async t => {
@@ -37,6 +37,7 @@ test("deferred rejects its promise", async t => {
     }
     t.is(rejected, true);
 });
+
 test("deferred resolves only once", async t => {
     const deferred = new Deferred();
     let value = 0;
@@ -50,6 +51,7 @@ test("deferred resolves only once", async t => {
     await deferred.promise;
     t.is(value, 1);
 });
+
 test("deferred cannot reject after resolving", async t => {
     const deferred = new Deferred();
     let value = 0;
@@ -64,53 +66,67 @@ test("deferred cannot reject after resolving", async t => {
     t.is(value, 1);
 });
 
-test("funnel defaults to infinite concurrency (tested with 200)", async t => {
-    const funnel = new Funnel<Timing>(0);
-    const promises = [];
-    const N = 200;
-    for (let i = 0; i < N; i++) {
-        promises.push(funnel.push(() => timer(300)));
-    }
-    const times = await Promise.all(promises);
-    t.is(measureConcurrency(times), N);
-});
+test.serial("funnel defaults to infinite concurrency (tested with 200)", t =>
+    withClock(async () => {
+        const funnel = new Funnel<Timing>(0);
+        const promises = [];
+        const N = 200;
+        for (let i = 0; i < N; i++) {
+            promises.push(funnel.push(() => timer(300)));
+        }
+        const times = await Promise.all(promises);
+        t.is(measureConcurrency(times), N);
+    })
+);
 
-test("funnel single concurrency is mutually exclusive", async t => {
-    const funnel = new Funnel<Timing>(1);
-    const promises = [];
-    const N = 10;
-    for (let i = 0; i < N; i++) {
-        promises.push(funnel.push(() => timer(10)));
-    }
-    const times = await Promise.all(promises);
-    t.is(measureConcurrency(times), 1);
-});
-test("funnel handles concurrency level 2", async t => {
-    const funnel = new Funnel<Timing>(2);
-    const promises = [];
-    const N = 10;
-    for (let i = 0; i < N; i++) {
-        promises.push(funnel.push(() => timer(20)));
-    }
-    const times = await Promise.all(promises);
-    t.is(measureConcurrency(times), 2);
-});
-test("funnel handles concurrency level 10", async t => {
-    const funnel = new Funnel<Timing>(10);
-    const promises = [];
-    const N = 100;
-    for (let i = 0; i < N; i++) {
-        promises.push(funnel.push(() => timer(20)));
-    }
-    const times = await Promise.all(promises);
-    t.is(measureConcurrency(times), 10);
-});
-test("funnel resumes after finishing a worker", async t => {
-    const funnel = new Funnel<Timing>(1);
-    const time1 = await funnel.push(() => timer(10));
-    const time2 = await funnel.push(() => timer(10));
-    t.is(measureConcurrency([time1, time2]), 1);
-});
+test.serial("funnel single concurrency is mutually exclusive", t =>
+    withClock(async () => {
+        const funnel = new Funnel<Timing>(1);
+        const promises = [];
+        const N = 10;
+        for (let i = 0; i < N; i++) {
+            promises.push(funnel.push(() => timer(10)));
+        }
+        const times = await Promise.all(promises);
+        t.is(measureConcurrency(times), 1);
+    })
+);
+
+test.serial("funnel handles concurrency level 2", t =>
+    withClock(async () => {
+        const funnel = new Funnel<Timing>(2);
+        const promises = [];
+        const N = 10;
+        for (let i = 0; i < N; i++) {
+            promises.push(funnel.push(() => timer(20)));
+        }
+        const times = await Promise.all(promises);
+        t.is(measureConcurrency(times), 2);
+    })
+);
+
+test.serial("funnel handles concurrency level 10", t =>
+    withClock(async () => {
+        const funnel = new Funnel<Timing>(10);
+        const promises = [];
+        const N = 100;
+        for (let i = 0; i < N; i++) {
+            promises.push(funnel.push(() => timer(20)));
+        }
+        const times = await Promise.all(promises);
+        t.is(measureConcurrency(times), 10);
+    })
+);
+
+test.serial("funnel resumes after finishing a worker", t =>
+    withClock(async () => {
+        const funnel = new Funnel<Timing>(1);
+        const time1 = await funnel.push(() => timer(10));
+        const time2 = await funnel.push(() => timer(10));
+        t.is(measureConcurrency([time1, time2]), 1);
+    })
+);
+
 test("funnel clearing", async t => {
     const funnel = new Funnel<number>(1);
     let count = 0;
@@ -286,26 +302,35 @@ test("pump drain", async t => {
     t.is(finished, N);
 });
 
-test("memoize returns cached results for the same key", async t => {
-    const promises = [];
-    const N = 10;
-    const timerFn = throttle({ memoize: true, concurrency: 1, rate: 10 }, _ => timer(10));
-    for (let i = 0; i < N; i++) {
-        promises.push(timerFn("key"));
-    }
-    const times = await Promise.all(promises);
-    t.is(measureConcurrency(times), N);
-});
-test("memoize runs the worker for different keys", async t => {
-    const promises = [];
-    const N = 10;
-    const timerFn = throttle({ memoize: true, concurrency: 1, rate: 10 }, _ => timer(10));
-    for (let i = 0; i < N; i++) {
-        promises.push(timerFn(i));
-    }
-    const times = await Promise.all(promises);
-    t.is(measureConcurrency(times), 1);
-});
+test.serial("memoize returns cached results for the same key", t =>
+    withClock(async () => {
+        const promises = [];
+        const N = 10;
+        const timerFn = throttle({ memoize: true, concurrency: 1, rate: 10 }, _ =>
+            timer(10)
+        );
+        for (let i = 0; i < N; i++) {
+            promises.push(timerFn("key"));
+        }
+        const times = await Promise.all(promises);
+        t.is(measureConcurrency(times), N);
+    })
+);
+
+test.serial("memoize runs the worker for different keys", t =>
+    withClock(async () => {
+        const promises = [];
+        const N = 10;
+        const timerFn = throttle({ memoize: true, concurrency: 1, rate: 10 }, _ =>
+            timer(10)
+        );
+        for (let i = 0; i < N; i++) {
+            promises.push(timerFn(i));
+        }
+        const times = await Promise.all(promises);
+        t.is(measureConcurrency(times), 1);
+    })
+);
 
 async function withCache(fn: (cache: PersistentCache) => Promise<void>) {
     const nonce = uuidv4();
