@@ -2,6 +2,7 @@ import { homedir } from "os";
 import { join } from "path";
 import { Readable } from "stream";
 import { exists, mkdir, readdir, readFile, rmrf, stat, writeFile } from "./fs";
+import { info } from "./log";
 
 /**
  * A simple persistent key-value store. Entries can be expired, but are not
@@ -17,14 +18,21 @@ export class PersistentCache {
     initialized: Promise<void>;
 
     protected static async initialize(dir: string) {
-        if (!(await exists(dir))) {
-            try {
-                await mkdir(dir, { mode: 0o700, recursive: true });
-            } catch (err) {
-                if (err.code !== "EEXIST") {
-                    throw err;
+        info(`persistent cache initialize`);
+        try {
+            if (!(await exists(dir))) {
+                try {
+                    await mkdir(dir, { mode: 0o700, recursive: true });
+                } catch (err) {
+                    if (err.code !== "EEXIST") {
+                        throw err;
+                    }
                 }
             }
+        } catch (err) {
+            info(`persistent cache inititializetion error: `, err.stack || err.message);
+        } finally {
+            info(`persistent cache init done.`);
         }
     }
 
@@ -79,12 +87,19 @@ export class PersistentCache {
      * Deletes all cached entries from disk.
      */
     async clear({ leaveEmptyDir = true } = {}) {
-        await this.initialized;
+        info(`persistent cache clear`);
+        try {
+            await this.initialized;
 
-        await rmrf(this.dir);
+            await rmrf(this.dir);
 
-        if (leaveEmptyDir) {
-            await mkdir(this.dir, { mode: 0o700, recursive: true });
+            if (leaveEmptyDir) {
+                await mkdir(this.dir, { mode: 0o700, recursive: true });
+            }
+        } catch (err) {
+            info(`persistent cache clear error: ${err.stack || err.message}`);
+        } finally {
+            info(`persistent cache clear done.`);
         }
     }
 }
