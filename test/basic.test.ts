@@ -59,6 +59,7 @@ export function testCosts(provider: faast.Provider, options: CommonOptions = {})
             timeout: 30,
             memorySize: 512,
             mode: "queue",
+            maxRetries: 0,
             gc: false
         };
         cloudFunc = await faastify(provider, funcs, "./functions", {
@@ -69,7 +70,7 @@ export function testCosts(provider: faast.Provider, options: CommonOptions = {})
 
     test.after.always(() => cloudFunc && cloudFunc.cleanup());
 
-    test(`${provider} ${opts} cost for basic call`, async t => {
+    test(`${provider} cost for basic call ${opts}`, async t => {
         await init();
         await cloudFunc.functions.hello("there");
         const costs = await cloudFunc.costEstimate();

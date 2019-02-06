@@ -18,8 +18,8 @@
         "test-local": "ava -m='*local*'",
         "test-aws": "ava -m='*aws*'",
         "test-google": "ava -m='*google*",
-        "test-pipeline-debug": "DEBUG=faast:provider,faast:info ava --fail-fast --serial build/test/*.test.js build/test-slow/*.test.js",
-        "test-pipeline": "ava --concurrency=8",
+        "test-pipeline": "DEBUG=faast:provider,faast:info ava --fail-fast --serial -m='persistent cache*'",
+        "test-pipeline-orig": "ava --concurrency=8",
         "cleanup-cloud": "node build/src/cleanup.js aws -x -f && node build/src/cleanup.js google -x -f",
         "clean": "rm -rf build",
         "tslint": "tslint -p tsconfig.json"
