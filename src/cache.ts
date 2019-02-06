@@ -58,29 +58,51 @@ export class PersistentCache {
      * key is not found.
      */
     async get(key: string) {
-        await this.initialized;
-        const entry = join(this.dir, key);
-        const statEntry = await stat(entry).catch(_ => {});
-        if (statEntry) {
-            if (Date.now() - statEntry.mtimeMs > this.expiration) {
-                return undefined;
+        info(`persistent cache get`);
+        try {
+            await this.initialized;
+            const entry = join(this.dir, key);
+            const statEntry = await stat(entry).catch(_ => {});
+            if (statEntry) {
+                if (Date.now() - statEntry.mtimeMs > this.expiration) {
+                    return undefined;
+                }
+                return readFile(entry).catch(_ => {});
             }
-            return readFile(entry).catch(_ => {});
+            return undefined;
+        } catch (err) {
+            info(`persistent cache get error: ${err.stack || err.message}`);
+        } finally {
+            info(`persistent cache get done.`);
         }
-        return undefined;
     }
 
     async set(key: string, value: Buffer | string | Uint8Array | Readable | Blob) {
-        await this.initialized;
-        const entry = join(this.dir, key);
-        return writeFile(entry, value, { mode: 0o600, encoding: "binary" });
+        info(`persistent cache set`);
+        try {
+            await this.initialized;
+            const entry = join(this.dir, key);
+            return writeFile(entry, value, { mode: 0o600, encoding: "binary" });
+        } catch (err) {
+            info(`persistent cache set error: ${err.stack || err.message}`);
+        } finally {
+            info(`persistent cache set done.`);
+        }
     }
 
     /**
      * Retrieve all keys stored in the cache, including expired entries.
      */
     entries() {
-        return readdir(this.dir);
+        info(`persistent cache entries`);
+        try {
+            return readdir(this.dir);
+        } catch (err) {
+            info(`persistent cache entries error: ${err.stack || err.message}`);
+            throw err;
+        } finally {
+            info(`persistent cache entries done.`);
+        }
     }
 
     /**
