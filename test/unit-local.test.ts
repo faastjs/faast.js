@@ -110,8 +110,8 @@ test("local provider console.log, console.warn, and console.error with child pro
         await cloudFunc.functions.consoleLog("Remote console.log output");
         await cloudFunc.functions.consoleWarn("Remote console.warn output");
         await cloudFunc.functions.consoleError("Remote console.error output");
-        await cloudFunc.cleanup({ deleteResources: false });
         await sleep(1000);
+        await cloudFunc.cleanup({ deleteResources: false });
         const messages = await readFirstLogfile(cloudFunc.logUrl());
         t.truthy(messages.find(s => s === "[$pid]: Remote console.log output"));
         t.truthy(messages.find(s => s === "[$pid]: Remote console.warn output"));
