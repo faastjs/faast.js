@@ -18,7 +18,7 @@
         "test-local": "ava -m='*local*'",
         "test-aws": "ava -m='*aws*'",
         "test-google": "ava -m='*google*",
-        "test-pipeline": "DEBUG=faast:provider,faast:info ava --fail-fast --serial -m='persistent cache*'",
+        "test-pipeline": "DEBUG=faast:provider,faast:info ava --fail-fast -m='persistent cache*'",
         "test-pipeline-orig": "ava --concurrency=8",
         "cleanup-cloud": "node build/src/cleanup.js aws -x -f && node build/src/cleanup.js google -x -f",
         "clean": "rm -rf build",
