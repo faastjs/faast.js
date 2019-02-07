@@ -2,7 +2,6 @@ import { homedir } from "os";
 import { join } from "path";
 import { Readable } from "stream";
 import { exists, mkdir, readdir, readFile, rmrf, stat, writeFile } from "./fs";
-import { info } from "./log";
 
 /**
  * A simple persistent key-value store. Entries can be expired, but are not
@@ -18,22 +17,8 @@ export class PersistentCache {
     initialized: Promise<void>;
 
     protected async initialize(dir: string) {
-        info(`persistent cache initialize`);
-        try {
-            if (!(await exists(dir))) {
-                await mkdir(dir, { mode: 0o700, recursive: true });
-                const e = await exists(dir);
-                info(`persistent cache initialized dir: ${dir}, exists? ${e}`);
-                const contents = await readdir(dir);
-                info(`dir ${dir} contents:\n  ${contents.join("\n  ")}`);
-            }
-        } catch (err) {
-            info(
-                `persistent cache inititializetion error for ${dir}: `,
-                err.stack || err.message
-            );
-        } finally {
-            info(`persistent cache init done: ${dir}, exists? ${await exists(dir)}`);
+        if (!(await exists(dir))) {
+            await mkdir(dir, { mode: 0o700, recursive: true });
         }
     }
 
@@ -59,71 +44,41 @@ export class PersistentCache {
      * key is not found.
      */
     async get(key: string) {
-        info(`persistent cache get`);
-        try {
-            await this.initialized;
-            const entry = join(this.dir, key);
-            const statEntry = await stat(entry).catch(_ => {});
-            if (statEntry) {
-                if (Date.now() - statEntry.mtimeMs > this.expiration) {
-                    return undefined;
-                }
-                return readFile(entry).catch(_ => {});
+        await this.initialized;
+        const entry = join(this.dir, key);
+        const statEntry = await stat(entry).catch(_ => {});
+        if (statEntry) {
+            if (Date.now() - statEntry.mtimeMs > this.expiration) {
+                return undefined;
             }
-            return undefined;
-        } catch (err) {
-            info(`persistent cache get error: ${err.stack || err.message}`);
-        } finally {
-            info(`persistent cache get done.`);
+            return readFile(entry).catch(_ => {});
         }
+        return undefined;
     }
 
     async set(key: string, value: Buffer | string | Uint8Array | Readable | Blob) {
-        info(`persistent cache set`);
-        try {
-            await this.initialized;
-            const entry = join(this.dir, key);
-            info(`persistent cache writing entry: ${entry}`);
-            await writeFile(entry, value, { mode: 0o600, encoding: "binary" });
-        } catch (err) {
-            info(`persistent cache set error: ${err.stack || err.message}`);
-        } finally {
-            info(`persistent cache set done.`);
-        }
+        await this.initialized;
+        const entry = join(this.dir, key);
+        await writeFile(entry, value, { mode: 0o600, encoding: "binary" });
     }
 
     /**
      * Retrieve all keys stored in the cache, including expired entries.
      */
     entries() {
-        info(`persistent cache entries`);
-        try {
-            return readdir(this.dir);
-        } catch (err) {
-            info(`persistent cache entries error: ${err.stack || err.message}`);
-            throw err;
-        } finally {
-            info(`persistent cache entries done.`);
-        }
+        return readdir(this.dir);
     }
 
     /**
      * Deletes all cached entries from disk.
      */
     async clear({ leaveEmptyDir = true } = {}) {
-        info(`persistent cache clear`);
-        try {
-            await this.initialized;
+        await this.initialized;
 
-            await rmrf(this.dir);
+        await rmrf(this.dir);
 
-            if (leaveEmptyDir) {
-                await mkdir(this.dir, { mode: 0o700, recursive: true });
-            }
-        } catch (err) {
-            info(`persistent cache clear error: ${err.stack || err.message}`);
-        } finally {
-            info(`persistent cache clear done.`);
+        if (leaveEmptyDir) {
+            await mkdir(this.dir, { mode: 0o700, recursive: true });
         }
     }
 }

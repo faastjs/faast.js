@@ -2,7 +2,6 @@ import * as fs from "fs";
 import { promisify } from "util";
 import { join, dirname } from "path";
 import { gte } from "semver";
-import { info } from "./log";
 
 export const rmdir = promisify(fs.rmdir);
 export const stat = promisify(fs.stat);
@@ -49,15 +48,5 @@ export async function mkdir(dir: string, options?: fs.MakeDirectoryOptions) {
         if (err.code !== "EEXIST") {
             throw err;
         }
-        for (let i = 0; i < 5; i++) {
-            await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
-            if (await exists(dir)) {
-                info(`exists ${dir}? true`);
-                return;
-            } else {
-                info(`exists ${dir}? false`);
-            }
-        }
-        await mkdirPromise(dir);
     }
 }
