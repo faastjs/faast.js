@@ -39,7 +39,7 @@ export class PersistentCache {
                 err.stack || err.message
             );
         } finally {
-            info(`persistent cache init done: ${dir}`);
+            info(`persistent cache init done: ${dir}, exists? ${await exists(dir)}`);
         }
     }
 
