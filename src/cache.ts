@@ -23,6 +23,10 @@ export class PersistentCache {
             if (!(await exists(dir))) {
                 try {
                     await mkdir(dir, { mode: 0o700, recursive: true });
+                    const e = await exists(dir);
+                    info(`persistent cache initialized dir: ${dir}, exists? ${e}`);
+                    const contents = await readdir(dir);
+                    info(`dir ${dir} contents:\n  ${contents.join("\n  ")}`);
                 } catch (err) {
                     if (err.code !== "EEXIST") {
                         throw err;
@@ -82,6 +86,7 @@ export class PersistentCache {
         try {
             await this.initialized;
             const entry = join(this.dir, key);
+            info(`persistent cache writing entry: ${entry}`);
             await writeFile(entry, value, { mode: 0o600, encoding: "binary" });
         } catch (err) {
             info(`persistent cache set error: ${err.stack || err.message}`);
