@@ -82,7 +82,7 @@ export class PersistentCache {
         try {
             await this.initialized;
             const entry = join(this.dir, key);
-            return writeFile(entry, value, { mode: 0o600, encoding: "binary" });
+            await writeFile(entry, value, { mode: 0o600, encoding: "binary" });
         } catch (err) {
             info(`persistent cache set error: ${err.stack || err.message}`);
         } finally {
