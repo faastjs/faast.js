@@ -21,17 +21,11 @@ export class PersistentCache {
         info(`persistent cache initialize`);
         try {
             if (!(await exists(dir))) {
-                try {
-                    await mkdir(dir, { mode: 0o700, recursive: true });
-                    const e = await exists(dir);
-                    info(`persistent cache initialized dir: ${dir}, exists? ${e}`);
-                    const contents = await readdir(dir);
-                    info(`dir ${dir} contents:\n  ${contents.join("\n  ")}`);
-                } catch (err) {
-                    if (err.code !== "EEXIST") {
-                        throw err;
-                    }
-                }
+                await mkdir(dir, { mode: 0o700, recursive: true });
+                const e = await exists(dir);
+                info(`persistent cache initialized dir: ${dir}, exists? ${e}`);
+                const contents = await readdir(dir);
+                info(`dir ${dir} contents:\n  ${contents.join("\n  ")}`);
             }
         } catch (err) {
             info(

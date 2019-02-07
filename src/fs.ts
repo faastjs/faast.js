@@ -42,13 +42,17 @@ export async function mkdir(dir: string, options?: fs.MakeDirectoryOptions) {
     }
 
     await mkdir(dirname(dir), options);
-    await new Promise((resolve, reject) =>
-        fs.mkdir(dir, err => {
-            if (err && err.code !== "EEXISTS") {
-                reject(err);
-            } else {
-                resolve();
+    try {
+        await mkdirPromise(dir);
+    } catch (err) {
+        if (err.code !== "EEXISTS") {
+            throw err;
+        }
+        for (let i = 0; i < 3; i++) {
+            if (await exists(dir)) {
+                return;
             }
-        })
-    );
+        }
+        await mkdirPromise(dir);
+    }
 }
