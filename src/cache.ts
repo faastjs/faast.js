@@ -34,9 +34,12 @@ export class PersistentCache {
                 }
             }
         } catch (err) {
-            info(`persistent cache inititializetion error: `, err.stack || err.message);
+            info(
+                `persistent cache inititializetion error for ${dir}: `,
+                err.stack || err.message
+            );
         } finally {
-            info(`persistent cache init done.`);
+            info(`persistent cache init done: ${dir}`);
         }
     }
 
