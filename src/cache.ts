@@ -17,7 +17,7 @@ import { info } from "./log";
 export class PersistentCache {
     initialized: Promise<void>;
 
-    protected static async initialize(dir: string) {
+    protected async initialize(dir: string) {
         info(`persistent cache initialize`);
         try {
             if (!(await exists(dir))) {
@@ -54,7 +54,7 @@ export class PersistentCache {
         readonly expiration: number = 24 * 3600 * 1000
     ) {
         this.dir = join(homedir(), dirRelativeToHomeDir);
-        this.initialized = PersistentCache.initialize(this.dir);
+        this.initialized = this.initialize(this.dir);
     }
 
     /**
