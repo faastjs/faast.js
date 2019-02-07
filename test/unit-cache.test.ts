@@ -26,9 +26,19 @@ test("persistent cache handles missing cache entries", async t => {
 test("persistent cache can set and get cache entries", async t => {
     try {
         const { cache } = t.context;
-        await cache.set("foo", "bar");
-        const result = await cache.get("foo");
-        t.is(result && result.toString(), "bar");
+        try {
+            await cache.set("foo", "bar");
+        } catch (err) {
+            console.log(`persistent cache set error: ${err}`);
+            throw err;
+        }
+        try {
+            const result = await cache.get("foo");
+            t.is(result && result.toString(), "bar");
+        } catch (err) {
+            console.log(`persistent cache get error ${err}`);
+            throw err;
+        }
     } catch (err) {
         console.log(`persistent cache test error: ${err.stack || err.message}`);
     }
