@@ -48,7 +48,8 @@ export async function mkdir(dir: string, options?: fs.MakeDirectoryOptions) {
         if (err.code !== "EEXISTS") {
             throw err;
         }
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 5; i++) {
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
             if (await exists(dir)) {
                 return;
             }
