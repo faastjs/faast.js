@@ -126,14 +126,18 @@ export function testCpuMetrics(provider: faast.Provider, options: CommonOptions 
     const { fn } = macros(init, title, cleanup);
 
     test(`cpu metrics are received`, fn, async (t: ExecutionContext) => {
+        t.plan(4);
         await init();
         const NSec = 5;
         await lambda.functions.spin(NSec * 1000);
         const usage = lambda.cpuUsage.get("spin");
         t.truthy(usage);
         t.true(usage!.size > 0);
-        t.true(usage!.get(1)!.stime instanceof Statistics);
-        t.true(usage!.get(1)!.utime instanceof Statistics);
+        for (const [, instance] of usage!) {
+            t.true(instance.stime instanceof Statistics);
+            t.true(instance.utime instanceof Statistics);
+            break;
+        }
     });
 }
 
