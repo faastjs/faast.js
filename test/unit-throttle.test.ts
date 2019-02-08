@@ -245,62 +245,70 @@ test("funnel processed and error counts", async t => {
     t.is(funnel.errors, 2);
 });
 
-test("pump works for concurrency level 1", async t => {
-    let executed = 0;
-    const pump = new Pump(1, () => {
-        executed++;
-        return sleep(100);
-    });
-    t.is(executed, 0);
-    pump.start();
-    await sleep(300);
-    pump.stop();
-    t.true(executed > 1);
-});
+test.serial("pump works for concurrency level 1", t =>
+    withClock(async () => {
+        let executed = 0;
+        const pump = new Pump(1, () => {
+            executed++;
+            return sleep(100);
+        });
+        t.is(executed, 0);
+        pump.start();
+        await sleep(300);
+        pump.stop();
+        t.true(executed === 3);
+    })
+);
 
-test("pump works for concurrency level 10", async t => {
-    let executed = 0;
-    const pump = new Pump(10, () => {
-        executed++;
-        return sleep(100);
-    });
-    pump.start();
-    await sleep(100);
-    pump.stop();
-    t.is(executed, 10);
-});
-
-test("pump handles promise rejections without losing concurrency", async t => {
-    let executed = 0;
-    const pump = new Pump(1, () => {
-        executed++;
-        return sleep(100).then(_ => Promise.reject("hi"));
-    });
-    pump.start();
-    await sleep(500);
-    pump.stop();
-    t.true(executed > 3);
-});
-
-test("pump drain", async t => {
-    let started = 0;
-    let finished = 0;
-    const N = 5;
-
-    const pump = new Pump(N, async () => {
-        started++;
+test.serial("pump works for concurrency level 10", t =>
+    withClock(async () => {
+        let executed = 0;
+        const pump = new Pump(10, () => {
+            executed++;
+            return sleep(100);
+        });
+        pump.start();
         await sleep(100);
-        finished++;
-    });
+        pump.stop();
+        t.is(executed, 10);
+    })
+);
 
-    t.is(started, 0);
-    t.is(finished, 0);
+test.serial("pump handles promise rejections without losing concurrency", t =>
+    withClock(async () => {
+        let executed = 0;
+        const pump = new Pump(1, () => {
+            executed++;
+            return sleep(100).then(_ => Promise.reject("hi"));
+        });
+        pump.start();
+        await sleep(500);
+        pump.stop();
+        t.is(executed, 5);
+    })
+);
 
-    pump.start();
-    await pump.drain();
-    t.is(started, N);
-    t.is(finished, N);
-});
+test.serial("pump drain", t =>
+    withClock(async () => {
+        let started = 0;
+        let finished = 0;
+        const N = 5;
+
+        const pump = new Pump(N, async () => {
+            started++;
+            await sleep(100);
+            finished++;
+        });
+
+        t.is(started, 0);
+        t.is(finished, 0);
+
+        pump.start();
+        await pump.drain();
+        t.is(started, N);
+        t.is(finished, N);
+    })
+);
 
 test.serial("memoize returns cached results for the same key", t =>
     withClock(async () => {
@@ -409,73 +417,83 @@ function measureMaxRequestRatePerSecond(timings: Timing[]) {
     return Math.max(...requestsPerSecondStartingAt);
 }
 
-test("rate limiter restricts max request rate per second", async t => {
-    const requestRate = 10;
-    const rateLimiter = new RateLimiter<Timing>(requestRate);
-    const promises: Promise<Timing>[] = [];
-    for (let i = 0; i < 15; i++) {
+test.serial("rate limiter restricts max request rate per second", t =>
+    withClock(async () => {
+        const requestRate = 10;
+        const rateLimiter = new RateLimiter<Timing>(requestRate);
+        const promises: Promise<Timing>[] = [];
+        for (let i = 0; i < 15; i++) {
+            promises.push(rateLimiter.push(() => timer(0)));
+        }
+        const timings = await Promise.all(promises);
+        t.is(measureMaxRequestRatePerSecond(timings), requestRate);
+    })
+);
+
+test.serial("rate limiter works across second boundaries", t =>
+    withClock(async () => {
+        const requestRate = 10;
+        const rateLimiter = new RateLimiter<Timing>(requestRate);
+        const promises: Promise<Timing>[] = [];
         promises.push(rateLimiter.push(() => timer(0)));
-    }
-    const timings = await Promise.all(promises);
-    t.is(measureMaxRequestRatePerSecond(timings), requestRate);
-});
+        await sleep(900);
+        for (let i = 0; i < 15; i++) {
+            promises.push(rateLimiter.push(() => timer(0)));
+        }
+        const timings = await Promise.all(promises);
+        t.is(measureMaxRequestRatePerSecond(timings), requestRate);
+    })
+);
 
-test("rate limiter works across second boundaries", async t => {
-    const requestRate = 10;
-    const rateLimiter = new RateLimiter<Timing>(requestRate);
-    const promises: Promise<Timing>[] = [];
-    promises.push(rateLimiter.push(() => timer(0)));
-    await sleep(900);
-    for (let i = 0; i < 15; i++) {
-        promises.push(rateLimiter.push(() => timer(0)));
-    }
-    const timings = await Promise.all(promises);
-    t.is(measureMaxRequestRatePerSecond(timings), requestRate);
-});
+test.serial("rate limiter bursting allows for request rate beyond target rate", t =>
+    withClock(async () => {
+        const requestRate = 10;
+        const maxBurst = 5;
+        const rateLimiter = new RateLimiter<Timing>(requestRate, maxBurst);
+        const promises: Promise<Timing>[] = [];
+        for (let i = 0; i < 15; i++) {
+            promises.push(rateLimiter.push(() => timer(0)));
+        }
+        const timings = await Promise.all(promises);
+        const maxRate = measureMaxRequestRatePerSecond(timings);
+        t.true(maxRate <= maxBurst + requestRate);
+        t.true(maxRate > maxBurst);
+    })
+);
 
-test("rate limiter bursting allows for request rate beyond target rate", async t => {
-    const requestRate = 10;
-    const maxBurst = 5;
-    const rateLimiter = new RateLimiter<Timing>(requestRate, maxBurst);
-    const promises: Promise<Timing>[] = [];
-    for (let i = 0; i < 15; i++) {
-        promises.push(rateLimiter.push(() => timer(0)));
-    }
-    const timings = await Promise.all(promises);
-    const maxRate = measureMaxRequestRatePerSecond(timings);
-    t.true(maxRate <= maxBurst + requestRate);
-    t.true(maxRate > maxBurst);
-});
+test.serial("throttle limits max concurrency and rate", t =>
+    withClock(async () => {
+        const concurrency = 10;
+        const rate = 10;
+        const timerFn = throttle({ concurrency, rate }, timer);
+        const promises = [];
+        for (let i = 0; i < 15; i++) {
+            promises.push(timerFn(1000));
+        }
 
-test("throttle limits max concurrency and rate", async t => {
-    const concurrency = 10;
-    const rate = 10;
-    const timerFn = throttle({ concurrency, rate }, timer);
-    const promises = [];
-    for (let i = 0; i < 15; i++) {
-        promises.push(timerFn(1000));
-    }
+        const times = await Promise.all(promises);
+        t.is(measureConcurrency(times), concurrency);
+        t.is(measureMaxRequestRatePerSecond(times), rate);
+    })
+);
 
-    const times = await Promise.all(promises);
-    t.is(measureConcurrency(times), concurrency);
-    t.is(measureMaxRequestRatePerSecond(times), rate);
-});
+test.serial("throttle limits rate with single concurrency", t =>
+    withClock(async () => {
+        const concurrency = 1;
+        const rate = 10;
+        const processTimeMs = 200;
+        const timerFn = throttle({ concurrency, rate }, timer);
 
-test("throttle limits rate with single concurrency", async t => {
-    const concurrency = 1;
-    const rate = 10;
-    const processTimeMs = 200;
-    const timerFn = throttle({ concurrency, rate }, timer);
+        const promises = [];
+        for (let i = 0; i < 10; i++) {
+            promises.push(timerFn(processTimeMs));
+        }
 
-    const promises = [];
-    for (let i = 0; i < 10; i++) {
-        promises.push(timerFn(processTimeMs));
-    }
-
-    const times = await Promise.all(promises);
-    t.is(measureConcurrency(times), concurrency);
-    t.true(measureMaxRequestRatePerSecond(times) <= 1000 / processTimeMs + 1);
-});
+        const times = await Promise.all(promises);
+        t.is(measureConcurrency(times), concurrency);
+        t.true(measureMaxRequestRatePerSecond(times) <= 1000 / processTimeMs + 1);
+    })
+);
 
 test("throttle memoize option", async t => {
     const concurrency = 1;
