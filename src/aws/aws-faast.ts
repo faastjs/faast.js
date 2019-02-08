@@ -225,10 +225,18 @@ const createLambdaRole = throttle(
             MaxSessionDuration: 3600
         };
         info(`Calling createRole`);
-        const roleResponse = await iam.createRole(roleParams).promise();
-        info(`Attaching role policy`);
-        await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
-        return roleResponse.Role.Arn;
+        try {
+            const roleResponse = await iam.createRole(roleParams).promise();
+            info(`Attaching role policy`);
+            await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
+            return roleResponse.Role.Arn;
+        } catch (err) {
+            if (err.code === "EntityAlreadyExists") {
+                const roleResponse = await iam.getRole({ RoleName }).promise();
+                return roleResponse.Role.Arn;
+            }
+            throw err;
+        }
     }
 );
 
