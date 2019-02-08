@@ -1,5 +1,3 @@
-import { info } from "./log";
-
 export class Statistics {
     samples = 0;
     max = Number.NEGATIVE_INFINITY;
