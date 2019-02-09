@@ -1,4 +1,4 @@
-import { Statistics, Heap, LargestN } from "../src/shared";
+import { Statistics, MaxHeap, SmallestN } from "../src/shared";
 import { deepCopyUndefined } from "../src/wrapper";
 import { avg, stdev } from "./util";
 import test, { Assertions } from "ava";
@@ -83,27 +83,27 @@ test("statistics shared module random values", t => {
     check(t, c);
 });
 
-test("heap basics", t => {
-    const h = new Heap();
+test("MaxHeap basics", t => {
+    const h = new MaxHeap();
     h.insert(5);
     h.insert(10);
     h.insert(100);
     h.insert(1);
 
-    t.is(h.extractMin(), 1);
-    t.is(h.extractMin(), 5);
-    t.is(h.extractMin(), 10);
-    t.is(h.extractMin(), 100);
-    t.throws(() => h.extractMin(), /empty/);
+    t.is(h.extractMax(), 100);
+    t.is(h.extractMax(), 10);
+    t.is(h.extractMax(), 5);
+    t.is(h.extractMax(), 1);
+    t.throws(() => h.extractMax(), /empty/);
 });
 
-test("heap empty", t => {
-    const h = new Heap();
-    t.throws(() => h.extractMin(), /empty/);
+test("MaxHeap empty", t => {
+    const h = new MaxHeap();
+    t.throws(() => h.extractMax(), /empty/);
 });
 
-test("heap sorting", t => {
-    const h = new Heap();
+test("MaxHeap sorting", t => {
+    const h = new MaxHeap();
     const N = 10000;
     const size = 100;
 
@@ -116,17 +116,17 @@ test("heap sorting", t => {
             h.insert(value);
         }
         orig = a.slice();
-        a.sort((x, y) => x - y);
+        a.sort((x, y) => y - x);
         const b = [];
         while (h.size > 0) {
-            b.push(h.extractMin());
+            b.push(h.extractMax());
         }
         t.deepEqual(a, b, `difference sorting ${orig}`);
     }
 });
 
-test("heap specific ordering", t => {
-    const h = new Heap();
+test("MaxHeap specific ordering", t => {
+    const h = new MaxHeap();
     h.insert(7);
     h.insert(2);
     h.insert(0);
@@ -136,60 +136,63 @@ test("heap specific ordering", t => {
     h.insert(6);
     h.insert(5);
 
-    t.is(h.extractMin(), 0);
-    t.is(h.extractMin(), 1);
-    t.is(h.extractMin(), 2);
-    t.is(h.extractMin(), 3);
-    t.is(h.extractMin(), 4);
-    t.is(h.extractMin(), 5);
-    t.is(h.extractMin(), 6);
-    t.is(h.extractMin(), 7);
+    t.is(h.extractMax(), 7);
+    t.is(h.extractMax(), 6);
+    t.is(h.extractMax(), 5);
+    t.is(h.extractMax(), 4);
+    t.is(h.extractMax(), 3);
+    t.is(h.extractMax(), 2);
+    t.is(h.extractMax(), 1);
+    t.is(h.extractMax(), 0);
 });
 
-test("heap iterator", t => {
-    const h = new Heap();
-    h.insert(42);
+test("MaxHeap iterator", t => {
+    const h = new MaxHeap();
     h.insert(10);
+    h.insert(42);
     h.insert(12);
-    t.deepEqual([...h], [10, 42, 12]);
+    t.deepEqual([...h], [42, 10, 12]);
 });
 
-test("largestn saves largest N keys", t => {
-    const l = new LargestN(3);
+test("SmallestN saves smallest N keys", t => {
+    const l = new SmallestN(3);
     l.update(100);
     l.update(42);
     l.update(-1);
     l.update(0);
     l.update(4);
     l.update(1000);
-    t.deepEqual(l.keys(), [42, 100, 1000]);
+    t.deepEqual(l.keys().sort(), [-1, 0, 4].sort());
 });
 
-test("largestn saves largest N values", t => {
+test("SmallestN saves smallest N values", t => {
     const N = 3;
-    const l = new LargestN<string>(N);
+    const l = new SmallestN<string>(N);
     l.update(100, "100");
     l.update(42, "42");
     l.update(-1, "-1");
     l.update(0, "0");
     l.update(4, "4");
     l.update(1000, "1000");
-    t.deepEqual([...l], [[100, "100"], [42, "42"], [1000, "1000"]]);
+    t.deepEqual([...l], [[-1, "-1"], [0, "0"], [4, "4"]]);
 });
 
-test("largestn duplicate values", t => {
+test("SmallestN duplicate values", t => {
     const N = 5;
-    const l = new LargestN<string>(N);
-    l.update(8, "8.1");
-    l.update(8, "8.2");
-    l.update(8, "8.3");
+    const l = new SmallestN<string>(N);
+    l.update(88, "88.1");
+    l.update(88, "88.2");
+    l.update(88, "88.3");
     l.update(42, "42");
-    l.update(8, "8.4");
-    l.update(8, "8.5");
-    l.update(8, "8.6");
+    l.update(88, "88.4");
+    l.update(88, "88.5");
+    l.update(88, "88.6");
     l.update(10, "10.1");
     l.update(10, "10.2");
-    l.update(8, "8.7");
-    l.update(8, "8.8");
-    t.deepEqual([...l], [[8, "8.1"], [8, "8.2"], [42, "42"], [10, "10.1"], [10, "10.2"]]);
+    l.update(88, "88.7");
+    l.update(88, "88.8");
+    t.deepEqual(
+        [...l],
+        [[88, "88.1"], [88, "88.2"], [42, "42"], [10, "10.1"], [10, "10.2"]]
+    );
 });

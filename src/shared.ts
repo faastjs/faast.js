@@ -162,14 +162,14 @@ export function defined<T>(arg: T | undefined | null | void): arg is T {
     return !!arg;
 }
 
-export class Heap {
+export class MaxHeap {
     protected _heap: number[] = [];
 
     get size() {
         return this._heap.length;
     }
 
-    peekMin() {
+    peekMax() {
         return this._heap[0];
     }
 
@@ -179,7 +179,7 @@ export class Heap {
         let i = h.length - 1;
         const parentOf = (n: number) => Math.floor((n - 1) / 2);
         let parent = parentOf(i);
-        while (parent >= 0 && h[i] < h[parent]) {
+        while (parent >= 0 && h[i] > h[parent]) {
             const tmp = h[parent];
             h[parent] = h[i];
             h[i] = tmp;
@@ -188,10 +188,10 @@ export class Heap {
         }
     }
 
-    extractMin() {
+    extractMax() {
         const h = this._heap;
         if (h.length === 0) {
-            throw new Error("removeMin called on empty heap");
+            throw new Error("extractMax called on empty heap");
         }
         let i = 0;
         const rv = h[0];
@@ -201,9 +201,9 @@ export class Heap {
         while (i < h.length) {
             const [left, right] = [i * 2 + 1, i * 2 + 2];
             let maybe: number | undefined;
-            if (h[i] > h[left] && !(h[right] < h[left])) {
+            if (h[i] < h[left] && !(h[right] > h[left])) {
                 maybe = left;
-            } else if (h[i] > h[right]) {
+            } else if (h[i] < h[right]) {
                 maybe = right;
             }
             if (maybe === undefined) {
@@ -223,8 +223,8 @@ export class Heap {
     }
 }
 
-export class LargestN<T = void> {
-    protected _heap = new Heap();
+export class SmallestN<T = void> {
+    protected _heap = new MaxHeap();
     protected _map: [number, T][] = [];
 
     constructor(readonly size: number) {}
@@ -235,19 +235,19 @@ export class LargestN<T = void> {
             this._map.push([key, value]);
             return;
         }
-        if (key <= this._heap.peekMin()) {
+        if (key >= this._heap.peekMax()) {
             return;
         }
         this._heap.insert(key);
-        const min = this._heap.extractMin();
+        const max = this._heap.extractMax();
         let idx = this._map.length;
         while (--idx >= 0) {
-            if (this._map[idx][0] === min) {
+            if (this._map[idx][0] === max) {
                 break;
             }
         }
         if (idx === -1) {
-            throw new Error(`LargestN: could not find entry for key ${min}`);
+            throw new Error(`SmallestN: could not find entry for key ${max}`);
         }
         this._map.splice(idx, 1);
         this._map.push([key, value]);
