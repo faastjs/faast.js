@@ -161,3 +161,107 @@ export function keys<O extends object>(obj: O): Array<keyof O> {
 export function defined<T>(arg: T | undefined | null | void): arg is T {
     return !!arg;
 }
+
+export class Heap {
+    protected _heap: number[] = [];
+
+    get size() {
+        return this._heap.length;
+    }
+
+    peekMin() {
+        return this._heap[0];
+    }
+
+    insert(value: number) {
+        const h = this._heap;
+        h.push(value);
+        let i = h.length - 1;
+        const parentOf = (n: number) => Math.floor((n - 1) / 2);
+        let parent = parentOf(i);
+        while (parent >= 0 && h[i] < h[parent]) {
+            const tmp = h[parent];
+            h[parent] = h[i];
+            h[i] = tmp;
+            i = parent;
+            parent = parentOf(i);
+        }
+    }
+
+    extractMin() {
+        const h = this._heap;
+        if (h.length === 0) {
+            throw new Error("removeMin called on empty heap");
+        }
+        let i = 0;
+        const rv = h[0];
+        h[0] = h[h.length - 1];
+        h.pop();
+
+        while (i < h.length) {
+            const [left, right] = [i * 2 + 1, i * 2 + 2];
+            let maybe: number | undefined;
+            if (h[i] > h[left] && !(h[right] < h[left])) {
+                maybe = left;
+            } else if (h[i] > h[right]) {
+                maybe = right;
+            }
+            if (maybe === undefined) {
+                break;
+            }
+            const [iValue, mValue] = [h[i], h[maybe]];
+            h[i] = mValue;
+            h[maybe] = iValue;
+            i = maybe;
+        }
+
+        return rv;
+    }
+
+    [Symbol.iterator]() {
+        return this._heap[Symbol.iterator]();
+    }
+}
+
+export class LargestN<T = void> {
+    protected _heap = new Heap();
+    protected _map: [number, T][] = [];
+
+    constructor(readonly size: number) {}
+
+    update(key: number, value: T) {
+        if (this._heap.size < this.size) {
+            this._heap.insert(key);
+            this._map.push([key, value]);
+            return;
+        }
+        if (key <= this._heap.peekMin()) {
+            return;
+        }
+        this._heap.insert(key);
+        const min = this._heap.extractMin();
+        let idx = this._map.length;
+        while (--idx >= 0) {
+            if (this._map[idx][0] === min) {
+                break;
+            }
+        }
+        if (idx === -1) {
+            throw new Error(`LargestN: could not find entry for key ${min}`);
+        }
+        this._map.splice(idx, 1);
+        this._map.push([key, value]);
+    }
+
+    [Symbol.iterator]() {
+        return this._map[Symbol.iterator]();
+    }
+
+    entries() {
+        return this._map[Symbol.iterator];
+    }
+
+    keys() {
+        return [...this._heap];
+    }
+}

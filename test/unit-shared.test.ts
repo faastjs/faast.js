@@ -1,4 +1,4 @@
-import { Statistics } from "../src/shared";
+import { Statistics, Heap, LargestN } from "../src/shared";
 import { deepCopyUndefined } from "../src/wrapper";
 import { avg, stdev } from "./util";
 import test, { Assertions } from "ava";
@@ -81,4 +81,115 @@ test("statistics shared module random values", t => {
     check(t, a);
     check(t, b);
     check(t, c);
+});
+
+test("heap basics", t => {
+    const h = new Heap();
+    h.insert(5);
+    h.insert(10);
+    h.insert(100);
+    h.insert(1);
+
+    t.is(h.extractMin(), 1);
+    t.is(h.extractMin(), 5);
+    t.is(h.extractMin(), 10);
+    t.is(h.extractMin(), 100);
+    t.throws(() => h.extractMin(), /empty/);
+});
+
+test("heap empty", t => {
+    const h = new Heap();
+    t.throws(() => h.extractMin(), /empty/);
+});
+
+test("heap sorting", t => {
+    const h = new Heap();
+    const N = 10000;
+    const size = 100;
+
+    for (let attempt = 0; attempt < N; attempt++) {
+        let orig: number[] = [];
+        const a: number[] = [];
+        for (let i = 0; i < size; i++) {
+            const value = Math.round(Math.random() * 1000);
+            a.push(value);
+            h.insert(value);
+        }
+        orig = a.slice();
+        a.sort((x, y) => x - y);
+        const b = [];
+        while (h.size > 0) {
+            b.push(h.extractMin());
+        }
+        t.deepEqual(a, b, `difference sorting ${orig}`);
+    }
+});
+
+test("heap specific ordering", t => {
+    const h = new Heap();
+    h.insert(7);
+    h.insert(2);
+    h.insert(0);
+    h.insert(3);
+    h.insert(4);
+    h.insert(1);
+    h.insert(6);
+    h.insert(5);
+
+    t.is(h.extractMin(), 0);
+    t.is(h.extractMin(), 1);
+    t.is(h.extractMin(), 2);
+    t.is(h.extractMin(), 3);
+    t.is(h.extractMin(), 4);
+    t.is(h.extractMin(), 5);
+    t.is(h.extractMin(), 6);
+    t.is(h.extractMin(), 7);
+});
+
+test("heap iterator", t => {
+    const h = new Heap();
+    h.insert(42);
+    h.insert(10);
+    h.insert(12);
+    t.deepEqual([...h], [10, 42, 12]);
+});
+
+test("largestn saves largest N keys", t => {
+    const l = new LargestN(3);
+    l.update(100);
+    l.update(42);
+    l.update(-1);
+    l.update(0);
+    l.update(4);
+    l.update(1000);
+    t.deepEqual(l.keys(), [42, 100, 1000]);
+});
+
+test("largestn saves largest N values", t => {
+    const N = 3;
+    const l = new LargestN<string>(N);
+    l.update(100, "100");
+    l.update(42, "42");
+    l.update(-1, "-1");
+    l.update(0, "0");
+    l.update(4, "4");
+    l.update(1000, "1000");
+    t.deepEqual([...l], [[100, "100"], [42, "42"], [1000, "1000"]]);
+});
+
+test("largestn duplicate values", t => {
+    const N = 5;
+    const l = new LargestN<string>(N);
+    l.update(8, "8.1");
+    l.update(8, "8.2");
+    l.update(8, "8.3");
+    l.update(42, "42");
+    l.update(8, "8.4");
+    l.update(8, "8.5");
+    l.update(8, "8.6");
+    l.update(10, "10.1");
+    l.update(10, "10.2");
+    l.update(8, "8.7");
+    l.update(8, "8.8");
+    t.deepEqual([...l], [[8, "8.1"], [8, "8.2"], [42, "42"], [10, "10.1"], [10, "10.2"]]);
 });
