@@ -155,44 +155,80 @@ test("MaxHeap iterator", t => {
 });
 
 test("SmallestN saves smallest N keys", t => {
-    const l = new SmallestN(3);
-    l.update(100);
-    l.update(42);
-    l.update(-1);
-    l.update(0);
-    l.update(4);
-    l.update(1000);
-    t.deepEqual(l.keys().sort(), [-1, 0, 4].sort());
+    const s = new SmallestN(3);
+    s.update(100);
+    s.update(42);
+    s.update(-1);
+    s.update(0);
+    s.update(4);
+    s.update(1000);
+    t.deepEqual(s.keys().sort(), [-1, 0, 4].sort());
 });
 
 test("SmallestN saves smallest N values", t => {
     const N = 3;
-    const l = new SmallestN<string>(N);
-    l.update(100, "100");
-    l.update(42, "42");
-    l.update(-1, "-1");
-    l.update(0, "0");
-    l.update(4, "4");
-    l.update(1000, "1000");
-    t.deepEqual([...l], [[-1, "-1"], [0, "0"], [4, "4"]]);
+    const s = new SmallestN<string>(N);
+    s.update(100, "100");
+    s.update(42, "42");
+    s.update(-1, "-1");
+    s.update(0, "0");
+    s.update(4, "4");
+    s.update(1000, "1000");
+    t.deepEqual([...s], [[-1, "-1"], [0, "0"], [4, "4"]]);
 });
 
 test("SmallestN duplicate values", t => {
     const N = 5;
-    const l = new SmallestN<string>(N);
-    l.update(88, "88.1");
-    l.update(88, "88.2");
-    l.update(88, "88.3");
-    l.update(42, "42");
-    l.update(88, "88.4");
-    l.update(88, "88.5");
-    l.update(88, "88.6");
-    l.update(10, "10.1");
-    l.update(10, "10.2");
-    l.update(88, "88.7");
-    l.update(88, "88.8");
+    const s = new SmallestN<string>(N);
+    s.update(88, "88.1");
+    s.update(88, "88.2");
+    s.update(88, "88.3");
+    s.update(42, "42");
+    s.update(88, "88.4");
+    s.update(88, "88.5");
+    s.update(88, "88.6");
+    s.update(10, "10.1");
+    s.update(10, "10.2");
+    s.update(88, "88.7");
+    s.update(88, "88.8");
     t.deepEqual(
-        [...l],
+        [...s],
         [[88, "88.1"], [88, "88.2"], [42, "42"], [10, "10.1"], [10, "10.2"]]
     );
+});
+
+function values(a: number[]): [number, undefined][] {
+    return a.map(i => [i, undefined] as [number, undefined]);
+}
+
+test("SmallestN can reduce size", t => {
+    const N = 5;
+    const s = new SmallestN(N);
+    s.update(1);
+    s.update(2);
+    s.update(3);
+    s.update(4);
+    s.update(5);
+    s.update(6);
+    s.update(7);
+
+    s.setSize(3);
+    t.deepEqual([...s], values([1, 2, 3]));
+});
+
+test("SmallestN can increase size", t => {
+    const N = 3;
+    const s = new SmallestN(N);
+    s.update(1);
+    s.update(2);
+    s.update(3);
+    s.update(4);
+    s.update(5);
+    t.deepEqual([...s], values([1, 2, 3]));
+
+    s.setSize(5);
+    s.update(6);
+    s.update(7);
+    s.update(8);
+    t.deepEqual([...s], values([1, 2, 3, 6, 7]));
 });

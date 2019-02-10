@@ -169,6 +169,10 @@ export class MaxHeap {
         return this._heap.length;
     }
 
+    clear() {
+        this._heap = [];
+    }
+
     peekMax() {
         return this._heap[0];
     }
@@ -227,10 +231,10 @@ export class SmallestN<T = void> {
     protected _heap = new MaxHeap();
     protected _map: [number, T][] = [];
 
-    constructor(readonly size: number) {}
+    constructor(protected _size: number) {}
 
     update(key: number, value: T) {
-        if (this._heap.size < this.size) {
+        if (this._heap.size < this._size) {
             this._heap.insert(key);
             this._map.push([key, value]);
             return;
@@ -239,6 +243,11 @@ export class SmallestN<T = void> {
             return;
         }
         this._heap.insert(key);
+        this._map.push([key, value]);
+        this.shrink();
+    }
+
+    protected shrink() {
         const max = this._heap.extractMax();
         let idx = this._map.length;
         while (--idx >= 0) {
@@ -250,7 +259,6 @@ export class SmallestN<T = void> {
             throw new Error(`SmallestN: could not find entry for key ${max}`);
         }
         this._map.splice(idx, 1);
-        this._map.push([key, value]);
     }
 
     [Symbol.iterator]() {
@@ -263,5 +271,22 @@ export class SmallestN<T = void> {
 
     keys() {
         return [...this._heap];
+    }
+
+    get size() {
+        return this._size;
+    }
+
+    clear() {
+        this._heap.clear();
+        this._map = [];
+    }
+
+    setSize(newSize: number) {
+        while (this._size > newSize) {
+            this.shrink();
+            this._size--;
+        }
+        this._size = newSize;
     }
 }
