@@ -67,3 +67,4 @@ dist/
 main.js
 tmp/
 .vscode/sftp.json
+.DS_Store
