@@ -1,6 +1,8 @@
+import test, { Macro } from "ava";
 import * as ppp from "papaparse";
 import {
     awsConfigurations,
+    CostAnalyzerConfiguration,
     estimateWorkloadCost,
     googleConfigurations,
     toCSV
@@ -8,7 +10,6 @@ import {
 import * as faast from "../src/faast";
 import { info } from "../src/log";
 import * as funcs from "../test/functions";
-import test from "ava";
 
 async function work(remote: faast.Promisified<typeof funcs>) {
     await remote.monteCarloPI(20000000);
@@ -17,11 +18,13 @@ async function work(remote: faast.Promisified<typeof funcs>) {
 const repetitions = 10;
 const memorySizes = [256, 2048];
 
-const configs = [...googleConfigurations, ...awsConfigurations]
-    .filter(c => memorySizes.includes(c.options.memorySize!))
-    .map(c => ({ ...c, repetitions }));
+function filter(configurations: CostAnalyzerConfiguration[]) {
+    return configurations
+        .filter(c => memorySizes.includes(c.options.memorySize!))
+        .map(c => ({ ...c, repetitions }));
+}
 
-test("Cost analyzer", async t => {
+const costAnalyzerMacro: Macro<[CostAnalyzerConfiguration[]]> = async (t, configs) => {
     const profile = await estimateWorkloadCost(
         "../test/functions",
         configs,
@@ -60,4 +63,7 @@ test("Cost analyzer", async t => {
         t.is(typeof row.executionTime, "number");
         t.is(typeof row.billedTime, "number");
     }
-});
+};
+
+test("aws cost analyzer", costAnalyzerMacro, filter(awsConfigurations));
+test("google cost analyzer", costAnalyzerMacro, filter(googleConfigurations));

@@ -256,7 +256,8 @@ export async function estimateWorkloadCost<T, K extends string>(
         {
             concurrency: 8,
             rate: 4,
-            burst: 1
+            burst: 1,
+            retry: 3
         },
         estimate
     );
