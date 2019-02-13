@@ -10,6 +10,7 @@ export const exists = promisify(fs.exists);
 export const unlink = promisify(fs.unlink);
 export const readFile = promisify(fs.readFile);
 export const writeFile = promisify(fs.writeFile);
+export const rename = promisify(fs.rename);
 export const createReadStream = fs.createReadStream;
 export const createWriteStream = fs.createWriteStream;
 

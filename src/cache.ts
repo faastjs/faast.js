@@ -1,7 +1,8 @@
 import { homedir } from "os";
 import { join } from "path";
 import { Readable } from "stream";
-import { exists, mkdir, readdir, readFile, rmrf, stat, writeFile } from "./fs";
+import { exists, mkdir, readdir, readFile, rmrf, stat, writeFile, rename } from "./fs";
+import * as uuidv4 from "uuid/v4";
 
 /**
  * A simple persistent key-value store. Entries can be expired, but are not
@@ -59,7 +60,9 @@ export class PersistentCache {
     async set(key: string, value: Buffer | string | Uint8Array | Readable | Blob) {
         await this.initialized;
         const entry = join(this.dir, key);
-        await writeFile(entry, value, { mode: 0o600, encoding: "binary" });
+        const tmpEntry = join(this.dir, uuidv4());
+        await writeFile(tmpEntry, value, { mode: 0o600, encoding: "binary" });
+        await rename(tmpEntry, entry);
     }
 
     /**
