@@ -27,7 +27,7 @@ import {
     Statistics,
     SmallestN
 } from "./shared";
-import { Deferred, Funnel, Pump } from "./throttle";
+import { Deferred, Funnel, Pump, retry } from "./throttle";
 import { NonFunctionProperties, Unpacked } from "./types";
 import { FunctionCall, FunctionReturn, serializeCall, CpuMeasurement } from "./wrapper";
 import Module = require("module");
@@ -352,7 +352,7 @@ export async function createFunction<M extends object, O extends CommonOptions, 
     logProvider(`options ${inspectProvider(options)}`);
     return new CloudFunction(
         impl,
-        await impl.initialize(resolvedModule, functionId, options),
+        await retry(3, () => impl.initialize(resolvedModule, functionId, options)),
         fmodule,
         resolvedModule,
         options
