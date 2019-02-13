@@ -3,7 +3,7 @@ import * as functions from "../test/functions";
 import test from "ava";
 import { record } from "../test/util";
 
-test("garbage collector works for functions that are called", async t => {
+test("local garbage collector works for functions that are called", async t => {
     // Idea behind this test: create a cloudified function and make a call.
     // Then cleanup while leaving the resources in place. Then create another
     // function and set its retention to 0, and use a recorder to observe what
@@ -23,7 +23,7 @@ test("garbage collector works for functions that are called", async t => {
     await func.cleanup();
 });
 
-test("garbage collector works for functions that are never called", async t => {
+test("local garbage collector works for functions that are never called", async t => {
     const func = await faast.faastify("local", functions, "../test/functions");
     await func.cleanup({ deleteResources: false });
     const gcRecorder = record(async (_dir: string) => {});
