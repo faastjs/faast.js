@@ -352,7 +352,7 @@ export async function createFunction<M extends object, O extends CommonOptions, 
     logProvider(`options ${inspectProvider(options)}`);
     return new CloudFunction(
         impl,
-        await retry(3, () => impl.initialize(resolvedModule, functionId, options)),
+        await impl.initialize(resolvedModule, functionId, options),
         fmodule,
         resolvedModule,
         options

@@ -67,7 +67,9 @@ async function deleteResources(
 async function cleanupAWS({ region, execute }: CleanupOptions) {
     let nResources = 0;
     const output = (msg: string) => !execute && log(msg);
-    const { cloudwatch, iam, lambda, sns, sqs, s3 } = awsFaast.createAWSApis(region!);
+    const { cloudwatch, iam, lambda, sns, sqs, s3 } = await awsFaast.createAWSApis(
+        region!
+    );
 
     function listAWSResource<T, U>(
         pattern: RegExp,

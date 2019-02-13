@@ -131,8 +131,6 @@ export interface AWSServices {
     readonly sts: aws.STS;
 }
 
-type AWSInvocationResponse = PromiseResult<aws.Lambda.InvocationResponse, aws.AWSError>;
-
 export interface State {
     resources: AWSResources;
     services: AWSServices;
@@ -183,20 +181,23 @@ function zipStreamToBuffer(zipStream: NodeJS.ReadableStream): Promise<Buffer> {
     });
 }
 
-export function createAWSApis(region: string): AWSServices {
-    aws.config.update({ correctClockSkew: true });
-    const services = {
-        iam: new aws.IAM({ apiVersion: "2010-05-08", region }),
-        lambda: new aws.Lambda({ apiVersion: "2015-03-31", region }),
-        cloudwatch: new aws.CloudWatchLogs({ apiVersion: "2014-03-28", region }),
-        sqs: new aws.SQS({ apiVersion: "2012-11-05", region }),
-        sns: new aws.SNS({ apiVersion: "2010-03-31", region }),
-        s3: new aws.S3({ apiVersion: "2006-03-01", region }),
-        pricing: new aws.Pricing({ region: "us-east-1" }),
-        sts: new aws.STS({ apiVersion: "2011-06-15", region })
-    };
-    return services;
-}
+export const createAWSApis = throttle(
+    { concurrency: 1, memoize: true },
+    async (region: string) => {
+        aws.config.update({ correctClockSkew: true });
+        const services = {
+            iam: new aws.IAM({ apiVersion: "2010-05-08", region }),
+            lambda: new aws.Lambda({ apiVersion: "2015-03-31", region }),
+            cloudwatch: new aws.CloudWatchLogs({ apiVersion: "2014-03-28", region }),
+            sqs: new aws.SQS({ apiVersion: "2012-11-05", region }),
+            sns: new aws.SNS({ apiVersion: "2010-03-31", region }),
+            s3: new aws.S3({ apiVersion: "2006-03-01", region }),
+            pricing: new aws.Pricing({ region: "us-east-1" }),
+            sts: new aws.STS({ apiVersion: "2011-06-15", region })
+        };
+        return services;
+    }
+);
 
 const createLambdaRole = throttle(
     { concurrency: 1, rate: 5, memoize: true },
@@ -389,7 +390,7 @@ export async function initialize(
     const { region, timeout, memorySize } = options;
 
     info(`Creating AWS APIs`);
-    const services = createAWSApis(region);
+    const services = await createAWSApis(region);
     const { lambda, s3, sts } = services;
     const FunctionName = `faast-${nonce}`;
     const accountId = await getAccountId(sts);
