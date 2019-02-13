@@ -24,7 +24,8 @@ import {
     FactoryMap,
     roundTo100ms,
     sleep,
-    Statistics
+    Statistics,
+    SmallestN
 } from "./shared";
 import { Deferred, Funnel, Pump } from "./throttle";
 import { NonFunctionProperties, Unpacked } from "./types";
@@ -66,7 +67,7 @@ export interface ResponseDetails<D> {
     logUrl?: string;
     localStartLatency?: number;
     remoteStartLatency?: number;
-    executionLatency?: number;
+    executionTime?: number;
     sendResponseLatency?: number;
     returnLatency?: number;
 }
@@ -159,6 +160,8 @@ export class FunctionStatsMap {
 class FunctionCpuUsage {
     utime = new Statistics();
     stime = new Statistics();
+    cpuTime = new Statistics();
+    smallest = new SmallestN(100);
 }
 
 class FunctionCpuUsagePerSecond extends FactoryMap<number, FunctionCpuUsage> {
@@ -276,12 +279,12 @@ function processResponse<R>(
     if (remoteExecutionStartTime && remoteExecutionEndTime) {
         const localStartLatency = localRequestSentTime - localStartTime;
         const roundTripLatency = localEndTime - localRequestSentTime;
-        const executionLatency = remoteExecutionEndTime - remoteExecutionStartTime;
+        const executionTime = remoteExecutionEndTime - remoteExecutionStartTime;
         const sendResponseLatency = Math.max(
             0,
             (remoteResponseSentTime || remoteExecutionEndTime) - remoteExecutionEndTime
         );
-        const networkLatency = roundTripLatency - executionLatency - sendResponseLatency;
+        const networkLatency = roundTripLatency - executionTime - sendResponseLatency;
         const estimatedRemoteStartTime = localRequestSentTime + networkLatency / 2;
         const estimatedSkew = estimatedRemoteStartTime - remoteExecutionStartTime;
         let skew = estimatedSkew;
@@ -297,18 +300,18 @@ function processResponse<R>(
         const returnLatency = Math.max(1, localEndTime - (remoteExecutionEndTime + skew));
         fstats.update(fn, "localStartLatency", localStartLatency);
         fstats.update(fn, "remoteStartLatency", remoteStartLatency);
-        fstats.update(fn, "executionLatency", executionLatency);
+        fstats.update(fn, "executionTime", executionTime);
         fstats.update(fn, "sendResponseLatency", sendResponseLatency);
         fstats.update(fn, "returnLatency", returnLatency);
 
-        const billed = (executionLatency || 0) + (sendResponseLatency || 0);
+        const billed = (executionTime || 0) + (sendResponseLatency || 0);
         const estimatedBilledTime = Math.max(100, Math.ceil(billed / 100) * 100);
         fstats.update(fn, "estimatedBilledTime", estimatedBilledTime);
         rv = {
             ...rv,
             localStartLatency,
             remoteStartLatency,
-            executionLatency,
+            executionTime: executionTime,
             sendResponseLatency,
             returnLatency
         };
@@ -364,9 +367,9 @@ export class FunctionStatsEvent {
     ) {}
 
     toString() {
-        const executionLatency = this.stats ? this.stats.executionLatency.mean : 0;
-        return `[${this.fn}] ${this.counters}, executionLatency: ${(
-            executionLatency / 1000
+        const executionTime = this.stats ? this.stats.executionTime.mean : 0;
+        return `[${this.fn}] ${this.counters}, executionTime: ${(
+            executionTime / 1000
         ).toFixed(2)}s`;
     }
 }
@@ -750,6 +753,7 @@ export class CloudFunction<
                     const secondMetrics = stats.getOrCreate(Math.round(elapsed / 1000));
                     secondMetrics.stime.update(metrics.stime);
                     secondMetrics.utime.update(metrics.utime);
+                    secondMetrics.cpuTime.update(metrics.stime + metrics.utime);
                     break;
                 default:
                     assertNever(m);
@@ -847,7 +851,7 @@ export async function faastify<M extends object, O extends CommonOptions, S>(
 
 function estimateFunctionLatency(fnStats: FunctionStats) {
     const {
-        executionLatency,
+        executionTime,
         localStartLatency,
         remoteStartLatency,
         returnLatency
@@ -856,13 +860,13 @@ function estimateFunctionLatency(fnStats: FunctionStats) {
     return (
         localStartLatency.mean +
             remoteStartLatency.mean +
-            executionLatency.mean +
+            executionTime.mean +
             returnLatency.mean || 0
     );
 }
 
 function estimateTailLatency(fnStats: FunctionStats, nStdDev: number) {
-    return estimateFunctionLatency(fnStats) + nStdDev * fnStats.executionLatency.stdev;
+    return estimateFunctionLatency(fnStats) + nStdDev * fnStats.executionTime.stdev;
 }
 
 async function retryFunctionIfNeededToReduceTailLatency(
@@ -909,6 +913,4 @@ async function proactiveRetry(
     const time = cpuUsage.utime + cpuUsage.stime;
     const rounded = Math.round(elapsed);
     const stats = secondMap.get(rounded);
-    if (stats) {
-    }
 }

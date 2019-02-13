@@ -76,7 +76,7 @@ export class FunctionCounters {
 export class FunctionStats {
     localStartLatency = new Statistics();
     remoteStartLatency = new Statistics();
-    executionLatency = new Statistics();
+    executionTime = new Statistics();
     sendResponseLatency = new Statistics();
     returnLatency = new Statistics();
     estimatedBilledTime = new Statistics();

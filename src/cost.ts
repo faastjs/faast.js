@@ -148,7 +148,13 @@ export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
         rv.push({
             provider: "aws",
             repetitions: 10,
-            options: { mode: "https", memorySize, timeout: 300, gc: false },
+            options: {
+                mode: "https",
+                memorySize,
+                timeout: 300,
+                gc: false,
+                childProcess: false
+            },
             repetitionConcurrency: 10
         });
     }
@@ -161,7 +167,13 @@ export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
         rv.push({
             provider: "google",
             repetitions: 10,
-            options: { mode: "https", memorySize, timeout: 300, gc: false },
+            options: {
+                mode: "https",
+                memorySize,
+                timeout: 300,
+                gc: false,
+                childProcess: false
+            },
             repetitionConcurrency: 10
         });
     }
@@ -169,7 +181,7 @@ export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
 })();
 
 export interface CostAnalysisProfile<K extends string> {
-    provider: string;
+    provider: "aws" | "google";
     options: Options;
     costEstimate: CostBreakdown;
     stats: FunctionStats;
@@ -178,7 +190,7 @@ export interface CostAnalysisProfile<K extends string> {
     metrics: Metrics<K>;
 }
 
-const ps = (stat: Statistics) => (stat.mean / 1000).toFixed(3);
+const ps = (n: number) => (n / 1000).toFixed(3);
 
 function summarizeMean<K extends string>(metrics: Metrics<K>[]) {
     const stats: { [key in K]: Statistics } = {} as any;
@@ -266,7 +278,10 @@ export async function estimateWorkloadCost<T, K extends string>(
                     const est = await promise;
                     const total = (est.costEstimate.total() / repetitions).toFixed(8);
                     const { errors } = est.counters;
-                    const message = `${ps(est.stats.executionLatency)}s $${total}`;
+                    const { executionTime } = est.stats;
+                    const message = `${ps(executionTime.mean)}s ${ps(
+                        executionTime.stdev
+                    )}σ $${total}`;
                     const errMessage = errors > 0 ? ` (${errors} errors)` : "";
                     const metrics = keys(est.metrics)
                         .map(k => format(k, est.metrics[k]))
@@ -291,15 +306,16 @@ export function toCSV<K extends string>(
     const allKeys = new Set<K>();
     profile.forEach(profile => keys(profile.metrics).forEach(key => allKeys.add(key)));
     const columns = [
-        "cloud",
         "memory",
+        "cloud",
         "mode",
         "options",
         "completed",
         "errors",
         "retries",
         "cost",
-        "executionLatency",
+        "executionTime",
+        "executionTimeStdev",
         "billedTime",
         ...allKeys
     ];
@@ -318,16 +334,17 @@ export function toCSV<K extends string>(
         }
 
         const row = {
-            cloud: r.provider,
             memory: memorySize,
+            cloud: r.provider,
             mode: mode,
             options: options,
             completed,
             errors,
             retries,
             cost: `$${cost}`,
-            executionLatency: ps(r.stats.executionLatency),
-            billedTime: ps(r.stats.estimatedBilledTime),
+            executionTime: ps(r.stats.executionTime.mean),
+            executionTimeStdev: ps(r.stats.executionTime.stdev),
+            billedTime: ps(r.stats.estimatedBilledTime.mean),
             ...metrics
         };
 

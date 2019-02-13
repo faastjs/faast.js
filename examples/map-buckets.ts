@@ -18,11 +18,12 @@ let verbose = false;
 
 export async function mapBucket(Bucket: string, keyFilter: (key: string) => boolean) {
     const cloudFunc = await faastify("aws", m, "./map-buckets-module", {
-        memorySize: 1728,
+        memorySize: 2048,
         timeout: 300,
         mode: "queue",
         concurrency: 2000,
-        childProcess: true
+        childProcess: true,
+        gc: false
         // awsLambdaOptions: { TracingConfig: { Mode: "Active" } }
     });
     console.log(`Logs: ${cloudFunc.logUrl()} `);
@@ -57,7 +58,7 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
 
         verbose &&
             console.log(
-                `id,executionLatency,user,system,finalExecutionLatency,finalUser,finalSystem`
+                `id,executionTime,user,system,finalExecutionTime,finalUser,finalSystem`
             );
 
         for (const result of results) {

@@ -4,6 +4,7 @@ import { f1, GB, Statistics, f2, MB, assertNever } from "../src/shared";
 import * as m from "./map-buckets-module";
 import { listAllObjects } from "./util";
 import { toCSV } from "../src/cost";
+import { writeFile } from "../src/fs";
 
 type FilterFn = (s: string) => boolean;
 
@@ -43,7 +44,7 @@ const workload = (Bucket: string, filter: FilterFn) => async (
     return metrics;
 };
 
-const makeFormatter = (csv: boolean) => {
+const makeFormatter = ({ csv = false }) => {
     return function format(key: keyof Metrics, value: number) {
         if (value === undefined) {
             return "N/A";
@@ -62,19 +63,18 @@ const makeFormatter = (csv: boolean) => {
 async function compareAws(Bucket: string, filter: FilterFn) {
     const result = await costAnalyzer.estimateWorkloadCost(
         require.resolve("./map-buckets-module"),
-        costAnalyzer.awsConfigurations
-            .filter(c =>
-                [256, 512, 640, 1024, 1728, 2048, 3008].find(
-                    m => m === c.options.memorySize
-                )
-            )
-            .map(c => ({ ...c, repetitions: 5, repetitionConcurrency: 5 })),
+        costAnalyzer.awsConfigurations.map(c => ({
+            ...c,
+            repetitions: 5,
+            repetitionConcurrency: 5
+        })),
         {
             work: workload(Bucket, filter),
-            format: makeFormatter(false)
+            format: makeFormatter({ csv: false })
         },
         { concurrent: 8 }
     );
+    await writeFile("cost.csv", toCSV(result, makeFormatter({ csv: true })));
     // console.log(`${toCSV(result, makeFormatter(true))}`);
 }
 

@@ -1,8 +1,10 @@
 import { costAnalyzer, Promisified } from "../src/faast";
 import * as m from "./module";
+import { toCSV } from "../src/cost";
+import { writeFile } from "../src/fs";
 
 async function work(remote: Promisified<typeof m>) {
-    await remote.randomNumbers(20000000);
+    await remote.randomNumbers(100000000);
 }
 
 const configurations = [
@@ -23,9 +25,15 @@ const configurations = [
 ];
 
 async function compareIntersection() {
-    costAnalyzer.estimateWorkloadCost(require.resolve("./module"), configurations, {
-        work
-    });
+    const result = await costAnalyzer.estimateWorkloadCost(
+        require.resolve("./module"),
+        configurations,
+        {
+            work
+        }
+    );
+
+    await writeFile("cost.csv", toCSV(result));
 }
 
 compareIntersection();

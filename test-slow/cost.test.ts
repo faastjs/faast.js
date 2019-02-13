@@ -48,7 +48,7 @@ test("Cost analyzer", async t => {
     t.is(parsed.data.length, configs.length);
 
     for (const row of parsed.data) {
-        // cloud,memory,useQueue,options,completed,errors,retries,cost,executionLatency,billedTime
+        // cloud,memory,useQueue,options,completed,errors,retries,cost,executionTime,billedTime
         t.is(typeof row.cloud, "string");
         t.is(typeof row.memory, "number");
         t.is(typeof row.mode, "string");
@@ -57,7 +57,7 @@ test("Cost analyzer", async t => {
         t.is(typeof row.errors, "number");
         t.is(typeof row.retries, "number");
         t.is(typeof row.cost, "string");
-        t.is(typeof row.executionLatency, "number");
+        t.is(typeof row.executionTime, "number");
         t.is(typeof row.billedTime, "number");
     }
 });
