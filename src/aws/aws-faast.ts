@@ -44,6 +44,32 @@ import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
 import { FunctionReturn } from "../wrapper";
 
+const defaultGcWorker = throttle(
+    { concurrency: 5, rate: 5, burst: 2 },
+    async (services: AWSServices, work: GcWork) => {
+        switch (work.type) {
+            case "SetLogRetention":
+                if (
+                    await quietly(
+                        services.cloudwatch.putRetentionPolicy({
+                            ...work
+                        })
+                    )
+                ) {
+                    logGc(
+                        `Added retention policy of ${work.retentionInDays} day(s) to ${
+                            work.logGroupName
+                        }`
+                    );
+                }
+                break;
+            case "DeleteResources":
+                await deleteResources(work.resources, services, logGc);
+                break;
+        }
+    }
+);
+
 export interface Options extends CommonOptions {
     region?: AWSRegion;
     PolicyArn?: string;
@@ -53,6 +79,18 @@ export interface Options extends CommonOptions {
     CacheBucket?: string;
     gcWorker?: (services: AWSServices, work: GcWork) => Promise<void>;
 }
+
+export let defaults: Required<Options> = {
+    ...CommonOptionDefaults,
+    region: "us-west-2",
+    PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
+    RoleName: "faast-cached-lambda-role",
+    memorySize: 1728,
+    useDependencyCaching: true,
+    awsLambdaOptions: {},
+    CacheBucket: "",
+    gcWorker: defaultGcWorker
+};
 
 export interface AWSPrices {
     lambdaPerRequest: number;
@@ -113,44 +151,6 @@ export type GcWork =
           type: "DeleteResources";
           resources: AWSResources;
       };
-
-const defaultGcWorker = throttle(
-    { concurrency: 5, rate: 5, burst: 2 },
-    async (services: AWSServices, work: GcWork) => {
-        switch (work.type) {
-            case "SetLogRetention":
-                if (
-                    await quietly(
-                        services.cloudwatch.putRetentionPolicy({
-                            ...work
-                        })
-                    )
-                ) {
-                    logGc(
-                        `Added retention policy of ${work.retentionInDays} day(s) to ${
-                            work.logGroupName
-                        }`
-                    );
-                }
-                break;
-            case "DeleteResources":
-                await deleteResources(work.resources, services, logGc);
-                break;
-        }
-    }
-);
-
-export let defaults: Required<Options> = {
-    ...CommonOptionDefaults,
-    region: "us-west-2",
-    PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
-    RoleName: "faast-cached-lambda-role",
-    memorySize: 1728,
-    useDependencyCaching: true,
-    awsLambdaOptions: {},
-    CacheBucket: "",
-    gcWorker: defaultGcWorker
-};
 
 export const Impl: CloudFunctionImpl<Options, State> = {
     name: "aws",
@@ -233,6 +233,7 @@ const createLambdaRole = throttle(
         } catch (err) {
             if (err.code === "EntityAlreadyExists") {
                 const roleResponse = await iam.getRole({ RoleName }).promise();
+                await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
                 return roleResponse.Role.Arn;
             }
             throw err;
