@@ -686,9 +686,12 @@ const getGooglePrice = throttle(
             );
             return price;
         } catch (err) {
-            warn(`Could not get Google Cloud Functions pricing for '${description}'`);
-            warn(err);
-            return 0;
+            const { message: m } = err;
+            if (!m.match(/socket hang up/)) {
+                warn(`Could not get Google Cloud Functions pricing for '${description}'`);
+                warn(err);
+            }
+            throw err;
         }
     }
 );
