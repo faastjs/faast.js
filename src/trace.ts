@@ -1,5 +1,4 @@
 import * as asyncHooks from "async_hooks";
-import * as util from "util";
 import { inspect } from "util";
 
 let hook: () => void | undefined;
@@ -20,8 +19,8 @@ interface AsyncObject {
 const asyncObjects: Map<number, AsyncObject> = new Map();
 const objectMapping: Map<object, AsyncObject> = new Map();
 
-export function startAsyncTracing() {
-    hook = onAsyncHook();
+export function startAsyncTracing(stackTraces: boolean = false) {
+    hook = onAsyncHook(stackTraces);
 }
 
 interface Trace {
@@ -80,7 +79,7 @@ export function stopAsyncTracing() {
     hook && hook();
 }
 
-export function onAsyncHook() {
+export function onAsyncHook(stackTraces: boolean) {
     const hooks: asyncHooks.HookCallbacks = {
         init,
         before,
@@ -105,7 +104,9 @@ export function onAsyncHook() {
             state: "init",
             startedCount: 0,
             finishedCount: 0,
-            stack: new Error("stack:").stack!.replace(/Error:/, "")
+            stack: stackTraces
+                ? new Error("stack:").stack!.replace(/Error:/, "")
+                : undefined
         };
         asyncObjects.set(asyncId, obj);
         objectMapping.set(resource, obj);
