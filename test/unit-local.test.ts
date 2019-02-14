@@ -58,10 +58,13 @@ async function testConcurrency(
         expectedConcurrency: number;
     }
 ) {
-    const cloudFunc = await faastify("local", funcs, "./functions", options);
+    const cloudFunc = await faastify("local", funcs, "./functions", {
+        ...options,
+        concurrency: maxConcurrency
+    });
 
     try {
-        const N = maxConcurrency;
+        const N = maxConcurrency * 2;
         const promises = [];
         for (let i = 0; i < N; i++) {
             promises.push(cloudFunc.functions.spin(500));
