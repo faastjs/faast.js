@@ -19,7 +19,7 @@
         "test-aws": "ava -m='*aws*'",
         "test-google": "ava -m='*google*",
         "test-pipeline-debug": "DEBUG=faast:provider,faast:info ava --fail-fast --serial",
-        "test-pipeline": "DEBUG=faast:provider,faast:info ava --fail-fast build/test-slow/google-gc.test.js",
+        "test-pipeline": "DEBUG=faast:provider,faast:info ava --concurrency=8 build/test-slow/google-gc.test.js",
         "test-pipeline-saved": "ava --concurrency=8",
         "cleanup-cloud": "node build/src/cleanup.js aws -x -f && node build/src/cleanup.js google -x -f",
         "clean": "rm -rf build",
