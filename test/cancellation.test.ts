@@ -18,7 +18,7 @@ function testCancellation(provider: faast.Provider, options?: CommonOptions) {
     test.serial(
         `${provider} ${opts} cleanup waits for all child processes to exit`,
         async t => {
-            await sleep(0); // wait until jest sets its timeout so it doesn't get picked up by async_hooks.
+            await sleep(0); // wait until ava sets its timeout so it doesn't get picked up by async_hooks.
             startAsyncTracing();
             const cloudFunc = await faastify(provider, funcs, "./functions", {
                 ...options,
