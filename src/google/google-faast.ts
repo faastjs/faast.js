@@ -700,21 +700,33 @@ const getGooglePrice = throttle(
     }
 );
 
+let googleServices: cloudbilling_v1.Schema$Service[] | undefined;
+
+const listGoogleServices = throttle(
+    { concurrency: 1, retry: 3 },
+    async (cloudBilling: CloudBilling.Cloudbilling) => {
+        if (googleServices) {
+            return googleServices;
+        }
+        const response = await cloudBilling.services.list();
+        googleServices = response.data.services!;
+        return googleServices;
+    }
+);
+
 async function getGoogleCloudFunctionsPricing(
     cloudBilling: CloudBilling.Cloudbilling,
     region: string
 ): Promise<GoogleCloudPricing> {
     try {
-        const services = await cloudBilling.services.list();
+        const services = await listGoogleServices(cloudBilling);
 
         const getPricing = (
             serviceName: string,
             description: string,
             conversionFactor: number = 1
         ) => {
-            const service = services.data.services!.find(
-                s => s.displayName === serviceName
-            )!;
+            const service = services.find(s => s.displayName === serviceName)!;
 
             return getGooglePrice(
                 cloudBilling,

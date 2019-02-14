@@ -2,6 +2,7 @@ import test, { ExecutionContext } from "ava";
 import * as faast from "../src/faast";
 import { keys } from "../src/shared";
 import { quietly, checkResourcesCleanedUp } from "./util";
+import { warn } from "../src/log";
 
 export async function getGoogleResources(func: faast.GoogleCloudFunction) {
     const { cloudFunctions, pubsub } = func.state.services;
@@ -53,10 +54,15 @@ export function checkResourcesExist<T extends object>(t: ExecutionContext, resou
 }
 
 test("google cleanup removes ephemeral resources", async t => {
-    const func = await faast.faastify("google", {}, "./functions", {
-        mode: "queue"
-    });
-    checkResourcesExist(t, await getGoogleResources(func));
-    await func.cleanup();
-    checkResourcesCleanedUp(t, await getGoogleResources(func));
+    try {
+        const func = await faast.faastify("google", {}, "./functions", {
+            mode: "queue"
+        });
+        checkResourcesExist(t, await getGoogleResources(func));
+        await func.cleanup();
+        checkResourcesCleanedUp(t, await getGoogleResources(func));
+    } catch (err) {
+        warn(`google cleanup error: ${err.stack}`);
+        throw err;
+    }
 });
