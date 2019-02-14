@@ -17,7 +17,6 @@ test("aws garbage collector works for functions that are called", async t => {
         logGc(`Recorded gc work: %O`, work);
     });
     const func = await faastify("aws", functions, "../test/functions", {
-        gc: false,
         mode: "queue"
     });
     const { cloudwatch } = func.state.services;
@@ -84,7 +83,6 @@ test("aws garbage collector works for functions that are never called", async t 
     const gcRecorder = record(async (_: AWSServices, _work: GcWork) => {});
 
     const func = await faastify("aws", functions, "../test/functions", {
-        gc: false,
         mode: "queue"
     });
     await func.cleanup({ deleteResources: false });
