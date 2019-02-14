@@ -38,7 +38,11 @@ function testCancellation(provider: faast.Provider, options?: CommonOptions) {
 }
 
 for (const provider of providers) {
-    for (const config of configs) {
+    let configurations = configs;
+    if (provider !== "local") {
+        configurations = configs.filter(t => t.childProcess === true);
+    }
+    for (const config of configurations) {
         testCancellation(provider, config);
     }
 }
