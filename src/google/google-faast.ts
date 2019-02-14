@@ -116,9 +116,11 @@ export const Impl: CloudFunctionImpl<Options, State> = {
 };
 
 export async function initializeGoogleServices(): Promise<GoogleServices> {
-    const auth = await google.auth.getClient({
-        scopes: ["https://www.googleapis.com/auth/cloud-platform"]
-    });
+    const auth = await retry(3, () =>
+        google.auth.getClient({
+            scopes: ["https://www.googleapis.com/auth/cloud-platform"]
+        })
+    );
     google.options({ auth });
     return {
         cloudFunctions: google.cloudfunctions("v1"),
@@ -167,16 +169,6 @@ async function pollOperation<T>({
     }
 }
 
-async function carefully<T>(promise: AxiosPromise<T>) {
-    try {
-        const result = await promise;
-        return result.data;
-    } catch (err) {
-        warn(err);
-        throw err;
-    }
-}
-
 async function quietly<T>(promise: AxiosPromise<T>) {
     try {
         const result = await promise;
@@ -211,6 +203,10 @@ async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) 
     );
 }
 
+function insist<T>(fn: () => Promise<T>) {
+    return retry(3, fn);
+}
+
 export async function initialize(
     fmodule: string,
     nonce: UUID,
@@ -218,7 +214,7 @@ export async function initialize(
 ): Promise<State> {
     info(`Create google cloud function`);
     const services = await initializeGoogleServices();
-    const project = await google.auth.getProjectId();
+    const project = await insist(() => google.auth.getProjectId());
     const { cloudFunctions, pubsub } = services;
     const { region } = options;
 
@@ -227,14 +223,16 @@ export async function initialize(
 
     async function createCodeBundle() {
         const { archive } = await pack(fmodule, options);
-        const uploadUrlResponse = await carefully(
+        const uploadUrlResponse = await insist(() =>
             cloudFunctions.projects.locations.functions.generateUploadUrl({
                 parent: location
             })
         );
-        const uploadResult = await uploadZip(uploadUrlResponse.uploadUrl!, archive);
+        const uploadResult = await insist(() =>
+            uploadZip(uploadUrlResponse.data.uploadUrl!, archive)
+        );
         info(`Upload zip file response: ${uploadResult.statusText}`);
-        return uploadUrlResponse.uploadUrl;
+        return uploadUrlResponse.data.uploadUrl;
     }
 
     const functionName = "faast-" + nonce;
@@ -264,30 +262,35 @@ export async function initialize(
 
     const { mode } = options;
 
-    const responseQueuePromise = pubsub.projects.topics
-        .create({ name: getResponseQueueTopic(project, functionName) })
-        .then(topic => {
-            resources.responseQueueTopic = topic.data.name;
-            resources.responseSubscription = getResponseSubscription(
-                project,
-                functionName
-            );
-            info(`Creating response queue subscription`);
-            return pubsub.projects.subscriptions.create({
+    const responseQueuePromise = (async () => {
+        const topic = await insist(() =>
+            pubsub.projects.topics.create({
+                name: getResponseQueueTopic(project, functionName)
+            })
+        );
+
+        resources.responseQueueTopic = topic.data.name;
+        resources.responseSubscription = getResponseSubscription(project, functionName);
+        info(`Creating response queue subscription`);
+        await insist(() =>
+            pubsub.projects.subscriptions.create({
                 name: resources.responseSubscription,
                 requestBody: {
                     topic: resources.responseQueueTopic
                 }
-            });
-        });
+            })
+        );
+    })();
 
     let requestQueuePromise;
     if (mode === "queue") {
         info(`Initializing queue`);
         resources.requestQueueTopic = getRequestQueueTopic(project, functionName);
-        requestQueuePromise = pubsub.projects.topics.create({
-            name: resources.requestQueueTopic
-        });
+        requestQueuePromise = insist(() =>
+            pubsub.projects.topics.create({
+                name: resources.requestQueueTopic
+            })
+        );
     }
 
     const sourceUploadUrl = await createCodeBundle();
@@ -325,17 +328,17 @@ export async function initialize(
     } catch (err) {
         warn(`createFunction error: ${err.stack}`);
         info(`delete function ${trampoline}`);
-        await deleteFunction(cloudFunctions, trampoline).catch();
+        await deleteFunction(cloudFunctions, trampoline).catch(() => {});
         throw err;
     }
     if (mode === "https" || mode === "auto") {
-        const func = await carefully(
+        const func = await insist(() =>
             cloudFunctions.projects.locations.functions.get({ name: trampoline })
         );
-        if (!func || !func.httpsTrigger) {
+        if (!func.data.httpsTrigger) {
             throw new Error("Could not get http trigger url");
         }
-        const { url } = func.httpsTrigger!;
+        const { url } = func.data.httpsTrigger!;
         if (!url) {
             throw new Error("Could not get http trigger url");
         }
