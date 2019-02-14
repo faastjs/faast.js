@@ -16,7 +16,10 @@ test("aws garbage collector works for functions that are called", async t => {
     const gcRecorder = record(async (_: AWSServices, work: GcWork) => {
         logGc(`Recorded gc work: %O`, work);
     });
-    const func = await faastify("aws", functions, "../test/functions");
+    const func = await faastify("aws", functions, "../test/functions", {
+        gc: false,
+        mode: "queue"
+    });
     const { cloudwatch } = func.state.services;
     await new Promise(async resolve => {
         let done = false;
@@ -43,6 +46,7 @@ test("aws garbage collector works for functions that are called", async t => {
 
     await func.cleanup({ deleteResources: false });
     const func2 = await faastify("aws", functions, "../test/functions", {
+        gc: true,
         gcWorker: gcRecorder,
         retentionInDays: 0
     });
@@ -79,9 +83,13 @@ test("aws garbage collector works for functions that are called", async t => {
 test("aws garbage collector works for functions that are never called", async t => {
     const gcRecorder = record(async (_: AWSServices, _work: GcWork) => {});
 
-    const func = await faastify("aws", functions, "../test/functions");
+    const func = await faastify("aws", functions, "../test/functions", {
+        gc: false,
+        mode: "queue"
+    });
     await func.cleanup({ deleteResources: false });
     const func2 = await faastify("aws", functions, "../test/functions", {
+        gc: true,
         gcWorker: gcRecorder,
         retentionInDays: 0
     });

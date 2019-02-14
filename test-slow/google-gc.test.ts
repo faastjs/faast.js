@@ -11,6 +11,7 @@ test("google garbage collector works for functions that are called", async t => 
     // its garbage collector cleans up. Verify the first function's resources
     // would be cleaned up, which shows that the garbage collector did its job.
     const func = await faastify("google", functions, "../test/functions", {
+        gc: false,
         mode: "queue"
     });
     await func.functions.hello("gc-test");
@@ -32,6 +33,7 @@ test("google garbage collector works for functions that are called", async t => 
 
 test("google garbage collector works for functions that are never called", async t => {
     const func = await faastify("google", functions, "../test/functions", {
+        gc: false,
         mode: "queue"
     });
     await func.cleanup({ deleteResources: false });
