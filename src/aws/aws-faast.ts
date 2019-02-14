@@ -742,10 +742,12 @@ export async function collectGarbage(
     Bucket: string,
     retentionInDays: number
 ) {
-    if (garbageCollectorRunning) {
-        return;
+    if (executor === defaultGcWorker) {
+        if (garbageCollectorRunning) {
+            return;
+        }
+        garbageCollectorRunning = true;
     }
-    garbageCollectorRunning = true;
     try {
         const promises: Promise<void>[] = [];
         function scheduleWork(work: GcWork) {
@@ -819,7 +821,9 @@ export async function collectGarbage(
 
         await Promise.all(promises);
     } finally {
-        garbageCollectorRunning = false;
+        if (executor === defaultGcWorker) {
+            garbageCollectorRunning = false;
+        }
     }
 }
 

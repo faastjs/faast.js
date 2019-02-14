@@ -532,10 +532,12 @@ async function collectGarbage(
     project: string,
     retentionInDays: number
 ) {
-    if (garbageCollectorRunning) {
-        return;
+    if (gcWorker === gcWorkerDefault) {
+        if (garbageCollectorRunning) {
+            return;
+        }
+        garbageCollectorRunning = true;
     }
-    garbageCollectorRunning = true;
     try {
         const { cloudFunctions } = services;
 
@@ -580,7 +582,9 @@ async function collectGarbage(
 
         await Promise.all(promises);
     } finally {
-        garbageCollectorRunning = false;
+        if (gcWorker === gcWorkerDefault) {
+            garbageCollectorRunning = false;
+        }
     }
 }
 

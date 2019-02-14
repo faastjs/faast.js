@@ -235,10 +235,12 @@ async function collectGarbage(
     gcWorker: (dir: string) => Promise<void>,
     retentionInDays: number
 ) {
-    if (garbageCollectorRunning) {
-        return;
+    if (gcWorker === defaultGcWorker) {
+        if (garbageCollectorRunning) {
+            return;
+        }
+        garbageCollectorRunning = true;
     }
-    garbageCollectorRunning = true;
     const tmp = join(tmpdir(), "faast");
     logGc(tmp);
     try {
@@ -259,6 +261,8 @@ async function collectGarbage(
     } catch (err) {
         logGc(err);
     } finally {
-        garbageCollectorRunning = false;
+        if (gcWorker === defaultGcWorker) {
+            garbageCollectorRunning = false;
+        }
     }
 }
