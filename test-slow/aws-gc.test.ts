@@ -6,7 +6,7 @@ import { logGc } from "../src/log";
 import test from "ava";
 import { record, contains, quietly } from "../test/util";
 
-test("aws garbage collector works for functions that are called", async t => {
+test("remote aws garbage collector works for functions that are called", async t => {
     // Idea behind this test: create a faast function and make a call.
     // Then cleanup while leaving the resources in place. Then create another
     // function and set its retention to 0, and use a recorder to observe
@@ -79,7 +79,7 @@ test("aws garbage collector works for functions that are called", async t => {
     await func.cleanup();
 });
 
-test("aws garbage collector works for functions that are never called", async t => {
+test("remote aws garbage collector works for functions that are never called", async t => {
     const gcRecorder = record(async (_: AWSServices, _work: GcWork) => {});
 
     const func = await faastify("aws", functions, "../test/functions", {

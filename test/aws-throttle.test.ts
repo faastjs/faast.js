@@ -3,7 +3,7 @@ import * as faast from "../src/faast";
 import { info } from "../src/log";
 import * as funcs from "./functions";
 
-test("aws throttling to no concurrency", async t => {
+test("remote aws throttling to no concurrency", async t => {
     const cloudFunc = await faast.faastify("aws", funcs, "./functions", {
         mode: "https",
         memorySize: 1024,

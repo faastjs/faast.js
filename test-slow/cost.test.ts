@@ -65,5 +65,5 @@ const costAnalyzerMacro: Macro<[CostAnalyzerConfiguration[]]> = async (t, config
     }
 };
 
-test("aws cost analyzer", costAnalyzerMacro, filter(awsConfigurations));
-test("google cost analyzer", costAnalyzerMacro, filter(googleConfigurations));
+test("remote aws cost analyzer", costAnalyzerMacro, filter(awsConfigurations));
+test("remote google cost analyzer", costAnalyzerMacro, filter(googleConfigurations));

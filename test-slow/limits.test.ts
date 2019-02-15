@@ -20,11 +20,7 @@ const testTimeout: Macro<[Provider, CommonOptions]> = async (t, provider, option
     }
 };
 
-const testMemoryLimitOk: Macro<[Provider, CommonOptions]> = async (
-    t,
-    provider,
-    options
-) => {
+const limitOk: Macro<[Provider, CommonOptions]> = async (t, provider, options) => {
     let lambda: faast.CloudFunction<typeof funcs> | undefined;
     try {
         lambda = await faastify(provider, funcs, "../test/functions", {
@@ -43,11 +39,7 @@ const testMemoryLimitOk: Macro<[Provider, CommonOptions]> = async (
     }
 };
 
-const testMemoryLimitFail: Macro<[Provider, CommonOptions]> = async (
-    t,
-    provider,
-    options
-) => {
+const limitFail: Macro<[Provider, CommonOptions]> = async (t, provider, options) => {
     let lambda: faast.CloudFunction<typeof funcs> | undefined;
     try {
         lambda = await faastify(provider, funcs, "../test/functions", {
@@ -75,7 +67,11 @@ const configurations: [Provider, faast.aws.Options][] = [
 
 for (const [provider, config] of configurations) {
     const opts = inspect(config);
-    test(`${provider} memory under limit ${opts}`, testMemoryLimitOk, provider, config);
-    test(`${provider} out of memory ${opts}`, testMemoryLimitFail, provider, config);
-    test(`${provider} timeout ${opts}`, testTimeout, provider, config);
+    let remote = "";
+    if (provider !== "local") {
+        remote = "remote";
+    }
+    test(`${remote} ${provider} memory under limit ${opts}`, limitOk, provider, config);
+    test(`${remote} ${provider} out of memory ${opts}`, limitFail, provider, config);
+    test(`${remote} ${provider} timeout ${opts}`, testTimeout, provider, config);
 }
