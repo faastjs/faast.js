@@ -1,4 +1,3 @@
-import Axios, { AxiosError, AxiosPromise, AxiosRequestConfig } from "axios";
 import * as sys from "child_process";
 import {
     cloudbilling_v1,
@@ -38,11 +37,16 @@ import { Mutable } from "../types";
 import { publishPubSub, receiveMessages, publishResponseMessage } from "./google-queue";
 import * as googleTrampolineHttps from "./google-trampoline-https";
 import * as googleTrampolineQueue from "./google-trampoline-queue";
+import { Gaxios, GaxiosPromise, GaxiosError, GaxiosOptions } from "gaxios";
+
+import { AbortController } from "abort-controller";
 
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
 import { caches } from "../cache";
+
+const gaxios = new Gaxios();
 
 export interface Options extends CommonOptions {
     region?: string;
@@ -169,7 +173,7 @@ async function pollOperation<T>({
     }
 }
 
-async function quietly<T>(promise: AxiosPromise<T>) {
+async function quietly<T>(promise: GaxiosPromise<T>) {
     try {
         const result = await promise;
         return result.data;
@@ -180,7 +184,7 @@ async function quietly<T>(promise: AxiosPromise<T>) {
 
 async function waitFor(
     api: CloudFunctions.Cloudfunctions,
-    response: AxiosPromise<CloudFunctions.Schema$Operation>
+    response: GaxiosPromise<CloudFunctions.Schema$Operation>
 ) {
     const operationName = (await response).data.name!;
     return pollOperation({
@@ -374,9 +378,9 @@ async function callFunctionHttps(
     metrics: GoogleMetrics,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
-    const source = Axios.CancelToken.source();
+    const source = new AbortController();
 
-    const shouldRetry = (err: AxiosError) => {
+    const shouldRetry = (err: GaxiosError) => {
         if (err.response) {
             const { status } = err.response;
             return status !== 503 && status !== 408;
@@ -385,20 +389,23 @@ async function callFunctionHttps(
     };
 
     try {
-        const axiosConfig: AxiosRequestConfig = {
+        const axiosConfig: GaxiosOptions = {
+            method: "PUT",
+            url,
             headers: { "Content-Type": "text/plain" },
-            cancelToken: source.token
+            body: call.body,
+            signal: source.signal
         };
         const rawResponse = await Promise.race([
             retry(shouldRetry, () => {
-                return Axios.put<string>(url!, call.body, axiosConfig);
+                return gaxios.request<string>(axiosConfig);
             }),
             cancel
         ]);
 
         if (!rawResponse) {
             info(`cancelling gcp invoke`);
-            source.cancel();
+            source.abort();
             return;
         }
         const returned: string = rawResponse.data;
@@ -641,12 +648,16 @@ function validateGoogleLabels(labels: { [key: string]: string } | undefined) {
 }
 
 async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
-    return Axios.put(url, zipStream, {
+    const config: GaxiosOptions = {
+        method: "PUT",
+        url,
+        body: zipStream,
         headers: {
             "content-type": "application/zip",
             "x-goog-content-length-range": "0,104857600"
         }
-    });
+    };
+    return gaxios.request(config);
 }
 
 export async function pack(

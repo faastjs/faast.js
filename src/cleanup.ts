@@ -1,7 +1,7 @@
 require("source-map-support").install();
 
 import * as aws from "aws-sdk";
-import { AxiosPromise, AxiosResponse } from "axios";
+import { GaxiosPromise, GaxiosResponse } from "gaxios";
 import * as commander from "commander";
 import { google } from "googleapis";
 import * as inquirer from "inquirer";
@@ -232,12 +232,12 @@ interface HasNextPageToken {
 }
 
 async function iterate<T extends HasNextPageToken>(
-    getPage: (token?: string) => AxiosPromise<T>,
+    getPage: (token?: string) => GaxiosPromise<T>,
     each: (val: T) => void
 ) {
     let token;
     do {
-        const result: AxiosResponse<T> = await getPage(token);
+        const result: GaxiosResponse<T> = await getPage(token);
         each(result.data);
         token = result.data.nextPageToken;
     } while (token);
@@ -249,7 +249,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
 
     async function listGoogleResource<T, U>(
         pattern: RegExp,
-        getList: (pageToken?: string) => AxiosPromise<T>,
+        getList: (pageToken?: string) => GaxiosPromise<T>,
         extractList: (arg: T) => U[] | undefined,
         extractElement: (arg: U) => string | undefined
     ) {
@@ -270,7 +270,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
     async function deleteGoogleResource<T, U>(
         name: string,
         pattern: RegExp,
-        getList: (pageToken?: string) => AxiosPromise<T>,
+        getList: (pageToken?: string) => GaxiosPromise<T>,
         extractList: (arg: T) => U[] | undefined,
         extractElement: (arg: U) => string | undefined,
         remove: (arg: string) => Promise<any>

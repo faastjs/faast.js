@@ -13,10 +13,10 @@ import { assertNever, computeHttpResponseBytes, defined } from "../shared";
 import { Attributes } from "../types";
 import { GoogleMetrics } from "./google-faast";
 import PubSubApi = pubsub_v1;
-
 import PubSubMessage = pubsub_v1.Schema$PubsubMessage;
 import { serializeReturn } from "../wrapper";
-import Axios from "axios";
+import Gaxios from "gaxios";
+import { AbortController } from "abort-controller";
 
 function pubsubMessageAttribute(message: PubSubMessage, attr: string) {
     const attributes = message && message.attributes;
@@ -31,18 +31,18 @@ export async function receiveMessages(
 ): Promise<PollResult> {
     // Does higher message batching lead to better throughput? 10 is the max that AWS SQS allows.
     const maxMessages = 10;
-    const source = Axios.CancelToken.source();
+    const source = new AbortController();
     const request = pubsub.projects.subscriptions.pull(
         {
             subscription,
             requestBody: { returnImmediately: false, maxMessages }
         },
-        { cancelToken: source.token }
+        { signal: source.signal }
     );
 
     const response = await Promise.race([request, cancel]);
     if (!response) {
-        source.cancel();
+        source.abort();
         return { Messages: [] };
     }
 
