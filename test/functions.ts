@@ -67,7 +67,7 @@ export async function timer(delayMs: number): Promise<Timing> {
     return { start, end };
 }
 
-export async function spin(ms: number): Promise<Timing> {
+export function spin(ms: number): Timing {
     const start = Date.now();
     while (true) {
         if (Date.now() - start >= ms) {

@@ -1,5 +1,4 @@
 import * as aws from "aws-sdk";
-import { PromiseResult } from "aws-sdk/lib/request";
 import { createHash } from "crypto";
 import { caches } from "../cache";
 import { CostBreakdown, CostMetric } from "../cost";
@@ -417,11 +416,14 @@ export async function initialize(
         return func;
     }
 
-    const { packageJson, useDependencyCaching } = options;
+    const { packageJson, useDependencyCaching, childProcess } = options;
 
     async function createCodeBundle() {
-        const bundle = pack(fModule, options);
-
+        let { childProcessTimeoutMs, ...rest } = options;
+        if (!childProcessTimeoutMs && childProcess) {
+            childProcessTimeoutMs = timeout * 1000 - 50;
+        }
+        const bundle = pack(fModule, { childProcessTimeoutMs, ...rest });
         let Code: aws.Lambda.FunctionCode;
         if (packageJson) {
             Code = await buildModulesOnLambda(

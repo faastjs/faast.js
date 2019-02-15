@@ -116,7 +116,7 @@ async function initialize(
             wrapperLog: childlog,
             childProcess: childProcess,
             childProcessMemoryLimitMb: memorySize,
-            childProcessTimeout: timeout,
+            childProcessTimeoutMs: timeout * 1000 - (childProcess ? 50 : 0),
             childDir: tempDir
         });
         wrappers.push(wrapper);

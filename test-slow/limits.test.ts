@@ -1,68 +1,73 @@
-import test, { Macro } from "ava";
+import test, { ExecutionContext } from "ava";
 import { inspect } from "util";
-import * as faast from "../src/faast";
 import { faastify, Provider } from "../src/faast";
 import { CommonOptions } from "../src/provider";
+import { configs, providers } from "../test/configurations";
 import * as funcs from "../test/functions";
 
-const testTimeout: Macro<[Provider, CommonOptions]> = async (t, provider, options) => {
-    let lambda: faast.CloudFunction<typeof funcs> | undefined;
+async function testTimeout(
+    t: ExecutionContext,
+    provider: Provider,
+    options: CommonOptions
+) {
+    let lambda = await faastify(provider, funcs, "../test/functions", {
+        ...options,
+        timeout: 2,
+        maxRetries: 0,
+        gc: false
+    });
     try {
-        lambda = await faastify(provider, funcs, "../test/functions", {
-            ...options,
-            timeout: 2,
-            maxRetries: 0,
-            gc: false
-        });
-        await t.throwsAsync(lambda.functions.sleep(4 * 1000), /time/i);
+        await t.throwsAsync(lambda.functions.spin(4 * 1000), /time/i);
     } finally {
-        lambda && (await lambda.cleanup());
+        await lambda.cleanup();
     }
-};
+}
 
-const limitOk: Macro<[Provider, CommonOptions]> = async (t, provider, options) => {
-    let lambda: faast.CloudFunction<typeof funcs> | undefined;
+async function limitOk(t: ExecutionContext, provider: Provider, options: CommonOptions) {
+    let lambda = await faastify(provider, funcs, "../test/functions", {
+        ...options,
+        timeout: 200,
+        memorySize: 512,
+        maxRetries: 0,
+        gc: false
+    });
+
     try {
-        lambda = await faastify(provider, funcs, "../test/functions", {
-            ...options,
-            timeout: 200,
-            memorySize: 512,
-            maxRetries: 0,
-            gc: false
-        });
-
         const bytes = 64 * 1024 * 1024;
         const rv = await lambda.functions.allocate(bytes);
         t.is(rv.elems, bytes / 8);
     } finally {
-        lambda && (await lambda.cleanup());
+        await lambda.cleanup();
     }
-};
+}
 
-const limitFail: Macro<[Provider, CommonOptions]> = async (t, provider, options) => {
-    let lambda: faast.CloudFunction<typeof funcs> | undefined;
+async function limitFail(
+    t: ExecutionContext,
+    provider: Provider,
+    options: CommonOptions
+) {
+    let lambda = await faastify(provider, funcs, "../test/functions", {
+        ...options,
+        timeout: 200,
+        memorySize: 512,
+        maxRetries: 0,
+        gc: false
+    });
+
     try {
-        lambda = await faastify(provider, funcs, "../test/functions", {
-            ...options,
-            timeout: 200,
-            memorySize: 512,
-            maxRetries: 0,
-            gc: false
-        });
-
         const bytes = 512 * 1024 * 1024;
         await t.throwsAsync(lambda.functions.allocate(bytes), /memory/i);
     } finally {
         lambda && (await lambda.cleanup());
     }
-};
+}
 
-const configurations: [Provider, faast.aws.Options][] = [
+const configurations: [Provider, CommonOptions][] = [
     ["aws", { mode: "https" }],
     ["aws", { mode: "queue" }],
     ["local", { childProcess: true }],
-    ["google", { mode: "https" }]
-    // Queue mode on google doesn't report OOM or timeouts because there are no dead letter queues...
+    ["google", { mode: "https" }],
+    ["google", { mode: "queue" }]
 ];
 
 for (const [provider, config] of configurations) {
@@ -72,6 +77,10 @@ for (const [provider, config] of configurations) {
         remote = "remote";
     }
     test(`${remote} ${provider} memory under limit ${opts}`, limitOk, provider, config);
-    test(`${remote} ${provider} out of memory ${opts}`, limitFail, provider, config);
+    if (provider === "google" && config.mode === "queue") {
+        // Google in queue mode cannot detect OOM errors.
+    } else {
+        test(`${remote} ${provider} out of memory ${opts}`, limitFail, provider, config);
+    }
     test(`${remote} ${provider} timeout ${opts}`, testTimeout, provider, config);
 }

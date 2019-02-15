@@ -220,13 +220,17 @@ export async function initialize(
     const services = await initializeGoogleServices();
     const project = await insist(() => google.auth.getProjectId());
     const { cloudFunctions, pubsub } = services;
-    const { region } = options;
+    const { region, childProcess, timeout } = options;
 
     info(`Nonce: ${nonce}`);
     const location = `projects/${project}/locations/${region}`;
 
     async function createCodeBundle() {
-        const { archive } = await pack(fmodule, options);
+        let { childProcessTimeoutMs, ...rest } = options;
+        if (!childProcessTimeoutMs && childProcess) {
+            childProcessTimeoutMs = timeout * 1000 - 100;
+        }
+        const { archive } = await pack(fmodule, { childProcessTimeoutMs, ...rest });
         const uploadUrlResponse = await insist(() =>
             cloudFunctions.projects.locations.functions.generateUploadUrl({
                 parent: location
@@ -298,7 +302,7 @@ export async function initialize(
     }
 
     const sourceUploadUrl = await createCodeBundle();
-    const { timeout, memorySize, googleCloudFunctionOptions } = options;
+    const { memorySize, googleCloudFunctionOptions } = options;
     const requestBody: CloudFunctions.Schema$CloudFunction = {
         name: trampoline,
         entryPoint: "trampoline",

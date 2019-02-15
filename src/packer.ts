@@ -150,7 +150,7 @@ export async function packer(
         childProcess,
         childDir,
         childProcessMemoryLimitMb,
-        childProcessTimeout,
+        childProcessTimeoutMs,
         wrapperLog,
         ...rest
     } = wrapperOptions;
@@ -164,7 +164,7 @@ export async function packer(
             childProcess,
             childDir,
             childProcessMemoryLimitMb,
-            childProcessTimeout
+            childProcessTimeoutMs
         },
         functionModule
     })}!`;

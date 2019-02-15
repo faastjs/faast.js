@@ -92,7 +92,7 @@ export interface WrapperOptions {
      */
     childProcess?: boolean;
     childProcessMemoryLimitMb?: number;
-    childProcessTimeout?: number;
+    childProcessTimeoutMs?: number;
     childDir?: string;
     wrapperVerbose?: boolean;
 }
@@ -101,7 +101,7 @@ export const WrapperOptionDefaults: Required<WrapperOptions> = {
     wrapperLog: console.log,
     childProcess: true,
     childProcessMemoryLimitMb: 0,
-    childProcessTimeout: 0,
+    childProcessTimeoutMs: 0,
     childDir: ".",
     wrapperVerbose: false
 };
@@ -228,18 +228,18 @@ export class Wrapper {
                 }
 
                 let timer;
-                const timeout = this.options.childProcessTimeout;
+                const timeout = this.options.childProcessTimeoutMs;
                 if (timeout) {
                     timer = setTimeout(() => {
                         this.stop();
                         this.child = undefined;
                         if (this.deferred) {
                             const error = new Error(
-                                `Request exceeded timeout of ${timeout}s`
+                                `Request exceeded timeout of ${timeout}ms`
                             );
                             this.deferred!.reject(error);
                         }
-                    }, timeout * 1000);
+                    }, timeout);
                 }
                 logProvider(`awaiting deferred promise`);
                 try {

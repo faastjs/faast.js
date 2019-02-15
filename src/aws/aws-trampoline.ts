@@ -24,8 +24,8 @@ export function makeTrampoline(wrapper: Wrapper) {
         context: Context,
         callback: (err: Error | null, obj: FunctionReturn | string) => void
     ) {
-        context.callbackWaitsForEmptyEventLoop = false;
         const startTime = Date.now();
+        context.callbackWaitsForEmptyEventLoop = false;
         const executionId = context.awsRequestId;
         const { logGroupName, logStreamName } = context;
         const region = env.AWS_REGION!;

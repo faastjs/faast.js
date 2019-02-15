@@ -25,9 +25,12 @@ async function testCancellation(
         childProcess: true,
         gc: false
     });
-    cloudFunc.functions.spin(10000).catch(_ => {});
-    await sleep(500); // wait until the request actually starts
-    await cloudFunc.cleanup();
+    try {
+        cloudFunc.functions.spin(10000).catch(_ => {});
+        await sleep(500); // wait until the request actually starts
+    } finally {
+        await cloudFunc.cleanup();
+    }
     stopAsyncTracing();
     await sleep(500);
     const leaks = detectAsyncLeaks();
