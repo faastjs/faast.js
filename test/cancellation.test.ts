@@ -43,7 +43,7 @@ for (const provider of providers) {
     for (const config of configurations) {
         let remote = provider === "local" ? "" : "remote";
         const opts = inspect(config, { breakLength: Infinity });
-        test(
+        test.serial(
             `${remote} ${provider} ${opts} cleanup waits for all child processes to exit`,
             testCancellation,
             provider,
