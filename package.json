@@ -16,10 +16,9 @@
         "test-slow": "ava build/test-slow/*.test.js",
         "test-unit": "ava build/test/unit-*.test.js",
         "test-local": "ava -m='*local*'",
-        "test-aws": "ava -m='!remote*' -m='*aws*'",
-        "test-google": "ava -m='!remote*' -m='*google*'",
-        "test-pipeline-debug": "DEBUG=faast:provider,faast:info ava --fail-fast --serial",
-        "test-pipeline": "ava --concurrency=8",
+        "test-aws": "ava --concurrency=8 -m='!remote*' -m='*aws*'",
+        "test-google": "ava --concurrency=8 -m='!remote*' -m='*google*'",
+        "test-debug": "DEBUG=faast:provider,faast:info ava --fail-fast --serial",
         "cleanup-cloud": "node build/src/cleanup.js aws -x -f && node build/src/cleanup.js google -x -f",
         "clean": "rm -rf build",
         "tslint": "tslint -p tsconfig.json"
