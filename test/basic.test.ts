@@ -6,8 +6,8 @@ import { faastify, Provider } from "../src/faast";
 import { info } from "../src/log";
 import { CommonOptions } from "../src/provider";
 import { Statistics } from "../src/shared";
-import { configs, providers } from "./configurations";
 import * as funcs from "./functions";
+import { configs, providers } from "./util";
 
 async function testBasic(
     t: ExecutionContext,
@@ -147,14 +147,14 @@ for (const provider of providers) {
 
 const hOpts: faast.aws.Options = {
     mode: "https",
-    packageJson: "test/package.json",
+    packageJson: "test/fixtures/package.json",
     useDependencyCaching: false
 };
 test(`remote aws basic calls ${describe(hOpts)}`, testBasic, "aws", hOpts);
 
 const qOpts: faast.aws.Options = {
     mode: "queue",
-    packageJson: "test/package.json",
+    packageJson: "test/fixtures/package.json",
     useDependencyCaching: false
 };
 test(`remote aws basic calls ${describe(qOpts)}`, testBasic, "aws", qOpts);

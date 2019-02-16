@@ -10,8 +10,8 @@ import {
     startAsyncTracing,
     stopAsyncTracing
 } from "../src/trace";
-import { providers, configs } from "./configurations";
 import * as funcs from "./functions";
+import { configs, providers } from "./util";
 
 async function testCancellation(
     t: ExecutionContext,

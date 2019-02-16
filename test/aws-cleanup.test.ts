@@ -67,7 +67,7 @@ test("remote aws removes ephemeral resources", async t => {
 
 test("remote aws removes s3 buckets", async t => {
     const func = await faast.faastify("aws", {}, "./functions", {
-        packageJson: "test/package.json",
+        packageJson: "test/fixtures/package.json",
         gc: false
     });
     await func.cleanup();

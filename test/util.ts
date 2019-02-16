@@ -1,6 +1,8 @@
 import { ExecutionContext } from "ava";
 import * as lolex from "lolex";
+import { _providers } from "../src/faast";
 import { info, logGc } from "../src/log";
+import { CommonOptions } from "../src/provider";
 import { keys } from "../src/shared";
 import { Fn } from "../src/types";
 import { Timing } from "./functions";
@@ -76,3 +78,12 @@ export function contains<T extends U, U extends object>(container: T, obj: U) {
     logGc(`Contains: %O, %O`, container, obj);
     return true;
 }
+
+export const configs: CommonOptions[] = [
+    { mode: "https", childProcess: false },
+    { mode: "https", childProcess: true },
+    { mode: "queue", childProcess: false },
+    { mode: "queue", childProcess: true }
+];
+
+export const providers = keys(_providers);

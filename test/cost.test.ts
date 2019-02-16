@@ -30,7 +30,8 @@ const costAnalyzerMacro: Macro<[CostAnalyzerConfiguration[]]> = async (t, config
         configs,
         { work },
         {
-            nonTTYRenderer: "silent"
+            nonTTYRenderer: "silent",
+            renderer: "silent"
         }
     );
 

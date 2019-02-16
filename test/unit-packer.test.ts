@@ -56,7 +56,7 @@ macro.title = (_title = "", impl, options) => `${impl.name}-${options.name}`;
 
 function pkg(config: PackageConfiguration) {
     const name = config.name + "-package";
-    return { ...config, name, packageJson: "test/package.json" };
+    return { ...config, name, packageJson: "test/fixtures/package.json" };
 }
 
 async function hasAddedFile(t: ExecutionContext, root: string) {
@@ -72,8 +72,8 @@ const configs: PackageConfiguration[] = [
     pkg({ name: "https-childprocess", mode: "https", childProcess: true }),
     pkg({ name: "queue", mode: "queue", childProcess: false }),
     pkg({ name: "queue-childprocess", mode: "queue", childProcess: true }),
-    { name: "addDirectory", addDirectory: "test/dir", check: hasAddedFile },
-    { name: "addZipFile", addZipFile: "test/dir/file.txt.zip", check: hasAddedFile }
+    { name: "addDirectory", addDirectory: "test/fixtures", check: hasAddedFile },
+    { name: "addZipFile", addZipFile: "test/fixtures/file.txt.zip", check: hasAddedFile }
 ];
 
 const providers = keys(_providers);
