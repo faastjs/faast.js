@@ -44,13 +44,17 @@ export function makeTrampoline(wrapper: Wrapper) {
         if (CallIdAttribute in event) {
             const call = event as FunctionCall;
             const { callId, ResponseQueueId: Queue } = call;
-            const result = await wrapper.execute({ call, ...callingContext }, metrics =>
-                sendResponseQueueMessage(sqs, Queue!, {
-                    kind: "cpumetrics",
-                    callId,
-                    elapsed: Date.now() - startTime,
-                    metrics
-                })
+            const timeout = context.getRemainingTimeInMillis() - 50;
+            const result = await wrapper.execute(
+                { call, ...callingContext },
+                metrics =>
+                    sendResponseQueueMessage(sqs, Queue!, {
+                        kind: "cpumetrics",
+                        callId,
+                        elapsed: Date.now() - startTime,
+                        metrics
+                    }),
+                timeout
             );
             callback(null, result);
         } else {
@@ -69,13 +73,17 @@ export function makeTrampoline(wrapper: Wrapper) {
                 );
                 const cc: CallingContext = { call, ...callingContext };
                 const executeStart = Date.now();
-                const result = await wrapper.execute(cc, metrics =>
-                    sendResponseQueueMessage(sqs, Queue!, {
-                        kind: "cpumetrics",
-                        callId,
-                        elapsed: Date.now() - executeStart,
-                        metrics
-                    })
+                const timeout = context.getRemainingTimeInMillis() - 50;
+                const result = await wrapper.execute(
+                    cc,
+                    metrics =>
+                        sendResponseQueueMessage(sqs, Queue!, {
+                            kind: "cpumetrics",
+                            callId,
+                            elapsed: Date.now() - executeStart,
+                            metrics
+                        }),
+                    timeout
                 );
                 clearTimeout(startedMessageTimer);
                 const response: ResponseMessage = {

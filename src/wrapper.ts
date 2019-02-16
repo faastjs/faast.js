@@ -193,7 +193,8 @@ export class Wrapper {
 
     async execute(
         callingContext: CallingContext,
-        callback?: CpuUsageCallback
+        callback?: CpuUsageCallback,
+        overrideTimeout?: number
     ): Promise<FunctionReturn> {
         try {
             if (this.executing) {
@@ -228,7 +229,10 @@ export class Wrapper {
                 }
 
                 let timer;
-                const timeout = this.options.childProcessTimeoutMs;
+                const timeout =
+                    overrideTimeout !== undefined
+                        ? overrideTimeout
+                        : this.options.childProcessTimeoutMs;
                 if (timeout) {
                     timer = setTimeout(() => {
                         this.stop();
