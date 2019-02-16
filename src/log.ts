@@ -9,6 +9,7 @@ export const logLeaks = debug("faast:leaks");
 export const logCalls = debug("faast:calls");
 export const logWebpack = debug("faast:webpack");
 export const logProvider = debug("faast:provider");
+export const logProviderSdk = debug("faast:providersdk");
 
 function truncate(s: string, len: number) {
     return s.length > len ? `${s.substr(0, len)}...` : s;

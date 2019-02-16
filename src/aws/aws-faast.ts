@@ -4,7 +4,7 @@ import { caches } from "../cache";
 import { CostBreakdown, CostMetric } from "../cost";
 import { createFunction } from "../faast";
 import { readFile } from "../fs";
-import { info, logGc, warn } from "../log";
+import { info, logGc, warn, logProviderSdk } from "../log";
 import { packer, PackerResult } from "../packer";
 import {
     CloudFunctionImpl,
@@ -183,7 +183,8 @@ function zipStreamToBuffer(zipStream: NodeJS.ReadableStream): Promise<Buffer> {
 export const createAWSApis = throttle(
     { concurrency: 1, memoize: true },
     async (region: string) => {
-        aws.config.update({ correctClockSkew: true });
+        const logger = logProviderSdk.enabled ? { log: logProviderSdk } : undefined;
+        aws.config.update({ correctClockSkew: true, maxRetries: 5, logger });
         const services = {
             iam: new aws.IAM({ apiVersion: "2010-05-08", region }),
             lambda: new aws.Lambda({ apiVersion: "2015-03-31", region }),
