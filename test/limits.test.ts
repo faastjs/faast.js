@@ -2,8 +2,8 @@ import test, { ExecutionContext } from "ava";
 import { inspect } from "util";
 import { faastify, Provider } from "../src/faast";
 import { CommonOptions } from "../src/provider";
-import { configs, providers } from "../test/configurations";
-import * as funcs from "../test/functions";
+import { configs, providers } from "./configurations";
+import * as funcs from "./functions";
 
 async function testTimeout(
     t: ExecutionContext,

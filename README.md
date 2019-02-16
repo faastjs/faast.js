@@ -50,7 +50,7 @@ Setup credentials for [GCP](https://cloud.google.com/sdk/docs/authorizing)
 - Run basic Google test
 
 ```
-npx jest build/test/google-https.test.js
+npx ava -m="*google*" build/test/basic.test.js
 ```
 
 ### AWS
@@ -62,7 +62,7 @@ Setup credentials for [AWS](https://docs.aws.amazon.com/cli/latest/userguide/cli
 - Run basic AWS test
 
 ```
-npx jest build/test/aws-https.test.js
+npx ava -m="*aws*" build/test/basic.test.js
 ```
 
 ### All "fast" live cloud tests
@@ -70,8 +70,6 @@ npx jest build/test/aws-https.test.js
 ```
 $ npm run test
 ```
-
-This excludes the larger tests `test-slow/*`. These should be executed individually using `npx`.
 
 Jest sometimes overwrites output during the test (this shows up as garbled Jest test status output, or missing log messages output through the console). Redirect stdout to get clean output:
 

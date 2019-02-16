@@ -13,7 +13,6 @@
         "watch": "npm run clean && tsc --watch",
         "aws-set-gcp-key": "node build/src/aws/aws-set-gcp-key.js",
         "test": "ava build/test/*.test.js",
-        "test-slow": "ava build/test-slow/*.test.js",
         "test-unit": "ava build/test/unit-*.test.js",
         "test-local": "ava -m='*local*'",
         "test-aws": "ava --concurrency=4 -m='!remote*' -m='*aws*'",
@@ -74,8 +73,7 @@
     },
     "ava": {
         "files": [
-            "build/test/*.test.js",
-            "build/test-slow/*.test.js"
+            "build/test/*.test.js"
         ]
     }
 }

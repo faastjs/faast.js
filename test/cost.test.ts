@@ -9,7 +9,7 @@ import {
 } from "../src/cost";
 import * as faast from "../src/faast";
 import { info } from "../src/log";
-import * as funcs from "../test/functions";
+import * as funcs from "./functions";
 
 async function work(remote: faast.Promisified<typeof funcs>) {
     await remote.monteCarloPI(20000000);
