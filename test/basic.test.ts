@@ -7,7 +7,7 @@ import { info } from "../src/log";
 import { CommonOptions } from "../src/provider";
 import { Statistics } from "../src/shared";
 import * as funcs from "./functions";
-import { configs, providers } from "./util";
+import { configs, providers, title } from "./util";
 
 async function testBasic(
     t: ExecutionContext,
@@ -131,18 +131,12 @@ async function testCpuMetrics(t: ExecutionContext, provider: faast.Provider) {
     }
 }
 
-function describe(config: object) {
-    return inspect(config, { breakLength: Infinity });
-}
-
 for (const provider of providers) {
-    const remote = provider === "local" ? "" : "remote";
     for (const config of configs) {
-        const desc = describe(config);
-        test(`${remote} ${provider} basic calls ${desc}`, testBasic, provider, config);
+        test(title(provider, `basic calls`, config), testBasic, provider, config);
     }
-    test(`${remote} ${provider} cost estimate for basic calls`, testCosts, provider);
-    test(`${remote} ${provider} cpu metrics are received`, testCpuMetrics, provider);
+    test(title(provider, `cost estimate for basic calls`), testCosts, provider);
+    test(title(provider, `cpu metrics are received`), testCpuMetrics, provider);
 }
 
 const hOpts: faast.aws.Options = {
@@ -150,11 +144,11 @@ const hOpts: faast.aws.Options = {
     packageJson: "test/fixtures/package.json",
     useDependencyCaching: false
 };
-test(`remote aws basic calls ${describe(hOpts)}`, testBasic, "aws", hOpts);
+test(title("aws", `basic calls`, hOpts), testBasic, "aws", hOpts);
 
 const qOpts: faast.aws.Options = {
     mode: "queue",
     packageJson: "test/fixtures/package.json",
     useDependencyCaching: false
 };
-test(`remote aws basic calls ${describe(qOpts)}`, testBasic, "aws", qOpts);
+test(title("aws", `basic calls`, qOpts), testBasic, "aws", qOpts);

@@ -3,6 +3,7 @@ import { inspect } from "util";
 import { faastify, Provider } from "../src/faast";
 import { CommonOptions } from "../src/provider";
 import * as funcs from "./functions";
+import { title } from "./util";
 
 async function testTimeout(
     t: ExecutionContext,
@@ -71,15 +72,11 @@ const configurations: [Provider, CommonOptions][] = [
 
 for (const [provider, config] of configurations) {
     const opts = inspect(config);
-    let remote = "";
-    if (provider !== "local") {
-        remote = "remote";
-    }
-    test(`${remote} ${provider} memory under limit ${opts}`, limitOk, provider, config);
+    test(title(provider, `memory under limit ${opts}`), limitOk, provider, config);
     if (provider === "google" && config.mode === "queue") {
         // Google in queue mode cannot detect OOM errors.
     } else {
-        test(`${remote} ${provider} out of memory ${opts}`, limitFail, provider, config);
+        test(title(provider, `out of memory ${opts}`), limitFail, provider, config);
     }
-    test(`${remote} ${provider} timeout ${opts}`, testTimeout, provider, config);
+    test(title(provider, `timeout ${opts}`), testTimeout, provider, config);
 }

@@ -11,7 +11,7 @@ import {
     stopAsyncTracing
 } from "../src/trace";
 import * as funcs from "./functions";
-import { configs, providers } from "./util";
+import { configs, providers, title } from "./util";
 
 async function testCancellation(
     t: ExecutionContext,
@@ -44,10 +44,8 @@ for (const provider of providers) {
         configurations = configs.filter(t => t.childProcess === true);
     }
     for (const config of configurations) {
-        let remote = provider === "local" ? "" : "remote";
-        const opts = inspect(config, { breakLength: Infinity });
         test.serial(
-            `${remote} ${provider} ${opts} cleanup waits for all child processes to exit`,
+            title(provider, `cleanup waits for all child processes to exit`, config),
             testCancellation,
             provider,
             config
