@@ -381,6 +381,7 @@ export async function initialize(
     options: Required<Options>
 ): Promise<State> {
     info(`Nonce: ${nonce}`);
+    let where = "start";
 
     const { region, timeout, memorySize } = options;
 
@@ -391,7 +392,11 @@ export async function initialize(
     const accountId = await getAccountId(sts);
     const CacheBucket = options.CacheBucket || getBucketName(region, accountId);
 
-    async function createFunction(Code: aws.Lambda.FunctionCode, Role: string) {
+    async function createFunction(
+        Code: aws.Lambda.FunctionCode,
+        Role: string,
+        responseQueueArn: string
+    ) {
         const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
             FunctionName,
             Role,
@@ -402,6 +407,7 @@ export async function initialize(
             Description: "faast trampoline function",
             Timeout: timeout,
             MemorySize: memorySize,
+            DeadLetterConfig: { TargetArn: responseQueueArn },
             ...options.awsLambdaOptions
         };
         info(`createFunctionRequest: %O`, createFunctionRequest);
@@ -466,48 +472,25 @@ export async function initialize(
 
     const { PolicyArn } = options;
     try {
-        info(`Creating function`);
+        info(`Creating lambda function`);
         const rolePromise = createLambdaRole(RoleName, PolicyArn, services);
-
-        const createFunctionPromise = Promise.all([createCodeBundle(), rolePromise]).then(
-            ([codeBundle, roleArn]) => {
-                if (codeBundle.S3Bucket) {
-                    state.resources.s3Bucket = codeBundle.S3Bucket;
-                    state.resources.s3Key = codeBundle.S3Key;
-                }
-                return createFunction(codeBundle, roleArn);
-            }
-        );
-
+        const responseQueuePromise = createResponseQueueImpl(state, FunctionName);
         const pricingPromise = requestAwsPrices(services.pricing, region);
-        const promises: Promise<any>[] = [createFunctionPromise, pricingPromise];
 
-        info(`Creating response queue`);
-        promises.push(
-            (async () => {
-                await createFunctionPromise;
-                await createResponseQueueImpl(state, FunctionName);
-                await lambda
-                    .updateFunctionConfiguration({
-                        FunctionName,
-                        DeadLetterConfig: {
-                            TargetArn: state.resources.ResponseQueueArn
-                        }
-                    })
-                    .promise();
-            })()
-        );
+        const codeBundle = await createCodeBundle();
+        if (codeBundle.S3Bucket) {
+            state.resources.s3Bucket = codeBundle.S3Bucket;
+            state.resources.s3Key = codeBundle.S3Key;
+        }
+        const roleArn = await rolePromise;
+        const responseQueueArn = await responseQueuePromise;
+        const lambda = await createFunction(codeBundle, roleArn, responseQueueArn);
 
         const { mode } = options;
         if (mode === "queue" || mode === "auto") {
-            promises.push(
-                createFunctionPromise.then(async func =>
-                    createRequestQueueImpl(state, FunctionName, func.FunctionArn!)
-                )
-            );
+            await createRequestQueueImpl(state, FunctionName, lambda.FunctionArn!);
         }
-
-        await Promise.all(promises);
+        await pricingPromise;
         info(`Lambda function initialization complete.`);
         return state;
     } catch (err) {
@@ -947,17 +930,19 @@ function createRequestQueueImpl(state: State, FunctionName: string, FunctionArn:
     ]);
 }
 
-export function createResponseQueueImpl(state: State, FunctionName: string) {
+export async function createResponseQueueImpl(state: State, FunctionName: string) {
     const { sqs } = state.services;
-    const { resources, metrics } = state;
+    const { resources } = state;
     info(`Creating SQS response queue`);
-    return createSQSQueue(getSQSName(FunctionName), 60, sqs).then(
-        ({ QueueUrl, QueueArn }) => {
-            resources.ResponseQueueUrl = QueueUrl;
-            resources.ResponseQueueArn = QueueArn;
-            info(`Created response queue`);
-        }
+    const { QueueUrl, QueueArn } = await createSQSQueue(
+        getSQSName(FunctionName),
+        60,
+        sqs
     );
+    resources.ResponseQueueUrl = QueueUrl;
+    resources.ResponseQueueArn = QueueArn;
+    info(`Created response queue`);
+    return QueueArn!;
 }
 
 function addSnsInvokePermissionsToFunction(
