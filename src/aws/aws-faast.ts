@@ -29,7 +29,7 @@ import {
     sleep,
     uuidv4Pattern
 } from "../shared";
-import { retry, throttle } from "../throttle";
+import { throttle } from "../throttle";
 import * as awsNpm from "./aws-npm";
 import {
     createSNSTopic,
@@ -184,7 +184,7 @@ export const createAWSApis = throttle(
     { concurrency: 1, memoize: true },
     async (region: string) => {
         const logger = logProviderSdk.enabled ? { log: logProviderSdk } : undefined;
-        aws.config.update({ correctClockSkew: true, maxRetries: 5, logger });
+        aws.config.update({ correctClockSkew: true, maxRetries: 6, logger });
         const services = {
             iam: new aws.IAM({ apiVersion: "2010-05-08", region }),
             lambda: new aws.Lambda({ apiVersion: "2015-03-31", region }),
@@ -268,7 +268,7 @@ export async function pollAWSRequest<T>(
 }
 
 const createCacheBucket = throttle(
-    { concurrency: 1, rate: 10, retry: 3, memoize: true },
+    { concurrency: 1, rate: 10, memoize: true },
     async (s3: aws.S3, Bucket: string, region: string) => {
         info(`Checking for cache bucket`);
         const bucket = await quietly(s3.getBucketLocation({ Bucket }));
@@ -284,18 +284,13 @@ const createCacheBucket = throttle(
             .promise();
         if (createdBucket) {
             info(`Setting lifecycle expiration to 1 day for cached objects`);
-            await retry(3, () =>
-                s3
-                    .putBucketLifecycleConfiguration({
-                        Bucket,
-                        LifecycleConfiguration: {
-                            Rules: [
-                                { Expiration: { Days: 1 }, Status: "Enabled", Prefix: "" }
-                            ]
-                        }
-                    })
-                    .promise()
-            );
+
+            s3.putBucketLifecycleConfiguration({
+                Bucket,
+                LifecycleConfiguration: {
+                    Rules: [{ Expiration: { Days: 1 }, Status: "Enabled", Prefix: "" }]
+                }
+            }).promise();
         }
     }
 );
@@ -489,23 +484,18 @@ export async function initialize(
 
         info(`Creating response queue`);
         promises.push(
-            createFunctionPromise.then(_ =>
-                createResponseQueueImpl(state, FunctionName).then(_ =>
-                    retry(3, () =>
-                        lambda
-                            .updateFunctionConfiguration({
-                                FunctionName,
-                                DeadLetterConfig: {
-                                    TargetArn: state.resources.ResponseQueueArn
-                                }
-                            })
-                            .promise()
-                    ).catch(err => {
-                        warn(err);
-                        warn(`Could not add DLQ to function, continuing without it.`);
+            (async () => {
+                await createFunctionPromise;
+                await createResponseQueueImpl(state, FunctionName);
+                await lambda
+                    .updateFunctionConfiguration({
+                        FunctionName,
+                        DeadLetterConfig: {
+                            TargetArn: state.resources.ResponseQueueArn
+                        }
                     })
-                )
-            )
+                    .promise();
+            })()
         );
 
         const { mode } = options;
@@ -975,17 +965,15 @@ function addSnsInvokePermissionsToFunction(
     RequestTopicArn: string,
     lambda: aws.Lambda
 ) {
-    return retry(3, () =>
-        lambda
-            .addPermission({
-                FunctionName,
-                Action: "lambda:InvokeFunction",
-                Principal: "sns.amazonaws.com",
-                StatementId: `${FunctionName}-Invoke`,
-                SourceArn: RequestTopicArn
-            })
-            .promise()
-    );
+    lambda
+        .addPermission({
+            FunctionName,
+            Action: "lambda:InvokeFunction",
+            Principal: "sns.amazonaws.com",
+            StatementId: `${FunctionName}-Invoke`,
+            SourceArn: RequestTopicArn
+        })
+        .promise();
 }
 
 // https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html
@@ -1027,7 +1015,7 @@ const locations = {
 };
 
 export const awsPrice = throttle(
-    { concurrency: 6, rate: 5, retry: 3, memoize: true, cache: caches.awsPrices },
+    { concurrency: 6, rate: 5, memoize: true, cache: caches.awsPrices },
     async (
         pricing: aws.Pricing,
         ServiceCode: string,
