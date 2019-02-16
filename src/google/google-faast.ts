@@ -125,7 +125,7 @@ export async function initializeGoogleServices(): Promise<GoogleServices> {
             scopes: ["https://www.googleapis.com/auth/cloud-platform"]
         })
     );
-    google.options({ auth });
+    google.options({ auth, retryConfig: { retry: 5 } });
     return {
         cloudFunctions: google.cloudfunctions("v1"),
         pubsub: google.pubsub("v1"),
