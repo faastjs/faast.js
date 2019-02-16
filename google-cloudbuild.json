@@ -4,5 +4,5 @@
         { "name": "gcr.io/cloud-builders/npm", "args": ["run", "build"] },
         { "name": "gcr.io/cloud-builders/npm", "args": ["run", "test-google"] }
     ],
-    "timeout": "300s"
+    "timeout": "600s"
 }
