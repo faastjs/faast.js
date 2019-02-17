@@ -120,7 +120,7 @@ export const Impl: CloudFunctionImpl<Options, State> = {
 };
 
 export async function initializeGoogleServices(): Promise<GoogleServices> {
-    google.options({ retryConfig: { retry: 5 } });
+    google.options({ retryConfig: { retry: 10 } });
     const auth = await google.auth.getClient({
         scopes: ["https://www.googleapis.com/auth/cloud-platform"]
     });
