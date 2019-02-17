@@ -109,14 +109,14 @@ async function testCpuMetrics(t: ExecutionContext, provider: faast.Provider) {
 
     const lambda = await faastify(provider, funcs, "./functions", {
         childProcess: true,
-        timeout: 30,
+        timeout: 90,
         memorySize: 512,
         maxRetries: 0,
         gc: false
     });
 
     try {
-        const NSec = 5;
+        const NSec = 4;
         await lambda.functions.spin(NSec * 1000);
         const usage = lambda.cpuUsage.get("spin");
         t.truthy(usage);
