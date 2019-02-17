@@ -44,7 +44,7 @@ export function makeTrampoline(wrapper: Wrapper) {
         if (CallIdAttribute in event) {
             const call = event as FunctionCall;
             const { callId, ResponseQueueId: Queue } = call;
-            const timeout = context.getRemainingTimeInMillis() - 50;
+            const timeout = context.getRemainingTimeInMillis() - 100;
             const result = await wrapper.execute(
                 { call, ...callingContext },
                 metrics =>
@@ -71,7 +71,7 @@ export function makeTrampoline(wrapper: Wrapper) {
                     2 * 1000
                 );
                 const cc: CallingContext = { call, ...callingContext };
-                const timeout = context.getRemainingTimeInMillis() - 50;
+                const timeout = context.getRemainingTimeInMillis() - 100;
                 const result = await wrapper.execute(
                     cc,
                     metrics =>
