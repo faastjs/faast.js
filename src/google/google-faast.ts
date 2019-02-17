@@ -32,7 +32,7 @@ import {
     sleep,
     uuidv4Pattern
 } from "../shared";
-import { retry, throttle } from "../throttle";
+import { throttle } from "../throttle";
 import { Mutable } from "../types";
 import { publishPubSub, receiveMessages, publishResponseMessage } from "./google-queue";
 import * as googleTrampolineHttps from "./google-trampoline-https";
@@ -120,12 +120,12 @@ export const Impl: CloudFunctionImpl<Options, State> = {
 };
 
 export async function initializeGoogleServices(): Promise<GoogleServices> {
-    const auth = await retry(3, () =>
-        google.auth.getClient({
-            scopes: ["https://www.googleapis.com/auth/cloud-platform"]
-        })
-    );
-    google.options({ auth, retryConfig: { retry: 5 } });
+    google.options({ retryConfig: { retry: 5 } });
+    const auth = await google.auth.getClient({
+        scopes: ["https://www.googleapis.com/auth/cloud-platform"]
+    });
+
+    google.options({ auth });
     return {
         cloudFunctions: google.cloudfunctions("v1"),
         pubsub: google.pubsub("v1"),
@@ -207,10 +207,6 @@ async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) 
     );
 }
 
-function insist<T>(fn: () => Promise<T>) {
-    return retry(3, fn);
-}
-
 export async function initialize(
     fmodule: string,
     nonce: UUID,
@@ -218,7 +214,7 @@ export async function initialize(
 ): Promise<State> {
     info(`Create google cloud function`);
     const services = await initializeGoogleServices();
-    const project = await insist(() => google.auth.getProjectId());
+    const project = await google.auth.getProjectId();
     const { cloudFunctions, pubsub } = services;
     const { region, childProcess, timeout } = options;
 
@@ -231,14 +227,13 @@ export async function initialize(
             childProcessTimeoutMs = timeout * 1000 - 100;
         }
         const { archive } = await pack(fmodule, { childProcessTimeoutMs, ...rest });
-        const uploadUrlResponse = await insist(() =>
-            cloudFunctions.projects.locations.functions.generateUploadUrl({
+        const uploadUrlResponse = await cloudFunctions.projects.locations.functions.generateUploadUrl(
+            {
                 parent: location
-            })
+            }
         );
-        const uploadResult = await insist(() =>
-            uploadZip(uploadUrlResponse.data.uploadUrl!, archive)
-        );
+
+        const uploadResult = await uploadZip(uploadUrlResponse.data.uploadUrl!, archive);
         info(`Upload zip file response: ${uploadResult.statusText}`);
         return uploadUrlResponse.data.uploadUrl;
     }
@@ -271,34 +266,28 @@ export async function initialize(
     const { mode } = options;
 
     const responseQueuePromise = (async () => {
-        const topic = await insist(() =>
-            pubsub.projects.topics.create({
-                name: getResponseQueueTopic(project, functionName)
-            })
-        );
+        const topic = await pubsub.projects.topics.create({
+            name: getResponseQueueTopic(project, functionName)
+        });
 
         resources.responseQueueTopic = topic.data.name;
         resources.responseSubscription = getResponseSubscription(project, functionName);
         info(`Creating response queue subscription`);
-        await insist(() =>
-            pubsub.projects.subscriptions.create({
-                name: resources.responseSubscription,
-                requestBody: {
-                    topic: resources.responseQueueTopic
-                }
-            })
-        );
+        await pubsub.projects.subscriptions.create({
+            name: resources.responseSubscription,
+            requestBody: {
+                topic: resources.responseQueueTopic
+            }
+        });
     })();
 
     let requestQueuePromise;
     if (mode === "queue") {
         info(`Initializing queue`);
         resources.requestQueueTopic = getRequestQueueTopic(project, functionName);
-        requestQueuePromise = insist(() =>
-            pubsub.projects.topics.create({
-                name: resources.requestQueueTopic
-            })
-        );
+        requestQueuePromise = pubsub.projects.topics.create({
+            name: resources.requestQueueTopic
+        });
     }
 
     const sourceUploadUrl = await createCodeBundle();
@@ -340,9 +329,10 @@ export async function initialize(
         throw err;
     }
     if (mode === "https" || mode === "auto") {
-        const func = await insist(() =>
-            cloudFunctions.projects.locations.functions.get({ name: trampoline })
-        );
+        const func = await cloudFunctions.projects.locations.functions.get({
+            name: trampoline
+        });
+
         if (!func.data.httpsTrigger) {
             throw new Error("Could not get http trigger url");
         }
@@ -401,9 +391,7 @@ async function callFunctionHttps(
             signal: source.signal
         };
         const rawResponse = await Promise.race([
-            retry(shouldRetry, () => {
-                return gaxios.request<string>(axiosConfig);
-            }),
+            gaxios.request<string>(axiosConfig),
             cancel
         ]);
 
@@ -580,12 +568,13 @@ async function collectGarbage(
 
         const fnPattern = new RegExp(`/functions/faast-${uuidv4Pattern}$`);
         do {
-            const funcListResponse = await retry(3, () =>
-                cloudFunctions.projects.locations.functions.list({
+            const funcListResponse = await cloudFunctions.projects.locations.functions.list(
+                {
                     parent: `projects/${project}/locations/-`,
                     pageToken
-                })
+                }
             );
+
             pageToken = funcListResponse.data.nextPageToken;
             const garbageFunctions = (funcListResponse.data.functions || [])
                 .filter(fn => hasExpired(fn.updateTime, retentionInDays))
@@ -659,6 +648,9 @@ async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
         headers: {
             "content-type": "application/zip",
             "x-goog-content-length-range": "0,104857600"
+        },
+        retryConfig: {
+            retry: 5
         }
     };
     return gaxios.request(config);
@@ -676,7 +668,7 @@ export async function pack(
 }
 
 const getGooglePrice = throttle(
-    { concurrency: 1, rate: 3, retry: 3, memoize: true, cache: caches.googlePrices },
+    { concurrency: 1, rate: 3, memoize: true, cache: caches.googlePrices },
     async function(
         cloudBilling: CloudBilling.Cloudbilling,
         region: string,
@@ -721,7 +713,7 @@ const getGooglePrice = throttle(
 let googleServices: cloudbilling_v1.Schema$Service[] | undefined;
 
 const listGoogleServices = throttle(
-    { concurrency: 1, retry: 3 },
+    { concurrency: 1 },
     async (cloudBilling: CloudBilling.Cloudbilling) => {
         if (googleServices) {
             return googleServices;
