@@ -381,10 +381,7 @@ export async function initialize(
     options: Required<Options>
 ): Promise<State> {
     info(`Nonce: ${nonce}`);
-    let where = "start";
-
     const { region, timeout, memorySize } = options;
-
     info(`Creating AWS APIs`);
     const services = await createAWSApis(region);
     const { lambda, s3, sts } = services;
