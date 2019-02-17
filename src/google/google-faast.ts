@@ -668,7 +668,7 @@ export async function pack(
 }
 
 const getGooglePrice = throttle(
-    { concurrency: 1, rate: 3, memoize: true, cache: caches.googlePrices },
+    { concurrency: 1, rate: 3, retry: 3, memoize: true, cache: caches.googlePrices },
     async function(
         cloudBilling: CloudBilling.Cloudbilling,
         region: string,
