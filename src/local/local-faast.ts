@@ -173,8 +173,7 @@ async function invoke(
         state.queue.enqueue({
             kind: "cpumetrics",
             metrics,
-            callId: call.callId,
-            elapsed: Date.now() - startTime
+            callId: call.callId
         })
     );
     const returned = await Promise.race([promise, cancel]);

@@ -128,7 +128,6 @@ export interface CpuMetricsMessage {
     kind: "cpumetrics";
     callId: CallId;
     metrics: CpuMeasurement;
-    elapsed: number;
 }
 
 export interface PollResult {

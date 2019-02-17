@@ -51,7 +51,6 @@ export function makeTrampoline(wrapper: Wrapper) {
                     sendResponseQueueMessage(sqs, Queue!, {
                         kind: "cpumetrics",
                         callId,
-                        elapsed: Date.now() - startTime,
                         metrics
                     }),
                 timeout
@@ -72,7 +71,6 @@ export function makeTrampoline(wrapper: Wrapper) {
                     2 * 1000
                 );
                 const cc: CallingContext = { call, ...callingContext };
-                const executeStart = Date.now();
                 const timeout = context.getRemainingTimeInMillis() - 50;
                 const result = await wrapper.execute(
                     cc,
@@ -80,7 +78,6 @@ export function makeTrampoline(wrapper: Wrapper) {
                         sendResponseQueueMessage(sqs, Queue!, {
                             kind: "cpumetrics",
                             callId,
-                            elapsed: Date.now() - executeStart,
                             metrics
                         }),
                     timeout

@@ -136,7 +136,8 @@ for (const provider of providers) {
         test(title(provider, `basic calls`, config), testBasic, provider, config);
     }
     test(title(provider, `cost estimate for basic calls`), testCosts, provider);
-    test(title(provider, `cpu metrics are received`), testCpuMetrics, provider);
+    // XXX Disable CPU metrics for now.
+    // test(title(provider, `cpu metrics are received`), testCpuMetrics, provider);
 }
 
 const hOpts: faast.aws.Options = {

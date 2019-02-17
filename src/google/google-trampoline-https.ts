@@ -39,7 +39,6 @@ export function makeTrampoline(wrapper: Wrapper) {
                 publishResponseMessage(pubsub, call.ResponseQueueId!, {
                     kind: "cpumetrics",
                     callId: call.callId,
-                    elapsed: Date.now() - startTime,
                     metrics
                 })
             );

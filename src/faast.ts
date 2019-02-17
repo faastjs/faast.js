@@ -744,13 +744,15 @@ export class CloudFunction<
                     }
                     break;
                 case "cpumetrics":
-                    const { elapsed, metrics } = m;
+                    const { metrics } = m;
                     const pending = callResultsPending.get(m.callId);
                     if (!pending) {
                         return;
                     }
                     const stats = this.cpuUsage.getOrCreate(pending.call.name);
-                    const secondMetrics = stats.getOrCreate(Math.round(elapsed / 1000));
+                    const secondMetrics = stats.getOrCreate(
+                        Math.round(metrics.elapsed / 1000)
+                    );
                     secondMetrics.stime.update(metrics.stime);
                     secondMetrics.utime.update(metrics.utime);
                     secondMetrics.cpuTime.update(metrics.stime + metrics.utime);

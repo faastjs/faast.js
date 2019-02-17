@@ -225,7 +225,8 @@ export class Wrapper {
                 });
                 if (callback) {
                     this.log(`Starting CPU monitor for pid ${this.child.pid}`);
-                    this.startCpuMonitoring(this.child.pid, callback);
+                    // XXX CPU Monitoring not enabled for now.
+                    // this.startCpuMonitoring(this.child.pid, callback);
                 }
 
                 let timer;
@@ -429,13 +430,16 @@ serialized arguments: ${inspect(deserialized.value)}`
     return rv;
 }
 
-export type CpuMeasurement = Pick<proctor.Result, "stime" | "utime">;
+export interface CpuMeasurement extends Pick<proctor.Result, "stime" | "utime"> {
+    elapsed: number;
+}
 
 function cpuMonitor(
     pid: number,
     interval: number,
     callback: (err?: Error, result?: CpuMeasurement) => void
 ) {
+    const start = Date.now();
     const timer = setInterval(
         () =>
             proctor.lookup(pid, (err, result) => {
@@ -444,7 +448,14 @@ function cpuMonitor(
                     return;
                 }
                 const { stime, utime } = result;
-                callback(err, result && { stime: stime * 10, utime: utime * 10 });
+                callback(
+                    err,
+                    result && {
+                        stime: stime * 10,
+                        utime: utime * 10,
+                        elapsed: Date.now() - start
+                    }
+                );
             }),
         interval
     );
