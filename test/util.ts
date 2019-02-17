@@ -43,7 +43,7 @@ export function checkResourcesCleanedUp<T extends object>(
     resources: T
 ) {
     for (const key of keys(resources)) {
-        t.true(resources[key] === undefined);
+        t.is(resources[key], undefined);
     }
 }
 
