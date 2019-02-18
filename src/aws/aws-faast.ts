@@ -698,7 +698,7 @@ export async function cleanup(state: State, options: Required<CleanupOptions>) {
     info(`aws cleanup done.`);
 }
 
-let garbageCollectorRunning = false;
+let lastGc: number | undefined = undefined;
 
 const logGroupNameRegexp = new RegExp(`^/aws/lambda/(faast-${uuidv4Pattern})$`);
 
@@ -716,88 +716,76 @@ export async function collectGarbage(
     retentionInDays: number
 ) {
     if (executor === defaultGcWorker) {
-        if (garbageCollectorRunning) {
+        if (lastGc && Date.now() <= lastGc + 3600 * 1000) {
             return;
         }
-        garbageCollectorRunning = true;
+        lastGc = Date.now();
     }
-    try {
-        const promises: Promise<void>[] = [];
-        function scheduleWork(work: GcWork) {
-            promises.push(executor(services, work));
-        }
-        const throttlePaging = throttle({ concurrency: 1, rate: 2 }, async () => {});
-        const functionsWithLogGroups = new Set();
+    const promises: Promise<void>[] = [];
+    function scheduleWork(work: GcWork) {
+        promises.push(executor(services, work));
+    }
+    const throttlePaging = throttle({ concurrency: 1, rate: 2 }, async () => {});
+    const functionsWithLogGroups = new Set();
 
-        // Collect functions with log groups
-        await new Promise((resolve, reject) =>
-            services.cloudwatch
-                .describeLogGroups({ logGroupNamePrefix: "/aws/lambda/faast-" })
-                .eachPage((err, page, done) => {
-                    if (err) {
-                        warn(`GC: Error when describing log groups: ${err}`);
-                        reject(err);
-                        return false;
-                    }
-                    if (page === null) {
-                        resolve();
-                    } else if (page.logGroups) {
-                        page.logGroups.forEach(g =>
-                            functionsWithLogGroups.add(
-                                functionNameFromLogGroup(g.logGroupName!)
-                            )
-                        );
-                        garbageCollectLogGroups(
-                            page.logGroups!,
-                            retentionInDays,
-                            region,
-                            accountId,
-                            Bucket,
-                            scheduleWork
-                        );
-                    }
-                    throttlePaging().then(done);
-                    return true;
-                })
-        );
-
-        // Collect functions without log groups
-        await new Promise((resolve, reject) =>
-            services.lambda.listFunctions().eachPage((err, page, done) => {
+    // Collect functions with log groups
+    await new Promise((resolve, reject) =>
+        services.cloudwatch
+            .describeLogGroups({ logGroupNamePrefix: "/aws/lambda/faast-" })
+            .eachPage((err, page, done) => {
                 if (err) {
-                    warn(`GC: Error listing lambda functions: ${err}`);
+                    warn(`GC: Error when describing log groups: ${err}`);
                     reject(err);
                     return false;
                 }
                 if (page === null) {
                     resolve();
-                } else {
-                    const fnPattern = new RegExp(`^faast-${uuidv4Pattern}$`);
-                    const funcs = (page.Functions || [])
-                        .filter(fn => fn.FunctionName!.match(fnPattern))
-                        .filter(fn => !functionsWithLogGroups.has(fn.FunctionName))
-                        .filter(fn => hasExpired(fn.LastModified, retentionInDays))
-                        .map(fn => fn.FunctionName!);
-
-                    deleteGarbageFunctions(
+                } else if (page.logGroups) {
+                    page.logGroups.forEach(g =>
+                        functionsWithLogGroups.add(
+                            functionNameFromLogGroup(g.logGroupName!)
+                        )
+                    );
+                    garbageCollectLogGroups(
+                        page.logGroups!,
+                        retentionInDays,
                         region,
                         accountId,
                         Bucket,
-                        funcs,
                         scheduleWork
                     );
-                    throttlePaging().then(done);
                 }
+                throttlePaging().then(done);
                 return true;
             })
-        );
+    );
 
-        await Promise.all(promises);
-    } finally {
-        if (executor === defaultGcWorker) {
-            garbageCollectorRunning = false;
-        }
-    }
+    // Collect functions without log groups
+    await new Promise((resolve, reject) =>
+        services.lambda.listFunctions().eachPage((err, page, done) => {
+            if (err) {
+                warn(`GC: Error listing lambda functions: ${err}`);
+                reject(err);
+                return false;
+            }
+            if (page === null) {
+                resolve();
+            } else {
+                const fnPattern = new RegExp(`^faast-${uuidv4Pattern}$`);
+                const funcs = (page.Functions || [])
+                    .filter(fn => fn.FunctionName!.match(fnPattern))
+                    .filter(fn => !functionsWithLogGroups.has(fn.FunctionName))
+                    .filter(fn => hasExpired(fn.LastModified, retentionInDays))
+                    .map(fn => fn.FunctionName!);
+
+                deleteGarbageFunctions(region, accountId, Bucket, funcs, scheduleWork);
+                throttlePaging().then(done);
+            }
+            return true;
+        })
+    );
+
+    await Promise.all(promises);
 }
 
 export async function getAccountId(sts: aws.STS) {
