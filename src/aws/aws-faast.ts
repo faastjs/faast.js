@@ -42,6 +42,7 @@ import {
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
 import { FunctionReturn } from "../wrapper";
+import { CreateFunctionRequest } from "aws-sdk/clients/lambda";
 
 const defaultGcWorker = throttle(
     { concurrency: 5, rate: 5, burst: 2 },
@@ -375,6 +376,18 @@ export function logUrl(state: State) {
     return getLogUrl(region, FunctionName);
 }
 
+const createFunctionThrottled = throttle(
+    { concurrency: 5, rate: 1 },
+    async (lambda: aws.Lambda, request: CreateFunctionRequest) => {
+        info(`createFunctionRequest: %O`, request);
+        const func = await pollAWSRequest(3, "creating function", () =>
+            lambda.createFunction(request)
+        );
+        info(`Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`);
+        return func;
+    }
+);
+
 export async function initialize(
     fModule: string,
     nonce: UUID,
@@ -389,12 +402,14 @@ export async function initialize(
     const accountId = await getAccountId(sts);
     const CacheBucket = options.CacheBucket || getBucketName(region, accountId);
 
-    async function createFunction(
+    const { packageJson, useDependencyCaching, childProcess } = options;
+
+    function createFunctionRequest(
         Code: aws.Lambda.FunctionCode,
         Role: string,
         responseQueueArn: string
     ) {
-        const createFunctionRequest: aws.Lambda.Types.CreateFunctionRequest = {
+        const request: CreateFunctionRequest = {
             FunctionName,
             Role,
             // Runtime: "nodejs6.10",
@@ -407,15 +422,8 @@ export async function initialize(
             DeadLetterConfig: { TargetArn: responseQueueArn },
             ...options.awsLambdaOptions
         };
-        info(`createFunctionRequest: %O`, createFunctionRequest);
-        const func = await pollAWSRequest(3, "creating function", () =>
-            lambda.createFunction(createFunctionRequest)
-        );
-        info(`Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`);
-        return func;
+        return createFunctionThrottled(lambda, request);
     }
-
-    const { packageJson, useDependencyCaching, childProcess } = options;
 
     async function createCodeBundle() {
         let { childProcessTimeoutMs, ...rest } = options;
@@ -481,7 +489,7 @@ export async function initialize(
         }
         const roleArn = await rolePromise;
         const responseQueueArn = await responseQueuePromise;
-        const lambda = await createFunction(codeBundle, roleArn, responseQueueArn);
+        const lambda = await createFunctionRequest(codeBundle, roleArn, responseQueueArn);
 
         const { mode } = options;
         if (mode === "queue" || mode === "auto") {
