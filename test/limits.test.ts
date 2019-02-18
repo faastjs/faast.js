@@ -12,12 +12,12 @@ async function testTimeout(
 ) {
     let lambda = await faastify(provider, funcs, "../test/functions", {
         ...options,
-        timeout: 2,
+        timeout: 5,
         maxRetries: 0,
         gc: false
     });
     try {
-        await t.throwsAsync(lambda.functions.spin(4 * 1000), /time/i);
+        await t.throwsAsync(lambda.functions.spin(30 * 1000), /time/i);
     } finally {
         await lambda.cleanup();
     }
