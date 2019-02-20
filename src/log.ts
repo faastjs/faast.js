@@ -2,8 +2,6 @@ import debug from "debug";
 import { inspect } from "util";
 export const info = debug("faast:info");
 export const warn = debug("faast:warning");
-export const stats = debug("faast:stats");
-export const logPricing = debug("faast:pricing");
 export const logGc = debug("faast:gc");
 export const logLeaks = debug("faast:leaks");
 export const logCalls = debug("faast:calls");
@@ -23,5 +21,4 @@ export function inspectProvider(o: object) {
 }
 
 warn.enabled = true;
-stats.enabled = true;
 logLeaks.enabled = true;

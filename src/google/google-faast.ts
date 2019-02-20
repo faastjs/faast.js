@@ -8,7 +8,7 @@ import {
 } from "googleapis";
 import * as util from "util";
 import { CostBreakdown, CostMetric } from "../cost";
-import { info, logGc, logPricing, warn } from "../log";
+import { info, logGc, warn, logProvider } from "../log";
 import { packer, PackerResult } from "../packer";
 import {
     CloudFunctionImpl,
@@ -682,7 +682,7 @@ const getGooglePrice = throttle(
             });
             const { skus = [] } = skusResponse.data;
             const matchingSkus = skus.filter(sku => sku.description === description);
-            logPricing(`matching SKUs: ${util.inspect(matchingSkus, { depth: null })}`);
+            logProvider(`matching SKUs: ${util.inspect(matchingSkus, { depth: null })}`);
 
             const regionOrGlobalSku =
                 matchingSkus.find(sku => sku.serviceRegions![0] === region) ||
@@ -695,7 +695,7 @@ const getGooglePrice = throttle(
             );
             const price =
                 Math.max(...prices) * (conversionFactor / pexp.baseUnitConversionFactor!);
-            logPricing(
+            logProvider(
                 `Found price for ${serviceName}, ${description}, ${region}: ${price}`
             );
             return price;
@@ -795,7 +795,6 @@ async function costEstimate(
         .map(n => Number(n))
         .sort((a, b) => a - b);
     const provisionedMb = provisionableSizes.find(size => memorySize <= size);
-    logPricing(`For memory size ${memorySize}, provisioned: ${provisionedMb}`);
     if (!provisionedMb) {
         warn(
             `Could not determine provisioned memory or CPU for requested memory size ${memorySize}`

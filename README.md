@@ -1,10 +1,57 @@
-[![CircleCI](https://circleci.com/gh/acchou/faast.js.svg?style=svg&circle-token=c97f196a78c7173d6ca4e5fc9f09c2cba4ab0647)](https://circleci.com/gh/acchou/faast.js)
-
-![node 10 build status for acchou/faast.js](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiQloyRTRBWFBrckRpMmlIVmNDenF2ZFNLK3FBNHRxZHZkN2Y0eU1qSHV2QS81WnBiSCs0RlhhYVltYmF2bGRDU2xsTEJqRnpyMDRYUnRxM0o5aUI3T2M4PSIsIml2UGFyYW1ldGVyU3BlYyI6Im1NdVpnY3I5SnBVWnlNTnMiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
+[![CircleCI](https://circleci.com/gh/acchou/faast.js.svg?style=shield&circle-token=c97f196a78c7173d6ca4e5fc9f09c2cba4ab0647)](https://circleci.com/gh/acchou/faast.js)[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Facchou%2Ffaast.js.svg?type=small)](https://app.fossa.io/projects/git%2Bgithub.com%2Facchou%2Ffaast.js?ref=badge_small)
 
 # Faast.js
 
-Ad-hoc serverless batch processing for nodejs.
+Faast.js is a library for turning JavaScript modules into scalable serverless functions for batch processing. It takes care of the following drudgery:
+
+- **Zero ops:** No command line. No configuration files. No build step. No cluster management. Faast.js is 100% accessible via API calls at runtime.
+- **Ephemeral infrastructure:** Faast.js instantiates the cloud resources it needs on the fly and cleans them up when it's done. It keeps resources scoped to the lifetime of your process, and if your process exits unexpectedly, it even has a garbage collector that cleans up the next time you execute. Without any effort on your part. Ephemeral infrastructure means you can focus on the task at hand, instead of managing complex cloud resources.
+- **Cloud-agnostic:** Faast.js comes with support for [AWS Lambda](https://aws.amazon.com/lambda/) and [Google Cloud Functions](https://cloud.google.com/functions/). It also supports local processing mode so you can run smaller jobs on a local machine or cloud instance. Switch between cloud providers or local mode with a single line code change.
+- **Type safety:** Function and module types are preserved for remote calls, providing a first class developer experience with autocomplete, type checking, jump-to-definition, and efficient refactoring. No separate interface definition files to manage; the types in your code are used directly.
+- **Debuggable:** Local mode allows you to use `node --inspect` with your favorite tools like Chrome Devtools or Visual Studio Code's builtin debugger. Direct links to cloud logs means full logs are available in a highly performant way without any outbound data transfer costs.
+- **Scalable:** Use serverless functions services like AWS Lambda to scale to thousands of cores. Faast.js handles queuing and throttling to fit within service rate limits, eliminating most of the whack-a-mole issues with scaling up a batch operation.
+- **Optimized:** Automatic retry. Tail latency optimization.
+- **Real-time cost estimates:** Find out what your workload costs immediately after execution, or each invocation at a time.
+
+## Installation
+
+```bash
+$ npm install faast.js
+```
+
+## Usage
+
+```typescript
+// functions.ts
+export function hello(name: string) {
+ return "hello " + name + "!";
+}
+
+// example.ts
+const lambda = await faastify("aws", m, "./module");
+console.log(await lambda.functions.hello("world"));
+await cloudFunc.cleanup();
+```
+
+## Verbosity options
+
+Turn on verbose logging by setting the DEBUG environment variable. For example:
+
+```bash
+$ DEBUG=faast:info node example.js
+$ DEBUG=faast:* node example.js
+```
+
+These options are available:
+
+- faast:info - Basic verbose logging. Disabled by default.
+- faast:warning - Output warnings to console.warn. Enabled by default.
+- faast:gc - Print debugging information related to garbage collection. Disabled by default.
+- faast:leaks - Print debugging information when a memory is potentially detected within the remote module. Enabled by default. See XXX.
+- faast:calls - Print debugging information about each call to a remote function. Disabled by default.
+- faast:webpack - Print debugging information about webpack, used to pack up remote function code. Disabled by default.
+- faast:provider - Print debugging information about each interaction with cloud-provider specific code from the higher-level faast.js abstraction. Useful for debugging issues with specific cloud providers. Disabled by default.
+- faast:providersdk - Only available for AWS, this enables aws-sdk's verbose logging output. Disabled by default.
 
 ## Prerequisites for building:
 
@@ -80,17 +127,8 @@ $ cat out
 
 ## Local Testing
 
-First install google cloud functions emulator (unfortunately it must be
-installed globally to work):
-
 ```
-$ npm install -g @google-cloud/functions-emulator
-```
-
-Then run the test script:
-
-```
-$ DEBUG=faast:* npm run test-local
+$ npm run test-local
 ```
 
 # Principles
