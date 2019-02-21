@@ -32,7 +32,7 @@ import {
     sleep,
     uuidv4Pattern
 } from "../shared";
-import { throttle } from "../throttle";
+import { throttle, retry } from "../throttle";
 import { Mutable } from "../types";
 import { publishPubSub, receiveMessages, publishResponseMessage } from "./google-queue";
 import * as googleTrampolineHttps from "./google-trampoline-https";
@@ -315,12 +315,14 @@ export async function initialize(
     info(`Request body: %O`, requestBody);
     try {
         info(`create function ${requestBody.name}`);
-        await waitFor(
-            cloudFunctions,
-            cloudFunctions.projects.locations.functions.create({
-                location,
-                requestBody
-            })
+        await retry(1, () =>
+            waitFor(
+                cloudFunctions,
+                cloudFunctions.projects.locations.functions.create({
+                    location,
+                    requestBody
+                })
+            )
         );
     } catch (err) {
         warn(`createFunction error: ${err.stack}`);
