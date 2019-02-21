@@ -4,14 +4,12 @@
 
 Faast.js is a library for turning JavaScript modules into scalable serverless functions for batch processing. It takes care of the following drudgery:
 
+- **Scalable:** Use serverless functions services like AWS Lambda to scale your batch oriented jobs to thousands of cores. Faast.js handles queuing and throttling to fit within service rate limits, eliminating most of the whack-a-mole issues with scaling up a batch operation.
+- **Cost visibility:** Understand how much your workload costs. In real time, not when your bills arrive.
 - **Zero ops:** No command line. No configuration files. No build step. No cluster management. Faast.js is 100% accessible via API calls at runtime.
 - **Ephemeral infrastructure:** Faast.js instantiates the cloud resources it needs on the fly and cleans them up when it's done. It keeps resources scoped to the lifetime of your process, and if your process exits unexpectedly, it even has a garbage collector that cleans up the next time you execute. Without any effort on your part. Ephemeral infrastructure means you can focus on the task at hand, instead of managing complex cloud resources.
-- **Cloud-agnostic:** Faast.js comes with support for [AWS Lambda](https://aws.amazon.com/lambda/) and [Google Cloud Functions](https://cloud.google.com/functions/). It also supports local processing mode so you can run smaller jobs on a local machine or cloud instance. Switch between cloud providers or local mode with a single line code change.
 - **Type safety:** Function and module types are preserved for remote calls, providing a first class developer experience with autocomplete, type checking, jump-to-definition, and efficient refactoring. No separate interface definition files to manage; the types in your code are used directly.
-- **Debuggable:** Local mode allows you to use `node --inspect` with your favorite tools like Chrome Devtools or Visual Studio Code's builtin debugger. Direct links to cloud logs means full logs are available in a highly performant way without any outbound data transfer costs.
-- **Scalable:** Use serverless functions services like AWS Lambda to scale to thousands of cores. Faast.js handles queuing and throttling to fit within service rate limits, eliminating most of the whack-a-mole issues with scaling up a batch operation.
-- **Optimized:** Automatic retry. Tail latency optimization.
-- **Real-time cost estimates:** Find out what your workload costs immediately after execution, or each invocation at a time.
+- **Choice of clouds:** Faast.js comes with support for [AWS Lambda](https://aws.amazon.com/lambda/) and [Google Cloud Functions](https://cloud.google.com/functions/). It also supports local processing mode so you can run smaller jobs on a local machine or cloud instance. Switch between cloud providers or local mode with a single line code change.
 
 ## Installation
 
@@ -28,7 +26,7 @@ export function hello(name: string) {
 }
 
 // example.ts
-const lambda = await faastify("aws", m, "./module");
+const lambda = await faastify("aws", m, "./functions");
 console.log(await lambda.functions.hello("world"));
 await cloudFunc.cleanup();
 ```
