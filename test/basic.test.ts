@@ -1,5 +1,4 @@
 import test, { ExecutionContext } from "ava";
-import { inspect } from "util";
 import * as awsFaast from "../src/aws/aws-faast";
 import * as faast from "../src/faast";
 import { faastify, Provider } from "../src/faast";
