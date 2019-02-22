@@ -150,20 +150,6 @@ export type GcWork =
           resources: AWSResources;
       };
 
-export const Impl: CloudFunctionImpl<Options, State> = {
-    name: "aws",
-    initialize,
-    pack,
-    defaults,
-    cleanup,
-    costEstimate,
-    logUrl,
-    invoke,
-    publish,
-    poll,
-    responseQueueId
-};
-
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
     return arg.promise().catch(err => warn(err));
 }
@@ -388,124 +374,127 @@ const createFunctionThrottled = throttle(
     }
 );
 
-export async function initialize(
-    fModule: string,
-    nonce: UUID,
-    options: Required<Options>
-): Promise<State> {
-    info(`Nonce: ${nonce}`);
-    const { region, timeout, memorySize } = options;
-    info(`Creating AWS APIs`);
-    const services = await createAWSApis(region);
-    const { lambda, s3, sts } = services;
-    const FunctionName = `faast-${nonce}`;
-    const accountId = await getAccountId(sts);
-    const CacheBucket = options.CacheBucket || getBucketName(region, accountId);
+export const initialize = throttle(
+    { concurrency: 4, rate: 4 },
+    async (fModule: string, nonce: UUID, options: Required<Options>) => {
+        info(`Nonce: ${nonce}`);
+        const { region, timeout, memorySize } = options;
+        info(`Creating AWS APIs`);
+        const services = await createAWSApis(region);
+        const { lambda, s3, sts } = services;
+        const FunctionName = `faast-${nonce}`;
+        const accountId = await getAccountId(sts);
+        const CacheBucket = options.CacheBucket || getBucketName(region, accountId);
 
-    const { packageJson, useDependencyCaching, childProcess } = options;
+        const { packageJson, useDependencyCaching, childProcess } = options;
 
-    function createFunctionRequest(
-        Code: aws.Lambda.FunctionCode,
-        Role: string,
-        responseQueueArn: string
-    ) {
-        const request: CreateFunctionRequest = {
-            FunctionName,
-            Role,
-            // Runtime: "nodejs6.10",
-            Runtime: "nodejs8.10",
-            Handler: "index.trampoline",
-            Code,
-            Description: "faast trampoline function",
-            Timeout: timeout,
-            MemorySize: memorySize,
-            DeadLetterConfig: { TargetArn: responseQueueArn },
-            ...options.awsLambdaOptions
-        };
-        return createFunctionThrottled(lambda, request);
-    }
-
-    async function createCodeBundle() {
-        let { childProcessTimeoutMs, ...rest } = options;
-        if (!childProcessTimeoutMs && childProcess) {
-            childProcessTimeoutMs = timeout * 1000 - 50;
-        }
-        const bundle = pack(fModule, { childProcessTimeoutMs, ...rest });
-        let Code: aws.Lambda.FunctionCode;
-        if (packageJson) {
-            Code = await buildModulesOnLambda(
-                s3,
-                region,
-                CacheBucket,
-                packageJson,
-                bundle.then(b => b.indexContents),
+        function createFunctionRequest(
+            Code: aws.Lambda.FunctionCode,
+            Role: string,
+            responseQueueArn: string
+        ) {
+            const request: CreateFunctionRequest = {
                 FunctionName,
-                useDependencyCaching
-            );
-        } else {
-            Code = { ZipFile: await zipStreamToBuffer((await bundle).archive) };
+                Role,
+                // Runtime: "nodejs6.10",
+                Runtime: "nodejs8.10",
+                Handler: "index.trampoline",
+                Code,
+                Description: "faast trampoline function",
+                Timeout: timeout,
+                MemorySize: memorySize,
+                DeadLetterConfig: { TargetArn: responseQueueArn },
+                ...options.awsLambdaOptions
+            };
+            return createFunctionThrottled(lambda, request);
         }
-        return Code;
-    }
 
-    const { RoleName } = options;
-    const state: State = {
-        resources: {
-            FunctionName,
-            RoleName,
-            region,
-            logGroupName: getLogGroupName(FunctionName)
-        },
-        services,
-        metrics: new AWSMetrics(),
-        options
-    };
+        async function createCodeBundle() {
+            let { childProcessTimeoutMs, ...rest } = options;
+            if (!childProcessTimeoutMs && childProcess) {
+                childProcessTimeoutMs = timeout * 1000 - 50;
+            }
+            const bundle = pack(fModule, { childProcessTimeoutMs, ...rest });
+            let Code: aws.Lambda.FunctionCode;
+            if (packageJson) {
+                Code = await buildModulesOnLambda(
+                    s3,
+                    region,
+                    CacheBucket,
+                    packageJson,
+                    bundle.then(b => b.indexContents),
+                    FunctionName,
+                    useDependencyCaching
+                );
+            } else {
+                Code = { ZipFile: await zipStreamToBuffer((await bundle).archive) };
+            }
+            return Code;
+        }
 
-    const { gc, retentionInDays, gcWorker } = options;
-    if (gc) {
-        logGc(`Starting garbage collector`);
-        state.gcPromise = collectGarbage(
-            gcWorker,
+        const { RoleName } = options;
+        const state: State = {
+            resources: {
+                FunctionName,
+                RoleName,
+                region,
+                logGroupName: getLogGroupName(FunctionName)
+            },
             services,
-            region,
-            accountId,
-            CacheBucket,
-            retentionInDays
-        );
-        state.gcPromise.catch(_silenceWarningLackOfSynchronousCatch => {});
-    }
+            metrics: new AWSMetrics(),
+            options
+        };
 
-    const { PolicyArn } = options;
-    try {
-        info(`Creating lambda function`);
-        const rolePromise = createLambdaRole(RoleName, PolicyArn, services);
-        const responseQueuePromise = createResponseQueueImpl(state, FunctionName);
-        const pricingPromise = requestAwsPrices(services.pricing, region);
-
-        const codeBundle = await createCodeBundle();
-        if (codeBundle.S3Bucket) {
-            state.resources.s3Bucket = codeBundle.S3Bucket;
-            state.resources.s3Key = codeBundle.S3Key;
+        const { gc, retentionInDays, gcWorker } = options;
+        if (gc) {
+            logGc(`Starting garbage collector`);
+            state.gcPromise = collectGarbage(
+                gcWorker,
+                services,
+                region,
+                accountId,
+                CacheBucket,
+                retentionInDays
+            );
+            state.gcPromise.catch(_silenceWarningLackOfSynchronousCatch => {});
         }
-        const roleArn = await rolePromise;
-        const responseQueueArn = await responseQueuePromise;
-        const lambda = await createFunctionRequest(codeBundle, roleArn, responseQueueArn);
 
-        const { mode } = options;
-        if (mode === "queue" || mode === "auto") {
-            await createRequestQueueImpl(state, FunctionName, lambda.FunctionArn!);
+        const { PolicyArn } = options;
+        try {
+            info(`Creating lambda function`);
+            const rolePromise = createLambdaRole(RoleName, PolicyArn, services);
+            const responseQueuePromise = createResponseQueueImpl(state, FunctionName);
+            const pricingPromise = requestAwsPrices(services.pricing, region);
+
+            const codeBundle = await createCodeBundle();
+            if (codeBundle.S3Bucket) {
+                state.resources.s3Bucket = codeBundle.S3Bucket;
+                state.resources.s3Key = codeBundle.S3Key;
+            }
+            const roleArn = await rolePromise;
+            const responseQueueArn = await responseQueuePromise;
+            const lambda = await createFunctionRequest(
+                codeBundle,
+                roleArn,
+                responseQueueArn
+            );
+
+            const { mode } = options;
+            if (mode === "queue" || mode === "auto") {
+                await createRequestQueueImpl(state, FunctionName, lambda.FunctionArn!);
+            }
+            await pricingPromise;
+            info(`Lambda function initialization complete.`);
+            return state;
+        } catch (err) {
+            const newError = new Error("Could not initialize cloud function");
+            warn(`${newError.stack}`);
+            warn(`Underlying error: ${err.stack}`);
+            await cleanup(state, { deleteResources: true });
+            throw err;
         }
-        await pricingPromise;
-        info(`Lambda function initialization complete.`);
-        return state;
-    } catch (err) {
-        const newError = new Error("Could not initialize cloud function");
-        warn(`${newError.stack}`);
-        warn(`Underlying error: ${err.stack}`);
-        await cleanup(state, { deleteResources: true });
-        throw err;
     }
-}
+);
 
 async function invoke(
     state: State,
@@ -1155,3 +1144,17 @@ export async function costEstimate(
 
     return costs;
 }
+
+export const Impl: CloudFunctionImpl<Options, State> = {
+    name: "aws",
+    initialize,
+    pack,
+    defaults,
+    cleanup,
+    costEstimate,
+    logUrl,
+    invoke,
+    publish,
+    poll,
+    responseQueueId
+};

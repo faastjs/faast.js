@@ -148,9 +148,7 @@ export type Message = SendableMessage | ReceivableMessage;
 export type SendableKind = SendableMessage["kind"];
 export type ReceivableKind = ReceivableMessage["kind"];
 export type Kind = Message["kind"];
-
-declare const UUID: unique symbol;
-export type UUID = Opaque<string, typeof UUID>;
+export type UUID = string;
 
 export interface CloudFunctionImpl<O extends CommonOptions, S> {
     name: string;
