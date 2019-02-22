@@ -1,5 +1,5 @@
 import { AWSServices, GcWork } from "../src/aws/aws-faast";
-import { faastify } from "../src/faast";
+import { faast } from "../src/faast";
 import { sleep } from "../src/shared";
 import * as functions from "./functions";
 import { logGc } from "../src/log";
@@ -18,7 +18,7 @@ test.serial(
         const gcRecorder = record(async (_: AWSServices, work: GcWork) => {
             logGc(`Recorded gc work: %O`, work);
         });
-        const func = await faastify("aws", functions, "../test/functions", {
+        const func = await faast("aws", functions, "../test/functions", {
             mode: "queue"
         });
         const { cloudwatch } = func.state.services;
@@ -46,7 +46,7 @@ test.serial(
         });
 
         await func.cleanup({ deleteResources: false });
-        const func2 = await faastify("aws", functions, "../test/functions", {
+        const func2 = await faast("aws", functions, "../test/functions", {
             gc: true,
             gcWorker: gcRecorder,
             retentionInDays: 0
@@ -89,11 +89,11 @@ test.serial(
     async t => {
         const gcRecorder = record(async (_: AWSServices, _work: GcWork) => {});
 
-        const func = await faastify("aws", functions, "../test/functions", {
+        const func = await faast("aws", functions, "../test/functions", {
             mode: "queue"
         });
         await func.cleanup({ deleteResources: false });
-        const func2 = await faastify("aws", functions, "../test/functions", {
+        const func2 = await faast("aws", functions, "../test/functions", {
             gc: true,
             gcWorker: gcRecorder,
             retentionInDays: 0

@@ -804,31 +804,31 @@ export class LocalFunction<M extends object = object> extends CloudFunction<
 
 export type Provider = "aws" | "google" | "local";
 
-export function faastify<M extends object>(
+export function faast<M extends object>(
     provider: "aws",
     fmodule: M,
     modulePath: string,
     options?: aws.Options
 ): Promise<CloudFunction<M, aws.Options, aws.State>>;
-export function faastify<M extends object>(
+export function faast<M extends object>(
     provider: "google",
     fmodule: M,
     modulePath: string,
     options?: google.Options
 ): Promise<CloudFunction<M, google.Options, google.State>>;
-export function faastify<M extends object>(
+export function faast<M extends object>(
     provider: "local",
     fmodule: M,
     modulePath: string,
     options?: local.Options
 ): Promise<CloudFunction<M, local.Options, local.State>>;
-export function faastify<M extends object, S>(
+export function faast<M extends object, S>(
     provider: Provider,
     fmodule: M,
     modulePath: string,
     options?: CommonOptions
 ): Promise<CloudFunction<M, CommonOptions, S>>;
-export async function faastify<M extends object, O extends CommonOptions, S>(
+export async function faast<M extends object, O extends CommonOptions, S>(
     provider: Provider,
     fmodule: M,
     modulePath: string,

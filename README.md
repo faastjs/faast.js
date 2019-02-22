@@ -2,14 +2,13 @@
 
 # Faast.js
 
-Faast.js is a library for turning JavaScript modules into scalable serverless functions for batch processing. It takes care of the following drudgery:
+Faast.js is a library for turning JavaScript modules into scalable serverless functions for batch processing.
 
-- **Scalable:** Use serverless functions services like AWS Lambda to scale your batch oriented jobs to thousands of cores. Faast.js handles queuing and throttling to fit within service rate limits, eliminating most of the whack-a-mole issues with scaling up a batch operation.
-- **Cost visibility:** Understand how much your workload costs. In real time, not when your bills arrive.
-- **Zero ops:** No command line. No configuration files. No build step. No cluster management. Faast.js is 100% accessible via API calls at runtime.
-- **Ephemeral infrastructure:** Faast.js instantiates the cloud resources it needs on the fly and cleans them up when it's done. It keeps resources scoped to the lifetime of your process, and if your process exits unexpectedly, it even has a garbage collector that cleans up the next time you execute. Without any effort on your part. Ephemeral infrastructure means you can focus on the task at hand, instead of managing complex cloud resources.
-- **Type safety:** Function and module types are preserved for remote calls, providing a first class developer experience with autocomplete, type checking, jump-to-definition, and efficient refactoring. No separate interface definition files to manage; the types in your code are used directly.
-- **Choice of clouds:** Faast.js comes with support for [AWS Lambda](https://aws.amazon.com/lambda/) and [Google Cloud Functions](https://cloud.google.com/functions/). It also supports local processing mode so you can run smaller jobs on a local machine or cloud instance. Switch between cloud providers or local mode with a single line code change.
+- **Scalable:** Use serverless functions to scale your batch jobs up to thousands of cores.
+- **Cost-effective:** Understand and optimize your workload costs in real time. Pay only for CPU time actually used.
+- **Zero Ops:** No cluster management. No container management. No management. Focus on Dev, not Ops.
+- **Developer optimized:** A first class developer experience including type safety. Works with TypeScript and JavaScript.
+- **Portable:** Built-in support for [AWS Lambda](https://aws.amazon.com/lambda/) and [Google Cloud Functions](https://cloud.google.com/functions/), as well as local processing mode. Change one line of code to switch.
 
 ## Installation
 
@@ -26,10 +25,16 @@ export function hello(name: string) {
 }
 
 // example.ts
-const lambda = await faastify("aws", m, "./functions");
-console.log(await lambda.functions.hello("world"));
-await cloudFunc.cleanup();
+import * as funcs from "./functions";
+async function main() {
+ const lambda = await faast("aws", funcs, "./functions");
+ console.log(await lambda.functions.hello("world"));
+ await cloudFunc.cleanup();
+}
+main();
 ```
+
+Functions need to be [idempotent](https://stackoverflow.com/questions/1077412/what-is-an-idempotent-operation) because they might be invoked multiple times, either by Faast.js or by the cloud provider (or both).
 
 ## Verbosity options
 
@@ -50,6 +55,8 @@ These options are available:
 - faast:webpack - Print debugging information about webpack, used to pack up remote function code. Disabled by default.
 - faast:provider - Print debugging information about each interaction with cloud-provider specific code from the higher-level faast.js abstraction. Useful for debugging issues with specific cloud providers. Disabled by default.
 - faast:providersdk - Only available for AWS, this enables aws-sdk's verbose logging output. Disabled by default.
+
+## Memory leak detector
 
 ## Prerequisites for building:
 

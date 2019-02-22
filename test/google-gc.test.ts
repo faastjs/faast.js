@@ -1,4 +1,4 @@
-import { faastify } from "../src/faast";
+import { faast } from "../src/faast";
 import * as functions from "./functions";
 import { GoogleResources, GoogleServices } from "../src/google/google-faast";
 import test from "ava";
@@ -10,7 +10,7 @@ test("remote google garbage collector works for functions that are called", asyn
     // function and set its retention to 0, and use a recorder to observe what
     // its garbage collector cleans up. Verify the first function's resources
     // would be cleaned up, which shows that the garbage collector did its job.
-    const func = await faastify("google", functions, "../test/functions", {
+    const func = await faast("google", functions, "../test/functions", {
         mode: "queue"
     });
     await func.functions.hello("gc-test");
@@ -18,7 +18,7 @@ test("remote google garbage collector works for functions that are called", asyn
     const gcRecorder = record(
         async (_: GoogleServices, _resources: GoogleResources) => {}
     );
-    const func2 = await faastify("google", functions, "../test/functions", {
+    const func2 = await faast("google", functions, "../test/functions", {
         gc: true,
         gcWorker: gcRecorder,
         retentionInDays: 0
@@ -31,14 +31,14 @@ test("remote google garbage collector works for functions that are called", asyn
 });
 
 test("remote google garbage collector works for functions that are never called", async t => {
-    const func = await faastify("google", functions, "../test/functions", {
+    const func = await faast("google", functions, "../test/functions", {
         mode: "queue"
     });
     await func.cleanup({ deleteResources: false });
     const gcRecorder = record(
         async (_: GoogleServices, _resources: GoogleResources) => {}
     );
-    const func2 = await faastify("google", functions, "../test/functions", {
+    const func2 = await faast("google", functions, "../test/functions", {
         gc: true,
         gcWorker: gcRecorder,
         retentionInDays: 0

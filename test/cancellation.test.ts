@@ -1,7 +1,5 @@
 import test, { ExecutionContext } from "ava";
-import { inspect } from "util";
-import * as faast from "../src/faast";
-import { faastify } from "../src/faast";
+import { faast, Provider } from "../src/faast";
 import { CommonOptions } from "../src/provider";
 import { sleep } from "../src/shared";
 import {
@@ -15,12 +13,12 @@ import { configs, providers, title } from "./util";
 
 async function testCancellation(
     t: ExecutionContext,
-    provider: faast.Provider,
+    provider: Provider,
     options?: CommonOptions
 ) {
     await sleep(0); // wait until ava sets its timeout so it doesn't get picked up by async_hooks.
     startAsyncTracing();
-    const cloudFunc = await faastify(provider, funcs, "./functions", {
+    const cloudFunc = await faast(provider, funcs, "./functions", {
         ...options,
         childProcess: true,
         gc: false

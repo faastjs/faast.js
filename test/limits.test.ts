@@ -1,6 +1,6 @@
 import test, { ExecutionContext } from "ava";
 import { inspect } from "util";
-import { faastify, Provider } from "../src/faast";
+import { faast, Provider } from "../src/faast";
 import { CommonOptions } from "../src/provider";
 import * as funcs from "./functions";
 import { title } from "./util";
@@ -10,7 +10,7 @@ async function testTimeout(
     provider: Provider,
     options: CommonOptions
 ) {
-    let lambda = await faastify(provider, funcs, "../test/functions", {
+    let lambda = await faast(provider, funcs, "../test/functions", {
         ...options,
         timeout: 5,
         maxRetries: 0,
@@ -24,7 +24,7 @@ async function testTimeout(
 }
 
 async function limitOk(t: ExecutionContext, provider: Provider, options: CommonOptions) {
-    let lambda = await faastify(provider, funcs, "../test/functions", {
+    let lambda = await faast(provider, funcs, "../test/functions", {
         ...options,
         timeout: 200,
         memorySize: 512,
@@ -46,7 +46,7 @@ async function limitFail(
     provider: Provider,
     options: CommonOptions
 ) {
-    let lambda = await faastify(provider, funcs, "../test/functions", {
+    let lambda = await faast(provider, funcs, "../test/functions", {
         ...options,
         timeout: 200,
         memorySize: 512,

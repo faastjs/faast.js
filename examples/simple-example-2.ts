@@ -1,9 +1,9 @@
-import { faastify } from "../src/faast";
+import { faast } from "../src/faast";
 import * as m from "./module";
 import { sleep } from "../src/shared";
 
 async function main() {
-    const cloudFunc = await faastify("aws", m, "./module", {
+    const cloudFunc = await faast("aws", m, "./module", {
         mode: "https"
     });
 

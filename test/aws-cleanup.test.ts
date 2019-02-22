@@ -57,7 +57,7 @@ export async function getAWSResources(func: faast.AWSLambda) {
     };
 }
 test("remote aws removes ephemeral resources", async t => {
-    const func = await faast.faastify("aws", {}, "./functions", {
+    const func = await faast.faast("aws", {}, "./functions", {
         mode: "queue",
         gc: false
     });
@@ -66,7 +66,7 @@ test("remote aws removes ephemeral resources", async t => {
 });
 
 test("remote aws removes s3 buckets", async t => {
-    const func = await faast.faastify("aws", {}, "./functions", {
+    const func = await faast.faast("aws", {}, "./functions", {
         packageJson: "test/fixtures/package.json",
         gc: false
     });

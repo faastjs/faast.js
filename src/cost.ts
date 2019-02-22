@@ -1,6 +1,6 @@
 import * as Listr from "listr";
 import { inspect } from "util";
-import { faastify, Promisified, aws, google } from "./faast";
+import { faast, Promisified, aws, google } from "./faast";
 import { FunctionCounters, FunctionStats, CommonOptions } from "./provider";
 import { f1, keys, Statistics, sum } from "./shared";
 import { throttle } from "./throttle";
@@ -219,7 +219,7 @@ async function estimate<T, K extends string>(
     config: CostAnalyzerConfiguration
 ): Promise<CostAnalysisProfile<K>> {
     const { provider, repetitions, options, repetitionConcurrency } = config;
-    const cloudFunc = await faastify(provider, require(fmodule), fmodule, options);
+    const cloudFunc = await faast(provider, require(fmodule), fmodule, options);
     const doWork = throttle({ concurrency: repetitionConcurrency }, workload.work);
     const results: Promise<Metrics<K> | void>[] = [];
     for (let i = 0; i < repetitions; i++) {

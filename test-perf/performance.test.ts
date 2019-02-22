@@ -1,6 +1,6 @@
 import test, { ExecutionContext } from "ava";
-import { faastify, Provider } from "../src/faast";
-import { info, stats } from "../src/log";
+import { faast, Provider } from "../src/faast";
+import { info } from "../src/log";
 import { CommonOptions } from "../src/provider";
 import { sleep } from "../src/shared";
 import { Pump } from "../src/throttle";
@@ -14,11 +14,11 @@ export async function throughput(
     concurrency: number = 500,
     options?: CommonOptions
 ) {
-    const lambda = await faastify(provider, funcs, "../test/functions", {
+    const lambda = await faast(provider, funcs, "../test/functions", {
         gc: false,
         ...options
     });
-    lambda.on("stats", s => stats.log(s.toString()));
+    lambda.on("stats", s => console.log(s.toString()));
 
     try {
         let completed = 0;
@@ -55,12 +55,12 @@ export async function rampUp(
     concurrency: number,
     options?: CommonOptions
 ) {
-    const lambda = await faastify(provider, funcs, "../test/functions", {
+    const lambda = await faast(provider, funcs, "../test/functions", {
         gc: false,
         ...options,
         concurrency
     });
-    lambda.on("stats", s => stats.log(s.toString()));
+    lambda.on("stats", s => console.log(s.toString()));
 
     try {
         const nParallelFunctions = 500;

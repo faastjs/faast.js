@@ -9,11 +9,11 @@ test("local garbage collector works for functions that are called", async t => {
     // function and set its retention to 0, and use a recorder to observe what
     // its garbage collector cleans up. Verify the first function's resources
     // are cleaned up, which shows that the garbage collector did its job.
-    const func = await faast.faastify("local", functions, "../test/functions");
+    const func = await faast.faast("local", functions, "../test/functions");
     await func.functions.hello("gc-test");
     await func.cleanup({ deleteResources: false });
     const gcRecorder = record(async (_dir: string) => {});
-    const func2 = await faast.faastify("local", functions, "../test/functions", {
+    const func2 = await faast.faast("local", functions, "../test/functions", {
         gc: true,
         gcWorker: gcRecorder,
         retentionInDays: 0
@@ -24,11 +24,11 @@ test("local garbage collector works for functions that are called", async t => {
 });
 
 test("local garbage collector works for functions that are never called", async t => {
-    const func = await faast.faastify("local", functions, "../test/functions");
+    const func = await faast.faast("local", functions, "../test/functions");
     await func.cleanup({ deleteResources: false });
     const gcRecorder = record(async (_dir: string) => {});
 
-    const func2 = await faast.faastify("local", functions, "../test/functions", {
+    const func2 = await faast.faast("local", functions, "../test/functions", {
         gc: true,
         gcWorker: gcRecorder,
         retentionInDays: 0

@@ -1,11 +1,11 @@
 import test from "ava";
-import { faastify } from "../src/faast";
+import { faast } from "../src/faast";
 import { throttle } from "../src/throttle";
 import { topPackages } from "./top-packages";
 
 const testPackage = throttle({ concurrency: 500 }, async (pkg: string) => {
     try {
-        const cloudFunc = await faastify(
+        const cloudFunc = await faast(
             "aws",
             require("../test/functions"),
             "../test/functions",

@@ -1,7 +1,5 @@
 import test, { ExecutionContext } from "ava";
-import * as awsFaast from "../src/aws/aws-faast";
-import * as faast from "../src/faast";
-import { faastify, Provider } from "../src/faast";
+import { faast, Provider, aws } from "../src/faast";
 import { info } from "../src/log";
 import { CommonOptions } from "../src/provider";
 import { Statistics } from "../src/shared";
@@ -11,7 +9,7 @@ import { configs, providers, title } from "./util";
 async function testBasic(
     t: ExecutionContext,
     provider: "aws",
-    options: awsFaast.Options
+    options: aws.Options
 ): Promise<void>;
 async function testBasic(
     t: ExecutionContext,
@@ -24,7 +22,7 @@ async function testBasic(
     options: CommonOptions
 ): Promise<void> {
     const opts = { timeout: 30, memorySize: 512, gc: false, ...options };
-    const cloudFunc = await faastify(provider, funcs, "./functions", opts);
+    const cloudFunc = await faast(provider, funcs, "./functions", opts);
     const remote = cloudFunc.functions;
 
     try {
@@ -56,7 +54,7 @@ async function testBasic(
     }
 }
 
-export async function testCosts(t: ExecutionContext, provider: faast.Provider) {
+export async function testCosts(t: ExecutionContext, provider: Provider) {
     const args: CommonOptions = {
         timeout: 30,
         memorySize: 512,
@@ -64,7 +62,7 @@ export async function testCosts(t: ExecutionContext, provider: faast.Provider) {
         maxRetries: 0,
         gc: false
     };
-    const cloudFunc = await faastify(provider, funcs, "./functions", args);
+    const cloudFunc = await faast(provider, funcs, "./functions", args);
 
     try {
         await cloudFunc.functions.hello("there");
@@ -103,10 +101,10 @@ export async function testCosts(t: ExecutionContext, provider: faast.Provider) {
     }
 }
 
-async function testCpuMetrics(t: ExecutionContext, provider: faast.Provider) {
+async function testCpuMetrics(t: ExecutionContext, provider: Provider) {
     t.plan(4);
 
-    const lambda = await faastify(provider, funcs, "./functions", {
+    const lambda = await faast(provider, funcs, "./functions", {
         childProcess: true,
         timeout: 90,
         memorySize: 512,
@@ -139,14 +137,14 @@ for (const provider of providers) {
     // test(title(provider, `cpu metrics are received`), testCpuMetrics, provider);
 }
 
-const hOpts: faast.aws.Options = {
+const hOpts: aws.Options = {
     mode: "https",
     packageJson: "test/fixtures/package.json",
     useDependencyCaching: false
 };
 test(title("aws", `basic calls`, hOpts), testBasic, "aws", hOpts);
 
-const qOpts: faast.aws.Options = {
+const qOpts: aws.Options = {
     mode: "queue",
     packageJson: "test/fixtures/package.json",
     useDependencyCaching: false
