@@ -1,15 +1,15 @@
 import test, { ExecutionContext, Macro } from "ava";
 import { URL } from "url";
 import { inspect } from "util";
-import { faast, local } from "../src/faast";
+import { faast, LocalOptions } from "../src/faast";
 import { readFile } from "../src/fs";
 import { sleep } from "../src/shared";
 import * as funcs from "./functions";
 import { measureConcurrency } from "./util";
 
-const testCleanup: Macro<[local.Options]> = async (
+const testCleanup: Macro<[LocalOptions]> = async (
     t: ExecutionContext,
-    options: local.Options
+    options: LocalOptions
 ) => {
     const cloudFunc = await faast("local", funcs, "./functions", options);
     const { hello, sleep } = cloudFunc.functions;
@@ -27,9 +27,9 @@ const testCleanup: Macro<[local.Options]> = async (
     t.is(done, 0);
 };
 
-const testOrder: Macro<[local.Options]> = async (
+const testOrder: Macro<[LocalOptions]> = async (
     t: ExecutionContext,
-    options: local.Options
+    options: LocalOptions
 ) => {
     const cloudFunc = await faast("local", funcs, "./functions", options);
     t.plan(2);
@@ -53,7 +53,7 @@ async function testConcurrency(
         maxConcurrency,
         expectedConcurrency
     }: {
-        options: local.Options;
+        options: LocalOptions;
         maxConcurrency: number;
         expectedConcurrency: number;
     }

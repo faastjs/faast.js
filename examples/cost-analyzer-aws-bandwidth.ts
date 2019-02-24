@@ -1,6 +1,6 @@
 import * as commander from "commander";
-import { costAnalyzer, Promisified } from "../src/faast";
-import { f1, GB, Statistics, f2, MB, assertNever } from "../src/shared";
+import { Promisified, estimateWorkloadCost, awsConfigurations } from "../src/faast";
+import { f1, GB, Statistics, f2, assertNever } from "../src/shared";
 import * as m from "./map-buckets-module";
 import { listAllObjects } from "./util";
 import { toCSV } from "../src/cost";
@@ -61,9 +61,9 @@ const makeFormatter = ({ csv = false }) => {
 };
 
 async function compareAws(Bucket: string, filter: FilterFn) {
-    const result = await costAnalyzer.estimateWorkloadCost(
+    const result = await estimateWorkloadCost(
         require.resolve("./map-buckets-module"),
-        costAnalyzer.awsConfigurations.map(c => ({
+        awsConfigurations.map(c => ({
             ...c,
             repetitions: 5,
             repetitionConcurrency: 5

@@ -33,7 +33,7 @@ const macro: Macro<[CloudFunctionImpl<any, any>, PackageConfiguration, number]> 
     const tmpDir = path.join("tmp", identifier);
     exec(`mkdir -p ${tmpDir}`);
 
-    const { archive } = await impl.pack(require.resolve("./functions"), config);
+    const { archive } = await impl.pack(require.resolve("./functions"), config, {});
 
     const stream1 = archive.pipe(new PassThrough());
     const stream2 = archive.pipe(new PassThrough());
@@ -77,7 +77,6 @@ const configs: PackageConfiguration[] = [
 ];
 
 const providers = keys(_providers);
-// const providers: Provider[] = ["local"];
 
 for (const name of providers) {
     for (const config of configs) {

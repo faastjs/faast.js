@@ -7,10 +7,11 @@
         "type": "git",
         "url": "https://github.com/acchou/faast.js"
     },
-    "types": "build/decls/faast.d.ts",
+    "typings": "build/faast.d.ts",
     "scripts": {
         "build": "npm run clean && tsc",
         "watch": "npm run clean && tsc --watch",
+        "doc": "api-extractor run --local && api-documenter markdown -i build -o docs/api",
         "aws-set-gcp-key": "node build/src/aws/aws-set-gcp-key.js",
         "test": "ava build/test/*.test.js",
         "test-local": "ava --concurrency=4 -m='!remote*'",
@@ -43,6 +44,8 @@
         "yauzl": "^2.10.0"
     },
     "devDependencies": {
+        "@microsoft/api-documenter": "^7.0.26",
+        "@microsoft/api-extractor": "^8.0.0",
         "@types/archiver": "^2.1.1",
         "@types/aws-lambda": "^8.10.19",
         "@types/debug": "^4.1.1",

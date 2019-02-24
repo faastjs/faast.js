@@ -1,5 +1,5 @@
 import { faast } from "../src/faast";
-import * as m from "./module";
+import * as m from "./functions";
 import { sleep } from "../src/shared";
 
 async function main() {

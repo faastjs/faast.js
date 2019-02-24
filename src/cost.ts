@@ -1,13 +1,19 @@
 import * as Listr from "listr";
 import { inspect } from "util";
-import { faast, Promisified, aws, google } from "./faast";
-import { FunctionCounters, FunctionStats, CommonOptions } from "./provider";
+import { faast, Promisified, AwsOptions, GoogleOptions } from "./faast";
+import { FunctionCounters, FunctionStats } from "./provider";
 import { f1, keys, Statistics, sum } from "./shared";
 import { throttle } from "./throttle";
 import { NonFunctionProperties } from "./types";
 
+/**
+ * @public
+ */
 export type Metrics<K extends string> = { [key in K]: number };
 
+/**
+ * @public
+ */
 export interface Workload<T, K extends string> {
     work: (module: Promisified<T>) => Promise<Metrics<K> | void>;
     summarize?: (summaries: Array<Metrics<K>>) => Metrics<K>;
@@ -61,6 +67,9 @@ export class CostMetric {
     }
 }
 
+/**
+ * @public
+ */
 export class CostBreakdown {
     metrics: CostMetric[] = [];
 
@@ -119,8 +128,14 @@ export class CostBreakdown {
     }
 }
 
-export type Options = CommonOptions | aws.Options | google.Options;
+/**
+ * @public
+ */
+export type Options = AwsOptions | GoogleOptions;
 
+/**
+ * @public
+ */
 export interface CostAnalyzerConfiguration {
     provider: "aws" | "google";
     repetitions: number;
@@ -142,6 +157,9 @@ export const CommonMemorySizes = GoogleCloudFunctionsMemorySizes.filter(size =>
     AWSLambdaMemorySizes.find(asize => asize === size)
 );
 
+/**
+ * @public
+ */
 export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
     const rv: CostAnalyzerConfiguration[] = [];
     for (const memorySize of AWSLambdaMemorySizes) {
@@ -161,6 +179,9 @@ export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
     return rv;
 })();
 
+/**
+ * @public
+ */
 export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
     const rv: CostAnalyzerConfiguration[] = [];
     for (const memorySize of GoogleCloudFunctionsMemorySizes) {
@@ -180,6 +201,9 @@ export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
     return rv;
 })();
 
+/**
+ * @public
+ */
 export interface CostAnalysisProfile<K extends string> {
     provider: "aws" | "google";
     options: Options;
@@ -243,6 +267,9 @@ async function estimate<T, K extends string>(
     };
 }
 
+/**
+ * @public
+ */
 export async function estimateWorkloadCost<T, K extends string>(
     fmodule: string,
     configurations: CostAnalyzerConfiguration[] = awsConfigurations,

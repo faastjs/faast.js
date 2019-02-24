@@ -6,14 +6,14 @@ import * as yauzl from "yauzl";
 import { LoaderOptions } from "./loader";
 import { exists, mkdir, readFile, createWriteStream } from "./fs";
 import { info, warn, logWebpack, logProvider } from "./log";
-import { TrampolineFactory, WrapperOptionDefaults } from "./wrapper";
+import { TrampolineFactory, WrapperOptionDefaults, WrapperOptions } from "./wrapper";
 import { streamToBuffer, keys } from "./shared";
 
 type ZipFile = yauzl.ZipFile;
 
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
-import { PackerOptions } from "./provider";
+import { CommonOptions, CommonOptionDefaults } from "./provider";
 
 export interface PackerResult {
     archive: NodeJS.ReadableStream;
@@ -30,15 +30,13 @@ function getUrlEncodedQueryParameters(options: LoaderOptions) {
 export async function packer(
     trampolineFactory: TrampolineFactory,
     functionModule: string,
-    {
-        webpackOptions,
-        packageJson,
-        addDirectory,
-        addZipFile,
-        ...wrapperOptions
-    }: Required<PackerOptions>
+    userOptions: CommonOptions,
+    userWrapperOptions: WrapperOptions
 ): Promise<PackerResult> {
-    const _exhaustiveCheck: Required<typeof wrapperOptions> = WrapperOptionDefaults;
+    const options = Object.assign(CommonOptionDefaults, userOptions);
+    const wrapperOptions = Object.assign(WrapperOptionDefaults, userWrapperOptions);
+    let { webpackOptions, packageJson, addDirectory, addZipFile } = options;
+
     info(`Running webpack`);
     const mfs = new MemoryFileSystem();
 
@@ -145,13 +143,14 @@ export async function packer(
         );
     }
 
+    const { childProcess } = options;
     const {
-        wrapperVerbose,
-        childProcess,
+        wrapperVerbose: wrapperVerbose,
+        childProcess: _onlyUsedForLocalProviderDirectWrapperInstantiation,
         childDir,
         childProcessMemoryLimitMb,
         childProcessTimeoutMs,
-        wrapperLog,
+        wrapperLog: _onlyUsedForLocalProviderDirectWrapperInstantiation2,
         ...rest
     } = wrapperOptions;
     const _exhaustiveCheck2: Required<typeof rest> = {};

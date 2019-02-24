@@ -1,5 +1,5 @@
-import { costAnalyzer, Promisified } from "../src/faast";
-import * as m from "./module";
+import { Promisified, estimateWorkloadCost, awsConfigurations } from "../src/faast";
+import * as m from "./functions";
 import { toCSV } from "../src/cost";
 import { writeFile } from "../src/fs";
 
@@ -8,9 +8,9 @@ async function work(remote: Promisified<typeof m>) {
 }
 
 async function compareAws() {
-    const results = await costAnalyzer.estimateWorkloadCost(
+    const results = await estimateWorkloadCost(
         require.resolve("./module"),
-        costAnalyzer.awsConfigurations,
+        awsConfigurations,
         { work }
     );
 

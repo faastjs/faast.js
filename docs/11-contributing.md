@@ -6,4 +6,10 @@
 
 ### Why AVA and not Jest, Mocha, etc?
 
+## Adding a new cloud provider
+
+### Provider API
+
+- provider.ts
+
 ## Community statement

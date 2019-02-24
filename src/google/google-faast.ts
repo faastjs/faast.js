@@ -21,8 +21,7 @@ import {
     CommonOptions,
     CommonOptionDefaults,
     CleanupOptions,
-    UUID,
-    PackerOptionDefaults
+    UUID
 } from "../provider";
 import {
     assertNever,
@@ -45,9 +44,13 @@ import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
 import { caches } from "../cache";
+import { WrapperOptions, WrapperOptionDefaults } from "../wrapper";
 
 const gaxios = new Gaxios();
 
+/**
+ * @public
+ */
 export interface Options extends CommonOptions {
     region?: string;
     googleCloudFunctionOptions?: CloudFunctions.Schema$CloudFunction;
@@ -222,11 +225,10 @@ export async function initialize(
     const location = `projects/${project}/locations/${region}`;
 
     async function createCodeBundle() {
-        let { childProcessTimeoutMs, ...rest } = options;
-        if (!childProcessTimeoutMs && childProcess) {
-            childProcessTimeoutMs = timeout * 1000 - 100;
-        }
-        const { archive } = await pack(fmodule, { childProcessTimeoutMs, ...rest });
+        const wrapperOptions = {
+            childProcessTimeoutMs: timeout * 1000 - 100
+        };
+        const { archive } = await pack(fmodule, options, wrapperOptions);
         const uploadUrlResponse = await cloudFunctions.projects.locations.functions.generateUploadUrl(
             {
                 parent: location
@@ -660,13 +662,13 @@ async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
 
 export async function pack(
     functionModule: string,
-    userOptions: Options = {}
+    options: Options,
+    wrapperOptions: WrapperOptions
 ): Promise<PackerResult> {
-    const { mode } = userOptions;
+    const { mode } = options;
     const trampolineModule =
         mode === "queue" ? googleTrampolineQueue : googleTrampolineHttps;
-    const options = Object.assign({}, PackerOptionDefaults, userOptions);
-    return packer(trampolineModule, functionModule, options);
+    return packer(trampolineModule, functionModule, options, wrapperOptions);
 }
 
 const getGooglePrice = throttle(

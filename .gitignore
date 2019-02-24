@@ -69,3 +69,5 @@ tmp/
 .vscode/sftp.json
 .DS_Store
 cost*.csv
+docs/api
+temp

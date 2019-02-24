@@ -2,20 +2,33 @@ import { EventEmitter } from "events";
 import * as path from "path";
 import * as util from "util";
 import * as uuidv4 from "uuid/v4";
-import * as aws from "./aws/aws-faast";
-import * as costAnalyzer from "./cost";
-import * as google from "./google/google-faast";
-import * as local from "./local/local-faast";
-import { info, logCalls, logLeaks, warn, logProvider, inspectProvider } from "./log";
 import {
+    Impl as AwsImpl,
+    Options as AwsOptions,
+    State as AwsState
+} from "./aws/aws-faast";
+import { CostBreakdown, CostMetric } from "./cost";
+import {
+    Impl as GoogleImpl,
+    Options as GoogleOptions,
+    State as GoogleState
+} from "./google/google-faast";
+import {
+    Impl as LocalImpl,
+    Options as LocalOptions,
+    State as LocalState
+} from "./local/local-faast";
+import { info, inspectProvider, logCalls, logLeaks, logProvider, warn } from "./log";
+import {
+    CallId,
+    CleanupOptionDefaults,
+    CleanupOptions,
     CloudFunctionImpl,
+    CommonOptions,
     FunctionCounters,
     FunctionStats,
-    StopQueueMessage,
     Invocation,
-    CommonOptions,
-    CleanupOptions,
-    CleanupOptionDefaults,
+    StopQueueMessage,
     UUID
 } from "./provider";
 import {
@@ -24,23 +37,36 @@ import {
     FactoryMap,
     roundTo100ms,
     sleep,
-    Statistics,
-    SmallestN
+    SmallestN,
+    Statistics
 } from "./shared";
-import { Deferred, Funnel, Pump, retry } from "./throttle";
+import { Deferred, Funnel, Pump } from "./throttle";
 import { NonFunctionProperties, Unpacked } from "./types";
-import { FunctionCall, FunctionReturn, serializeCall, CpuMeasurement } from "./wrapper";
+import { CpuMeasurement, FunctionCall, FunctionReturn, serializeCall } from "./wrapper";
 import Module = require("module");
-import { CostMetric } from "./cost";
 
-export { aws, google, local, costAnalyzer };
-
+/**
+ * @internal
+ */
 export const _providers = {
-    aws: aws.Impl,
-    google: google.Impl,
-    local: local.Impl
+    aws: AwsImpl,
+    google: GoogleImpl,
+    local: LocalImpl
 };
 
+export {
+    awsConfigurations,
+    CostAnalyzerConfiguration,
+    estimateWorkloadCost,
+    googleConfigurations
+} from "./cost";
+export { AwsOptions, GoogleOptions, LocalOptions };
+export { AwsState };
+export { CommonOptions, CleanupOptions, FunctionCounters, FunctionStats };
+
+/**
+ * @public
+ */
 export class FaastError extends Error {
     logUrl?: string;
     constructor(errObj: any, logUrl?: string) {
@@ -60,6 +86,9 @@ export class FaastError extends Error {
     }
 }
 
+/**
+ * @internal
+ */
 export interface ResponseDetails<D> {
     value: Promise<D>;
     rawResponse: any;
@@ -72,27 +101,40 @@ export interface ResponseDetails<D> {
     returnLatency?: number;
 }
 
+/**
+ * @internal
+ */
 export type Response<D> = ResponseDetails<Unpacked<D>>;
 
+/**
+ * @public
+ */
 export type PromisifiedFunction<A extends any[], R> = (
     ...args: A
 ) => Promise<Unpacked<R>>;
 
+/**
+ * @public
+ */
 export type Promisified<M> = {
     [K in keyof M]: M[K] extends (...args: infer A) => infer R
         ? PromisifiedFunction<A, R>
         : never
 };
 
-export type ResponsifiedFunction<A extends any[], R> = (
-    ...args: A
-) => Promise<Response<R>>;
+/**
+ * @internal
+ */
+type ResponsifiedFunction<A extends any[], R> = (...args: A) => Promise<Response<R>>;
 
-export type Responsified<M> = {
-    [K in keyof M]: M[K] extends (...args: infer A) => infer R
-        ? ResponsifiedFunction<A, R>
-        : never
-};
+// /**
+//  * @internal
+//  */
+// type Responsified<M> = {
+//     [K in keyof M]: M[K] extends (...args: infer A) => infer R
+//         ? ResponsifiedFunction<A, R>
+//         : never
+// };
 
 function resolveModule(fmodule: string) {
     const parent = module.parent!;
@@ -107,6 +149,9 @@ function resolveModule(fmodule: string) {
     return (Module as any)._resolveFilename(fmodule, module.parent);
 }
 
+/**
+ * @public
+ */
 export class FunctionCountersMap {
     aggregate = new FunctionCounters();
     fIncremental = new FactoryMap(() => new FunctionCounters());
@@ -132,6 +177,9 @@ export class FunctionCountersMap {
     }
 }
 
+/**
+ * @public
+ */
 export class FunctionStatsMap {
     fIncremental = new FactoryMap(() => new FunctionStats());
     fAggregate = new FactoryMap(() => new FunctionStats());
@@ -340,7 +388,7 @@ function processResponse<R>(
     return rv;
 }
 
-export async function createFunction<M extends object, O extends CommonOptions, S>(
+async function createFunction<M extends object, O extends CommonOptions, S>(
     fmodule: M,
     modulePath: string,
     impl: CloudFunctionImpl<O, S>,
@@ -359,6 +407,9 @@ export async function createFunction<M extends object, O extends CommonOptions, 
     );
 }
 
+/**
+ * @public
+ */
 export class FunctionStatsEvent {
     constructor(
         readonly fn: string,
@@ -385,18 +436,19 @@ class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
     }
 }
 
-type CallId = string;
-
+/**
+ * @public
+ */
 export class CloudFunction<
     M extends object,
     O extends CommonOptions = CommonOptions,
     S = any
-> extends EventEmitter {
+> {
     cloudName = this.impl.name;
     counters = new FunctionCountersMap();
     stats = new FunctionStatsMap();
     functions: Promisified<M>;
-    cpuUsage = new FactoryMap(() => new FunctionCpuUsagePerSecond());
+    protected cpuUsage = new FactoryMap(() => new FunctionCpuUsagePerSecond());
     protected memoryLeakDetector: MemoryLeakDetector;
     protected funnel: Funnel<any>;
     protected skew = new ExponentiallyDecayingAverageValue(0.3);
@@ -405,15 +457,15 @@ export class CloudFunction<
     protected initialInvocationTime = new FactoryMap(() => Date.now());
     protected callResultsPending: Map<CallId, PendingRequest> = new Map();
     protected collectorPump: Pump<void>;
+    protected emitter = new EventEmitter();
 
     constructor(
         protected impl: CloudFunctionImpl<O, S>,
         readonly state: S,
-        readonly fmodule: M,
-        readonly modulePath: string,
+        protected fmodule: M,
+        protected modulePath: string,
         readonly options: Required<CommonOptions>
     ) {
-        super();
         info(`Node version: ${process.version}`);
         logProvider(`name: ${this.impl.name}`);
         logProvider(`responseQueueId: ${this.impl.responseQueueId(state)}`);
@@ -475,7 +527,7 @@ export class CloudFunction<
         this.statsTimer = setInterval(() => {
             this.counters.fIncremental.forEach((counters, fn) => {
                 const stats = this.stats.fIncremental.get(fn);
-                this.emit("stats", new FunctionStatsEvent(fn, counters, stats));
+                this.emitter.emit("stats", new FunctionStatsEvent(fn, counters, stats));
             });
 
             this.counters.resetIncremental();
@@ -492,12 +544,12 @@ export class CloudFunction<
         if (!this.statsTimer) {
             this.startStats();
         }
-        return super.on(name, listener);
+        return this.emitter.on(name, listener);
     }
 
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void) {
-        const rv = super.off(name, listener);
-        if (super.listenerCount(name) === 0) {
+        const rv = this.emitter.off(name, listener);
+        if (this.emitter.listenerCount(name) === 0) {
             this.stopStats();
         }
         return rv;
@@ -649,7 +701,7 @@ export class CloudFunction<
                 const { retries, invocations } = this.counters.aggregate;
                 const retryPct = ((retries / invocations) * 100).toFixed(1);
                 estimate.push(
-                    new costAnalyzer.CostMetric({
+                    new CostMetric({
                         name: "retries",
                         pricing: 0,
                         measured: retries,
@@ -662,7 +714,7 @@ export class CloudFunction<
             }
             return estimate;
         } else {
-            const costs = new costAnalyzer.CostBreakdown();
+            const costs = new CostBreakdown();
             const billedTimeStats = this.stats.aggregate.estimatedBilledTime;
             const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples || 0;
 
@@ -687,7 +739,7 @@ export class CloudFunction<
         }
     }
 
-    async resultCollector() {
+    protected async resultCollector() {
         const { callResultsPending } = this;
         if (!callResultsPending.size) {
             return;
@@ -782,52 +834,76 @@ export class CloudFunction<
     }
 }
 
-export type AnyCloudFunction = CloudFunction<any, any, any>;
-
+/**
+ * @public
+ */
 export class AWSLambda<M extends object = object> extends CloudFunction<
     M,
-    aws.Options,
-    aws.State
+    AwsOptions,
+    AwsState
 > {}
-
+/**
+ * @public
+ */
 export class GoogleCloudFunction<M extends object = object> extends CloudFunction<
     M,
-    google.Options,
-    google.State
+    GoogleOptions,
+    GoogleState
 > {}
 
+/**
+ * @public
+ */
 export class LocalFunction<M extends object = object> extends CloudFunction<
     M,
-    local.Options,
-    local.State
+    LocalOptions,
+    LocalState
 > {}
 
+/**
+ * @public
+ */
 export type Provider = "aws" | "google" | "local";
 
+/**
+ * @public
+ */
 export function faast<M extends object>(
     provider: "aws",
     fmodule: M,
     modulePath: string,
-    options?: aws.Options
-): Promise<CloudFunction<M, aws.Options, aws.State>>;
+    options?: AwsOptions
+): Promise<CloudFunction<M, AwsOptions, AwsState>>;
+/**
+ * @public
+ */
 export function faast<M extends object>(
     provider: "google",
     fmodule: M,
     modulePath: string,
-    options?: google.Options
-): Promise<CloudFunction<M, google.Options, google.State>>;
+    options?: GoogleOptions
+): Promise<CloudFunction<M, GoogleOptions, GoogleState>>;
+/**
+ * @public
+ */
 export function faast<M extends object>(
     provider: "local",
     fmodule: M,
     modulePath: string,
-    options?: local.Options
-): Promise<CloudFunction<M, local.Options, local.State>>;
+    options?: LocalOptions
+): Promise<CloudFunction<M, LocalOptions, LocalState>>;
+/**
+ * @public
+ */
 export function faast<M extends object, S>(
     provider: Provider,
     fmodule: M,
     modulePath: string,
     options?: CommonOptions
 ): Promise<CloudFunction<M, CommonOptions, S>>;
+/**
+ * @public
+ */
 export async function faast<M extends object, O extends CommonOptions, S>(
     provider: Provider,
     fmodule: M,
@@ -837,13 +913,13 @@ export async function faast<M extends object, O extends CommonOptions, S>(
     let impl: any;
     switch (provider) {
         case "aws":
-            impl = aws.Impl;
+            impl = AwsImpl;
             break;
         case "google":
-            impl = google.Impl;
+            impl = GoogleImpl;
             break;
         case "local":
-            impl = local.Impl;
+            impl = LocalImpl;
             break;
         default:
             throw new Error(`Unknown cloud provider option '${provider}'`);

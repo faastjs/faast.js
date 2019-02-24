@@ -1,57 +1,51 @@
+import * as webpack from "webpack";
 import { CostBreakdown } from "./cost";
-import { Statistics } from "./shared";
-import {
-    FunctionReturn,
-    CpuMeasurement,
-    WrapperOptions,
-    WrapperOptionDefaults
-} from "./wrapper";
 import { PackerResult } from "./packer";
+import { Statistics } from "./shared";
+import { CpuMeasurement, FunctionReturn, WrapperOptions } from "./wrapper";
 
 export const CALLID_ATTR = "__faast_callid__";
 export const KIND_ATTR = "__faast_kind__";
 
-import * as webpack from "webpack";
-import { Opaque } from "./types";
-
-export interface PackerOptions extends WrapperOptions {
+/**
+ * Options common across all faast.js providers.
+ * @public
+ */
+export interface CommonOptions {
     addDirectory?: string | string[];
     addZipFile?: string | string[];
-    packageJson?: string | object | false;
-    webpackOptions?: webpack.Configuration;
-}
-
-export const PackerOptionDefaults: Required<PackerOptions> = {
-    ...WrapperOptionDefaults,
-    addDirectory: [],
-    addZipFile: [],
-    packageJson: false,
-    webpackOptions: {}
-};
-
-export interface CommonOptions extends PackerOptions {
+    childProcess?: boolean;
     concurrency?: number;
     gc?: boolean;
     maxRetries?: number;
     memorySize?: number;
     mode?: "https" | "queue" | "auto";
+    packageJson?: string | object | false;
     retentionInDays?: number;
     speculativeRetryThreshold?: number;
     timeout?: number;
+    webpackOptions?: webpack.Configuration;
 }
 
 export const CommonOptionDefaults: Required<CommonOptions> = {
-    ...PackerOptionDefaults,
+    addDirectory: [],
+    addZipFile: [],
+    childProcess: true,
     concurrency: 100,
     gc: true,
     maxRetries: 2,
     memorySize: 1024,
     mode: "auto",
+    packageJson: false,
     retentionInDays: 1,
     speculativeRetryThreshold: 3,
-    timeout: 60
+    timeout: 60,
+    webpackOptions: {}
 };
 
+/**
+ * @public
+ */
 export interface CleanupOptions {
     deleteResources?: boolean;
 }
@@ -60,6 +54,9 @@ export const CleanupOptionDefaults: Required<CleanupOptions> = {
     deleteResources: true
 };
 
+/**
+ * @public
+ */
 export class FunctionCounters {
     invocations = 0;
     completed = 0;
@@ -73,6 +70,9 @@ export class FunctionCounters {
     }
 }
 
+/**
+ * @public
+ */
 export class FunctionStats {
     localStartLatency = new Statistics();
     remoteStartLatency = new Statistics();
@@ -94,6 +94,7 @@ export class FunctionExecutionMetrics {
 
 export type StringifiedFunctionCall = string;
 export type StringifiedFunctionReturn = string;
+
 export type CallId = string;
 
 export interface Invocation {
@@ -156,7 +157,11 @@ export interface CloudFunctionImpl<O extends CommonOptions, S> {
 
     initialize(serverModule: string, nonce: UUID, options: Required<O>): Promise<S>;
 
-    pack(functionModule: string, options?: PackerOptions): Promise<PackerResult>;
+    pack(
+        functionModule: string,
+        options: CommonOptions,
+        wrapperOptions: WrapperOptions
+    ): Promise<PackerResult>;
 
     costEstimate?: (
         state: S,

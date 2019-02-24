@@ -1,15 +1,14 @@
 import test, { ExecutionContext } from "ava";
-import { faast, Provider, aws } from "../src/faast";
+import { AwsOptions, faast, Provider } from "../src/faast";
 import { info } from "../src/log";
 import { CommonOptions } from "../src/provider";
-import { Statistics } from "../src/shared";
 import * as funcs from "./functions";
 import { configs, providers, title } from "./util";
 
 async function testBasic(
     t: ExecutionContext,
     provider: "aws",
-    options: aws.Options
+    options: AwsOptions
 ): Promise<void>;
 async function testBasic(
     t: ExecutionContext,
@@ -101,32 +100,32 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
     }
 }
 
-async function testCpuMetrics(t: ExecutionContext, provider: Provider) {
-    t.plan(4);
+// async function testCpuMetrics(t: ExecutionContext, provider: Provider) {
+//     t.plan(4);
 
-    const lambda = await faast(provider, funcs, "./functions", {
-        childProcess: true,
-        timeout: 90,
-        memorySize: 512,
-        maxRetries: 0,
-        gc: false
-    });
+//     const lambda = await faast(provider, funcs, "./functions", {
+//         childProcess: true,
+//         timeout: 90,
+//         memorySize: 512,
+//         maxRetries: 0,
+//         gc: false
+//     });
 
-    try {
-        const NSec = 4;
-        await lambda.functions.spin(NSec * 1000);
-        const usage = lambda.cpuUsage.get("spin");
-        t.truthy(usage);
-        t.true(usage!.size > 0);
-        for (const [, instance] of usage!) {
-            t.true(instance.stime instanceof Statistics);
-            t.true(instance.utime instanceof Statistics);
-            break;
-        }
-    } finally {
-        await lambda.cleanup();
-    }
-}
+//     try {
+//         const NSec = 4;
+//         await lambda.functions.spin(NSec * 1000);
+//         const usage = lambda.cpuUsage.get("spin");
+//         t.truthy(usage);
+//         t.true(usage!.size > 0);
+//         for (const [, instance] of usage!) {
+//             t.true(instance.stime instanceof Statistics);
+//             t.true(instance.utime instanceof Statistics);
+//             break;
+//         }
+//     } finally {
+//         await lambda.cleanup();
+//     }
+// }
 
 for (const provider of providers) {
     for (const config of configs) {
@@ -137,14 +136,14 @@ for (const provider of providers) {
     // test(title(provider, `cpu metrics are received`), testCpuMetrics, provider);
 }
 
-const hOpts: aws.Options = {
+const hOpts: AwsOptions = {
     mode: "https",
     packageJson: "test/fixtures/package.json",
     useDependencyCaching: false
 };
 test(title("aws", `basic calls`, hOpts), testBasic, "aws", hOpts);
 
-const qOpts: aws.Options = {
+const qOpts: AwsOptions = {
     mode: "queue",
     packageJson: "test/fixtures/package.json",
     useDependencyCaching: false

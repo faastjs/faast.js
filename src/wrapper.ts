@@ -87,9 +87,6 @@ export interface WrapperOptions {
      * Defaults to console.log.
      */
     wrapperLog?: (msg: string) => void;
-    /**
-     * If true, create a child process to execute the wrapped module's functions.
-     */
     childProcess?: boolean;
     childProcessMemoryLimitMb?: number;
     childProcessTimeoutMs?: number;

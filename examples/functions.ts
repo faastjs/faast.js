@@ -9,3 +9,7 @@ export function randomNumbers(n: number) {
     }
     return sum;
 }
+
+export function add(a: number, b: number) {
+    return a + b;
+}

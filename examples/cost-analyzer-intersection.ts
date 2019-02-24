@@ -1,5 +1,10 @@
-import { costAnalyzer, Promisified } from "../src/faast";
-import * as m from "./module";
+import {
+    Promisified,
+    awsConfigurations,
+    googleConfigurations,
+    estimateWorkloadCost
+} from "../src/faast";
+import * as m from "./functions";
 import { toCSV } from "../src/cost";
 import { writeFile } from "../src/fs";
 
@@ -8,7 +13,7 @@ async function work(remote: Promisified<typeof m>) {
 }
 
 const configurations = [
-    ...costAnalyzer.awsConfigurations.filter(c => {
+    ...awsConfigurations.filter(c => {
         switch (c.options.memorySize) {
             case 128:
             case 256:
@@ -21,11 +26,11 @@ const configurations = [
                 return false;
         }
     }),
-    ...costAnalyzer.googleConfigurations
+    ...googleConfigurations
 ];
 
 async function compareIntersection() {
-    const result = await costAnalyzer.estimateWorkloadCost(
+    const result = await estimateWorkloadCost(
         require.resolve("./module"),
         configurations,
         {

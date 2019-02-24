@@ -1,5 +1,5 @@
 import { faast } from "../src/faast";
-import * as m from "./module";
+import * as m from "./functions";
 
 async function main() {
     const cloudFunc = await faast("aws", m, "./module");

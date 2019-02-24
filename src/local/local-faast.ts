@@ -12,7 +12,6 @@ import {
     CommonOptionDefaults,
     CommonOptions,
     Invocation,
-    PackerOptionDefaults,
     PollResult,
     ReceivableMessage,
     ResponseMessage,
@@ -21,7 +20,7 @@ import {
 } from "../provider";
 import { hasExpired, uuidv4Pattern } from "../shared";
 import { AsyncQueue } from "../throttle";
-import { FunctionCall, Wrapper } from "../wrapper";
+import { FunctionCall, Wrapper, WrapperOptions } from "../wrapper";
 import * as localTrampolineFactory from "./local-trampoline";
 
 const exec = promisify(sys.exec);
@@ -36,6 +35,9 @@ export interface State {
     queue: AsyncQueue<ReceivableMessage>;
 }
 
+/**
+ * @public
+ */
 export interface Options extends CommonOptions {
     gcWorker?: (tempdir: string) => Promise<void>;
 }
@@ -114,7 +116,7 @@ async function initialize(
         }
         const wrapper = new Wrapper(require(serverModule), {
             wrapperLog: childlog,
-            childProcess: childProcess,
+            childProcess,
             childProcessMemoryLimitMb: memorySize,
             childProcessTimeoutMs: timeout * 1000 - (childProcess ? 50 : 0),
             childDir: tempDir
@@ -123,7 +125,7 @@ async function initialize(
         return wrapper;
     };
 
-    const packerResult = await pack(serverModule, options);
+    const packerResult = await pack(serverModule, options, {});
 
     await unzipInDir(tempDir, packerResult.archive);
     const packageJsonFile = join(tempDir, "package.json");
@@ -154,10 +156,10 @@ export function logUrl(state: State) {
 
 async function pack(
     functionModule: string,
-    userOptions?: Options
+    options: Options,
+    wrapperOptions: WrapperOptions
 ): Promise<PackerResult> {
-    const options = Object.assign({}, PackerOptionDefaults, userOptions);
-    return packer(localTrampolineFactory, functionModule, options);
+    return packer(localTrampolineFactory, functionModule, options, wrapperOptions);
 }
 
 async function invoke(

@@ -2,7 +2,7 @@ import * as aws from "aws-sdk";
 import { createHash } from "crypto";
 import { caches } from "../cache";
 import { CostBreakdown, CostMetric } from "../cost";
-import { createFunction } from "../faast";
+import { faast } from "../faast";
 import { readFile } from "../fs";
 import { info, logGc, warn, logProviderSdk } from "../log";
 import { packer, PackerResult } from "../packer";
@@ -17,9 +17,7 @@ import {
     CommonOptions,
     CommonOptionDefaults,
     CleanupOptions,
-    PackerOptions,
-    UUID,
-    PackerOptionDefaults
+    UUID
 } from "../provider";
 import {
     assertNever,
@@ -41,7 +39,7 @@ import {
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
-import { FunctionReturn } from "../wrapper";
+import { FunctionReturn, WrapperOptions, WrapperOptionDefaults } from "../wrapper";
 import { CreateFunctionRequest } from "aws-sdk/clients/lambda";
 
 const defaultGcWorker = throttle(
@@ -70,6 +68,9 @@ const defaultGcWorker = throttle(
     }
 );
 
+/**
+ * @public
+ */
 export interface Options extends CommonOptions {
     region?: AWSRegion;
     PolicyArn?: string;
@@ -131,6 +132,9 @@ export interface AWSServices {
     readonly sts: aws.STS;
 }
 
+/**
+ * @public
+ */
 export interface State {
     resources: AWSResources;
     services: AWSServices;
@@ -326,7 +330,7 @@ export async function buildModulesOnLambda(
 
     await createCacheBucket(s3, Bucket, region);
 
-    const lambda = await createFunction(awsNpm, require.resolve("./aws-npm"), Impl, {
+    const lambda = await faast("aws", awsNpm, require.resolve("./aws-npm"), {
         timeout: 300,
         memorySize: 2048,
         mode: "https"
@@ -410,11 +414,10 @@ export const initialize = throttle(
         }
 
         async function createCodeBundle() {
-            let { childProcessTimeoutMs, ...rest } = options;
-            if (!childProcessTimeoutMs && childProcess) {
-                childProcessTimeoutMs = timeout * 1000 - 50;
-            }
-            const bundle = pack(fModule, { childProcessTimeoutMs, ...rest });
+            const wrapperOptions = {
+                childProcessTimeoutMs: timeout * 1000 - 50
+            };
+            const bundle = pack(fModule, options, wrapperOptions);
             let Code: aws.Lambda.FunctionCode;
             if (packageJson) {
                 Code = await buildModulesOnLambda(
@@ -845,13 +848,18 @@ function deleteGarbageFunctions(
 
 export async function pack(
     functionModule: string,
-    userOptions?: PackerOptions
+    options: CommonOptions,
+    wrapperOptions: WrapperOptions
 ): Promise<PackerResult> {
-    const options = Object.assign({}, PackerOptionDefaults, userOptions);
-    return packer(awsTrampoline, functionModule, {
-        ...options,
-        webpackOptions: { externals: "aws-sdk", ...options.webpackOptions }
-    });
+    return packer(
+        awsTrampoline,
+        functionModule,
+        {
+            ...options,
+            webpackOptions: { externals: "aws-sdk", ...options.webpackOptions }
+        },
+        wrapperOptions
+    );
 }
 
 function getSNSTopicName(FunctionName: string) {

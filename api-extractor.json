@@ -1,0 +1,18 @@
+{
+    "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/api-extractor.schema.json",
+    "compiler": {
+        "configType": "tsconfig",
+        "rootFolder": "."
+    },
+    "apiJsonFile": {
+        "enabled": true,
+        "outputFolder": "./build"
+    },
+    "project": {
+        "entryPointSourceFile": "build/decls/src/faast.d.ts"
+    },
+    "dtsRollup": {
+        "enabled": true,
+        "publishFolder": "./build"
+    }
+}
