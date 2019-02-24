@@ -379,7 +379,7 @@ const createFunctionThrottled = throttle(
 );
 
 export const initialize = throttle(
-    { concurrency: 4, rate: 4 },
+    { concurrency: 2, rate: 2 },
     async (fModule: string, nonce: UUID, options: Required<Options>) => {
         info(`Nonce: ${nonce}`);
         const { region, timeout, memorySize } = options;
