@@ -1,5 +1,5 @@
 import test, { ExecutionContext } from "ava";
-import { faast, Provider } from "../src/faast";
+import { faast, Provider } from "../index";
 import { CommonOptions } from "../src/provider";
 import { sleep } from "../src/shared";
 import {

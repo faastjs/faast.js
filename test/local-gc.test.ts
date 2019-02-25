@@ -1,4 +1,4 @@
-import * as faast from "../src/faast";
+import * as faast from "../index";
 import * as functions from "./functions";
 import test from "ava";
 import { record } from "./util";
