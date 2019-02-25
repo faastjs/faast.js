@@ -227,7 +227,10 @@ export class RateLimiter<T = void> {
     }
 }
 
-interface Limits {
+/**
+ * @public
+ */
+export interface Limits {
     concurrency: number;
     rate?: number;
     burst?: number;
@@ -275,6 +278,9 @@ export function cacheFn<A extends any[], R>(
     };
 }
 
+/**
+ * @public
+ */
 export function throttle<A extends any[], R>(
     { concurrency, retry: retryN, rate, burst, memoize, cache }: Limits,
     fn: PromiseFn<A, R>

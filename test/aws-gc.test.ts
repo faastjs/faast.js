@@ -1,10 +1,10 @@
-import { AwsServices, AwsGcWork } from "../src/aws/aws-faast";
-import { faast } from "../src/faast";
-import { sleep } from "../src/shared";
-import * as functions from "./functions";
-import { logGc } from "../src/log";
 import test from "ava";
-import { record, contains, quietly } from "./util";
+import { faast } from "../index";
+import { AwsGcWork, AwsServices } from "../src/aws/aws-faast";
+import { logGc } from "../src/log";
+import { sleep } from "../test/util";
+import * as functions from "./functions";
+import { contains, quietly, record } from "./util";
 
 test.serial(
     "remote aws garbage collector works for functions that are called",

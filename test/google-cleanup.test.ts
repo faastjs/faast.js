@@ -1,5 +1,5 @@
 import test, { ExecutionContext } from "ava";
-import * as faast from "../src/faast";
+import * as faast from "../index";
 import { keys } from "../src/shared";
 import { quietly, checkResourcesCleanedUp } from "./util";
 import { warn } from "../src/log";

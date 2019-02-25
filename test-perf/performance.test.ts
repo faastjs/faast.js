@@ -1,11 +1,9 @@
 import test, { ExecutionContext } from "ava";
-import { faast, Provider } from "../src/faast";
+import { faast, Provider, CommonOptions } from "../index";
 import { info } from "../src/log";
-import { CommonOptions } from "../src/provider";
-import { sleep } from "../src/shared";
 import { Pump } from "../src/throttle";
 import * as funcs from "../test/functions";
-import { title } from "../test/util";
+import { title, sleep } from "../test/util";
 
 export async function throughput(
     t: ExecutionContext,

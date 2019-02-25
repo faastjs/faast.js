@@ -41,3 +41,4 @@ export {
 } from "./src/provider";
 export { Statistics } from "./src/shared";
 export { Unpacked } from "./src/types";
+export { throttle } from "./src/throttle";

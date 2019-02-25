@@ -11,13 +11,12 @@ import * as uuidv4 from "uuid/v4";
  * not change too often (e.g. the node_modules folder from an 'npm install'
  * where 'package.json' is not expected to change too often)
  *
- * @export
- * @class PersistentCache
+ * @public
  */
 export class PersistentCache {
-    initialized: Promise<void>;
+    private initialized: Promise<void>;
 
-    protected async initialize(dir: string) {
+    private async initialize(dir: string) {
         if (!(await exists(dir))) {
             await mkdir(dir, { mode: 0o700, recursive: true });
         }

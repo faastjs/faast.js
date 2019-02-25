@@ -1,5 +1,5 @@
 import test from "ava";
-import { faast } from "../src/faast";
+import { faast } from "../index";
 import { throttle } from "../src/throttle";
 import { topPackages } from "./top-packages";
 

@@ -1,5 +1,5 @@
 import test from "ava";
-import * as faast from "../src/faast";
+import * as faast from "../index";
 import { info } from "../src/log";
 import * as funcs from "./functions";
 

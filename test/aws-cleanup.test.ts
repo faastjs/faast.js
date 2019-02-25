@@ -1,8 +1,8 @@
-import * as faast from "../src/faast";
+import * as faast from "../index";
 import test from "ava";
 import { quietly, checkResourcesCleanedUp } from "./util";
 
-export async function getAWSResources(func: faast.AWSLambda) {
+export async function getAWSResources(func: faast.AwsLambda) {
     const { lambda, sns, sqs, s3 } = func.state.services;
     const {
         FunctionName,

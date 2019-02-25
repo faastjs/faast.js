@@ -1,4 +1,4 @@
-import { faast } from "../src/faast";
+import { faast } from "../index";
 import * as functions from "./functions";
 import { GoogleResources, GoogleServices } from "../src/google/google-faast";
 import test from "ava";
