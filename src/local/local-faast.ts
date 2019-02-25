@@ -25,20 +25,29 @@ import * as localTrampolineFactory from "./local-trampoline";
 
 const exec = promisify(sys.exec);
 
-export interface State {
+/**
+ * @public
+ */
+export interface LocalState {
+    /** @internal */
     wrappers: Wrapper[];
+    /** @internal */
     getWrapper: () => Promise<Wrapper>;
+    /** @internal */
     logStreams: Writable[];
     tempDir: string;
     logUrl: string;
+    /** @internal */
     gcPromise?: Promise<void>;
+    /** @internal */
     queue: AsyncQueue<ReceivableMessage>;
 }
 
 /**
  * @public
  */
-export interface Options extends CommonOptions {
+export interface LocalOptions extends CommonOptions {
+    /** @internal */
     gcWorker?: (tempdir: string) => Promise<void>;
 }
 
@@ -46,7 +55,7 @@ function defaultGcWorker(dir: string) {
     return rmrf(dir);
 }
 
-export const defaults: Required<Options> = {
+export const defaults: Required<LocalOptions> = {
     ...CommonOptionDefaults,
     concurrency: 10,
     memorySize: 512,
@@ -54,7 +63,7 @@ export const defaults: Required<Options> = {
     gcWorker: defaultGcWorker
 };
 
-export const Impl: CloudFunctionImpl<Options, State> = {
+export const LocalImpl: CloudFunctionImpl<LocalOptions, LocalState> = {
     name: "local",
     initialize,
     pack,
@@ -70,8 +79,8 @@ export const Impl: CloudFunctionImpl<Options, State> = {
 async function initialize(
     serverModule: string,
     nonce: UUID,
-    options: Required<Options>
-): Promise<State> {
+    options: Required<LocalOptions>
+): Promise<LocalState> {
     const wrappers: Wrapper[] = [];
     const logStreams: Writable[] = [];
     const { gc, retentionInDays, gcWorker } = options;
@@ -150,20 +159,20 @@ async function initialize(
     };
 }
 
-export function logUrl(state: State) {
+export function logUrl(state: LocalState) {
     return state.logUrl;
 }
 
 async function pack(
     functionModule: string,
-    options: Options,
+    options: LocalOptions,
     wrapperOptions: WrapperOptions
 ): Promise<PackerResult> {
     return packer(localTrampolineFactory, functionModule, options, wrapperOptions);
 }
 
 async function invoke(
-    state: State,
+    state: LocalState,
     request: Invocation,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
@@ -192,11 +201,11 @@ async function invoke(
     };
 }
 
-async function publish(state: State, message: SendableMessage): Promise<void> {
+async function publish(state: LocalState, message: SendableMessage): Promise<void> {
     state.queue.enqueue(message);
 }
 
-async function poll(state: State, cancel: Promise<void>): Promise<PollResult> {
+async function poll(state: LocalState, cancel: Promise<void>): Promise<PollResult> {
     let message = await Promise.race([state.queue.dequeue(), cancel]);
     if (!message) {
         return { Messages: [] };
@@ -204,9 +213,9 @@ async function poll(state: State, cancel: Promise<void>): Promise<PollResult> {
     return { Messages: [message] };
 }
 
-function responseQueueId(_state: State): string | void {}
+function responseQueueId(_state: LocalState): string | void {}
 
-async function cleanup(state: State, options: CleanupOptions): Promise<void> {
+async function cleanup(state: LocalState, options: CleanupOptions): Promise<void> {
     info(`local cleanup starting.`);
 
     await Promise.all(state.wrappers.map(wrapper => wrapper.stop()));

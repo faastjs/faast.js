@@ -1,12 +1,14 @@
 import { ExecutionContext } from "ava";
 import * as lolex from "lolex";
-import { _providers, Provider } from "../src/faast";
+import { Provider, CommonOptions } from "../index";
+import { _providers } from "../src/faast";
 import { info, logGc } from "../src/log";
-import { CommonOptions } from "../src/provider";
 import { keys } from "../src/shared";
 import { Fn } from "../src/types";
 import { Timing } from "./functions";
 import { inspect } from "util";
+
+export { readFile } from "../src/fs";
 
 export const measureConcurrency = (timings: Timing[]) =>
     timings
@@ -92,4 +94,8 @@ export const providers = keys(_providers);
 export function title(provider: Provider, msg: string, options?: object) {
     const desc = options ? inspect(options, { breakLength: Infinity }) : "";
     return `${provider === "local" ? "" : "remote "}${provider} ${msg} ${desc}`;
+}
+
+export function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }

@@ -1,4 +1,6 @@
+import { AbortController } from "abort-controller";
 import * as sys from "child_process";
+import { Gaxios, GaxiosError, GaxiosOptions, GaxiosPromise } from "gaxios";
 import {
     cloudbilling_v1,
     cloudfunctions_v1,
@@ -7,20 +9,21 @@ import {
     pubsub_v1
 } from "googleapis";
 import * as util from "util";
+import { caches } from "../cache";
 import { CostBreakdown, CostMetric } from "../cost";
-import { info, logGc, warn, logProvider } from "../log";
+import { info, logGc, logProvider, warn } from "../log";
 import { packer, PackerResult } from "../packer";
 import {
+    CleanupOptions,
     CloudFunctionImpl,
+    CommonOptionDefaults,
+    CommonOptions,
     FunctionCounters,
     FunctionStats,
     Invocation,
     PollResult,
     ResponseMessage,
     SendableMessage,
-    CommonOptions,
-    CommonOptionDefaults,
-    CleanupOptions,
     UUID
 } from "../provider";
 import {
@@ -31,32 +34,33 @@ import {
     sleep,
     uuidv4Pattern
 } from "../shared";
-import { throttle, retry } from "../throttle";
+import { retry, throttle } from "../throttle";
 import { Mutable } from "../types";
-import { publishPubSub, receiveMessages, publishResponseMessage } from "./google-queue";
+import { WrapperOptions } from "../wrapper";
+import { publishPubSub, publishResponseMessage, receiveMessages } from "./google-queue";
 import * as googleTrampolineHttps from "./google-trampoline-https";
 import * as googleTrampolineQueue from "./google-trampoline-queue";
-import { Gaxios, GaxiosPromise, GaxiosError, GaxiosOptions } from "gaxios";
-
-import { AbortController } from "abort-controller";
 
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
-import { caches } from "../cache";
-import { WrapperOptions, WrapperOptionDefaults } from "../wrapper";
 
 const gaxios = new Gaxios();
 
 /**
  * @public
  */
-export interface Options extends CommonOptions {
+export interface GoogleOptions extends CommonOptions {
     region?: string;
     googleCloudFunctionOptions?: CloudFunctions.Schema$CloudFunction;
+
+    /** @internal */
     gcWorker?: (services: GoogleServices, resources: GoogleResources) => Promise<void>;
 }
 
+/**
+ * @public
+ */
 export interface GoogleResources {
     trampoline: string;
     requestQueueTopic?: string;
@@ -65,6 +69,9 @@ export interface GoogleResources {
     region: string;
 }
 
+/**
+ * @public
+ */
 export interface GoogleCloudPricing {
     perInvocation: number;
     perGhzSecond: number;
@@ -73,6 +80,9 @@ export interface GoogleCloudPricing {
     perGbPubSub: number;
 }
 
+/**
+ * @public
+ */
 export class GoogleMetrics {
     outboundBytes = 0;
     pubSubBytes = 0;
@@ -85,15 +95,22 @@ export interface GoogleServices {
     readonly cloudBilling: CloudBilling.Cloudbilling;
 }
 
-export interface State {
+/**
+ * @public
+ */
+export interface GoogleState {
     resources: GoogleResources;
+
+    /** @internal */
     services: GoogleServices;
     url?: string;
     project: string;
     functionName: string;
-    pricing?: GoogleCloudPricing;
     metrics: GoogleMetrics;
-    options: Required<Options>;
+    options: Required<GoogleOptions>;
+    /**
+     * @internal
+     */
     gcPromise?: Promise<void>;
 }
 
@@ -101,14 +118,14 @@ function gcWorkerDefault(services: GoogleServices, resources: GoogleResources) {
     return deleteResources(services, resources, logGc);
 }
 
-export const defaults: Required<Options> = {
+export const defaults: Required<GoogleOptions> = {
     ...CommonOptionDefaults,
     region: "us-central1",
     googleCloudFunctionOptions: {},
     gcWorker: gcWorkerDefault
 };
 
-export const Impl: CloudFunctionImpl<Options, State> = {
+export const GoogleImpl: CloudFunctionImpl<GoogleOptions, GoogleState> = {
     name: "google",
     initialize,
     pack,
@@ -213,8 +230,8 @@ async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) 
 export async function initialize(
     fmodule: string,
     nonce: UUID,
-    options: Required<Options>
-): Promise<State> {
+    options: Required<GoogleOptions>
+): Promise<GoogleState> {
     info(`Create google cloud function`);
     const services = await initializeGoogleServices();
     const project = await google.auth.getProjectId();
@@ -247,7 +264,7 @@ export async function initialize(
         trampoline,
         region
     };
-    const state: State = {
+    const state: GoogleState = {
         resources,
         services,
         project,
@@ -432,7 +449,7 @@ async function callFunctionHttps(
 }
 
 async function invoke(
-    state: State,
+    state: GoogleState,
     call: Invocation,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
@@ -452,14 +469,14 @@ async function invoke(
     }
 }
 
-async function publish(state: State, message: SendableMessage): Promise<void> {
+async function publish(state: GoogleState, message: SendableMessage): Promise<void> {
     const { services, resources } = state;
     const { pubsub } = services;
     const queue = resources.responseQueueTopic!;
     return publishResponseMessage(pubsub, queue, message);
 }
 
-function poll(state: State, cancel: Promise<void>): Promise<PollResult> {
+function poll(state: GoogleState, cancel: Promise<void>): Promise<PollResult> {
     return receiveMessages(
         state.services.pubsub,
         state.resources.responseSubscription!,
@@ -468,7 +485,7 @@ function poll(state: State, cancel: Promise<void>): Promise<PollResult> {
     );
 }
 
-function responseQueueId(state: State): string | undefined {
+function responseQueueId(state: GoogleState): string | undefined {
     return state.resources.responseQueueTopic;
 }
 
@@ -516,7 +533,7 @@ async function deleteResources(
     }
 }
 
-export async function cleanup(state: State, options: CleanupOptions) {
+export async function cleanup(state: GoogleState, options: CleanupOptions) {
     info(`google cleanup starting.`);
     if (state.gcPromise) {
         info(`Waiting for garbage collection...`);
@@ -662,7 +679,7 @@ async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
 
 export async function pack(
     functionModule: string,
-    options: Options,
+    options: GoogleOptions,
     wrapperOptions: WrapperOptions
 ): Promise<PackerResult> {
     const { mode } = options;
@@ -789,7 +806,7 @@ const gcfProvisonableMemoryTable: { [mem: number]: number } = {
 };
 
 async function costEstimate(
-    state: State,
+    state: GoogleState,
     counters: FunctionCounters,
     stats: FunctionStats
 ): Promise<CostBreakdown> {
@@ -855,7 +872,7 @@ async function costEstimate(
     return costs;
 }
 
-export function logUrl(state: State) {
+export function logUrl(state: GoogleState) {
     const { project, functionName } = state;
     return `https://console.cloud.google.com/logs/viewer?project=${project}&resource=cloud_function%2Ffunction_name%2F${functionName}`;
 }

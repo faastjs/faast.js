@@ -1,4 +1,4 @@
-import { faast } from "../src/faast";
+import { faast } from "../index";
 import * as funcs from "./functions";
 
 async function main() {

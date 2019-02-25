@@ -12,6 +12,7 @@ export type Mutable<T> = { -readonly [key in keyof T]: T[key] };
 
 export type AnyFunction = (...args: any[]) => any;
 
+/** @public */
 export type Unpacked<T> = T extends Promise<infer D> ? D : T;
 
 export interface Attributes {

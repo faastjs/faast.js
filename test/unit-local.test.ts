@@ -1,11 +1,9 @@
 import test, { ExecutionContext, Macro } from "ava";
 import { URL } from "url";
 import { inspect } from "util";
-import { faast, LocalOptions } from "../src/faast";
-import { readFile } from "../src/fs";
-import { sleep } from "../src/shared";
+import { faast, LocalOptions } from "../index";
 import * as funcs from "./functions";
-import { measureConcurrency } from "./util";
+import { measureConcurrency, sleep, readFile } from "./util";
 
 const testCleanup: Macro<[LocalOptions]> = async (
     t: ExecutionContext,

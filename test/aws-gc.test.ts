@@ -1,4 +1,4 @@
-import { AWSServices, GcWork } from "../src/aws/aws-faast";
+import { AwsServices, AwsGcWork } from "../src/aws/aws-faast";
 import { faast } from "../src/faast";
 import { sleep } from "../src/shared";
 import * as functions from "./functions";
@@ -15,7 +15,7 @@ test.serial(
         // its garbage collector to verify that it would clean up the first function,
         // which shows that the garbage collector did its job.
 
-        const gcRecorder = record(async (_: AWSServices, work: GcWork) => {
+        const gcRecorder = record(async (_: AwsServices, work: AwsGcWork) => {
             logGc(`Recorded gc work: %O`, work);
         });
         const func = await faast("aws", functions, "../test/functions", {
@@ -87,7 +87,7 @@ test.serial(
 test.serial(
     "remote aws garbage collector works for functions that are never called",
     async t => {
-        const gcRecorder = record(async (_: AWSServices, _work: GcWork) => {});
+        const gcRecorder = record(async (_: AwsServices, _work: AwsGcWork) => {});
 
         const func = await faast("aws", functions, "../test/functions", {
             mode: "queue"

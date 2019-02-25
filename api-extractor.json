@@ -9,7 +9,7 @@
         "outputFolder": "./build"
     },
     "project": {
-        "entryPointSourceFile": "build/decls/src/faast.d.ts"
+        "entryPointSourceFile": "build/decls/index.d.ts"
     },
     "dtsRollup": {
         "enabled": true,

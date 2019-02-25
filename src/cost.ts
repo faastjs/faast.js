@@ -1,7 +1,9 @@
 import * as Listr from "listr";
 import { inspect } from "util";
-import { faast, Promisified, AwsOptions, GoogleOptions } from "./faast";
-import { FunctionCounters, FunctionStats } from "./provider";
+import { faast, Promisified } from "./faast";
+import { AwsOptions } from "./aws/aws-faast";
+import { GoogleOptions } from "./google/google-faast";
+import { FunctionCounters, FunctionStats, CommonOptions } from "./provider";
 import { f1, keys, Statistics, sum } from "./shared";
 import { throttle } from "./throttle";
 import { NonFunctionProperties } from "./types";
@@ -18,8 +20,10 @@ export interface Workload<T, K extends string> {
     work: (module: Promisified<T>) => Promise<Metrics<K> | void>;
     summarize?: (summaries: Array<Metrics<K>>) => Metrics<K>;
     format?: (key: K, value: number) => string;
+    silent?: boolean;
 }
 
+/** @public */
 export class CostMetric {
     name!: string;
     pricing!: number;
@@ -29,6 +33,7 @@ export class CostMetric {
     comment?: string;
     informationalOnly?: boolean = false;
 
+    /** @internal */
     constructor(opts?: NonFunctionProperties<CostMetric>) {
         Object.assign(this, opts);
     }
@@ -131,15 +136,10 @@ export class CostBreakdown {
 /**
  * @public
  */
-export type Options = AwsOptions | GoogleOptions;
-
-/**
- * @public
- */
 export interface CostAnalyzerConfiguration {
     provider: "aws" | "google";
     repetitions: number;
-    options: Options;
+    options: AwsOptions | GoogleOptions | CommonOptions;
     repetitionConcurrency: number;
 }
 
@@ -206,7 +206,7 @@ export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
  */
 export interface CostAnalysisProfile<K extends string> {
     provider: "aws" | "google";
-    options: Options;
+    options: CommonOptions | AwsOptions | GoogleOptions;
     costEstimate: CostBreakdown;
     stats: FunctionStats;
     counters: FunctionCounters;
@@ -273,8 +273,7 @@ async function estimate<T, K extends string>(
 export async function estimateWorkloadCost<T, K extends string>(
     fmodule: string,
     configurations: CostAnalyzerConfiguration[] = awsConfigurations,
-    workload: Workload<T, K>,
-    options?: Listr.ListrOptions
+    workload: Workload<T, K>
 ) {
     const scheduleEstimate = throttle<
         [string, Workload<T, K>, CostAnalyzerConfiguration],
@@ -294,6 +293,8 @@ export async function estimateWorkloadCost<T, K extends string>(
     );
 
     const format = workload.format || defaultFormat;
+
+    const renderer = workload.silent ? "silent" : "default";
 
     const list = new Listr(
         promises.map((promise, i) => {
@@ -318,7 +319,7 @@ export async function estimateWorkloadCost<T, K extends string>(
                 }
             };
         }),
-        { concurrent: 8, ...options }
+        { concurrent: 8, nonTTYRenderer: renderer, renderer }
     );
 
     await list.run();
@@ -327,6 +328,9 @@ export async function estimateWorkloadCost<T, K extends string>(
     return results;
 }
 
+/**
+ * @public
+ */
 export function toCSV<K extends string>(
     profile: Array<CostAnalysisProfile<K>>,
     format?: (key: K, value: number) => string

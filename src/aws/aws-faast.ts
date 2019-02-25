@@ -32,19 +32,18 @@ import * as awsNpm from "./aws-npm";
 import {
     createSNSTopic,
     createSQSQueue,
-    processAWSErrorMessage,
+    processAwsErrorMessage,
     publishInvocationMessage,
     sendResponseQueueMessage,
     receiveMessages
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
-import { FunctionReturn, WrapperOptions, WrapperOptionDefaults } from "../wrapper";
-import { CreateFunctionRequest } from "aws-sdk/clients/lambda";
+import { FunctionReturn, WrapperOptions } from "../wrapper";
 
 const defaultGcWorker = throttle(
     { concurrency: 5, rate: 5, burst: 2 },
-    async (services: AWSServices, work: GcWork) => {
+    async (services: AwsServices, work: AwsGcWork) => {
         switch (work.type) {
             case "SetLogRetention":
                 if (
@@ -71,17 +70,18 @@ const defaultGcWorker = throttle(
 /**
  * @public
  */
-export interface Options extends CommonOptions {
-    region?: AWSRegion;
+export interface AwsOptions extends CommonOptions {
+    region?: AwsRegion;
     PolicyArn?: string;
     RoleName?: string;
     useDependencyCaching?: boolean;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
     CacheBucket?: string;
-    gcWorker?: (services: AWSServices, work: GcWork) => Promise<void>;
+    /** @internal */
+    gcWorker?: (services: AwsServices, work: AwsGcWork) => Promise<void>;
 }
 
-export let defaults: Required<Options> = {
+export let defaults: Required<AwsOptions> = {
     ...CommonOptionDefaults,
     region: "us-west-2",
     PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
@@ -93,7 +93,7 @@ export let defaults: Required<Options> = {
     gcWorker: defaultGcWorker
 };
 
-export interface AWSPrices {
+export interface AwsPrices {
     lambdaPerRequest: number;
     lambdaPerGbSecond: number;
     snsPer64kPublish: number;
@@ -102,16 +102,22 @@ export interface AWSPrices {
     logsIngestedPerGb: number;
 }
 
-export class AWSMetrics {
+/**
+ * @public
+ */
+export class AwsMetrics {
     outboundBytes = 0;
     sns64kRequests = 0;
     sqs64kRequests = 0;
 }
 
-export interface AWSResources {
+/**
+ * @public
+ */
+export interface AwsResources {
     FunctionName: string;
     RoleName: string;
-    region: AWSRegion;
+    region: AwsRegion;
     ResponseQueueUrl?: string;
     ResponseQueueArn?: string;
     RequestTopicArn?: string;
@@ -121,7 +127,7 @@ export interface AWSResources {
     logGroupName: string;
 }
 
-export interface AWSServices {
+export interface AwsServices {
     readonly lambda: aws.Lambda;
     readonly cloudwatch: aws.CloudWatchLogs;
     readonly iam: aws.IAM;
@@ -135,15 +141,17 @@ export interface AWSServices {
 /**
  * @public
  */
-export interface State {
-    resources: AWSResources;
-    services: AWSServices;
-    options: Required<Options>;
-    metrics: AWSMetrics;
+export interface AwsState {
+    resources: AwsResources;
+    /** @internal */
+    services: AwsServices;
+    options: Required<AwsOptions>;
+    metrics: AwsMetrics;
+    /** @internal */
     gcPromise?: Promise<void>;
 }
 
-export type GcWork =
+export type AwsGcWork =
     | {
           type: "SetLogRetention";
           logGroupName: string;
@@ -151,7 +159,7 @@ export type GcWork =
       }
     | {
           type: "DeleteResources";
-          resources: AWSResources;
+          resources: AwsResources;
       };
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
@@ -171,7 +179,7 @@ function zipStreamToBuffer(zipStream: NodeJS.ReadableStream): Promise<Buffer> {
     });
 }
 
-export const createAWSApis = throttle(
+export const createAwsApis = throttle(
     { concurrency: 1, memoize: true },
     async (region: string) => {
         const logger = logProviderSdk.enabled ? { log: logProviderSdk } : undefined;
@@ -192,7 +200,7 @@ export const createAWSApis = throttle(
 
 const createLambdaRole = throttle(
     { concurrency: 1, rate: 5, memoize: true },
-    async (RoleName: string, PolicyArn: string, services: AWSServices) => {
+    async (RoleName: string, PolicyArn: string, services: AwsServices) => {
         const { iam } = services;
         info(`Checking for cached lambda role`);
         const previousRole = await quietly(iam.getRole({ RoleName }));
@@ -233,7 +241,7 @@ const createLambdaRole = throttle(
     }
 );
 
-export async function pollAWSRequest<T>(
+export async function pollAwsRequest<T>(
     n: number,
     description: string,
     fn: () => aws.Request<T, aws.AWSError>
@@ -361,30 +369,18 @@ export async function buildModulesOnLambda(
     }
 }
 
-export function logUrl(state: State) {
+export function logUrl(state: AwsState) {
     const { region, FunctionName } = state.resources;
     return getLogUrl(region, FunctionName);
 }
 
-const createFunctionThrottled = throttle(
-    { concurrency: 5, rate: 1 },
-    async (lambda: aws.Lambda, request: CreateFunctionRequest) => {
-        info(`createFunctionRequest: %O`, request);
-        const func = await pollAWSRequest(3, "creating function", () =>
-            lambda.createFunction(request)
-        );
-        info(`Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`);
-        return func;
-    }
-);
-
 export const initialize = throttle(
     { concurrency: 2, rate: 2 },
-    async (fModule: string, nonce: UUID, options: Required<Options>) => {
+    async (fModule: string, nonce: UUID, options: Required<AwsOptions>) => {
         info(`Nonce: ${nonce}`);
         const { region, timeout, memorySize } = options;
         info(`Creating AWS APIs`);
-        const services = await createAWSApis(region);
+        const services = await createAwsApis(region);
         const { lambda, s3, sts } = services;
         const FunctionName = `faast-${nonce}`;
         const accountId = await getAccountId(sts);
@@ -392,12 +388,12 @@ export const initialize = throttle(
 
         const { packageJson, useDependencyCaching, childProcess } = options;
 
-        function createFunctionRequest(
+        async function createFunctionRequest(
             Code: aws.Lambda.FunctionCode,
             Role: string,
             responseQueueArn: string
         ) {
-            const request: CreateFunctionRequest = {
+            const request: aws.Lambda.Types.CreateFunctionRequest = {
                 FunctionName,
                 Role,
                 // Runtime: "nodejs6.10",
@@ -410,7 +406,14 @@ export const initialize = throttle(
                 DeadLetterConfig: { TargetArn: responseQueueArn },
                 ...options.awsLambdaOptions
             };
-            return createFunctionThrottled(lambda, request);
+            info(`createFunctionRequest: %O`, request);
+            const func = await pollAwsRequest(3, "creating function", () =>
+                lambda.createFunction(request)
+            );
+            info(
+                `Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`
+            );
+            return func;
         }
 
         async function createCodeBundle() {
@@ -436,7 +439,7 @@ export const initialize = throttle(
         }
 
         const { RoleName } = options;
-        const state: State = {
+        const state: AwsState = {
             resources: {
                 FunctionName,
                 RoleName,
@@ -444,7 +447,7 @@ export const initialize = throttle(
                 logGroupName: getLogGroupName(FunctionName)
             },
             services,
-            metrics: new AWSMetrics(),
+            metrics: new AwsMetrics(),
             options
         };
 
@@ -500,7 +503,7 @@ export const initialize = throttle(
 );
 
 async function invoke(
-    state: State,
+    state: AwsState,
     call: Invocation,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
@@ -521,12 +524,12 @@ async function invoke(
     }
 }
 
-function publish(state: State, message: SendableMessage): Promise<void> {
+function publish(state: AwsState, message: SendableMessage): Promise<void> {
     const { services, resources } = state;
     return sendResponseQueueMessage(services.sqs, resources.ResponseQueueUrl!, message);
 }
 
-function poll(state: State, cancel: Promise<void>): Promise<PollResult> {
+function poll(state: AwsState, cancel: Promise<void>): Promise<PollResult> {
     return receiveMessages(
         state.services.sqs,
         state.resources.ResponseQueueUrl!,
@@ -535,7 +538,7 @@ function poll(state: State, cancel: Promise<void>): Promise<PollResult> {
     );
 }
 
-function responseQueueId(state: State): string | undefined {
+function responseQueueId(state: AwsState): string | undefined {
     return state.resources.ResponseQueueUrl;
 }
 
@@ -543,7 +546,7 @@ async function invokeHttps(
     lambda: aws.Lambda,
     FunctionName: string,
     message: Invocation,
-    metrics: AWSMetrics,
+    metrics: AwsMetrics,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
     const request: aws.Lambda.Types.InvocationRequest = {
@@ -566,7 +569,7 @@ async function invokeHttps(
 
     let body: string | FunctionReturn;
     if (rawResponse.FunctionError) {
-        const response = processAWSErrorMessage(rawResponse.Payload as string);
+        const response = processAwsErrorMessage(rawResponse.Payload as string);
         body = {
             type: "error",
             callId: message.callId,
@@ -607,8 +610,8 @@ export async function deleteRole(RoleName: string, iam: aws.IAM) {
 }
 
 async function deleteResources(
-    resources: Partial<AWSResources>,
-    services: AWSServices,
+    resources: Partial<AwsResources>,
+    services: AwsServices,
     output: (msg: string) => void = info
 ) {
     const {
@@ -678,7 +681,7 @@ async function addLogRetentionPolicy(
     }
 }
 
-export async function cleanup(state: State, options: Required<CleanupOptions>) {
+export async function cleanup(state: AwsState, options: Required<CleanupOptions>) {
     info(`aws cleanup starting.`);
     await addLogRetentionPolicy(state.resources.FunctionName, state.services.cloudwatch);
     if (state.gcPromise) {
@@ -708,9 +711,9 @@ function functionNameFromLogGroup(logGroupName: string) {
 }
 
 export async function collectGarbage(
-    executor: (services: AWSServices, work: GcWork) => Promise<void>,
-    services: AWSServices,
-    region: AWSRegion,
+    executor: (services: AwsServices, work: AwsGcWork) => Promise<void>,
+    services: AwsServices,
+    region: AwsRegion,
     accountId: string,
     Bucket: string,
     retentionInDays: number
@@ -722,7 +725,7 @@ export async function collectGarbage(
         lastGc = Date.now();
     }
     const promises: Promise<void>[] = [];
-    function scheduleWork(work: GcWork) {
+    function scheduleWork(work: AwsGcWork) {
         promises.push(executor(services, work));
     }
     const throttlePaging = throttle({ concurrency: 1, rate: 2 }, async () => {});
@@ -798,10 +801,10 @@ export async function getAccountId(sts: aws.STS) {
 function garbageCollectLogGroups(
     logGroups: aws.CloudWatchLogs.LogGroup[],
     retentionInDays: number,
-    region: AWSRegion,
+    region: AwsRegion,
     accountId: string,
     s3Bucket: string,
-    scheduleWork: (work: GcWork) => void
+    scheduleWork: (work: AwsGcWork) => void
 ) {
     const logGroupsMissingRetentionPolicy = logGroups.filter(
         g => g.retentionInDays === undefined
@@ -825,14 +828,14 @@ function garbageCollectLogGroups(
 }
 
 function deleteGarbageFunctions(
-    region: AWSRegion,
+    region: AwsRegion,
     accountId: string,
     s3Bucket: string,
     garbageFunctions: string[],
-    scheduleWork: (work: GcWork) => void
+    scheduleWork: (work: AwsGcWork) => void
 ) {
     garbageFunctions.forEach(FunctionName => {
-        const resources: AWSResources = {
+        const resources: AwsResources = {
             FunctionName,
             region,
             RoleName: "",
@@ -880,7 +883,11 @@ function getResponseQueueUrl(region: string, accountId: string, FunctionName: st
     return `https://sqs.${region}.amazonaws.com/${accountId}/${queueName}`;
 }
 
-function createRequestQueueImpl(state: State, FunctionName: string, FunctionArn: string) {
+function createRequestQueueImpl(
+    state: AwsState,
+    FunctionName: string,
+    FunctionArn: string
+) {
     const { sns, lambda } = state.services;
     const { resources, metrics } = state;
 
@@ -920,7 +927,7 @@ function createRequestQueueImpl(state: State, FunctionName: string, FunctionArn:
     ]);
 }
 
-export async function createResponseQueueImpl(state: State, FunctionName: string) {
+export async function createResponseQueueImpl(state: AwsState, FunctionName: string) {
     const { sqs } = state.services;
     const { resources } = state;
     info(`Creating SQS response queue`);
@@ -951,8 +958,11 @@ function addSnsInvokePermissionsToFunction(
         .promise();
 }
 
-// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html
-type AWSRegion =
+/**
+ * Valid AWS {@link https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html | regions}. Not all of these regions have Lambda.
+ * @public
+ */
+export type AwsRegion =
     | "us-east-1"
     | "us-east-2"
     | "us-west-1"
@@ -1043,8 +1053,8 @@ export const awsPrice = throttle(
 
 export const requestAwsPrices = async (
     pricing: aws.Pricing,
-    region: AWSRegion
-): Promise<AWSPrices> => {
+    region: AwsRegion
+): Promise<AwsPrices> => {
     const location = locations[region];
     return {
         lambdaPerRequest: await awsPrice(pricing, "AWSLambda", {
@@ -1077,7 +1087,7 @@ export const requestAwsPrices = async (
 };
 
 export async function costEstimate(
-    state: State,
+    state: AwsState,
     counters: FunctionCounters,
     statistics: FunctionStats
 ): Promise<CostBreakdown> {
@@ -1153,7 +1163,7 @@ export async function costEstimate(
     return costs;
 }
 
-export const Impl: CloudFunctionImpl<Options, State> = {
+export const AwsImpl: CloudFunctionImpl<AwsOptions, AwsState> = {
     name: "aws",
     initialize,
     pack,

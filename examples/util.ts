@@ -19,3 +19,19 @@ export async function listAllObjects(Bucket: string) {
     );
     return allObjects;
 }
+
+export const GB = 2 ** 30;
+export const MB = 2 ** 20;
+export const KB = 2 ** 10;
+
+export function f1(n: number) {
+    return n.toFixed(1);
+}
+
+export function f2(n: number) {
+    return n.toFixed(2);
+}
+
+export function assertNever(x: never): never {
+    throw new Error("Unexpected object: " + x);
+}

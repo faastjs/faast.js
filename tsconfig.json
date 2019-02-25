@@ -25,6 +25,6 @@
         "allowSyntheticDefaultImports": true,
         "skipLibCheck": true
     },
-    "include": ["src", "examples", "types", "test"],
+    "include": ["index.ts", "src", "examples", "types", "test"],
     "exclude": ["node_modules", "build"]
 }

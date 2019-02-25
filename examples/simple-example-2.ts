@@ -1,6 +1,5 @@
-import { faast } from "../src/faast";
+import { faast } from "../index";
 import * as m from "./functions";
-import { sleep } from "../src/shared";
 
 async function main() {
     const cloudFunc = await faast("aws", m, "./module", {

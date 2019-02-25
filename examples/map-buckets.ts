@@ -1,8 +1,7 @@
 import * as commander from "commander";
-import { FaastError, faast } from "../src/faast";
-import { f1, GB, Statistics } from "../src/shared";
+import { FaastError, faast, Statistics } from "../index";
 import * as m from "./map-buckets-module";
-import { listAllObjects } from "./util";
+import { listAllObjects, f1, GB } from "./util";
 
 // https mode:
 // Extracted 1223514 files with 8 errors

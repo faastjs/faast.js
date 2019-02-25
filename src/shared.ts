@@ -1,3 +1,6 @@
+/**
+ * @public
+ */
 export class Statistics {
     samples = 0;
     max = Number.NEGATIVE_INFINITY;

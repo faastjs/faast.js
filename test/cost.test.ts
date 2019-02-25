@@ -25,15 +25,10 @@ function filter(configurations: CostAnalyzerConfiguration[]) {
 }
 
 const costAnalyzerMacro: Macro<[CostAnalyzerConfiguration[]]> = async (t, configs) => {
-    const profile = await estimateWorkloadCost(
-        "../test/functions",
-        configs,
-        { work },
-        {
-            nonTTYRenderer: "silent",
-            renderer: "silent"
-        }
-    );
+    const profile = await estimateWorkloadCost("../test/functions", configs, {
+        work,
+        silent: true
+    });
 
     t.is(profile.length, configs.length);
     for (const p of profile) {

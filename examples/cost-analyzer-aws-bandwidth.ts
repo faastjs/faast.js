@@ -1,10 +1,17 @@
 import * as commander from "commander";
-import { Promisified, estimateWorkloadCost, awsConfigurations } from "../src/faast";
-import { f1, GB, Statistics, f2, assertNever } from "../src/shared";
+import {
+    Promisified,
+    estimateWorkloadCost,
+    awsConfigurations,
+    toCSV,
+    Statistics
+} from "../index";
 import * as m from "./map-buckets-module";
-import { listAllObjects } from "./util";
-import { toCSV } from "../src/cost";
-import { writeFile } from "../src/fs";
+import { listAllObjects, f1, GB, f2, assertNever } from "./util";
+import { writeFile as fsWriteFile } from "fs";
+import { promisify } from "util";
+
+const writeFile = promisify(fsWriteFile);
 
 type FilterFn = (s: string) => boolean;
 
@@ -71,10 +78,9 @@ async function compareAws(Bucket: string, filter: FilterFn) {
         {
             work: workload(Bucket, filter),
             format: makeFormatter({ csv: false })
-        },
-        { concurrent: 8 }
+        }
     );
-    await writeFile("cost.csv", toCSV(result, makeFormatter({ csv: true })));
+    writeFile("cost.csv", toCSV(result, makeFormatter({ csv: true })));
     // console.log(`${toCSV(result, makeFormatter(true))}`);
 }
 

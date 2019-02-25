@@ -1,7 +1,5 @@
 import test, { ExecutionContext } from "ava";
-import { AwsOptions, faast, Provider } from "../src/faast";
-import { info } from "../src/log";
-import { CommonOptions } from "../src/provider";
+import { AwsOptions, faast, Provider, CommonOptions } from "../index";
 import * as funcs from "./functions";
 import { configs, providers, title } from "./util";
 
@@ -66,8 +64,6 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
     try {
         await cloudFunc.functions.hello("there");
         const costs = await cloudFunc.costEstimate();
-        info(`${costs}`);
-        info(`CSV costs:\n${costs.csv()}`);
 
         const { estimatedBilledTime } = cloudFunc.stats.aggregate;
         t.is(

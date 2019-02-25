@@ -1,4 +1,4 @@
-import { Promisified, estimateWorkloadCost, awsConfigurations } from "../src/faast";
+import { Promisified, estimateWorkloadCost, awsConfigurations } from "../index";
 import * as m from "./functions";
 import { toCSV } from "../src/cost";
 import { writeFile } from "../src/fs";

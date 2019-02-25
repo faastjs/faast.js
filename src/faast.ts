@@ -2,22 +2,10 @@ import { EventEmitter } from "events";
 import * as path from "path";
 import * as util from "util";
 import * as uuidv4 from "uuid/v4";
-import {
-    Impl as AwsImpl,
-    Options as AwsOptions,
-    State as AwsState
-} from "./aws/aws-faast";
+import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
 import { CostBreakdown, CostMetric } from "./cost";
-import {
-    Impl as GoogleImpl,
-    Options as GoogleOptions,
-    State as GoogleState
-} from "./google/google-faast";
-import {
-    Impl as LocalImpl,
-    Options as LocalOptions,
-    State as LocalState
-} from "./local/local-faast";
+import { GoogleImpl, GoogleOptions, GoogleState } from "./google/google-faast";
+import { LocalImpl, LocalOptions, LocalState } from "./local/local-faast";
 import { info, inspectProvider, logCalls, logLeaks, logProvider, warn } from "./log";
 import {
     CallId,
@@ -53,16 +41,6 @@ export const _providers = {
     google: GoogleImpl,
     local: LocalImpl
 };
-
-export {
-    awsConfigurations,
-    CostAnalyzerConfiguration,
-    estimateWorkloadCost,
-    googleConfigurations
-} from "./cost";
-export { AwsOptions, GoogleOptions, LocalOptions };
-export { AwsState };
-export { CommonOptions, CleanupOptions, FunctionCounters, FunctionStats };
 
 /**
  * @public
@@ -149,9 +127,6 @@ function resolveModule(fmodule: string) {
     return (Module as any)._resolveFilename(fmodule, module.parent);
 }
 
-/**
- * @public
- */
 export class FunctionCountersMap {
     aggregate = new FunctionCounters();
     fIncremental = new FactoryMap(() => new FunctionCounters());
@@ -177,9 +152,6 @@ export class FunctionCountersMap {
     }
 }
 
-/**
- * @public
- */
 export class FunctionStatsMap {
     fIncremental = new FactoryMap(() => new FunctionStats());
     fAggregate = new FactoryMap(() => new FunctionStats());
@@ -231,10 +203,10 @@ class FunctionMemoryCounters {
 }
 
 class MemoryLeakDetector {
-    protected instances = new FactoryMap(() => new FunctionMemoryStats());
-    protected counters = new FactoryMap(() => new FunctionMemoryCounters());
-    protected warned = new Set<string>();
-    protected memorySize: number;
+    private instances = new FactoryMap(() => new FunctionMemoryStats());
+    private counters = new FactoryMap(() => new FunctionMemoryCounters());
+    private warned = new Set<string>();
+    private memorySize: number;
 
     constructor(memorySize?: number) {
         this.memorySize = memorySize || 100;
@@ -445,25 +417,30 @@ export class CloudFunction<
     S = any
 > {
     cloudName = this.impl.name;
-    counters = new FunctionCountersMap();
-    stats = new FunctionStatsMap();
     functions: Promisified<M>;
-    protected cpuUsage = new FactoryMap(() => new FunctionCpuUsagePerSecond());
-    protected memoryLeakDetector: MemoryLeakDetector;
-    protected funnel: Funnel<any>;
-    protected skew = new ExponentiallyDecayingAverageValue(0.3);
-    protected statsTimer?: NodeJS.Timer;
-    protected cleanupHooks: Set<Deferred> = new Set();
-    protected initialInvocationTime = new FactoryMap(() => Date.now());
-    protected callResultsPending: Map<CallId, PendingRequest> = new Map();
-    protected collectorPump: Pump<void>;
-    protected emitter = new EventEmitter();
 
+    private counters = new FunctionCountersMap();
+    private stats = new FunctionStatsMap();
+    private _cpuUsage = new FactoryMap(() => new FunctionCpuUsagePerSecond());
+    private _memoryLeakDetector: MemoryLeakDetector;
+    private _funnel: Funnel<any>;
+    private _skew = new ExponentiallyDecayingAverageValue(0.3);
+    private _statsTimer?: NodeJS.Timer;
+    private _cleanupHooks: Set<Deferred> = new Set();
+    private _initialInvocationTime = new FactoryMap(() => Date.now());
+    private _callResultsPending: Map<CallId, PendingRequest> = new Map();
+    private _collectorPump: Pump<void>;
+    private _emitter = new EventEmitter();
+
+    /**
+     * Constructor
+     * @internal
+     */
     constructor(
-        protected impl: CloudFunctionImpl<O, S>,
+        private impl: CloudFunctionImpl<O, S>,
         readonly state: S,
-        protected fmodule: M,
-        protected modulePath: string,
+        private fmodule: M,
+        private modulePath: string,
         readonly options: Required<CommonOptions>
     ) {
         info(`Node version: ${process.version}`);
@@ -472,8 +449,8 @@ export class CloudFunction<
         logProvider(`logUrl: ${this.impl.logUrl(state)}`);
         info(`Log url: ${impl.logUrl(state)}`);
 
-        this.funnel = new Funnel<any>(options.concurrency);
-        this.memoryLeakDetector = new MemoryLeakDetector(options.memorySize);
+        this._funnel = new Funnel<any>(options.concurrency);
+        this._memoryLeakDetector = new MemoryLeakDetector(options.memorySize);
         const functions: any = {};
         for (const name of Object.keys(fmodule)) {
             if (typeof (fmodule as any)[name] === "function") {
@@ -481,33 +458,33 @@ export class CloudFunction<
             }
         }
         this.functions = functions;
-        this.collectorPump = new Pump(2, () => this.resultCollector());
-        this.collectorPump.start();
+        this._collectorPump = new Pump(2, () => this.resultCollector());
+        this._collectorPump.start();
     }
 
     async cleanup(userCleanupOptions: CleanupOptions = {}) {
         const options = Object.assign({}, CleanupOptionDefaults, userCleanupOptions);
         this.counters.clear();
         this.stats.clear();
-        this.memoryLeakDetector.clear();
-        this.funnel.clear();
-        this.cleanupHooks.forEach(hook => hook.resolve());
-        this.cleanupHooks.clear();
+        this._memoryLeakDetector.clear();
+        this._funnel.clear();
+        this._cleanupHooks.forEach(hook => hook.resolve());
+        this._cleanupHooks.clear();
         this.stopStats();
-        this.initialInvocationTime.clear();
-        this.callResultsPending.clear();
-        this.collectorPump.stop();
+        this._initialInvocationTime.clear();
+        this._callResultsPending.clear();
+        this._collectorPump.stop();
 
         let count = 0;
         const tasks = [];
         const stopMessage: StopQueueMessage = { kind: "stopqueue" };
-        while (this.collectorPump.getConcurrency() > 0 && count++ < 10) {
-            for (let i = 0; i < this.collectorPump.getConcurrency(); i++) {
+        while (this._collectorPump.getConcurrency() > 0 && count++ < 10) {
+            for (let i = 0; i < this._collectorPump.getConcurrency(); i++) {
                 logProvider(`publish ${inspectProvider(stopMessage)}`);
                 tasks.push(this.impl.publish(this.state, stopMessage));
             }
             await Promise.all(tasks);
-            if (this.collectorPump.getConcurrency() > 0) {
+            if (this._collectorPump.getConcurrency() > 0) {
                 await sleep(1000);
             }
         }
@@ -523,11 +500,11 @@ export class CloudFunction<
         return rv;
     }
 
-    protected startStats(interval: number = 1000) {
-        this.statsTimer = setInterval(() => {
+    private startStats(interval: number = 1000) {
+        this._statsTimer = setInterval(() => {
             this.counters.fIncremental.forEach((counters, fn) => {
                 const stats = this.stats.fIncremental.get(fn);
-                this.emitter.emit("stats", new FunctionStatsEvent(fn, counters, stats));
+                this._emitter.emit("stats", new FunctionStatsEvent(fn, counters, stats));
             });
 
             this.counters.resetIncremental();
@@ -535,41 +512,42 @@ export class CloudFunction<
         }, interval);
     }
 
-    protected stopStats() {
-        this.statsTimer && clearInterval(this.statsTimer);
-        this.statsTimer = undefined;
+    private stopStats() {
+        this._statsTimer && clearInterval(this._statsTimer);
+        this._statsTimer = undefined;
     }
 
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void) {
-        if (!this.statsTimer) {
+        if (!this._statsTimer) {
             this.startStats();
         }
-        return this.emitter.on(name, listener);
+        this._emitter.on(name, listener);
     }
 
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void) {
-        const rv = this.emitter.off(name, listener);
-        if (this.emitter.listenerCount(name) === 0) {
+        this._emitter.off(name, listener);
+        if (this._emitter.listenerCount(name) === 0) {
             this.stopStats();
         }
-        return rv;
     }
 
-    protected withCancellation<T>(fn: (cancel: Promise<void>) => Promise<T>): Promise<T> {
+    private withCancellation<T>(fn: (cancel: Promise<void>) => Promise<T>): Promise<T> {
         const deferred = new Deferred();
-        this.cleanupHooks.add(deferred);
+        this._cleanupHooks.add(deferred);
         const promise = fn(deferred.promise);
-        promise.catch(() => {}).then(() => this.cleanupHooks.delete(deferred));
+        promise.catch(() => {}).then(() => this._cleanupHooks.delete(deferred));
         return promise;
     }
 
-    protected wrapFunctionWithResponse<A extends any[], R>(
+    private wrapFunctionWithResponse<A extends any[], R>(
         fn: (...args: A) => R
     ): ResponsifiedFunction<A, R> {
         return async (...args: A) => {
             let retries = 0;
             const startTime = Date.now();
-            const initialInvocationTime = this.initialInvocationTime.getOrCreate(fn.name);
+            const initialInvocationTime = this._initialInvocationTime.getOrCreate(
+                fn.name
+            );
             // XXX capture google retries in stats?
 
             const shouldRetry = () => {
@@ -594,7 +572,7 @@ export class CloudFunction<
                     ResponseQueueId
                 };
                 const pending = new PendingRequest(callObject);
-                this.callResultsPending.set(callId, pending);
+                this._callResultsPending.set(callId, pending);
 
                 const invokeCloudFunction = () => {
                     this.counters.incr(fn.name, "invocations");
@@ -659,7 +637,7 @@ export class CloudFunction<
                     };
                 });
 
-                this.callResultsPending.delete(rv.callId);
+                this._callResultsPending.delete(rv.callId);
                 logCalls(`Returning '${fn.name}' (${callId}): ${util.inspect(rv)}`);
 
                 return processResponse<R>(
@@ -668,16 +646,16 @@ export class CloudFunction<
                     startTime,
                     this.counters,
                     this.stats,
-                    this.skew,
-                    this.memoryLeakDetector
+                    this._skew,
+                    this._memoryLeakDetector
                 );
             };
 
-            return this.funnel.push(invoke, shouldRetry);
+            return this._funnel.push(invoke, shouldRetry);
         };
     }
 
-    protected wrapFunction<A extends any[], R>(
+    private wrapFunction<A extends any[], R>(
         fn: (...args: A) => R
     ): PromisifiedFunction<A, R> {
         const wrappedFunc = (...args: A) => {
@@ -739,8 +717,8 @@ export class CloudFunction<
         }
     }
 
-    protected async resultCollector() {
-        const { callResultsPending } = this;
+    private async resultCollector() {
+        const { _callResultsPending: callResultsPending } = this;
         if (!callResultsPending.size) {
             return;
         }
@@ -801,7 +779,7 @@ export class CloudFunction<
                     if (!pending) {
                         return;
                     }
-                    const stats = this.cpuUsage.getOrCreate(pending.call.name);
+                    const stats = this._cpuUsage.getOrCreate(pending.call.name);
                     const secondMetrics = stats.getOrCreate(
                         Math.round(metrics.elapsed / 1000)
                     );
@@ -815,12 +793,12 @@ export class CloudFunction<
         }
     }
 
-    protected adjustCollectorConcurrencyLevel(full?: boolean) {
-        const nPending = this.callResultsPending.size;
+    private adjustCollectorConcurrencyLevel(full?: boolean) {
+        const nPending = this._callResultsPending.size;
         if (nPending > 0) {
             let nCollectors = full ? Math.floor(nPending / 20) + 2 : 2;
             nCollectors = Math.min(nCollectors, 10);
-            const pump = this.collectorPump;
+            const pump = this._collectorPump;
             const previous = pump.concurrency;
             pump.setMaxConcurrency(nCollectors);
             if (previous !== pump.concurrency) {
