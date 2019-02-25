@@ -3,8 +3,9 @@ import * as faast from "../index";
 import { keys } from "../src/shared";
 import { quietly, checkResourcesCleanedUp } from "./util";
 import { warn } from "../src/log";
+import { GoogleCloudFunction } from "../src/faast";
 
-export async function getGoogleResources(func: faast.GoogleCloudFunction) {
+export async function getGoogleResources(func: GoogleCloudFunction) {
     const { cloudFunctions, pubsub } = func.state.services;
     const {
         trampoline,
