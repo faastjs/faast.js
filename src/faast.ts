@@ -124,7 +124,7 @@ function resolveModule(fmodule: string) {
     if (path.isAbsolute(fmodule)) {
         return fmodule;
     }
-    return (Module as any)._resolveFilename(fmodule, module.parent);
+    return (Module as any)._resolveFilename(fmodule, module.parent!.parent);
 }
 
 export class FunctionCountersMap {
@@ -418,9 +418,10 @@ export class CloudFunction<
 > {
     cloudName = this.impl.name;
     functions: Promisified<M>;
-
-    private counters = new FunctionCountersMap();
-    private stats = new FunctionStatsMap();
+    /** @internal */
+    counters = new FunctionCountersMap();
+    /** @internal */
+    stats = new FunctionStatsMap();
     private _cpuUsage = new FactoryMap(() => new FunctionCpuUsagePerSecond());
     private _memoryLeakDetector: MemoryLeakDetector;
     private _funnel: Funnel<any>;

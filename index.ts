@@ -1,4 +1,13 @@
 export {
+    CloudFunction,
+    faast,
+    FaastError,
+    FunctionStatsEvent,
+    Promisified,
+    PromisifiedFunction,
+    Provider
+} from "./src/faast";
+export {
     AwsMetrics,
     AwsOptions,
     AwsRegion,
@@ -9,28 +18,19 @@ export {
     awsConfigurations,
     CostAnalysisProfile,
     CostAnalyzerConfiguration,
+    CostBreakdown,
+    CostMetric,
     estimateWorkloadCost,
     googleConfigurations,
-    toCSV,
-    Workload,
-    CostBreakdown,
     Metrics,
-    CostMetric
+    toCSV,
+    Workload
 } from "./src/cost";
 export {
-    CloudFunction,
-    faast,
-    FaastError,
-    Promisified,
-    PromisifiedFunction,
-    Provider,
-    FunctionStatsEvent
-} from "./src/faast";
-export {
+    GoogleMetrics,
     GoogleOptions,
-    GoogleState,
     GoogleResources,
-    GoogleMetrics
+    GoogleState
 } from "./src/google/google-faast";
 export { LocalOptions, LocalState } from "./src/local/local-faast";
 export {
