@@ -28,3 +28,37 @@ In this test case the concurrency level was set to 2, but both execution slots w
 Starvation is not fun, is it?
 
 The resolution was to set the `concurrency` to `Infinity`, but set the rate low enough to avoid triggering the rate limit. A finite but higher concurrency level would avoid this issue in almost all practical circumstances, but it is not clear we need an actual limit as long as the rate of lambda creation requests is slow enough.
+
+## Testsuite timeout
+
+A testsuite timeout looks like this:
+
+```
+ ✖ Timed out while running tests
+```
+
+In addition there will be messages from the Ava test framework about various tests that are pending. First, understand that Ava's timeout is different from other test frameworks. Instead of being a test-specific timeout, the timeout specifies the amount of time "between" test completion events. The goal for Ava is to detect a testsuite that is stalled, not to measure performance of a specific test. This is because Ava runs tests concurrently, and the time taken by each test will be highly variable depending on the other async operations in progress.
+
+Also confusing is that Ava will claim certain tests are pending that should not run at all. For example, on the Google testsuite Ava may say there are AWS tests pending, even though they are filtered out and not supposed to run at all:
+
+```
+Step #2: 7 tests were pending in /workspace/build/test/basic.test.js
+Step #2:
+Step #2: ◌ basic › remote aws basic calls { mode: 'https', childProcess: false }
+Step #2: ◌ basic › remote aws basic calls { mode: 'https', childProcess: true }
+Step #2: ◌ basic › remote aws basic calls { mode: 'queue', childProcess: false }
+Step #2: ◌ basic › remote aws basic calls { mode: 'queue', childProcess: true }
+Step #2: ◌ basic › remote aws cost estimate for basic calls
+Step #2: ◌ basic › remote aws basic calls { mode: 'https', packageJson: 'test/fixtures/package.json', useDependencyCaching: false }
+Step #2: ◌ basic › remote aws basic calls { mode: 'queue', packageJson: 'test/fixtures/package.json', useDependencyCaching: false }
+Step #2:
+```
+
+Ava is just printing out the names of tests it hasn't processed yet, even if they might be filtered out. The key to identifying a real timeout is to determine which of the pending tests is not filtered out, and is currently running. Examination of the above test results shows there is indeed a google test running:
+
+```
+Step #2: 2 tests were pending in /workspace/build/test/cost.test.js
+Step #2:
+Step #2: ◌ cost › remote aws cost analyzer
+Step #2: ◌ cost › remote google cost analyzer
+```

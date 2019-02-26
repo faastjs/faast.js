@@ -16,7 +16,7 @@
         "test": "ava build/test/*.test.js",
         "test-local": "ava --concurrency=4 -m='!remote*'",
         "test-aws": "ava --concurrency=8 --timeout=2m -m='!remote*' -m='*aws*'",
-        "test-google": "ava --concurrency=4 --timeout=2m -m='!remote*' -m='*google*'",
+        "test-google": "ava --concurrency=4 --timeout=4m -m='!remote*' -m='*google*'",
         "test-debug": "DEBUG=faast:provider,faast:info ava --fail-fast --serial",
         "cleanup-cloud": "node build/src/cleanup.js aws -x -f && node build/src/cleanup.js google -x -f",
         "clean": "rm -rf build",
