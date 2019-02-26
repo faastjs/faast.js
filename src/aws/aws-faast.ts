@@ -375,7 +375,7 @@ export function logUrl(state: AwsState) {
 }
 
 export const initialize = throttle(
-    { concurrency: 2, rate: 2 },
+    { concurrency: Infinity, rate: 2 },
     async (fModule: string, nonce: UUID, options: Required<AwsOptions>) => {
         info(`Nonce: ${nonce}`);
         const { region, timeout, memorySize } = options;
