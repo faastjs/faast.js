@@ -66,7 +66,6 @@ export const defaults: Required<LocalOptions> = {
 export const LocalImpl: CloudFunctionImpl<LocalOptions, LocalState> = {
     name: "local",
     initialize,
-    pack,
     defaults,
     cleanup,
     logUrl,
@@ -134,7 +133,7 @@ async function initialize(
         return wrapper;
     };
 
-    const packerResult = await pack(serverModule, options, {});
+    const packerResult = await localPacker(serverModule, options, {});
 
     await unzipInDir(tempDir, packerResult.archive);
     const packageJsonFile = join(tempDir, "package.json");
@@ -163,7 +162,7 @@ export function logUrl(state: LocalState) {
     return state.logUrl;
 }
 
-async function pack(
+export async function localPacker(
     functionModule: string,
     options: LocalOptions,
     wrapperOptions: WrapperOptions

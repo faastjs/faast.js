@@ -34,13 +34,9 @@ import { CpuMeasurement, FunctionCall, FunctionReturn, serializeCall } from "./w
 import Module = require("module");
 
 /**
- * @internal
+ * @public
  */
-export const _providers = {
-    aws: AwsImpl,
-    google: GoogleImpl,
-    local: LocalImpl
-};
+export const providers: Provider[] = ["aws", "google", "local"];
 
 /**
  * @public

@@ -157,12 +157,6 @@ export interface CloudFunctionImpl<O extends CommonOptions, S> {
 
     initialize(serverModule: string, nonce: UUID, options: Required<O>): Promise<S>;
 
-    pack(
-        functionModule: string,
-        options: CommonOptions,
-        wrapperOptions: WrapperOptions
-    ): Promise<PackerResult>;
-
     costEstimate?: (
         state: S,
         counters: FunctionCounters,

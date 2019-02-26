@@ -128,7 +128,6 @@ export const defaults: Required<GoogleOptions> = {
 export const GoogleImpl: CloudFunctionImpl<GoogleOptions, GoogleState> = {
     name: "google",
     initialize,
-    pack,
     defaults,
     cleanup,
     costEstimate,
@@ -245,7 +244,7 @@ export async function initialize(
         const wrapperOptions = {
             childProcessTimeoutMs: timeout * 1000 - 100
         };
-        const { archive } = await pack(fmodule, options, wrapperOptions);
+        const { archive } = await googlePacker(fmodule, options, wrapperOptions);
         const uploadUrlResponse = await cloudFunctions.projects.locations.functions.generateUploadUrl(
             {
                 parent: location
@@ -677,7 +676,7 @@ async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
     return gaxios.request(config);
 }
 
-export async function pack(
+export async function googlePacker(
     functionModule: string,
     options: GoogleOptions,
     wrapperOptions: WrapperOptions

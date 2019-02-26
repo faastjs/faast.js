@@ -1,7 +1,7 @@
 import test, { ExecutionContext } from "ava";
-import { AwsOptions, faast, Provider, CommonOptions } from "../index";
+import { AwsOptions, faast, Provider, CommonOptions, providers } from "../index";
 import * as funcs from "./functions";
-import { configs, providers, title } from "./util";
+import { configs, title } from "./util";
 
 async function testBasic(
     t: ExecutionContext,

@@ -3,12 +3,14 @@ import * as sys from "child_process";
 import * as path from "path";
 import { join } from "path";
 import { PassThrough } from "stream";
-import { _providers } from "../src/faast";
 import { createWriteStream, exists, rmrf, stat } from "../src/fs";
 import { info } from "../src/log";
-import { unzipInDir } from "../src/packer";
-import { CloudFunctionImpl, CommonOptions } from "../src/provider";
-import { keys } from "../src/shared";
+import { unzipInDir, PackerResult } from "../src/packer";
+import { providers, CommonOptions, Provider } from "../index";
+import { awsPacker } from "../src/aws/aws-faast";
+import { googlePacker } from "../src/google/google-faast";
+import { localPacker } from "../src/local/local-faast";
+import { WrapperOptions } from "../src/wrapper";
 
 const kb = 1024;
 
@@ -23,17 +25,24 @@ function exec(cmd: string) {
     return result;
 }
 
-const macro: Macro<[CloudFunctionImpl<any, any>, PackageConfiguration, number]> = async (
+type Packer = (
+    functionModule: string,
+    options: CommonOptions,
+    wrapperOptions: WrapperOptions
+) => Promise<PackerResult>;
+
+const macro: Macro<[Provider, Packer, PackageConfiguration, number]> = async (
     t: ExecutionContext,
-    impl: CloudFunctionImpl<any, any>,
+    provider: Provider,
+    pack: Packer,
     config: PackageConfiguration,
     size: number
 ) => {
-    const identifier = `func-${impl.name}-${config.name}`;
+    const identifier = `func-${provider}-${config.name}`;
     const tmpDir = path.join("tmp", identifier);
     exec(`mkdir -p ${tmpDir}`);
 
-    const { archive } = await impl.pack(require.resolve("./functions"), config, {});
+    const { archive } = await pack(require.resolve("./functions"), config, {});
 
     const stream1 = archive.pipe(new PassThrough());
     const stream2 = archive.pipe(new PassThrough());
@@ -52,7 +61,7 @@ const macro: Macro<[CloudFunctionImpl<any, any>, PackageConfiguration, number]> 
     config.check && (await config.check(t, tmpDir));
 };
 
-macro.title = (_title = "", impl, options) => `${impl.name}-${options.name}`;
+macro.title = (_title = "", provider, _packer, options) => `${provider}-${options.name}`;
 
 function pkg(config: PackageConfiguration) {
     const name = config.name + "-package";
@@ -76,7 +85,11 @@ const configs: PackageConfiguration[] = [
     { name: "addZipFile", addZipFile: "test/fixtures/file.txt.zip", check: hasAddedFile }
 ];
 
-const providers = keys(_providers);
+const packers: { [provider in Provider]: Packer } = {
+    aws: awsPacker,
+    google: googlePacker,
+    local: localPacker
+};
 
 for (const name of providers) {
     for (const config of configs) {
@@ -84,6 +97,6 @@ for (const name of providers) {
         if (name === "google" && !config.packageJson) {
             size = 700 * kb;
         }
-        test(macro, _providers[name], config, size);
+        test(macro, name, packers[name], config, size);
     }
 }

@@ -1,7 +1,6 @@
 import { ExecutionContext } from "ava";
 import * as lolex from "lolex";
 import { Provider, CommonOptions } from "../index";
-import { _providers } from "../src/faast";
 import { info, logGc } from "../src/log";
 import { keys } from "../src/shared";
 import { Fn } from "../src/types";
@@ -88,8 +87,6 @@ export const configs: CommonOptions[] = [
     { mode: "queue", childProcess: false },
     { mode: "queue", childProcess: true }
 ];
-
-export const providers = keys(_providers);
 
 export function title(provider: Provider, msg: string, options?: object) {
     const desc = options ? inspect(options, { breakLength: Infinity }) : "";

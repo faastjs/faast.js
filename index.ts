@@ -5,7 +5,8 @@ export {
     FunctionStatsEvent,
     Promisified,
     PromisifiedFunction,
-    Provider
+    Provider,
+    providers
 } from "./src/faast";
 export {
     AwsMetrics,

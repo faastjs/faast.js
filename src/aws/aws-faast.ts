@@ -420,7 +420,7 @@ export const initialize = throttle(
             const wrapperOptions = {
                 childProcessTimeoutMs: timeout * 1000 - 50
             };
-            const bundle = pack(fModule, options, wrapperOptions);
+            const bundle = awsPacker(fModule, options, wrapperOptions);
             let Code: aws.Lambda.FunctionCode;
             if (packageJson) {
                 Code = await buildModulesOnLambda(
@@ -849,7 +849,7 @@ function deleteGarbageFunctions(
     });
 }
 
-export async function pack(
+export async function awsPacker(
     functionModule: string,
     options: CommonOptions,
     wrapperOptions: WrapperOptions
@@ -1166,7 +1166,6 @@ export async function costEstimate(
 export const AwsImpl: CloudFunctionImpl<AwsOptions, AwsState> = {
     name: "aws",
     initialize,
-    pack,
     defaults,
     cleanup,
     costEstimate,

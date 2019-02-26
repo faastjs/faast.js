@@ -4,6 +4,8 @@ import { Readable } from "stream";
 import { exists, mkdir, readdir, readFile, rmrf, stat, writeFile, rename } from "./fs";
 import * as uuidv4 from "uuid/v4";
 
+interface Blob {}
+
 /**
  * A simple persistent key-value store. Entries can be expired, but are not
  * actually deleted individually. The entire cache can be deleted at once. Hence

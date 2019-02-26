@@ -86,6 +86,8 @@ declare class CloudFunction<M extends object, O extends CommonOptions = CommonOp
     cloudName: string;
     // (undocumented)
     costEstimate(): Promise<CostBreakdown>;
+    // @internal (undocumented)
+    counters: FunctionCountersMap;
     // (undocumented)
     functions: Promisified<M>;
     // (undocumented)
@@ -98,6 +100,8 @@ declare class CloudFunction<M extends object, O extends CommonOptions = CommonOp
     readonly options: Required<CommonOptions>;
     // (undocumented)
     readonly state: S;
+    // @internal (undocumented)
+    stats: FunctionStatsMap;
     }
 
 // @public
@@ -367,6 +371,9 @@ declare type PromisifiedFunction<A extends any[], R> = (...args: A) => Promise<U
 declare type Provider = "aws" | "google" | "local";
 
 // @public (undocumented)
+declare const providers: Provider[];
+
+// @public (undocumented)
 declare class Statistics {
     // (undocumented)
     constructor(printFixedPrecision?: number);
@@ -389,6 +396,9 @@ declare class Statistics {
     // (undocumented)
     variance: number;
 }
+
+// @public (undocumented)
+declare function throttle<A extends any[], R>({ concurrency, retry: retryN, rate, burst, memoize, cache }: Limits, fn: PromiseFn<A, R>): PromiseFn<A, R>;
 
 // @public (undocumented)
 declare function toCSV<K extends string>(profile: Array<CostAnalysisProfile<K>>, format?: (key: K, value: number) => string): string;

@@ -1,5 +1,5 @@
 import test, { ExecutionContext } from "ava";
-import { faast, Provider } from "../index";
+import { faast, Provider, providers } from "../index";
 import { CommonOptions } from "../src/provider";
 import { sleep } from "../src/shared";
 import {
@@ -9,7 +9,7 @@ import {
     stopAsyncTracing
 } from "../src/trace";
 import * as funcs from "./functions";
-import { configs, providers, title } from "./util";
+import { configs, title } from "./util";
 
 async function testCancellation(
     t: ExecutionContext,
