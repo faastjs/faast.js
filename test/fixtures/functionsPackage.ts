@@ -1,5 +1,5 @@
-import _ from "lodash";
+import { map } from "lodash";
 
 export function squareLodash(a: number[]) {
-    return _.map(a, i => i * 2);
+    return map(a, i => i * i);
 }

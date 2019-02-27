@@ -81,7 +81,7 @@ const configs: PackageConfiguration[] = [
     pkg({ name: "https-childprocess", mode: "https", childProcess: true }),
     pkg({ name: "queue", mode: "queue", childProcess: false }),
     pkg({ name: "queue-childprocess", mode: "queue", childProcess: true }),
-    { name: "addDirectory", addDirectory: "test/fixtures", check: hasAddedFile },
+    { name: "addDirectory", addDirectory: "test/fixtures/dir", check: hasAddedFile },
     { name: "addZipFile", addZipFile: "test/fixtures/file.txt.zip", check: hasAddedFile }
 ];
 
