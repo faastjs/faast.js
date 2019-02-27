@@ -62,3 +62,34 @@ Step #2:
 Step #2: ◌ cost › remote aws cost analyzer
 Step #2: ◌ cost › remote google cost analyzer
 ```
+
+## unit-package google package test error
+
+Error message:
+
+```
+google-https-package
+
+  /Users/achou/Code/faast.js/test/unit-packer.test.ts:58
+
+   57:     const bytes = (await stat(zipFile)).size;
+   58:     t.true(bytes < size);
+   59:     t.is(exec(`cd ${tmpDir} && node index.js`), "faast: successful cold start.\n");
+
+  Value is not `true`:
+
+  false
+
+  bytes < size
+  => false
+
+  size
+  => 133120
+
+  bytes
+  => 703656
+```
+
+This can be caused by having the wrong test/fixtures/package.json. In particular, `googleapis` should be a dependency because adding it makes webpack skip googleapis and leaves it as an external, so the package size is much smaller.
+
+XXX Question: is googleapis included by default?
