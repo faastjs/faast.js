@@ -13,7 +13,7 @@ async function testPackage(
     const remote = cloudFunc.functions;
 
     try {
-        t.is(await remote.runFsExtra(), true);
+        t.is(await remote.squareLodash([1, 2, 3]), [1, 4, 9]);
     } finally {
         await cloudFunc.cleanup();
     }

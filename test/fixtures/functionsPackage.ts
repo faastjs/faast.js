@@ -1,8 +1,5 @@
-import { ensureDir, remove, pathExists } from "fs-extra";
+import _ from "lodash";
 
-export async function runFsExtra() {
-    await ensureDir("./exDir/0/1/2");
-    const rv = await pathExists("./exDir/0/1/2");
-    await remove("./exDir");
-    return rv;
+export function squareLodash(a: number[]) {
+    return _.map(a, i => i * 2);
 }
