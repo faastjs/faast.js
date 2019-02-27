@@ -6,6 +6,7 @@
     "license": "ISC",
     "dependencies": {
         "@types/lodash": "^4.14.121",
+        "googleapis": "^37.2.0",
         "lodash": "^4.17.11",
         "tslib": "^1.9.1"
     }
