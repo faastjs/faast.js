@@ -1,10 +1,9 @@
 import test from "ava";
-import * as faast from "../index";
-import { info } from "../src/log";
-import * as funcs from "./functions";
+import { faast, info } from "../index";
+import * as funcs from "./fixtures/functions";
 
 test("remote aws throttling to no concurrency", async t => {
-    const cloudFunc = await faast.faast("aws", funcs, "./functions", {
+    const cloudFunc = await faast("aws", funcs, "./fixtures.functions", {
         mode: "https",
         memorySize: 1024,
         concurrency: 1

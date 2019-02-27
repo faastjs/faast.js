@@ -3,9 +3,9 @@ import { createHash } from "crypto";
 import { caches } from "../cache";
 import { CostBreakdown, CostMetric } from "../cost";
 import { faast } from "../faast";
-import { readFile } from "../fs";
 import { info, logGc, warn, logProviderSdk } from "../log";
 import { packer, PackerResult } from "../packer";
+import { readFile } from "fs-extra";
 import {
     CloudFunctionImpl,
     FunctionCounters,
@@ -74,7 +74,6 @@ export interface AwsOptions extends CommonOptions {
     region?: AwsRegion;
     PolicyArn?: string;
     RoleName?: string;
-    useDependencyCaching?: boolean;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
     CacheBucket?: string;
     /** @internal */
@@ -87,7 +86,6 @@ export let defaults: Required<AwsOptions> = {
     PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
     RoleName: "faast-cached-lambda-role",
     memorySize: 1728,
-    useDependencyCaching: true,
     awsLambdaOptions: {},
     CacheBucket: "",
     gcWorker: defaultGcWorker

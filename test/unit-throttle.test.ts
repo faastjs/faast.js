@@ -1,19 +1,18 @@
-import { sleep } from "../src/shared";
+import test from "ava";
+import * as uuidv4 from "uuid/v4";
+import { PersistentCache } from "../src/cache";
 import {
+    AsyncQueue,
+    cacheFn,
     Deferred,
     Funnel,
     Pump,
     RateLimiter,
     retry,
-    throttle,
-    cacheFn,
-    AsyncQueue
+    throttle
 } from "../src/throttle";
-import { timer, Timing } from "./functions";
-import { PersistentCache } from "../src/cache";
-import * as uuidv4 from "uuid/v4";
-import { measureConcurrency, withClock } from "./util";
-import test from "ava";
+import { timer, Timing } from "./fixtures/functions";
+import { measureConcurrency, sleep, withClock } from "./fixtures/util";
 
 test("deferred resolves its promise", async t => {
     const deferred = new Deferred();

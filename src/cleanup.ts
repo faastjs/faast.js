@@ -1,18 +1,18 @@
 require("source-map-support").install();
 
 import * as aws from "aws-sdk";
-import { GaxiosPromise, GaxiosResponse } from "gaxios";
 import * as commander from "commander";
+import { readdir, remove } from "fs-extra";
+import { GaxiosPromise, GaxiosResponse } from "gaxios";
 import { google } from "googleapis";
 import * as inquirer from "inquirer";
 import * as ora from "ora";
 import { tmpdir } from "os";
 import * as path from "path";
 import * as awsFaast from "./aws/aws-faast";
-import { PersistentCache, caches } from "./cache";
-import { readdir, rmrf } from "./fs";
+import { caches, PersistentCache } from "./cache";
 import * as googleFaast from "./google/google-faast";
-import { uuidv4Pattern, keys } from "./shared";
+import { keys, uuidv4Pattern } from "./shared";
 import { throttle } from "./throttle";
 
 const warn = console.warn;
@@ -350,7 +350,7 @@ async function cleanupLocal({ execute }: CleanupOptions) {
             const faastDir = path.join(tmpDir, entry);
             output(`${faastDir}`);
             if (execute) {
-                await rmrf(faastDir);
+                await remove(faastDir);
             }
         }
     }

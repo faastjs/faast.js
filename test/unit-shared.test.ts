@@ -1,7 +1,7 @@
-import { Statistics, MaxHeap, SmallestN } from "../src/shared";
-import { deepCopyUndefined } from "../src/wrapper";
-import { avg, stdev } from "./util";
 import test, { Assertions } from "ava";
+import { MaxHeap, SmallestN, Statistics } from "../src/shared";
+import { deepCopyUndefined } from "../src/wrapper";
+import { avg, stdev } from "./fixtures/util";
 
 test("shared module deepCopyUndefined copies undefined properties", t => {
     const obj = { prop: undefined };

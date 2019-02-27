@@ -1,19 +1,19 @@
 import { Archiver } from "archiver";
+import { createWriteStream, mkdirp, pathExists, readFile } from "fs-extra";
 import * as path from "path";
 import { Readable } from "stream";
 import * as webpack from "webpack";
 import * as yauzl from "yauzl";
 import { LoaderOptions } from "./loader";
-import { exists, mkdir, readFile, createWriteStream } from "./fs";
-import { info, warn, logWebpack, logProvider } from "./log";
+import { info, logProvider, logWebpack, warn } from "./log";
+import { CommonOptionDefaults, CommonOptions } from "./provider";
+import { keys, streamToBuffer } from "./shared";
 import { TrampolineFactory, WrapperOptionDefaults, WrapperOptions } from "./wrapper";
-import { streamToBuffer, keys } from "./shared";
 
 type ZipFile = yauzl.ZipFile;
 
 import MemoryFileSystem = require("memory-fs");
 import archiver = require("archiver");
-import { CommonOptions, CommonOptionDefaults } from "./provider";
 
 export interface PackerResult {
     archive: NodeJS.ReadableStream;
@@ -74,7 +74,7 @@ export async function packer(
     async function processAddDirectories(archive: Archiver, directories: string[]) {
         for (const dir of directories) {
             info(`Adding directory to archive: ${dir}`);
-            if (!(await exists(dir))) {
+            if (!(await pathExists(dir))) {
                 warn(`Directory ${dir} not found`);
             }
             archive.directory(dir, false);
@@ -221,13 +221,13 @@ export async function processZip(
 }
 
 export async function unzipInDir(dir: string, archive: NodeJS.ReadableStream) {
-    await mkdir(dir, { recursive: true });
+    await mkdirp(dir);
     let total = 0;
     await processZip(archive, async (filename, contents) => {
         const destinationFilename = path.join(dir, filename);
         const { dir: outputDir } = path.parse(destinationFilename);
-        if (!(await exists(outputDir))) {
-            await mkdir(outputDir, { recursive: true });
+        if (!(await pathExists(outputDir))) {
+            await mkdirp(outputDir);
         }
         const stream = createWriteStream(destinationFilename, {
             mode: 0o700

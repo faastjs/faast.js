@@ -106,19 +106,12 @@ declare class CloudFunction<M extends object, O extends CommonOptions = CommonOp
 
 // @public
 interface CommonOptions {
-    // (undocumented)
     addDirectory?: string | string[];
-    // (undocumented)
     addZipFile?: string | string[];
-    // (undocumented)
     childProcess?: boolean;
-    // (undocumented)
     concurrency?: number;
-    // (undocumented)
     gc?: boolean;
-    // (undocumented)
     maxRetries?: number;
-    // (undocumented)
     memorySize?: number;
     // (undocumented)
     mode?: "https" | "queue" | "auto";

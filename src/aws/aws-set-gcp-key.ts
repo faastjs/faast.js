@@ -1,7 +1,7 @@
 import { SSM } from "aws-sdk";
+import { writeFile } from "fs-extra";
 import { join } from "path";
 import { cwd } from "process";
-import { writeFile } from "../fs";
 
 // This code is only used for running builds on AWS CodeBuild. It saves Google Cloud credentials to disk to enable testing the Google Cloud APIs.
 

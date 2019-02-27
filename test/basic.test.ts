@@ -1,25 +1,15 @@
 import test, { ExecutionContext } from "ava";
-import { AwsOptions, faast, Provider, CommonOptions, providers } from "../index";
-import * as funcs from "./functions";
-import { configs, title } from "./util";
+import { CommonOptions, faast, Provider, providers } from "../index";
+import * as funcs from "./fixtures/functions";
+import { configs, title } from "./fixtures/util";
 
 async function testBasic(
     t: ExecutionContext,
-    provider: "aws",
-    options: AwsOptions
-): Promise<void>;
-async function testBasic(
-    t: ExecutionContext,
     provider: Provider,
     options: CommonOptions
-): Promise<void>;
-async function testBasic(
-    t: ExecutionContext,
-    provider: Provider,
-    options: CommonOptions
-): Promise<void> {
-    const opts = { timeout: 30, memorySize: 512, gc: false, ...options };
-    const cloudFunc = await faast(provider, funcs, "./functions", opts);
+) {
+    const opts = { timeout: 30, gc: false, ...options };
+    const cloudFunc = await faast(provider, funcs, "./fixtures/functions", opts);
     const remote = cloudFunc.functions;
 
     try {
@@ -51,55 +41,10 @@ async function testBasic(
     }
 }
 
-export async function testCosts(t: ExecutionContext, provider: Provider) {
-    const args: CommonOptions = {
-        timeout: 30,
-        memorySize: 512,
-        mode: "queue",
-        maxRetries: 0,
-        gc: false
-    };
-    const cloudFunc = await faast(provider, funcs, "./functions", args);
-
-    try {
-        await cloudFunc.functions.hello("there");
-        const costs = await cloudFunc.costEstimate();
-
-        const { estimatedBilledTime } = cloudFunc.stats.aggregate;
-        t.is(
-            (estimatedBilledTime.mean * estimatedBilledTime.samples) / 1000,
-            costs.metrics.find(m => m.name === "functionCallDuration")!.measured
-        );
-
-        t.true(costs.metrics.length > 1);
-        t.true(costs.find("functionCallRequests")!.measured === 1);
-        let hasPricedMetric = false;
-        for (const metric of costs.metrics) {
-            if (!metric.informationalOnly) {
-                t.true(metric.cost() > 0);
-                t.true(metric.measured > 0);
-                t.true(metric.pricing > 0);
-            }
-            hasPricedMetric = true;
-            t.true(metric.cost() < 0.00001);
-            t.true(metric.name.length > 0);
-            t.true(metric.unit.length > 0);
-            t.true(metric.cost() === metric.pricing * metric.measured);
-        }
-        if (hasPricedMetric) {
-            t.true(costs.total() >= 0);
-        } else {
-            t.true(costs.total() === 0);
-        }
-    } finally {
-        await cloudFunc.cleanup();
-    }
-}
-
 // async function testCpuMetrics(t: ExecutionContext, provider: Provider) {
 //     t.plan(4);
 
-//     const lambda = await faast(provider, funcs, "./functions", {
+//     const lambda = await faast(provider, funcs, "./fixtures/functions", {
 //         childProcess: true,
 //         timeout: 90,
 //         memorySize: 512,
@@ -127,21 +72,6 @@ for (const provider of providers) {
     for (const config of configs) {
         test(title(provider, `basic calls`, config), testBasic, provider, config);
     }
-    test(title(provider, `cost estimate for basic calls`), testCosts, provider);
     // XXX Disable CPU metrics for now.
     // test(title(provider, `cpu metrics are received`), testCpuMetrics, provider);
 }
-
-const hOpts: AwsOptions = {
-    mode: "https",
-    packageJson: "test/fixtures/package.json",
-    useDependencyCaching: false
-};
-test(title("aws", `basic calls`, hOpts), testBasic, "aws", hOpts);
-
-const qOpts: AwsOptions = {
-    mode: "queue",
-    packageJson: "test/fixtures/package.json",
-    useDependencyCaching: false
-};
-test(title("aws", `basic calls`, qOpts), testBasic, "aws", qOpts);

@@ -1,9 +1,17 @@
 import * as sys from "child_process";
+import {
+    createWriteStream,
+    mkdir,
+    mkdirp,
+    pathExists,
+    readdir,
+    remove,
+    stat
+} from "fs-extra";
 import { tmpdir } from "os";
 import { join } from "path";
 import { Writable } from "stream";
 import { promisify } from "util";
-import { createWriteStream, exists, mkdir, readdir, rmrf, stat } from "../fs";
 import { info, logGc, warn } from "../log";
 import { packer, PackerResult, unzipInDir } from "../packer";
 import {
@@ -52,7 +60,7 @@ export interface LocalOptions extends CommonOptions {
 }
 
 function defaultGcWorker(dir: string) {
-    return rmrf(dir);
+    return remove(dir);
 }
 
 export const defaults: Required<LocalOptions> = {
@@ -90,7 +98,7 @@ async function initialize(
     }
     const tempDir = join(tmpdir(), "faast", nonce);
     info(`tempDir: ${tempDir}`);
-    await mkdir(tempDir, { recursive: true });
+    await mkdirp(tempDir);
     const logDir = join(tempDir, "logs");
     await mkdir(logDir);
     const log = `file://${logDir}`;
@@ -137,9 +145,10 @@ async function initialize(
 
     await unzipInDir(tempDir, packerResult.archive);
     const packageJsonFile = join(tempDir, "package.json");
-    if (await exists(packageJsonFile)) {
+    if (await pathExists(packageJsonFile)) {
         info(`Running 'npm install'`);
-        await exec("npm install").then(x => {
+
+        await exec("npm install --no-package-lock", { cwd: tempDir }).then(x => {
             info(x.stdout);
             if (x.stderr) {
                 warn(x.stderr);
@@ -230,9 +239,9 @@ async function cleanup(state: LocalState, options: CleanupOptions): Promise<void
     if (options.deleteResources) {
         const { tempDir } = state;
         const pattern = new RegExp(`/faast/${uuidv4Pattern}$`);
-        if (tempDir && tempDir.match(pattern) && (await exists(tempDir))) {
+        if (tempDir && tempDir.match(pattern) && (await pathExists(tempDir))) {
             info(`Deleting temp dir ${tempDir}`);
-            await rmrf(tempDir);
+            await remove(tempDir);
         }
     }
     info(`local cleanup done.`);

@@ -1,14 +1,13 @@
 import test from "ava";
-import { faast } from "../index";
-import { throttle } from "../src/throttle";
+import { faast, throttle } from "../index";
 import { topPackages } from "./top-packages";
 
 const testPackage = throttle({ concurrency: 500 }, async (pkg: string) => {
     try {
         const cloudFunc = await faast(
             "aws",
-            require("../test/functions"),
-            "../test/functions",
+            require("../test/fixtures/functions"),
+            "../test/fixtures/functions",
             {
                 mode: "https",
                 useDependencyCaching: false,

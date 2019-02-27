@@ -1,12 +1,21 @@
 import debug from "debug";
 import { inspect } from "util";
+
+/** @public */
 export const info = debug("faast:info");
+/** @public */
 export const warn = debug("faast:warning");
+/** @public */
 export const logGc = debug("faast:gc");
+/** @public */
 export const logLeaks = debug("faast:leaks");
+/** @public */
 export const logCalls = debug("faast:calls");
+/** @public */
 export const logWebpack = debug("faast:webpack");
+/** @public */
 export const logProvider = debug("faast:provider");
+/** @public */
 export const logProviderSdk = debug("faast:providersdk");
 
 function truncate(s: string, len: number) {

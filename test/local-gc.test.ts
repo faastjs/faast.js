@@ -1,7 +1,7 @@
-import * as faast from "../index";
-import * as functions from "./functions";
 import test from "ava";
-import { record } from "./util";
+import * as faast from "../index";
+import * as functions from "./fixtures/functions";
+import { record } from "./fixtures/util";
 
 test("local garbage collector works for functions that are called", async t => {
     // Idea behind this test: create a cloudified function and make a call.
@@ -9,11 +9,11 @@ test("local garbage collector works for functions that are called", async t => {
     // function and set its retention to 0, and use a recorder to observe what
     // its garbage collector cleans up. Verify the first function's resources
     // are cleaned up, which shows that the garbage collector did its job.
-    const func = await faast.faast("local", functions, "../test/functions");
+    const func = await faast.faast("local", functions, "./fixtures/functions");
     await func.functions.hello("gc-test");
     await func.cleanup({ deleteResources: false });
     const gcRecorder = record(async (_dir: string) => {});
-    const func2 = await faast.faast("local", functions, "../test/functions", {
+    const func2 = await faast.faast("local", functions, "./fixtures/functions", {
         gc: true,
         gcWorker: gcRecorder,
         retentionInDays: 0
@@ -24,11 +24,11 @@ test("local garbage collector works for functions that are called", async t => {
 });
 
 test("local garbage collector works for functions that are never called", async t => {
-    const func = await faast.faast("local", functions, "../test/functions");
+    const func = await faast.faast("local", functions, "./fixtures/functions");
     await func.cleanup({ deleteResources: false });
     const gcRecorder = record(async (_dir: string) => {});
 
-    const func2 = await faast.faast("local", functions, "../test/functions", {
+    const func2 = await faast.faast("local", functions, "./fixtures/functions", {
         gc: true,
         gcWorker: gcRecorder,
         retentionInDays: 0

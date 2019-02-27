@@ -1,7 +1,16 @@
+import {
+    mkdirp,
+    pathExists,
+    readdir,
+    readFile,
+    remove,
+    rename,
+    stat,
+    writeFile
+} from "fs-extra";
 import { homedir } from "os";
 import { join } from "path";
 import { Readable } from "stream";
-import { exists, mkdir, readdir, readFile, rmrf, stat, writeFile, rename } from "./fs";
 import * as uuidv4 from "uuid/v4";
 
 interface Blob {}
@@ -19,8 +28,8 @@ export class PersistentCache {
     private initialized: Promise<void>;
 
     private async initialize(dir: string) {
-        if (!(await exists(dir))) {
-            await mkdir(dir, { mode: 0o700, recursive: true });
+        if (!(await pathExists(dir))) {
+            await mkdirp(dir);
         }
     }
 
@@ -79,10 +88,10 @@ export class PersistentCache {
     async clear({ leaveEmptyDir = true } = {}) {
         await this.initialized;
 
-        await rmrf(this.dir);
+        await remove(this.dir);
 
         if (leaveEmptyDir) {
-            await mkdir(this.dir, { mode: 0o700, recursive: true });
+            await mkdirp(this.dir);
         }
     }
 }

@@ -1,13 +1,11 @@
 import { ExecutionContext } from "ava";
 import * as lolex from "lolex";
-import { Provider, CommonOptions } from "../index";
-import { info, logGc } from "../src/log";
-import { keys } from "../src/shared";
-import { Fn } from "../src/types";
-import { Timing } from "./functions";
 import { inspect } from "util";
-
-export { readFile } from "../src/fs";
+import { CommonOptions, info, logGc, Provider } from "../../index";
+import { keys } from "../../src/shared";
+import { Fn } from "../../src/types";
+import { Timing } from "./functions";
+export { keys };
 
 export const measureConcurrency = (timings: Timing[]) =>
     timings

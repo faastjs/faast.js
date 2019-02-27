@@ -1,15 +1,14 @@
 import test, { ExecutionContext, Macro } from "ava";
 import * as sys from "child_process";
+import { createWriteStream, pathExists, remove, stat } from "fs-extra";
 import * as path from "path";
 import { join } from "path";
 import { PassThrough } from "stream";
-import { createWriteStream, exists, rmrf, stat } from "../src/fs";
-import { info } from "../src/log";
-import { unzipInDir, PackerResult } from "../src/packer";
-import { providers, CommonOptions, Provider } from "../index";
+import { CommonOptions, info, Provider, providers } from "../index";
 import { awsPacker } from "../src/aws/aws-faast";
 import { googlePacker } from "../src/google/google-faast";
 import { localPacker } from "../src/local/local-faast";
+import { PackerResult, unzipInDir } from "../src/packer";
 import { WrapperOptions } from "../src/wrapper";
 
 const kb = 1024;
@@ -31,7 +30,7 @@ type Packer = (
     wrapperOptions: WrapperOptions
 ) => Promise<PackerResult>;
 
-const macro: Macro<[Provider, Packer, PackageConfiguration, number]> = async (
+const testPacker: Macro<[Provider, Packer, PackageConfiguration, number]> = async (
     t: ExecutionContext,
     provider: Provider,
     pack: Packer,
@@ -42,7 +41,7 @@ const macro: Macro<[Provider, Packer, PackageConfiguration, number]> = async (
     const tmpDir = path.join("tmp", identifier);
     exec(`mkdir -p ${tmpDir}`);
 
-    const { archive } = await pack(require.resolve("./functions"), config, {});
+    const { archive } = await pack(require.resolve("./fixtures/functions"), config, {});
 
     const stream1 = archive.pipe(new PassThrough());
     const stream2 = archive.pipe(new PassThrough());
@@ -51,7 +50,7 @@ const macro: Macro<[Provider, Packer, PackageConfiguration, number]> = async (
     stream2.pipe(createWriteStream(zipFile));
     const writePromise = new Promise(resolve => stream2.on("end", resolve));
 
-    await rmrf(tmpDir);
+    await remove(tmpDir);
     const unzipPromise = unzipInDir(tmpDir, stream1);
 
     await Promise.all([writePromise, unzipPromise]);
@@ -61,7 +60,8 @@ const macro: Macro<[Provider, Packer, PackageConfiguration, number]> = async (
     config.check && (await config.check(t, tmpDir));
 };
 
-macro.title = (_title = "", provider, _packer, options) => `${provider}-${options.name}`;
+testPacker.title = (_title = "", provider, _packer, options) =>
+    `${provider}-${options.name}`;
 
 function pkg(config: PackageConfiguration) {
     const name = config.name + "-package";
@@ -69,7 +69,7 @@ function pkg(config: PackageConfiguration) {
 }
 
 async function hasAddedFile(t: ExecutionContext, root: string) {
-    t.true(await exists(join(root, "file.txt")));
+    t.true(await pathExists(join(root, "file.txt")));
 }
 
 const configs: PackageConfiguration[] = [
@@ -93,10 +93,10 @@ const packers: { [provider in Provider]: Packer } = {
 
 for (const name of providers) {
     for (const config of configs) {
-        let size = 100 * kb;
+        let size = 130 * kb;
         if (name === "google" && !config.packageJson) {
             size = 700 * kb;
         }
-        test(macro, name, packers[name], config, size);
+        test(testPacker, name, packers[name], config, size);
     }
 }

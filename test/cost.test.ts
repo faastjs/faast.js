@@ -1,17 +1,22 @@
-import test, { Macro } from "ava";
+import test, { ExecutionContext, Macro } from "ava";
 import * as ppp from "papaparse";
 import {
     awsConfigurations,
+    CommonOptions,
     CostAnalyzerConfiguration,
     estimateWorkloadCost,
+    faast,
     googleConfigurations,
+    info,
+    Promisified,
+    Provider,
+    providers,
     toCSV
-} from "../src/cost";
-import * as faast from "../index";
-import { info } from "../src/log";
-import * as funcs from "./functions";
+} from "../index";
+import * as funcs from "./fixtures/functions";
+import { title } from "./fixtures/util";
 
-async function work(remote: faast.Promisified<typeof funcs>) {
+async function work(remote: Promisified<typeof funcs>) {
     await remote.monteCarloPI(20000000);
 }
 
@@ -25,7 +30,7 @@ function filter(configurations: CostAnalyzerConfiguration[]) {
 }
 
 const costAnalyzerMacro: Macro<[CostAnalyzerConfiguration[]]> = async (t, configs) => {
-    const profile = await estimateWorkloadCost("../test/functions", configs, {
+    const profile = await estimateWorkloadCost("./fixtures/functions", configs, {
         work,
         silent: true
     });
@@ -61,5 +66,54 @@ const costAnalyzerMacro: Macro<[CostAnalyzerConfiguration[]]> = async (t, config
     }
 };
 
-test("remote aws cost analyzer", costAnalyzerMacro, filter(awsConfigurations));
-test("remote google cost analyzer", costAnalyzerMacro, filter(googleConfigurations));
+export async function testCosts(t: ExecutionContext, provider: Provider) {
+    const args: CommonOptions = {
+        timeout: 30,
+        memorySize: 512,
+        mode: "queue",
+        maxRetries: 0,
+        gc: false
+    };
+    const cloudFunc = await faast(provider, funcs, "./fixtures/functions", args);
+
+    try {
+        await cloudFunc.functions.hello("there");
+        const costs = await cloudFunc.costEstimate();
+
+        const { estimatedBilledTime } = cloudFunc.stats.aggregate;
+        t.is(
+            (estimatedBilledTime.mean * estimatedBilledTime.samples) / 1000,
+            costs.metrics.find(m => m.name === "functionCallDuration")!.measured
+        );
+
+        t.true(costs.metrics.length > 1);
+        t.true(costs.find("functionCallRequests")!.measured === 1);
+        let hasPricedMetric = false;
+        for (const metric of costs.metrics) {
+            if (!metric.informationalOnly) {
+                t.true(metric.cost() > 0);
+                t.true(metric.measured > 0);
+                t.true(metric.pricing > 0);
+            }
+            hasPricedMetric = true;
+            t.true(metric.cost() < 0.00001);
+            t.true(metric.name.length > 0);
+            t.true(metric.unit.length > 0);
+            t.true(metric.cost() === metric.pricing * metric.measured);
+        }
+        if (hasPricedMetric) {
+            t.true(costs.total() >= 0);
+        } else {
+            t.true(costs.total() === 0);
+        }
+    } finally {
+        await cloudFunc.cleanup();
+    }
+}
+
+test(title("aws", "cost analyzer"), costAnalyzerMacro, filter(awsConfigurations));
+test(title("google", "cost analyzer"), costAnalyzerMacro, filter(googleConfigurations));
+
+for (const provider of providers) {
+    test(title(provider, `cost estimate for basic calls`), testCosts, provider);
+}

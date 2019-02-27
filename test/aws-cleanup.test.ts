@@ -1,9 +1,8 @@
-import * as faast from "../index";
 import test from "ava";
-import { quietly, checkResourcesCleanedUp } from "./util";
-import { AWSLambda } from "../src/faast";
+import { AwsOptions, CloudFunction, faast } from "../index";
+import { checkResourcesCleanedUp, quietly } from "./fixtures/util";
 
-export async function getAWSResources(func: AWSLambda) {
+export async function getAWSResources(func: CloudFunction<{}, AwsOptions>) {
     const { lambda, sns, sqs, s3 } = func.state.services;
     const {
         FunctionName,
@@ -58,7 +57,7 @@ export async function getAWSResources(func: AWSLambda) {
     };
 }
 test("remote aws removes ephemeral resources", async t => {
-    const func = await faast.faast("aws", {}, "./functions", {
+    const func = await faast("aws", {}, "./fixtures/functions", {
         mode: "queue",
         gc: false
     });
@@ -67,7 +66,7 @@ test("remote aws removes ephemeral resources", async t => {
 });
 
 test("remote aws removes s3 buckets", async t => {
-    const func = await faast.faast("aws", {}, "./functions", {
+    const func = await faast("aws", {}, "./fixtures/functions", {
         packageJson: "test/fixtures/package.json",
         gc: false
     });

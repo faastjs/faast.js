@@ -1,9 +1,7 @@
 import test, { ExecutionContext } from "ava";
-import { faast, Provider, CommonOptions } from "../index";
-import { info } from "../src/log";
-import { Pump } from "../src/throttle";
-import * as funcs from "../test/functions";
-import { title, sleep } from "../test/util";
+import { CommonOptions, faast, Provider, Pump } from "../index";
+import * as funcs from "../test/fixtures/functions";
+import { sleep, title } from "../test/fixtures/util";
 
 export async function throughput(
     t: ExecutionContext,
@@ -12,7 +10,7 @@ export async function throughput(
     concurrency: number = 500,
     options?: CommonOptions
 ) {
-    const lambda = await faast(provider, funcs, "../test/functions", {
+    const lambda = await faast(provider, funcs, "../test/fixtures/functions", {
         gc: false,
         ...options
     });
@@ -28,12 +26,14 @@ export async function throughput(
         await sleep(duration);
         await pump.drain();
         const cost = await lambda.costEstimate();
-        info(`Stats: ${lambda.stats}`);
-        info(`Counters: ${lambda.counters}`);
+        console.log(`Stats: ${lambda.stats}`);
+        console.log(`Counters: ${lambda.counters}`);
 
-        info(`Cost:`);
-        info(`${cost}`);
-        info(`Completed ${completed} calls in ${duration / (60 * 1000)} minute(s)`);
+        console.log(`Cost:`);
+        console.log(`${cost}`);
+        console.log(
+            `Completed ${completed} calls in ${duration / (60 * 1000)} minute(s)`
+        );
     } finally {
         await lambda.cleanup();
     }
@@ -53,7 +53,7 @@ export async function rampUp(
     concurrency: number,
     options?: CommonOptions
 ) {
-    const lambda = await faast(provider, funcs, "../test/functions", {
+    const lambda = await faast(provider, funcs, "../test/fixtures/functions", {
         gc: false,
         ...options,
         concurrency
@@ -77,16 +77,16 @@ export async function rampUp(
             samplePoints += m.samples;
         });
 
-        info(`Stats:\n${lambda.stats}`);
-        info(`Counters:\n${lambda.counters}`);
+        console.log(`Stats:\n${lambda.stats}`);
+        console.log(`Counters:\n${lambda.counters}`);
 
-        info(`inside: ${insidePoints}, samples: ${samplePoints}`);
+        console.log(`inside: ${insidePoints}, samples: ${samplePoints}`);
         t.is(samplePoints, nParallelFunctions * nSamplesPerFunction);
         const estimatedPI = (insidePoints / samplePoints) * 4;
-        info(`PI estimate: ${estimatedPI}`);
+        console.log(`PI estimate: ${estimatedPI}`);
         t.is(Number(estimatedPI.toFixed(2)), 3.14);
         const cost = await lambda.costEstimate();
-        info(`Cost: ${cost}`);
+        console.log(`Cost: ${cost}`);
     } finally {
         await lambda.cleanup();
     }

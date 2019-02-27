@@ -1,7 +1,6 @@
-import { Promisified, estimateWorkloadCost, awsConfigurations } from "../index";
+import { writeFileSync } from "fs";
+import { awsConfigurations, estimateWorkloadCost, Promisified, toCSV } from "../index";
 import * as m from "./functions";
-import { toCSV } from "../src/cost";
-import { writeFile } from "../src/fs";
 
 async function work(remote: Promisified<typeof m>) {
     await remote.randomNumbers(100000000);
@@ -14,7 +13,7 @@ async function compareAws() {
         { work }
     );
 
-    await writeFile("cost.csv", toCSV(results));
+    writeFileSync("cost.csv", toCSV(results));
 }
 
 compareAws();

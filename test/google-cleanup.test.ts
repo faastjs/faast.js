@@ -1,11 +1,8 @@
 import test, { ExecutionContext } from "ava";
-import * as faast from "../index";
-import { keys } from "../src/shared";
-import { quietly, checkResourcesCleanedUp } from "./util";
-import { warn } from "../src/log";
-import { GoogleCloudFunction } from "../src/faast";
+import { CloudFunction, faast, GoogleOptions, warn } from "../index";
+import { checkResourcesCleanedUp, keys, quietly } from "./fixtures/util";
 
-export async function getGoogleResources(func: GoogleCloudFunction) {
+export async function getGoogleResources(func: CloudFunction<{}, GoogleOptions>) {
     const { cloudFunctions, pubsub } = func.state.services;
     const {
         trampoline,
@@ -56,7 +53,7 @@ export function checkResourcesExist<T extends object>(t: ExecutionContext, resou
 
 test("remote google cleanup removes ephemeral resources", async t => {
     try {
-        const func = await faast.faast("google", {}, "./functions", {
+        const func = await faast("google", {}, "./fixtures/functions", {
             mode: "queue"
         });
         checkResourcesExist(t, await getGoogleResources(func));

@@ -1,10 +1,8 @@
 import test from "ava";
-import { faast } from "../index";
+import { faast, logGc } from "../index";
 import { AwsGcWork, AwsServices } from "../src/aws/aws-faast";
-import { logGc } from "../src/log";
-import { sleep } from "../test/util";
-import * as functions from "./functions";
-import { contains, quietly, record } from "./util";
+import * as functions from "./fixtures/functions";
+import { contains, quietly, record, sleep } from "./fixtures/util";
 
 test.serial(
     "remote aws garbage collector works for functions that are called",
@@ -18,7 +16,7 @@ test.serial(
         const gcRecorder = record(async (_: AwsServices, work: AwsGcWork) => {
             logGc(`Recorded gc work: %O`, work);
         });
-        const func = await faast("aws", functions, "../test/functions", {
+        const func = await faast("aws", functions, "./fixtures/functions", {
             mode: "queue"
         });
         const { cloudwatch } = func.state.services;
@@ -46,7 +44,7 @@ test.serial(
         });
 
         await func.cleanup({ deleteResources: false });
-        const func2 = await faast("aws", functions, "../test/functions", {
+        const func2 = await faast("aws", functions, "./fixtures/functions", {
             gc: true,
             gcWorker: gcRecorder,
             retentionInDays: 0
@@ -89,11 +87,11 @@ test.serial(
     async t => {
         const gcRecorder = record(async (_: AwsServices, _work: AwsGcWork) => {});
 
-        const func = await faast("aws", functions, "../test/functions", {
+        const func = await faast("aws", functions, "./fixtures/functions", {
             mode: "queue"
         });
         await func.cleanup({ deleteResources: false });
-        const func2 = await faast("aws", functions, "../test/functions", {
+        const func2 = await faast("aws", functions, "./fixtures/functions", {
             gc: true,
             gcWorker: gcRecorder,
             retentionInDays: 0

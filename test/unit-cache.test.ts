@@ -1,8 +1,8 @@
-import { PersistentCache } from "../src/cache";
-import { sleep } from "./functions";
+import anytest, { TestInterface } from "ava";
 import { createHash } from "crypto";
 import * as uuidv4 from "uuid/v4";
-import anytest, { TestInterface } from "ava";
+import { PersistentCache } from "../src/cache";
+import { sleep } from "./fixtures/functions";
 
 const test = anytest as TestInterface<{ cache: PersistentCache }>;
 

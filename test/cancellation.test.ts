@@ -1,15 +1,13 @@
 import test, { ExecutionContext } from "ava";
-import { faast, Provider, providers } from "../index";
-import { CommonOptions } from "../src/provider";
-import { sleep } from "../src/shared";
+import { CommonOptions, faast, Provider, providers } from "../index";
 import {
     clearLeakDetector,
     detectAsyncLeaks,
     startAsyncTracing,
     stopAsyncTracing
 } from "../src/trace";
-import * as funcs from "./functions";
-import { configs, title } from "./util";
+import * as funcs from "./fixtures/functions";
+import { configs, sleep, title } from "./fixtures/util";
 
 async function testCancellation(
     t: ExecutionContext,
@@ -18,7 +16,7 @@ async function testCancellation(
 ) {
     await sleep(0); // wait until ava sets its timeout so it doesn't get picked up by async_hooks.
     startAsyncTracing();
-    const cloudFunc = await faast(provider, funcs, "./functions", {
+    const cloudFunc = await faast(provider, funcs, "./fixtures/functions", {
         ...options,
         childProcess: true,
         gc: false

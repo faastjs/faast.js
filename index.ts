@@ -42,4 +42,14 @@ export {
 } from "./src/provider";
 export { Statistics } from "./src/shared";
 export { Unpacked } from "./src/types";
-export { throttle } from "./src/throttle";
+export { throttle, Pump } from "./src/throttle";
+export {
+    info,
+    warn,
+    logCalls,
+    logGc,
+    logLeaks,
+    logProvider,
+    logProviderSdk,
+    logWebpack
+} from "./src/log";
