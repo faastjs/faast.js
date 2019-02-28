@@ -26,5 +26,5 @@
         "skipLibCheck": true
     },
     "include": ["index.ts", "src", "examples", "types", "test"],
-    "exclude": ["node_modules", "build"]
+    "exclude": ["node_modules", "build", "etc"]
 }

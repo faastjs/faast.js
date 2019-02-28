@@ -7,8 +7,6 @@
         "DEBUG": "faast:info,faast:stats"
     },
     "debug.node.autoAttach": "off",
-    "docthis.includeMemberOfOnClassMembers": false,
-    "docthis.includeMemberOfOnInterfaceMembers": false,
     "search.exclude": {
         "**/markdown": true
     }
