@@ -139,9 +139,22 @@ export interface CommonOptions {
     /**
      * Specify a package.json file to include with the code package.
      * @remarks
-     * Google Cloud Functions has built-in support for dependencies via
-     * package.json. Faast polyfills this functionality automatically for those
-     * that don't have it natively.
+     * By default, faast.js will use webpack to bundle dependencies your remote
+     * module imports. In normal usage there is no need to specify a separate
+     * package.json, as webpack will statically analyze your imports and
+     * determine which files to bundle.
+     *
+     * However, there are some use cases where this is not enough, such as
+     * dependencies that compile native code, or are specifically not designed
+     * to work with webpack. In these cases, you can create a separate
+     * `package.json` for these dependencies and pass the filename as the
+     * `packageJson` option.
+     *
+     * The dependencies will be installed with `npm` by the `local` and `aws`
+     * providers. For Google, faast.js relies on Google Cloud Function's native
+     * package.json support.
+     *
+     * Also see {@link CommonOptions.useDependencyCaching}.
      */
     packageJson?: string | object | false;
     useDependencyCaching?: boolean;

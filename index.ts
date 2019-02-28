@@ -1,6 +1,3 @@
-export const parentModule = module.parent;
-export const parentRequire = module.parent!.require;
-
 export {
     AwsMetrics,
     AwsOptions,
@@ -54,5 +51,10 @@ export {
     FunctionStats
 } from "./src/provider";
 export { Statistics } from "./src/shared";
-export { Pump, throttle } from "./src/throttle";
+export { throttle } from "./src/throttle";
 export { Unpacked } from "./src/types";
+
+/** @internal */
+export const parentModule = module.parent;
+/** @internal */
+export const parentRequire = module.parent!.require;

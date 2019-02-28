@@ -130,6 +130,9 @@ export class Funnel<T = void> {
     }
 }
 
+/**
+ * @internal
+ */
 export class Pump<T = void> extends Funnel<T | void> {
     stopped: boolean = false;
     constructor(maxConcurrency: number, protected worker: () => Promise<T>) {

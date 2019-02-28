@@ -25,8 +25,6 @@ interface AwsOptions extends CommonOptions {
     region?: AwsRegion;
     // (undocumented)
     RoleName?: string;
-    // (undocumented)
-    useDependencyCaching?: boolean;
 }
 
 // @public
@@ -113,9 +111,7 @@ interface CommonOptions {
     gc?: boolean;
     maxRetries?: number;
     memorySize?: number;
-    // (undocumented)
     mode?: "https" | "queue" | "auto";
-    // (undocumented)
     packageJson?: string | object | false;
     // (undocumented)
     retentionInDays?: number;
@@ -123,6 +119,8 @@ interface CommonOptions {
     speculativeRetryThreshold?: number;
     // (undocumented)
     timeout?: number;
+    // (undocumented)
+    useDependencyCaching?: boolean;
     // (undocumented)
     webpackOptions?: webpack.Configuration;
 }
@@ -200,7 +198,7 @@ declare class CostMetric {
 }
 
 // @public (undocumented)
-declare function estimateWorkloadCost<T, K extends string>(fmodule: string, configurations: CostAnalyzerConfiguration[] | undefined, workload: Workload<T, K>): Promise<CostAnalysisProfile<K>[]>;
+declare function estimateWorkloadCost<T extends object, K extends string>(mod: T, fmodule: string, configurations: CostAnalyzerConfiguration[] | undefined, workload: Workload<T, K>): Promise<CostAnalysisProfile<K>[]>;
 
 // @public (undocumented)
 declare function faast<M extends object>(provider: "aws", fmodule: M, modulePath: string, options?: AwsOptions): Promise<CloudFunction<M, AwsOptions, AwsState>>;
@@ -324,6 +322,9 @@ interface GoogleState {
 }
 
 // @public (undocumented)
+declare const info: default.Debugger;
+
+// @public (undocumented)
 interface LocalOptions extends CommonOptions {
     // @internal (undocumented)
     gcWorker?: (tempdir: string) => Promise<void>;
@@ -348,9 +349,33 @@ interface LocalState {
 }
 
 // @public (undocumented)
+declare const logCalls: default.Debugger;
+
+// @public (undocumented)
+declare const logGc: default.Debugger;
+
+// @public (undocumented)
+declare const logLeaks: default.Debugger;
+
+// @public (undocumented)
+declare const logProvider: default.Debugger;
+
+// @public (undocumented)
+declare const logProviderSdk: default.Debugger;
+
+// @public (undocumented)
+declare const logWebpack: default.Debugger;
+
+// @public (undocumented)
 declare type Metrics<K extends string> = {
     [key in K]: number;
 };
+
+// @internal (undocumented)
+declare const parentModule: NodeModule | null;
+
+// @internal (undocumented)
+declare const parentRequire: NodeRequireFunction;
 
 // @public (undocumented)
 declare type Promisified<M> = {
@@ -400,7 +425,10 @@ declare function toCSV<K extends string>(profile: Array<CostAnalysisProfile<K>>,
 declare type Unpacked<T> = T extends Promise<infer D> ? D : T;
 
 // @public (undocumented)
-interface Workload<T, K extends string> {
+declare const warn: default.Debugger;
+
+// @public (undocumented)
+interface Workload<T extends object, K extends string> {
     // (undocumented)
     format?: (key: K, value: number) => string;
     // (undocumented)
