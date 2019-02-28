@@ -34,7 +34,8 @@ const configurations = [
 
 async function compareIntersection() {
     const result = await estimateWorkloadCost(
-        require.resolve("./module"),
+        m,
+        require.resolve("./functions"),
         configurations,
         {
             work

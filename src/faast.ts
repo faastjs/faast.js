@@ -110,17 +110,20 @@ type ResponsifiedFunction<A extends any[], R> = (...args: A) => Promise<Response
 //         : never
 // };
 
+import { parentModule } from "../index";
 function resolveModule(fmodule: string) {
-    const parent = module.parent!;
-    if (parent.filename.match(/aws-faast/)) {
+    if (path.isAbsolute(fmodule)) {
+        return fmodule;
+    }
+    if (!parentModule) {
+        throw new Error(`Could not resolve fmodule ${fmodule}`);
+    }
+    if (parentModule.filename.match(/aws-faast/)) {
         info(
             `WARNING: import faast before aws-faast to avoid problems with module resolution`
         );
     }
-    if (path.isAbsolute(fmodule)) {
-        return fmodule;
-    }
-    return (Module as any)._resolveFilename(fmodule, module.parent!.parent);
+    return (Module as any)._resolveFilename(fmodule, parentModule);
 }
 
 export class FunctionCountersMap {

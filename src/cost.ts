@@ -1,6 +1,6 @@
 import * as Listr from "listr";
 import { inspect } from "util";
-import { faast, Promisified } from "./faast";
+import { faast, Promisified } from "../index";
 import { AwsOptions } from "./aws/aws-faast";
 import { GoogleOptions } from "./google/google-faast";
 import { FunctionCounters, FunctionStats, CommonOptions } from "./provider";
@@ -16,7 +16,7 @@ export type Metrics<K extends string> = { [key in K]: number };
 /**
  * @public
  */
-export interface Workload<T, K extends string> {
+export interface Workload<T extends object, K extends string> {
     work: (module: Promisified<T>) => Promise<Metrics<K> | void>;
     summarize?: (summaries: Array<Metrics<K>>) => Metrics<K>;
     format?: (key: K, value: number) => string;
@@ -237,13 +237,14 @@ function defaultFormat<K extends string>(key: K, value: number) {
     return `${key}:${f1(value)}`;
 }
 
-async function estimate<T, K extends string>(
+async function estimate<T extends object, K extends string>(
+    mod: T,
     fmodule: string,
     workload: Workload<T, K>,
     config: CostAnalyzerConfiguration
 ): Promise<CostAnalysisProfile<K>> {
     const { provider, repetitions, options, repetitionConcurrency } = config;
-    const cloudFunc = await faast(provider, require(fmodule), fmodule, options);
+    const cloudFunc = await faast(provider, mod, fmodule, options);
     const doWork = throttle({ concurrency: repetitionConcurrency }, workload.work);
     const results: Promise<Metrics<K> | void>[] = [];
     for (let i = 0; i < repetitions; i++) {
@@ -270,13 +271,14 @@ async function estimate<T, K extends string>(
 /**
  * @public
  */
-export async function estimateWorkloadCost<T, K extends string>(
+export async function estimateWorkloadCost<T extends object, K extends string>(
+    mod: T,
     fmodule: string,
     configurations: CostAnalyzerConfiguration[] = awsConfigurations,
     workload: Workload<T, K>
 ) {
     const scheduleEstimate = throttle<
-        [string, Workload<T, K>, CostAnalyzerConfiguration],
+        [T, string, Workload<T, K>, CostAnalyzerConfiguration],
         CostAnalysisProfile<K>
     >(
         {
@@ -289,7 +291,7 @@ export async function estimateWorkloadCost<T, K extends string>(
     );
 
     const promises = configurations.map(config =>
-        scheduleEstimate(fmodule, workload, config)
+        scheduleEstimate(mod, fmodule, workload, config)
     );
 
     const format = workload.format || defaultFormat;

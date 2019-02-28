@@ -1,16 +1,12 @@
-import test, { ExecutionContext, Macro } from "ava";
+import test, { ExecutionContext } from "ava";
 import { readFile } from "fs-extra";
 import { inspect } from "util";
 import { faast, LocalOptions } from "../index";
 import * as funcs from "./fixtures/functions";
 import { measureConcurrency, sleep } from "./fixtures/util";
-import * as path from "path";
 import { URL } from "url";
 
-const testCleanup: Macro<[LocalOptions]> = async (
-    t: ExecutionContext,
-    options: LocalOptions
-) => {
+async function testCleanup(t: ExecutionContext, options: LocalOptions) {
     const cloudFunc = await faast("local", funcs, "./fixtures/functions", options);
     const { hello, sleep } = cloudFunc.functions;
     let done = 0;
@@ -25,12 +21,9 @@ const testCleanup: Macro<[LocalOptions]> = async (
 
     await cloudFunc.cleanup();
     t.is(done, 0);
-};
+}
 
-const testOrder: Macro<[LocalOptions]> = async (
-    t: ExecutionContext,
-    options: LocalOptions
-) => {
+async function testOrder(t: ExecutionContext, options: LocalOptions) {
     const cloudFunc = await faast("local", funcs, "./fixtures/functions", options);
     t.plan(2);
 
@@ -44,7 +37,7 @@ const testOrder: Macro<[LocalOptions]> = async (
     } finally {
         await cloudFunc.cleanup();
     }
-};
+}
 
 async function testConcurrency(
     t: ExecutionContext,

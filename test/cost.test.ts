@@ -1,4 +1,4 @@
-import test, { ExecutionContext, Macro } from "ava";
+import test, { ExecutionContext } from "ava";
 import * as ppp from "papaparse";
 import {
     awsConfigurations,
@@ -29,8 +29,11 @@ function filter(configurations: CostAnalyzerConfiguration[]) {
         .map(c => ({ ...c, repetitions }));
 }
 
-const costAnalyzerMacro: Macro<[CostAnalyzerConfiguration[]]> = async (t, configs) => {
-    const profile = await estimateWorkloadCost("./fixtures/functions", configs, {
+async function testCostAnalyzer(
+    t: ExecutionContext,
+    configs: CostAnalyzerConfiguration[]
+) {
+    const profile = await estimateWorkloadCost(funcs, "./fixtures/functions", configs, {
         work,
         silent: true
     });
@@ -64,7 +67,7 @@ const costAnalyzerMacro: Macro<[CostAnalyzerConfiguration[]]> = async (t, config
         t.is(typeof row.executionTime, "number");
         t.is(typeof row.billedTime, "number");
     }
-};
+}
 
 export async function testCosts(t: ExecutionContext, provider: Provider) {
     const args: CommonOptions = {
@@ -111,8 +114,8 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
     }
 }
 
-test(title("aws", "cost analyzer"), costAnalyzerMacro, filter(awsConfigurations));
-test(title("google", "cost analyzer"), costAnalyzerMacro, filter(googleConfigurations));
+test(title("aws", "cost analyzer"), testCostAnalyzer, filter(awsConfigurations));
+test(title("google", "cost analyzer"), testCostAnalyzer, filter(googleConfigurations));
 
 for (const provider of providers) {
     test(title(provider, `cost estimate for basic calls`), testCosts, provider);

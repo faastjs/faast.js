@@ -8,7 +8,8 @@ async function work(remote: Promisified<typeof m>) {
 
 async function compareAws() {
     const results = await estimateWorkloadCost(
-        require.resolve("./module"),
+        m,
+        require.resolve("./functions"),
         awsConfigurations,
         { work }
     );

@@ -69,6 +69,7 @@ const makeFormatter = ({ csv = false }) => {
 
 async function compareAws(Bucket: string, filter: FilterFn) {
     const result = await estimateWorkloadCost(
+        m,
         require.resolve("./map-buckets-module"),
         awsConfigurations.map(c => ({
             ...c,
