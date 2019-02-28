@@ -81,6 +81,8 @@ export interface CommonOptions {
      * sense to leave gc on in only one process. Note that if faast is invoked
      * multiple times within one process, faast will automatically only run gc
      * once every hour.
+     *
+     * Also see {@link CommonOptions.retentionInDays}.
      */
     gc?: boolean;
     /**
@@ -103,37 +105,42 @@ export interface CommonOptions {
      * varies depending on the setting. By default faast picks a likely optimal
      * value for each provider.
      *
-     * - AWS: 1728MB
+     * - **aws**: 1728MB
      *
-     * - Google: 1024MB
+     * - **google**: 1024MB
      *
-     * - Local: 512MB
+     * - **local**: 512MB
      */
     memorySize?: number;
     /**
-     * Specify invocation mode. Default: "auto".
+     * Specify invocation mode, one of `"auto"`, `"https"`, or `"queue"`.
+     * Default: `"auto"`.
      * @remarks
-     * Modes specify how invocations are triggered. In `https` mode, the
-     * functions are invoked through an https request or the provider's API. In
-     * queue mode, a provider-specific queue is used to invoke functions. Queue
-     * mode adds additional latency and (usually negligible) cost, but may scale
-     * better for some providers. In `auto` mode the best default is chosen for
+     * Modes specify how invocations are triggered. In https mode, the functions
+     * are invoked through an https request or the provider's API. In queue
+     * mode, a provider-specific queue is used to invoke functions. Queue mode
+     * adds additional latency and (usually negligible) cost, but may scale
+     * better for some providers. In auto mode the best default is chosen for
      * each provider depending on its particular performance characteristics.
      *
      * The defaults are:
      *
-     * - AWS: `auto` is `queue`. In `https` mode, the AWS SDK api is used to
-     *   invoke functions. In `queue` mode, an AWS SNS topic is created and
-     *   triggers invocations. The AWS API Gateway service is never used by
-     *   faast, as it incurs a higher cost and is not needed to trigger
+     * - **aws**: `"auto"` is the same as `"queue"`. In https mode, the AWS SDK
+     *   api is used to invoke functions. In queue mode, an AWS SNS topic is
+     *   created and triggers invocations. The AWS API Gateway service is never
+     *   used by faast, as it incurs a higher cost and is not needed to trigger
      *   invocations.
      *
-     * - Google: `auto` is `https`. In `https` mode, a PUT request is made to
-     *   invoke the cloud function. In `queue` mode, a PubSub topic is created
+     * - **google**: `"auto"` is `"https"`. In https mode, a PUT request is made
+     *   to invoke the cloud function. In queue mode, a PubSub topic is created
      *   to invoke functions.
      *
-     * - Local: mode setting is ignored. Local mode always uses an internal
-     *   asynchronous queue to schedule calls.
+     * - **local**: The local provider ignores the mode setting and always uses
+     *   an internal asynchronous queue to schedule calls.
+     *
+     * Note that no matter which mode is selected, faast.js always uses queue to
+     * send results back. This queue is required because there are intermediate
+     * data that faast.js needs for bookeeping and performance monitoring.
      */
     mode?: "https" | "queue" | "auto";
     /**
@@ -144,20 +151,50 @@ export interface CommonOptions {
      * package.json, as webpack will statically analyze your imports and
      * determine which files to bundle.
      *
-     * However, there are some use cases where this is not enough, such as
-     * dependencies that compile native code, or are specifically not designed
-     * to work with webpack. In these cases, you can create a separate
-     * `package.json` for these dependencies and pass the filename as the
-     * `packageJson` option.
+     * However, there are some use cases where this is not enough. For example,
+     * some dependencies contain native code compiled during installation, and
+     * webpack cannot bundle these native modules. such as dependencies with
+     * native code.  or are specifically not designed to work with webpack. In
+     * these cases, you can create a separate `package.json` for these
+     * dependencies and pass the filename as the `packageJson` option.
      *
-     * The dependencies will be installed with `npm` by the `local` and `aws`
-     * providers. For Google, faast.js relies on Google Cloud Function's native
-     * package.json support.
+     * The way the `packageJson` is handled varies by provider:
+     *
+     * - **local**: Runs `npm install` in a temporary directory it prepares for the
+     *   function.
+     *
+     * - **google**: uses Google Cloud Function's
+     *   {@link https://cloud.google.com/functions/docs/writing/specifying-dependencies-nodejs | native support for package.json}.
+     *
+     * - **aws**: Recursively calls faast.js to run `npm install` inside a separate
+     *   lambda function specifically created for this purpose. Faast.js uses
+     *   lambda to install dependencies to ensure that native dependencies are
+     *   compiled in an environment that can produce binaries linked against
+     *   lambda's
+     *   {@link https://aws.amazon.com/blogs/compute/running-executables-in-aws-lambda/ | execution environment}.
      *
      * Also see {@link CommonOptions.useDependencyCaching}.
      */
     packageJson?: string | object | false;
+    /**
+     * Cache installed dependencies from {@link packageJson}. Only applies to
+     * AWS. Default: true.
+     * @remarks
+     * The resulting `node_modules` folder is cached both locally and also on S3
+     * under the bucket `faast-cache-*-${region}`. These cache entries expire by
+     * default after 24h. Using caching reduces the need to install and upload
+     * dependencies every time a function is created. This is important for AWS
+     * because it creates an entirely separate lambda function to install
+     * dependencies remotely, which can substantially increase function
+     * deployment time.
+     */
     useDependencyCaching?: boolean;
+    /**
+     * Specify how many days to wait before reclaiming cloud garbage. Default: 1.
+     * @remarks
+     * Garbage collection only deletes resources after they age beyond a certain number of days.
+     * See {@link CommonOptions.gc}.
+     */
     retentionInDays?: number;
     speculativeRetryThreshold?: number;
     timeout?: number;

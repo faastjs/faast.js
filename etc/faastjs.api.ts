@@ -119,7 +119,6 @@ interface CommonOptions {
     speculativeRetryThreshold?: number;
     // (undocumented)
     timeout?: number;
-    // (undocumented)
     useDependencyCaching?: boolean;
     // (undocumented)
     webpackOptions?: webpack.Configuration;
