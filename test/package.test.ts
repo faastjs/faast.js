@@ -2,6 +2,7 @@ import test, { ExecutionContext } from "ava";
 import { CommonOptions, faast, Provider, providers } from "../index";
 import * as funcs from "./fixtures/functionsPackage";
 import { configs, title } from "./fixtures/util";
+import { uuidv4Pattern } from "../src/shared";
 
 async function testPackage(
     t: ExecutionContext,
@@ -13,7 +14,7 @@ async function testPackage(
     const remote = cloudFunc.functions;
 
     try {
-        t.deepEqual(await remote.squareLodash([1, 2, 3]), [1, 4, 9]);
+        t.regex(await remote.uuid(), new RegExp(uuidv4Pattern));
     } finally {
         await cloudFunc.cleanup();
     }

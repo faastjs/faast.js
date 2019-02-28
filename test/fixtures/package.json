@@ -5,9 +5,11 @@
     "repository": "none",
     "license": "ISC",
     "dependencies": {
-        "@types/lodash": "^4.14.121",
         "googleapis": "^37.2.0",
-        "lodash": "^4.17.11",
-        "tslib": "^1.9.1"
+        "tslib": "^1.9.1",
+        "uuid": "^3.3.2"
+    },
+    "devDependencies": {
+        "@types/uuid": "^3.4.4"
     }
 }

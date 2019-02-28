@@ -1,5 +1,5 @@
-import { map } from "lodash";
+import * as uuidv4 from "uuid/v4";
 
-export function squareLodash(a: number[]) {
-    return map(a, i => i * i);
+export function uuid() {
+    return uuidv4();
 }
