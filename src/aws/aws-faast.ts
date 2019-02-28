@@ -27,7 +27,7 @@ import {
     sleep,
     uuidv4Pattern
 } from "../shared";
-import { throttle } from "../throttle";
+import { throttle, retry } from "../throttle";
 import * as awsNpm from "./aws-npm";
 import {
     createSNSTopic,
@@ -239,31 +239,6 @@ const createLambdaRole = throttle(
     }
 );
 
-export async function pollAwsRequest<T>(
-    n: number,
-    description: string,
-    fn: () => aws.Request<T, aws.AWSError>
-) {
-    let duration = 1000;
-    for (let i = 1; i < n; i++) {
-        info(`Polling ${description}...`);
-        const result = await quietly(fn());
-        if (result) {
-            return result;
-        }
-        await sleep(duration);
-        if (duration < 5000) {
-            duration += 1000;
-        }
-    }
-    try {
-        return await fn().promise();
-    } catch (err) {
-        warn(err);
-        throw err;
-    }
-}
-
 const createCacheBucket = throttle(
     { concurrency: 1, rate: 10, memoize: true },
     async (s3: aws.S3, Bucket: string, region: string) => {
@@ -394,7 +369,6 @@ export const initialize = throttle(
             const request: aws.Lambda.Types.CreateFunctionRequest = {
                 FunctionName,
                 Role,
-                // Runtime: "nodejs6.10",
                 Runtime: "nodejs8.10",
                 Handler: "index.trampoline",
                 Code,
@@ -405,13 +379,20 @@ export const initialize = throttle(
                 ...options.awsLambdaOptions
             };
             info(`createFunctionRequest: %O`, request);
-            const func = await pollAwsRequest(3, "creating function", () =>
-                lambda.createFunction(request)
-            );
-            info(
-                `Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`
-            );
-            return func;
+            try {
+                const func = await retry(4, () =>
+                    lambda.createFunction(request).promise()
+                );
+                info(
+                    `Created function ${func.FunctionName}, FunctionArn: ${
+                        func.FunctionArn
+                    }`
+                );
+                return func;
+            } catch (err) {
+                warn(`Could not initialize lambda function: ${err}`);
+                throw err;
+            }
         }
 
         async function createCodeBundle() {
