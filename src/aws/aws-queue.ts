@@ -41,21 +41,18 @@ function convertMapToAwsMessageAttributes(
     return attr;
 }
 
-function publishSQS(
+async function publishSQS(
     sqs: aws.SQS,
     QueueUrl: string,
     MessageBody: string,
     attr?: Attributes
-): Promise<void> {
+) {
     const message = {
         QueueUrl,
         MessageBody,
         MessageAttributes: convertMapToAwsMessageAttributes(attr)
     };
-    return sqs
-        .sendMessage(message)
-        .promise()
-        .then(_ => {});
+    await sqs.sendMessage(message).promise();
 }
 
 export function sendResponseQueueMessage(

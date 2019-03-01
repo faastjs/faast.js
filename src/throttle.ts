@@ -23,14 +23,17 @@ export class DeferredWorker<T = void> extends Deferred<T> {
     ) {
         super();
     }
-    execute(): void {
+    async execute() {
         const cancelMessage = this.cancel && this.cancel();
         if (cancelMessage) {
             this.reject(new Error(cancelMessage));
         } else {
-            this.worker()
-                .then(x => this.resolve(x))
-                .catch(err => this.reject(err));
+            try {
+                const rv = await this.worker();
+                this.resolve(rv);
+            } catch (err) {
+                this.reject(err);
+            }
         }
     }
 }
@@ -118,6 +121,7 @@ export class Funnel<T = void> {
         ) {
             const worker = popFirst(pendingQueue)!;
             this.executingQueue.add(worker);
+
             worker.promise
                 .then(_ => this.processed++)
                 .catch(_ => this.errors++)
@@ -145,14 +149,15 @@ export class Pump<T = void> extends Funnel<T | void> {
                 return;
             }
             while (this.executingQueue.size + this.pendingQueue.size < this.concurrency) {
-                this.push(() =>
-                    this.worker()
-                        .catch(_ => {})
-                        .then(x => {
-                            setImmediate(restart);
-                            return x;
-                        })
-                );
+                this.push(async () => {
+                    try {
+                        return await this.worker();
+                    } catch (err) {
+                        return;
+                    } finally {
+                        setImmediate(restart);
+                    }
+                });
             }
         };
         this.stopped = false;
