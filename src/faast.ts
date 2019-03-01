@@ -365,17 +365,22 @@ async function createFunction<M extends object, O extends CommonOptions, S>(
     impl: CloudFunctionImpl<O, S>,
     userOptions?: O
 ): Promise<CloudFunction<M, O, S>> {
-    const resolvedModule = resolveModule(modulePath);
-    const functionId = uuidv4() as UUID;
-    const options = Object.assign({}, impl.defaults, userOptions);
-    logProvider(`options ${inspectProvider(options)}`);
-    return new CloudFunction(
-        impl,
-        await impl.initialize(resolvedModule, functionId, options),
-        fmodule,
-        resolvedModule,
-        options
-    );
+    try {
+        const resolvedModule = resolveModule(modulePath);
+        const functionId = uuidv4() as UUID;
+        const options = Object.assign({}, impl.defaults, userOptions);
+        logProvider(`options ${inspectProvider(options)}`);
+        return new CloudFunction(
+            impl,
+            await impl.initialize(resolvedModule, functionId, options),
+            fmodule,
+            resolvedModule,
+            options
+        );
+    } catch (err) {
+        warn(`faast: createFunction error: ${err}`);
+        throw err;
+    }
 }
 
 /**
@@ -463,35 +468,40 @@ export class CloudFunction<
     }
 
     async cleanup(userCleanupOptions: CleanupOptions = {}) {
-        const options = Object.assign({}, CleanupOptionDefaults, userCleanupOptions);
-        this.counters.clear();
-        this.stats.clear();
-        this._memoryLeakDetector.clear();
-        this._funnel.clear();
-        this._cleanupHooks.forEach(hook => hook.resolve());
-        this._cleanupHooks.clear();
-        this.stopStats();
-        this._initialInvocationTime.clear();
-        this._callResultsPending.clear();
-        this._collectorPump.stop();
+        try {
+            const options = Object.assign({}, CleanupOptionDefaults, userCleanupOptions);
+            this.counters.clear();
+            this.stats.clear();
+            this._memoryLeakDetector.clear();
+            this._funnel.clear();
+            this._cleanupHooks.forEach(hook => hook.resolve());
+            this._cleanupHooks.clear();
+            this.stopStats();
+            this._initialInvocationTime.clear();
+            this._callResultsPending.clear();
+            this._collectorPump.stop();
 
-        let count = 0;
-        const tasks = [];
-        const stopMessage: StopQueueMessage = { kind: "stopqueue" };
-        while (this._collectorPump.getConcurrency() > 0 && count++ < 10) {
-            for (let i = 0; i < this._collectorPump.getConcurrency(); i++) {
-                logProvider(`publish ${inspectProvider(stopMessage)}`);
-                tasks.push(this.impl.publish(this.state, stopMessage));
+            let count = 0;
+            const tasks = [];
+            const stopMessage: StopQueueMessage = { kind: "stopqueue" };
+            while (this._collectorPump.getConcurrency() > 0 && count++ < 10) {
+                for (let i = 0; i < this._collectorPump.getConcurrency(); i++) {
+                    logProvider(`publish ${inspectProvider(stopMessage)}`);
+                    tasks.push(this.impl.publish(this.state, stopMessage));
+                }
+                await Promise.all(tasks);
+                if (this._collectorPump.getConcurrency() > 0) {
+                    await sleep(1000);
+                }
             }
-            await Promise.all(tasks);
-            if (this._collectorPump.getConcurrency() > 0) {
-                await sleep(1000);
-            }
+
+            logProvider(`cleanup`);
+            await this.impl.cleanup(this.state, options);
+            logProvider(`cleanup done`);
+        } catch (err) {
+            warn(`faast: cleanup error ${err}`);
+            throw err;
         }
-
-        logProvider(`cleanup`);
-        await this.impl.cleanup(this.state, options);
-        logProvider(`cleanup done`);
     }
 
     logUrl() {
