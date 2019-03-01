@@ -303,7 +303,7 @@ export interface CommonOptions {
      *   environment `"aws-sdk"` is available in the ambient environment and
      *   does not need to be bundled.
      *
-     * - **other providers**: `{}`
+     * - other providers: `{}`
      */
     webpackOptions?: webpack.Configuration;
 }

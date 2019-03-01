@@ -42,6 +42,7 @@ export const providers: Provider[] = ["aws", "google", "local"];
  * @public
  */
 export class FaastError extends Error {
+    /** The log URL for the specific invocation that caused this error. */
     logUrl?: string;
     constructor(errObj: any, logUrl?: string) {
         let message = errObj.message;
@@ -504,6 +505,7 @@ export class CloudFunction<
         }
     }
 
+    /** The logs for all invocations. May require logging in to the provider. */
     logUrl() {
         const rv = this.impl.logUrl(this.state);
         logProvider(`logUrl ${rv}`);
@@ -527,6 +529,10 @@ export class CloudFunction<
         this._statsTimer = undefined;
     }
 
+    /**
+     * Register for statistics events that provide ongoing details about the
+     * progress of in-flight invocations.
+     */
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void) {
         if (!this._statsTimer) {
             this.startStats();
@@ -534,6 +540,9 @@ export class CloudFunction<
         this._emitter.on(name, listener);
     }
 
+    /**
+     * Deregister a listener for statistics on in-flight invocations.
+     */
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void) {
         this._emitter.off(name, listener);
         if (this._emitter.listenerCount(name) === 0) {
@@ -683,6 +692,10 @@ export class CloudFunction<
         return wrappedFunc as any;
     }
 
+    /**
+     * Get a cost estimate report summarizing the cost of all completed
+     * invocations so far.
+     */
     async costEstimate() {
         if (this.impl.costEstimate) {
             const estimate = await this.impl.costEstimate(
@@ -829,6 +842,7 @@ export class CloudFunction<
 }
 
 /**
+ * A CloudFunction type suitable to hold the return value of `faast("aws", ...)`
  * @public
  */
 export class AWSLambda<M extends object = object> extends CloudFunction<
@@ -837,6 +851,7 @@ export class AWSLambda<M extends object = object> extends CloudFunction<
     AwsState
 > {}
 /**
+ * A CloudFunction type suitable to hold the return value of `faast("google", ...)`
  * @public
  */
 export class GoogleCloudFunction<M extends object = object> extends CloudFunction<
@@ -846,6 +861,7 @@ export class GoogleCloudFunction<M extends object = object> extends CloudFunctio
 > {}
 
 /**
+ * A CloudFunction type suitable to hold the return value of `faast("local", ...)`
  * @public
  */
 export class LocalFunction<M extends object = object> extends CloudFunction<
@@ -855,11 +871,13 @@ export class LocalFunction<M extends object = object> extends CloudFunction<
 > {}
 
 /**
+ * The type of all supported cloud providers.
  * @public
  */
 export type Provider = "aws" | "google" | "local";
 
 /**
+ * The main entry point for faast.
  * @public
  */
 export function faast<M extends object>(
@@ -869,6 +887,7 @@ export function faast<M extends object>(
     options?: AwsOptions
 ): Promise<CloudFunction<M, AwsOptions, AwsState>>;
 /**
+ * The main entry point for faast.
  * @public
  */
 export function faast<M extends object>(
@@ -878,6 +897,7 @@ export function faast<M extends object>(
     options?: GoogleOptions
 ): Promise<CloudFunction<M, GoogleOptions, GoogleState>>;
 /**
+ * The main entry point for faast.
  * @public
  */
 export function faast<M extends object>(
@@ -887,6 +907,7 @@ export function faast<M extends object>(
     options?: LocalOptions
 ): Promise<CloudFunction<M, LocalOptions, LocalState>>;
 /**
+ * The main entry point for faast.
  * @public
  */
 export function faast<M extends object, S>(
@@ -896,6 +917,7 @@ export function faast<M extends object, S>(
     options?: CommonOptions
 ): Promise<CloudFunction<M, CommonOptions, S>>;
 /**
+ * The main entry point for faast.
  * @public
  */
 export async function faast<M extends object, O extends CommonOptions, S>(

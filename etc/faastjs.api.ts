@@ -81,17 +81,13 @@ declare class CloudFunction<M extends object, O extends CommonOptions = CommonOp
     cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
     // (undocumented)
     cloudName: string;
-    // (undocumented)
     costEstimate(): Promise<CostBreakdown>;
     // @internal (undocumented)
     counters: FunctionCountersMap;
     // (undocumented)
     functions: Promisified<M>;
-    // (undocumented)
     logUrl(): string;
-    // (undocumented)
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
-    // (undocumented)
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
     // (undocumented)
     readonly options: Required<CommonOptions>;
@@ -195,23 +191,22 @@ declare class CostMetric {
 // @public (undocumented)
 declare function estimateWorkloadCost<T extends object, K extends string>(mod: T, fmodule: string, configurations: CostAnalyzerConfiguration[] | undefined, workload: Workload<T, K>): Promise<CostAnalysisProfile<K>[]>;
 
-// @public (undocumented)
+// @public
 declare function faast<M extends object>(provider: "aws", fmodule: M, modulePath: string, options?: AwsOptions): Promise<CloudFunction<M, AwsOptions, AwsState>>;
 
-// @public (undocumented)
+// @public
 declare function faast<M extends object>(provider: "google", fmodule: M, modulePath: string, options?: GoogleOptions): Promise<CloudFunction<M, GoogleOptions, GoogleState>>;
 
-// @public (undocumented)
+// @public
 declare function faast<M extends object>(provider: "local", fmodule: M, modulePath: string, options?: LocalOptions): Promise<CloudFunction<M, LocalOptions, LocalState>>;
 
-// @public (undocumented)
+// @public
 declare function faast<M extends object, S>(provider: Provider, fmodule: M, modulePath: string, options?: CommonOptions): Promise<CloudFunction<M, CommonOptions, S>>;
 
 // @public (undocumented)
 declare class FaastError extends Error {
     // (undocumented)
     constructor(errObj: any, logUrl?: string);
-    // (undocumented)
     logUrl?: string;
 }
 
@@ -380,7 +375,7 @@ declare type Promisified<M> = {
 // @public (undocumented)
 declare type PromisifiedFunction<A extends any[], R> = (...args: A) => Promise<Unpacked<R>>;
 
-// @public (undocumented)
+// @public
 declare type Provider = "aws" | "google" | "local";
 
 // @public (undocumented)
