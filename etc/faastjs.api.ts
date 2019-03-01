@@ -11,7 +11,7 @@ declare class AwsMetrics {
     sqs64kRequests: number;
 }
 
-// @public (undocumented)
+// @public
 interface AwsOptions extends CommonOptions {
     // (undocumented)
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
@@ -19,11 +19,7 @@ interface AwsOptions extends CommonOptions {
     CacheBucket?: string;
     // @internal (undocumented)
     gcWorker?: (services: AwsServices, work: AwsGcWork) => Promise<void>;
-    // (undocumented)
-    PolicyArn?: string;
-    // (undocumented)
     region?: AwsRegion;
-    // (undocumented)
     RoleName?: string;
 }
 
@@ -362,10 +358,7 @@ declare type Metrics<K extends string> = {
 };
 
 // @internal (undocumented)
-declare const parentModule: NodeModule | null;
-
-// @internal (undocumented)
-declare const parentRequire: NodeRequireFunction;
+declare const _parentModule: NodeModule | null;
 
 // @public (undocumented)
 declare type Promisified<M> = {

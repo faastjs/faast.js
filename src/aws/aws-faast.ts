@@ -68,11 +68,77 @@ const defaultGcWorker = throttle(
 );
 
 /**
+ * AWS-specific options for {@link faast}.
  * @public
  */
 export interface AwsOptions extends CommonOptions {
+    /**
+     * The region to create resources in. Garbage collection is also limited to
+     * this region. Default: `"us-west-2"`.
+     */
     region?: AwsRegion;
-    PolicyArn?: string;
+    /**
+     * The role that the lambda function will assume when executing user code.
+     * Default: `"faast-cached-lambda-role"`.
+     * @remarks
+     * When a lambda executes, it first assumes an
+     * {@link https://docs.aws.amazon.com/lambda/latest/dg/lambda-intro-execution-role.html | execution role}
+     * to grant access to resources.
+     *
+     * By default, faast.js creates this execution role for you and leaves it
+     * permanently in your account (the role is shared across all lambda
+     * functions created by faast.js). By default, faast.js grants administrator
+     * privileges to this role so your code can perform any AWS operation it
+     * requires.
+     *
+     * You can
+     * {@link https://console.aws.amazon.com/iam/home#/roles | create a custom role}
+     * that specifies more limited permissions if you prefer not to grant
+     * administrator privileges. Any role you assign for faast functions needs
+     * at least the following permissions:
+     *
+     * - Execution Role:
+     * ```json
+     *   {
+     *       "Version": "2012-10-17",
+     *       "Statement": [
+     *           {
+     *               "Effect": "Allow",
+     *               "Action": ["logs:*"],
+     *               "Resource": "arn:aws:logs:*:*:log-group:faast-*"
+     *           },
+     *           {
+     *               "Effect": "Allow",
+     *               "Action": ["s3:*"],
+     *               "Resource": "arn:aws:s3:::faast-*"
+     *           },
+     *           {
+     *               "Effect": "Allow",
+     *               "Action": ["sqs:*"],
+     *               "Resource": "arn:aws:sqs:*:*:faast-*"
+     *           }
+     *       ]
+     *   }
+     * ```
+     *
+     * - Trust relationship (also known as `AssumeRolePolicyDocument` in the AWS
+     *   SDK):
+     * ```json
+     *   {
+     *     "Version": "2012-10-17",
+     *     "Statement": [
+     *       {
+     *         "Effect": "Allow",
+     *         "Principal": {
+     *           "Service": "lambda.amazonaws.com"
+     *         },
+     *         "Action": "sts:AssumeRole"
+     *       }
+     *     ]
+     *   }
+     * ```
+     *
+     */
     RoleName?: string;
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
     CacheBucket?: string;
@@ -83,7 +149,6 @@ export interface AwsOptions extends CommonOptions {
 export let defaults: Required<AwsOptions> = {
     ...CommonOptionDefaults,
     region: "us-west-2",
-    PolicyArn: "arn:aws:iam::aws:policy/AdministratorAccess",
     RoleName: "faast-cached-lambda-role",
     memorySize: 1728,
     awsLambdaOptions: {},
@@ -200,16 +265,19 @@ export const createAwsApis = throttle(
     }
 );
 
-const createLambdaRole = throttle(
+const ensureRole = throttle(
     { concurrency: 1, rate: 5, memoize: true },
-    async (RoleName: string, PolicyArn: string, services: AwsServices) => {
+    async (RoleName: string, services: AwsServices) => {
         const { iam } = services;
         info(`Checking for cached lambda role`);
         const previousRole = await quietly(iam.getRole({ RoleName }));
         if (previousRole) {
             return previousRole.Role.Arn;
         }
-        info(`Creating role "${RoleName}" for faast trampoline function`);
+        if (RoleName !== defaults.RoleName) {
+            throw new Error(`Could not find role ${RoleName}`);
+        }
+        info(`Creating default role "${RoleName}" for faast trampoline function`);
         const AssumeRolePolicyDocument = JSON.stringify({
             Version: "2012-10-17",
             Statement: [
@@ -227,9 +295,10 @@ const createLambdaRole = throttle(
             MaxSessionDuration: 3600
         };
         info(`Calling createRole`);
+        const PolicyArn = "arn:aws:iam::aws:policy/AdministratorAccess";
         try {
             const roleResponse = await iam.createRole(roleParams).promise();
-            info(`Attaching role policy`);
+            info(`Attaching administrator role policy`);
             await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
             return roleResponse.Role.Arn;
         } catch (err) {
@@ -448,10 +517,9 @@ export const initialize = throttle(
             state.gcPromise.catch(_silenceWarningLackOfSynchronousCatch => {});
         }
 
-        const { PolicyArn } = options;
         try {
             info(`Creating lambda function`);
-            const rolePromise = createLambdaRole(RoleName, PolicyArn, services);
+            const rolePromise = ensureRole(RoleName, services);
             const responseQueuePromise = createResponseQueueImpl(state, FunctionName);
             const pricingPromise = requestAwsPrices(services.pricing, region);
 
@@ -942,7 +1010,9 @@ function addSnsInvokePermissionsToFunction(
 }
 
 /**
- * Valid AWS {@link https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html | regions}. Not all of these regions have Lambda.
+ * Valid AWS
+ * {@link https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html | regions}.
+ * Not all of these regions have Lambda support.
  * @public
  */
 export type AwsRegion =
