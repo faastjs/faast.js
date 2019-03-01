@@ -68,9 +68,8 @@ interface AwsState {
     services: AwsServices;
 }
 
-// @public (undocumented)
+// @public
 interface CleanupOptions {
-    // (undocumented)
     deleteResources?: boolean;
 }
 
@@ -112,15 +111,12 @@ interface CommonOptions {
     maxRetries?: number;
     memorySize?: number;
     mode?: "https" | "queue" | "auto";
-    packageJson?: string | object | false;
-    // (undocumented)
+    packageJson?: string | object;
     retentionInDays?: number;
-    // (undocumented)
+    // @alpha
     speculativeRetryThreshold?: number;
-    // (undocumented)
     timeout?: number;
     useDependencyCaching?: boolean;
-    // (undocumented)
     webpackOptions?: webpack.Configuration;
 }
 

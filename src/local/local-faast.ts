@@ -67,7 +67,6 @@ export const defaults: Required<LocalOptions> = {
     ...CommonOptionDefaults,
     concurrency: 10,
     memorySize: 512,
-    timeout: 300,
     gcWorker: defaultGcWorker
 };
 

@@ -97,3 +97,5 @@ When errors are thrown by faast.js functions, log URLs may be appended to the er
 ```
 
 In addition to these options, each cloud provider has cloud-specific options. See [aws](./04-aws-lambda#Options), [google](./05-google-cloud-functions#Options), or [local](./06-local#Options) for details.
+
+## Bundling, dependencies, and package.json
