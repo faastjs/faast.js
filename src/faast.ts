@@ -541,11 +541,18 @@ export class CloudFunction<
         }
     }
 
-    private withCancellation<T>(fn: (cancel: Promise<void>) => Promise<T>): Promise<T> {
+    private async withCancellation<T>(
+        fn: (cancel: Promise<void>) => Promise<T>
+    ): Promise<T> {
         const deferred = new Deferred();
         this._cleanupHooks.add(deferred);
         const promise = fn(deferred.promise);
-        promise.catch(() => {}).then(() => this._cleanupHooks.delete(deferred));
+        try {
+            await promise;
+        } catch (err) {
+        } finally {
+            this._cleanupHooks.delete(deferred);
+        }
         return promise;
     }
 
@@ -668,11 +675,10 @@ export class CloudFunction<
     private wrapFunction<A extends any[], R>(
         fn: (...args: A) => R
     ): PromisifiedFunction<A, R> {
-        const wrappedFunc = (...args: A) => {
+        const wrappedFunc = async (...args: A) => {
             const cfn = this.wrapFunctionWithResponse(fn);
-            const promise = cfn(...args).then(response => response.value);
-            promise.catch(_silenceWarningLackOfSynchronousCatch => {});
-            return promise;
+            const response = await cfn(...args);
+            return response.value;
         };
         return wrappedFunc as any;
     }

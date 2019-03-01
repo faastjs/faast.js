@@ -164,8 +164,12 @@ export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
     return arg.promise().catch(err => warn(err));
 }
 
-export function quietly<U>(arg: aws.Request<U, aws.AWSError>) {
-    return arg.promise().catch(_ => {});
+export async function quietly<U>(arg: aws.Request<U, aws.AWSError>) {
+    try {
+        return await arg.promise();
+    } catch (err) {
+        return;
+    }
 }
 
 function zipStreamToBuffer(zipStream: NodeJS.ReadableStream): Promise<Buffer> {
@@ -868,7 +872,7 @@ function createRequestQueueImpl(
     FunctionArn: string
 ) {
     const { sns, lambda } = state.services;
-    const { resources, metrics } = state;
+    const { resources } = state;
 
     info(`Creating SNS request topic`);
     const createTopicPromise = createSNSTopic(sns, getSNSTopicName(FunctionName));
