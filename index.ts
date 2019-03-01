@@ -55,6 +55,4 @@ export { throttle } from "./src/throttle";
 export { Unpacked } from "./src/types";
 
 /** @internal */
-export const parentModule = module.parent;
-/** @internal */
-export const parentRequire = module.parent!.require;
+export const _parentModule = module.parent;

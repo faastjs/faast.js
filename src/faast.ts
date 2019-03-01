@@ -2,6 +2,7 @@ import { EventEmitter } from "events";
 import * as path from "path";
 import * as util from "util";
 import * as uuidv4 from "uuid/v4";
+import { _parentModule } from "../index";
 import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
 import { CostBreakdown, CostMetric } from "./cost";
 import { GoogleImpl, GoogleOptions, GoogleState } from "./google/google-faast";
@@ -102,29 +103,19 @@ export type Promisified<M> = {
  */
 type ResponsifiedFunction<A extends any[], R> = (...args: A) => Promise<Response<R>>;
 
-// /**
-//  * @internal
-//  */
-// type Responsified<M> = {
-//     [K in keyof M]: M[K] extends (...args: infer A) => infer R
-//         ? ResponsifiedFunction<A, R>
-//         : never
-// };
-
-import { parentModule } from "../index";
 function resolveModule(fmodule: string) {
     if (path.isAbsolute(fmodule)) {
         return fmodule;
     }
-    if (!parentModule) {
+    if (!_parentModule) {
         throw new Error(`Could not resolve fmodule ${fmodule}`);
     }
-    if (parentModule.filename.match(/aws-faast/)) {
+    if (_parentModule.filename.match(/aws-faast/)) {
         info(
             `WARNING: import faast before aws-faast to avoid problems with module resolution`
         );
     }
-    return (Module as any)._resolveFilename(fmodule, parentModule);
+    return (Module as any)._resolveFilename(fmodule, _parentModule);
 }
 
 export class FunctionCountersMap {
