@@ -1,5 +1,5 @@
 import { pubsub_v1 } from "googleapis";
-import { warn } from "../log";
+import { log } from "../log";
 import {
     CALLID_ATTR,
     KIND_ATTR,
@@ -79,7 +79,7 @@ function processMessage(m: PubSubMessage): ReceivableMessage | void {
 
     switch (kind) {
         case "deadletter":
-            warn("Not expecting deadletter message from google queue");
+            log.warn("Not expecting deadletter message from google queue");
             return;
         case "stopqueue":
             return { kind };

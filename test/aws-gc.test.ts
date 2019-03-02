@@ -1,5 +1,5 @@
 import test from "ava";
-import { faast, logGc } from "../index";
+import { faast, log } from "../index";
 import { AwsGcWork, AwsServices } from "../src/aws/aws-faast";
 import * as functions from "./fixtures/functions";
 import { contains, quietly, record, sleep } from "./fixtures/util";
@@ -14,7 +14,7 @@ test.serial(
         // which shows that the garbage collector did its job.
 
         const gcRecorder = record(async (_: AwsServices, work: AwsGcWork) => {
-            logGc(`Recorded gc work: %O`, work);
+            log.gc(`Recorded gc work: %O`, work);
         });
         const func = await faast("aws", functions, "./fixtures/functions", {
             mode: "queue"

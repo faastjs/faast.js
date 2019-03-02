@@ -1,5 +1,5 @@
 import test from "ava";
-import { faast, info } from "../index";
+import { faast, log } from "../index";
 import * as funcs from "./fixtures/functions";
 
 test("remote aws throttling to no concurrency", async t => {
@@ -16,7 +16,7 @@ test("remote aws throttling to no concurrency", async t => {
         }
         const results = await Promise.all(promises);
         results.sort(({ start: a }, { start: b }) => a - b);
-        info(results);
+        log.info(results);
         let lastEnd = 0;
         // Executions should not overlap in their timestamps.
         for (const timing of results) {

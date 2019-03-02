@@ -1,6 +1,6 @@
 import { SNSEvent } from "aws-lambda";
 import * as aws from "aws-sdk";
-import { info, warn } from "../log";
+import { log } from "../log";
 import {
     CALLID_ATTR,
     Invocation,
@@ -173,7 +173,7 @@ function processIncomingQueueMessage(m: aws.SQS.Message): ReceivableMessage | vo
     // https://docs.aws.amazon.com/lambda/latest/dg/dlq.html
     const errorMessage = sqsMessageAttribute(m, "ErrorMessage");
     if (errorMessage) {
-        info(`Received DLQ message: %O`, m);
+        log.info(`Received DLQ message: %O`, m);
         const body = m.Body && JSON.parse(m.Body);
         const snsMessage: SNSEvent = body;
         const record = snsMessage.Records[0];
@@ -183,7 +183,7 @@ function processIncomingQueueMessage(m: aws.SQS.Message): ReceivableMessage | vo
             const message = processAwsErrorMessage(errorMessage!);
             return { kind: "deadletter", callId: callRequest.callId, message };
         } catch (err) {
-            warn(err);
+            log.warn(err);
             return;
         }
     }

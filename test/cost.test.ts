@@ -7,7 +7,7 @@ import {
     estimateWorkloadCost,
     faast,
     googleConfigurations,
-    info,
+    log,
     Promisified,
     Provider,
     providers,
@@ -51,7 +51,7 @@ async function testCostAnalyzer(
         skipEmptyLines: true,
         dynamicTyping: true
     });
-    info(`%O`, parsed.data);
+    log.info(`%O`, parsed.data);
     t.is(parsed.data.length, configs.length);
 
     for (const row of parsed.data) {

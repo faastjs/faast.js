@@ -1,11 +1,4 @@
 export {
-    AwsMetrics,
-    AwsOptions,
-    AwsRegion,
-    AwsResources,
-    AwsState
-} from "./src/aws/aws-faast";
-export {
     awsConfigurations,
     CostAnalysisProfile,
     CostAnalyzerConfiguration,
@@ -27,23 +20,10 @@ export {
     Provider,
     providers
 } from "./src/faast";
-export {
-    GoogleMetrics,
-    GoogleOptions,
-    GoogleResources,
-    GoogleState
-} from "./src/google/google-faast";
-export { LocalOptions, LocalState } from "./src/local/local-faast";
-export {
-    info,
-    logCalls,
-    logGc,
-    logLeaks,
-    logProvider,
-    logProviderSdk,
-    logWebpack,
-    warn
-} from "./src/log";
+export { AwsOptions, AwsRegion } from "./src/aws/aws-faast";
+export { GoogleOptions } from "./src/google/google-faast";
+export { LocalOptions } from "./src/local/local-faast";
+export { log } from "./src/log";
 export {
     CleanupOptions,
     CommonOptions,

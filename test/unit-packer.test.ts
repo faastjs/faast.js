@@ -4,7 +4,7 @@ import { createWriteStream, pathExists, remove, stat } from "fs-extra";
 import * as path from "path";
 import { join } from "path";
 import { PassThrough } from "stream";
-import { CommonOptions, info, Provider, providers } from "../index";
+import { CommonOptions, log, Provider, providers } from "../index";
 import { awsPacker } from "../src/aws/aws-faast";
 import { googlePacker } from "../src/google/google-faast";
 import { localPacker } from "../src/local/local-faast";
@@ -20,7 +20,7 @@ interface PackageConfiguration extends CommonOptions {
 
 function exec(cmd: string) {
     const result = sys.execSync(cmd).toString();
-    info(result);
+    log.info(result);
     return result;
 }
 

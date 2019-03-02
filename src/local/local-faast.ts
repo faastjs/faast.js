@@ -12,7 +12,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { Writable } from "stream";
 import { promisify } from "util";
-import { info, logGc, warn } from "../log";
+import { log } from "../log";
 import { packer, PackerResult, unzipInDir } from "../packer";
 import {
     CleanupOptions,
@@ -96,13 +96,13 @@ async function initialize(
         gcPromise = collectGarbage(gcWorker, retentionInDays!);
     }
     const tempDir = join(tmpdir(), "faast", nonce);
-    info(`tempDir: ${tempDir}`);
+    log.info(`tempDir: ${tempDir}`);
     await mkdirp(tempDir);
     const logDir = join(tempDir, "logs");
     await mkdir(logDir);
-    const log = `file://${logDir}`;
+    const logUrl = `file://${logDir}`;
 
-    info(`logURL: ${log}`);
+    log.info(`logURL: ${logUrl}`);
 
     const { childProcess, memorySize, timeout } = options;
 
@@ -120,13 +120,13 @@ async function initialize(
         };
         try {
             const logFile = join(logDir, `${wrappers.length}.log`);
-            info(`Creating write stream ${logFile}`);
+            log.info(`Creating write stream ${logFile}`);
             logStream = createWriteStream(logFile);
             logStreams.push(logStream);
             await new Promise(resolve => logStream.on("open", resolve));
         } catch (err) {
-            warn(`ERROR: Could not create log`);
-            warn(err);
+            log.warn(`ERROR: Could not create log`);
+            log.warn(err);
             childlog = console.log;
         }
         const wrapper = new Wrapper(require(serverModule), {
@@ -145,12 +145,12 @@ async function initialize(
     await unzipInDir(tempDir, packerResult.archive);
     const packageJsonFile = join(tempDir, "package.json");
     if (await pathExists(packageJsonFile)) {
-        info(`Running 'npm install'`);
+        log.info(`Running 'npm install'`);
 
         await exec("npm install --no-package-lock", { cwd: tempDir }).then(x => {
-            info(x.stdout);
+            log.info(x.stdout);
             if (x.stderr) {
-                warn(x.stderr);
+                log.warn(x.stderr);
             }
         });
     }
@@ -160,7 +160,7 @@ async function initialize(
         getWrapper,
         logStreams,
         tempDir,
-        logUrl: log,
+        logUrl,
         gcPromise,
         queue: new AsyncQueue()
     };
@@ -223,7 +223,7 @@ async function poll(state: LocalState, cancel: Promise<void>): Promise<PollResul
 function responseQueueId(_state: LocalState): string | void {}
 
 async function cleanup(state: LocalState, options: CleanupOptions): Promise<void> {
-    info(`local cleanup starting.`);
+    log.info(`local cleanup starting.`);
 
     await Promise.all(state.wrappers.map(wrapper => wrapper.stop()));
     await Promise.all(
@@ -239,11 +239,11 @@ async function cleanup(state: LocalState, options: CleanupOptions): Promise<void
         const { tempDir } = state;
         const pattern = new RegExp(`/faast/${uuidv4Pattern}$`);
         if (tempDir && tempDir.match(pattern) && (await pathExists(tempDir))) {
-            info(`Deleting temp dir ${tempDir}`);
+            log.info(`Deleting temp dir ${tempDir}`);
             await remove(tempDir);
         }
     }
-    info(`local cleanup done.`);
+    log.info(`local cleanup done.`);
 }
 
 let garbageCollectorRunning = false;
@@ -259,7 +259,7 @@ async function collectGarbage(
         garbageCollectorRunning = true;
     }
     const tmp = join(tmpdir(), "faast");
-    logGc(tmp);
+    log.gc(tmp);
     try {
         const dir = await readdir(tmp);
         const pattern = new RegExp(`^${uuidv4Pattern}$`);
@@ -269,14 +269,14 @@ async function collectGarbage(
                 try {
                     const stats = await stat(faastDir);
                     if (hasExpired(stats.atimeMs, retentionInDays)) {
-                        logGc(faastDir);
+                        log.gc(faastDir);
                         await gcWorker(faastDir);
                     }
                 } catch (err) {}
             }
         }
     } catch (err) {
-        logGc(err);
+        log.gc(err);
     } finally {
         if (gcWorker === defaultGcWorker) {
             garbageCollectorRunning = false;

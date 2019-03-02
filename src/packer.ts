@@ -5,7 +5,7 @@ import { Readable } from "stream";
 import * as webpack from "webpack";
 import * as yauzl from "yauzl";
 import { LoaderOptions } from "./loader";
-import { info, logProvider, logWebpack, warn } from "./log";
+import { log } from "./log";
 import { CommonOptionDefaults, CommonOptions } from "./provider";
 import { keys, streamToBuffer } from "./shared";
 import { TrampolineFactory, WrapperOptionDefaults, WrapperOptions } from "./wrapper";
@@ -37,7 +37,7 @@ export async function packer(
     const wrapperOptions = Object.assign(WrapperOptionDefaults, userWrapperOptions);
     let { webpackOptions, packageJson, addDirectory, addZipFile } = options;
 
-    info(`Running webpack`);
+    log.info(`Running webpack`);
     const mfs = new MemoryFileSystem();
 
     function addToArchive(root: string, archive: Archiver) {
@@ -49,7 +49,7 @@ export async function packer(
                     addEntry(subEntryPath);
                 }
             } else if (stat.isFile()) {
-                info(`Adding file: ${entry}`);
+                log.info(`Adding file: ${entry}`);
                 archive.append((mfs as any).createReadStream(entry), {
                     name: path.relative(root, entry)
                 });
@@ -73,9 +73,9 @@ export async function packer(
 
     async function processAddDirectories(archive: Archiver, directories: string[]) {
         for (const dir of directories) {
-            info(`Adding directory to archive: ${dir}`);
+            log.info(`Adding directory to archive: ${dir}`);
             if (!(await pathExists(dir))) {
-                warn(`Directory ${dir} not found`);
+                log.warn(`Directory ${dir} not found`);
             }
             archive.directory(dir, false);
         }
@@ -91,8 +91,8 @@ export async function packer(
 
     async function prepareZipArchive(): Promise<PackerResult> {
         const archive = archiver("zip", { zlib: { level: 8 } });
-        archive.on("error", err => warn(err));
-        archive.on("warning", err => warn(err));
+        archive.on("error", err => log.warn(err));
+        archive.on("warning", err => log.warn(err));
         addToArchive("/", archive);
         if (typeof addDirectory === "string") {
             addDirectory = [addDirectory];
@@ -127,7 +127,7 @@ export async function packer(
             ...webpackOptions
         };
         config.externals = [...externalsArray, ...dependencies];
-        logWebpack(`webpack config: %O`, config);
+        log.webpack(`webpack config: %O`, config);
         const compiler = webpack(config);
         compiler.outputFileSystem = mfs as any;
         return new Promise((resolve, reject) =>
@@ -135,8 +135,8 @@ export async function packer(
                 if (err) {
                     reject(err);
                 } else {
-                    logWebpack(stats.toString());
-                    logWebpack(`Memory filesystem: %O`, mfs.data);
+                    log.webpack(stats.toString());
+                    log.webpack(`Memory filesystem: %O`, mfs.data);
                     resolve();
                 }
             })
@@ -154,7 +154,7 @@ export async function packer(
         ...rest
     } = wrapperOptions;
     const _exhaustiveCheck2: Required<typeof rest> = {};
-    const isVerbose = wrapperVerbose || logProvider.enabled;
+    const isVerbose = wrapperVerbose || log.provider.enabled;
 
     const loader = `loader?${getUrlEncodedQueryParameters({
         trampolineFactoryModule: trampolineFactory.filename,

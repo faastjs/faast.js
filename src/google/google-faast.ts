@@ -11,7 +11,7 @@ import {
 import * as util from "util";
 import { caches } from "../cache";
 import { CostBreakdown, CostMetric } from "../cost";
-import { info, logGc, logProvider, warn } from "../log";
+import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import {
     CleanupOptions,
@@ -58,9 +58,6 @@ export interface GoogleOptions extends CommonOptions {
     gcWorker?: (services: GoogleServices, resources: GoogleResources) => Promise<void>;
 }
 
-/**
- * @public
- */
 export interface GoogleResources {
     trampoline: string;
     requestQueueTopic?: string;
@@ -80,9 +77,6 @@ export interface GoogleCloudPricing {
     perGbPubSub: number;
 }
 
-/**
- * @public
- */
 export class GoogleMetrics {
     outboundBytes = 0;
     pubSubBytes = 0;
@@ -115,7 +109,7 @@ export interface GoogleState {
 }
 
 function gcWorkerDefault(services: GoogleServices, resources: GoogleResources) {
-    return deleteResources(services, resources, logGc);
+    return deleteResources(services, resources, log.gc);
 }
 
 export const defaults: Required<GoogleOptions> = {
@@ -179,10 +173,10 @@ async function pollOperation<T>({
     let retries = 0;
     await delay(retries);
     while (true) {
-        info(`Polling...`);
+        log.info(`Polling...`);
         const result = await request();
         if (checkDone(result)) {
-            info(`Done.`);
+            log.info(`Done.`);
             return result;
         }
         if (retries++ >= maxRetries) {
@@ -231,13 +225,13 @@ export async function initialize(
     nonce: UUID,
     options: Required<GoogleOptions>
 ): Promise<GoogleState> {
-    info(`Create google cloud function`);
+    log.info(`Create google cloud function`);
     const services = await initializeGoogleServices();
     const project = await google.auth.getProjectId();
     const { cloudFunctions, pubsub } = services;
     const { region, childProcess, timeout } = options;
 
-    info(`Nonce: ${nonce}`);
+    log.info(`Nonce: ${nonce}`);
     const location = `projects/${project}/locations/${region}`;
 
     async function createCodeBundle() {
@@ -252,7 +246,7 @@ export async function initialize(
         );
 
         const uploadResult = await uploadZip(uploadUrlResponse.data.uploadUrl!, archive);
-        info(`Upload zip file response: ${uploadResult.statusText}`);
+        log.info(`Upload zip file response: ${uploadResult.statusText}`);
         return uploadUrlResponse.data.uploadUrl;
     }
 
@@ -274,7 +268,7 @@ export async function initialize(
 
     const { gc, retentionInDays, gcWorker } = options;
     if (gc) {
-        logGc(`Starting garbage collector`);
+        log.gc(`Starting garbage collector`);
         state.gcPromise = collectGarbage(gcWorker, services, project, retentionInDays);
         state.gcPromise.catch(_silenceWarningLackOfSynchronousCatch => {});
     }
@@ -290,7 +284,7 @@ export async function initialize(
 
         resources.responseQueueTopic = topic.data.name;
         resources.responseSubscription = getResponseSubscription(project, functionName);
-        info(`Creating response queue subscription`);
+        log.info(`Creating response queue subscription`);
         await pubsub.projects.subscriptions.create({
             name: resources.responseSubscription,
             requestBody: {
@@ -301,7 +295,7 @@ export async function initialize(
 
     let requestQueuePromise;
     if (mode === "queue") {
-        info(`Initializing queue`);
+        log.info(`Initializing queue`);
         resources.requestQueueTopic = getRequestQueueTopic(project, functionName);
         requestQueuePromise = pubsub.projects.topics.create({
             name: resources.requestQueueTopic
@@ -329,10 +323,10 @@ export async function initialize(
         requestBody.httpsTrigger = {};
     }
     validateGoogleLabels(requestBody.labels);
-    info(`Create function at ${location}`);
-    info(`Request body: %O`, requestBody);
+    log.info(`Create function at ${location}`);
+    log.info(`Request body: %O`, requestBody);
     try {
-        info(`create function ${requestBody.name}`);
+        log.info(`create function ${requestBody.name}`);
         await retry(1, () =>
             waitFor(
                 cloudFunctions,
@@ -343,8 +337,8 @@ export async function initialize(
             )
         );
     } catch (err) {
-        warn(`createFunction error: ${err.stack}`);
-        info(`delete function ${trampoline}`);
+        log.warn(`createFunction error: ${err.stack}`);
+        log.info(`delete function ${trampoline}`);
         await deleteFunction(cloudFunctions, trampoline).catch(() => {});
         throw err;
     }
@@ -360,7 +354,7 @@ export async function initialize(
         if (!url) {
             throw new Error("Could not get http trigger url");
         }
-        info(`Function URL: ${url}`);
+        log.info(`Function URL: ${url}`);
         state.url = url;
     }
     await pricingPromise;
@@ -382,7 +376,7 @@ function getResponseSubscription(project: string, functionName: string) {
 
 export function exec(cmd: string) {
     const result = sys.execSync(cmd).toString();
-    info(result);
+    log.info(result);
     return result;
 }
 
@@ -416,7 +410,7 @@ async function callFunctionHttps(
         ]);
 
         if (!rawResponse) {
-            info(`cancelling gcp invoke`);
+            log.info(`cancelling gcp invoke`);
             source.abort();
             return;
         }
@@ -491,7 +485,7 @@ function responseQueueId(state: GoogleState): string | undefined {
 async function deleteResources(
     services: GoogleServices,
     resources: GoogleResources,
-    output: (msg: string) => void = info
+    output: (msg: string) => void = log.info
 ) {
     const {
         trampoline,
@@ -533,17 +527,17 @@ async function deleteResources(
 }
 
 export async function cleanup(state: GoogleState, options: CleanupOptions) {
-    info(`google cleanup starting.`);
+    log.info(`google cleanup starting.`);
     if (state.gcPromise) {
-        info(`Waiting for garbage collection...`);
+        log.info(`Waiting for garbage collection...`);
         await state.gcPromise;
-        info(`Garbage collection done.`);
+        log.info(`Garbage collection done.`);
     }
 
     if (options.deleteResources) {
         await deleteResources(state.services, state.resources);
     }
-    info(`google cleanup done.`);
+    log.info(`google cleanup done.`);
 }
 
 let garbageCollectorRunning = false;
@@ -702,7 +696,7 @@ const getGooglePrice = throttle(
             });
             const { skus = [] } = skusResponse.data;
             const matchingSkus = skus.filter(sku => sku.description === description);
-            logProvider(`matching SKUs: ${util.inspect(matchingSkus, { depth: null })}`);
+            log.provider(`matching SKUs: ${util.inspect(matchingSkus, { depth: null })}`);
 
             const regionOrGlobalSku =
                 matchingSkus.find(sku => sku.serviceRegions![0] === region) ||
@@ -715,15 +709,17 @@ const getGooglePrice = throttle(
             );
             const price =
                 Math.max(...prices) * (conversionFactor / pexp.baseUnitConversionFactor!);
-            logProvider(
+            log.provider(
                 `Found price for ${serviceName}, ${description}, ${region}: ${price}`
             );
             return price;
         } catch (err) {
             const { message: m } = err;
             if (!m.match(/socket hang up/)) {
-                warn(`Could not get Google Cloud Functions pricing for '${description}'`);
-                warn(err);
+                log.warn(
+                    `Could not get Google Cloud Functions pricing for '${description}'`
+                );
+                log.warn(err);
             }
             throw err;
         }
@@ -783,8 +779,8 @@ async function getGoogleCloudFunctionsPricing(
             )
         };
     } catch (err) {
-        warn(`Could not get Google Cloud Functions pricing`);
-        warn(err);
+        log.warn(`Could not get Google Cloud Functions pricing`);
+        log.warn(err);
         return {
             perInvocation: 0,
             perGhzSecond: 0,
@@ -816,7 +812,7 @@ async function costEstimate(
         .sort((a, b) => a - b);
     const provisionedMb = provisionableSizes.find(size => memorySize <= size);
     if (!provisionedMb) {
-        warn(
+        log.warn(
             `Could not determine provisioned memory or CPU for requested memory size ${memorySize}`
         );
     }

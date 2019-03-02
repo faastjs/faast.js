@@ -7,7 +7,7 @@ import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
 import { CostBreakdown, CostMetric } from "./cost";
 import { GoogleImpl, GoogleOptions, GoogleState } from "./google/google-faast";
 import { LocalImpl, LocalOptions, LocalState } from "./local/local-faast";
-import { info, inspectProvider, logCalls, logLeaks, logProvider, warn } from "./log";
+import { inspectProvider, log } from "./log";
 import {
     CallId,
     CleanupOptionDefaults,
@@ -52,7 +52,7 @@ export class FaastError extends Error {
         }
         super(message);
         if (Object.keys(errObj).length === 0 && !(errObj instanceof Error)) {
-            warn(
+            log.warn(
                 `Error response object has no keys, likely a bug in faast (not serializing error objects)`
             );
         }
@@ -111,7 +111,7 @@ function resolveModule(fmodule: string) {
         throw new Error(`Could not resolve fmodule ${fmodule}`);
     }
     if (_parentModule.filename.match(/aws-faast/)) {
-        info(
+        log.info(
             `WARNING: import faast before aws-faast to avoid problems with module resolution`
         );
     }
@@ -336,13 +336,13 @@ function processResponse<R>(
 
     if (instanceId && memoryUsage) {
         if (memoryLeakDetector.detectedNewLeak(fn, instanceId, memoryUsage)) {
-            logLeaks(`Possible memory leak detected in function '${fn}'.`);
-            logLeaks(
+            log.leaks(`Possible memory leak detected in function '${fn}'.`);
+            log.leaks(
                 `Memory use before execution leaked from prior calls: %O`,
                 memoryUsage
             );
-            logLeaks(`Logs: ${logUrl} `);
-            logLeaks(
+            log.leaks(`Logs: ${logUrl} `);
+            log.leaks(
                 `These logs show only one example faast function invocation that may have a leak.`
             );
         }
@@ -361,7 +361,7 @@ async function createFunction<M extends object, O extends CommonOptions, S>(
         const resolvedModule = resolveModule(modulePath);
         const functionId = uuidv4() as UUID;
         const options = Object.assign({}, impl.defaults, userOptions);
-        logProvider(`options ${inspectProvider(options)}`);
+        log.provider(`options ${inspectProvider(options)}`);
         return new CloudFunction(
             impl,
             await impl.initialize(resolvedModule, functionId, options),
@@ -370,7 +370,7 @@ async function createFunction<M extends object, O extends CommonOptions, S>(
             options
         );
     } catch (err) {
-        warn(`faast: createFunction error: ${err}`);
+        log.warn(`faast: createFunction error: ${err}`);
         throw err;
     }
 }
@@ -440,11 +440,11 @@ export class CloudFunction<
         private modulePath: string,
         readonly options: Required<CommonOptions>
     ) {
-        info(`Node version: ${process.version}`);
-        logProvider(`name: ${this.impl.name}`);
-        logProvider(`responseQueueId: ${this.impl.responseQueueId(state)}`);
-        logProvider(`logUrl: ${this.impl.logUrl(state)}`);
-        info(`Log url: ${impl.logUrl(state)}`);
+        log.info(`Node version: ${process.version}`);
+        log.provider(`name: ${this.impl.name}`);
+        log.provider(`responseQueueId: ${this.impl.responseQueueId(state)}`);
+        log.provider(`logUrl: ${this.impl.logUrl(state)}`);
+        log.info(`Log url: ${impl.logUrl(state)}`);
 
         this._funnel = new Funnel<any>(options.concurrency);
         this._memoryLeakDetector = new MemoryLeakDetector(options.memorySize);
@@ -478,7 +478,7 @@ export class CloudFunction<
             const stopMessage: StopQueueMessage = { kind: "stopqueue" };
             while (this._collectorPump.getConcurrency() > 0 && count++ < 10) {
                 for (let i = 0; i < this._collectorPump.getConcurrency(); i++) {
-                    logProvider(`publish ${inspectProvider(stopMessage)}`);
+                    log.provider(`publish ${inspectProvider(stopMessage)}`);
                     tasks.push(this.impl.publish(this.state, stopMessage));
                 }
                 await Promise.all(tasks);
@@ -487,11 +487,11 @@ export class CloudFunction<
                 }
             }
 
-            logProvider(`cleanup`);
+            log.provider(`cleanup`);
             await this.impl.cleanup(this.state, options);
-            logProvider(`cleanup done`);
+            log.provider(`cleanup done`);
         } catch (err) {
-            warn(`faast: cleanup error ${err}`);
+            log.warn(`faast: cleanup error ${err}`);
             throw err;
         }
     }
@@ -499,7 +499,7 @@ export class CloudFunction<
     /** The logs for all invocations. May require logging in to the provider. */
     logUrl() {
         const rv = this.impl.logUrl(this.state);
-        logProvider(`logUrl ${rv}`);
+        log.provider(`logUrl ${rv}`);
         return rv;
     }
 
@@ -578,7 +578,7 @@ export class CloudFunction<
 
             const invoke = async () => {
                 const callId = uuidv4();
-                logCalls(`Calling '${fn.name}' (${callId})`);
+                log.calls(`Calling '${fn.name}' (${callId})`);
                 const ResponseQueueId =
                     this.impl.responseQueueId(this.state) || undefined;
                 const callObject: FunctionCall = {
@@ -597,13 +597,13 @@ export class CloudFunction<
                         callId,
                         body: pending.serialized
                     };
-                    logProvider(`invoke ${inspectProvider(invocation)}`);
+                    log.provider(`invoke ${inspectProvider(invocation)}`);
                     this.withCancellation(async cancel => {
                         const message = await this.impl
                             .invoke(this.state, invocation, cancel)
                             .catch(err => pending.reject(err));
                         if (message) {
-                            logProvider(`invoke returned ${inspectProvider(message)}`);
+                            log.provider(`invoke returned ${inspectProvider(message)}`);
                             let returned = message.body;
                             if (typeof returned === "string")
                                 returned = JSON.parse(returned) as FunctionReturn;
@@ -642,7 +642,7 @@ export class CloudFunction<
                 );
 
                 const rv = await pending.promise.catch<FunctionReturnWithMetrics>(err => {
-                    logProvider(`invoke promise rejection: ${err}`);
+                    log.provider(`invoke promise rejection: ${err}`);
                     return {
                         type: "error",
                         callId,
@@ -655,7 +655,7 @@ export class CloudFunction<
                 });
 
                 this._callResultsPending.delete(rv.callId);
-                logCalls(`Returning '${fn.name}' (${callId}): ${util.inspect(rv)}`);
+                log.calls(`Returning '${fn.name}' (${callId}): ${util.inspect(rv)}`);
 
                 return processResponse<R>(
                     rv,
@@ -694,7 +694,7 @@ export class CloudFunction<
                 this.counters.aggregate,
                 this.stats.aggregate
             );
-            logProvider(`costEstimate returned ${inspectProvider(estimate)}`);
+            log.provider(`costEstimate returned ${inspectProvider(estimate)}`);
             if (this.counters.aggregate.retries > 0) {
                 const { retries, invocations } = this.counters.aggregate;
                 const retryPct = ((retries / invocations) * 100).toFixed(1);
@@ -743,11 +743,11 @@ export class CloudFunction<
             return;
         }
 
-        logProvider(`polling ${this.impl.responseQueueId(this.state)}`);
+        log.provider(`polling ${this.impl.responseQueueId(this.state)}`);
         const pollResult = await this.withCancellation(cancel =>
             this.impl.poll(this.state, cancel)
         );
-        logProvider(`poll returned ${inspectProvider(pollResult)}`);
+        log.provider(`poll returned ${inspectProvider(pollResult)}`);
         const { Messages, isFullMessageBatch } = pollResult;
         const localEndTime = Date.now();
         this.adjustCollectorConcurrencyLevel(isFullMessageBatch);
@@ -758,9 +758,9 @@ export class CloudFunction<
                     return;
                 case "deadletter":
                     const callRequest = callResultsPending.get(m.callId);
-                    info(`Error "${m.message}" in call request %O`, callRequest);
+                    log.info(`Error "${m.message}" in call request %O`, callRequest);
                     if (callRequest) {
-                        info(`Rejecting CallId: ${m.callId}`);
+                        log.info(`Rejecting CallId: ${m.callId}`);
                         callRequest.reject(new Error(m.message));
                     }
                     break;
@@ -784,13 +784,15 @@ export class CloudFunction<
                                 localRequestSentTime: deferred.created,
                                 localEndTime
                             };
-                            logProvider(`returned ${inspectProvider(returned)}`);
+                            log.provider(`returned ${inspectProvider(returned)}`);
                             deferred.resolve(rv);
                         } else {
-                            info(`Deferred promise not found for CallId: ${m.callId}`);
+                            log.info(
+                                `Deferred promise not found for CallId: ${m.callId}`
+                            );
                         }
                     } catch (err) {
-                        warn(err);
+                        log.warn(err);
                     }
                     break;
                 case "cpumetrics":
@@ -822,7 +824,7 @@ export class CloudFunction<
             const previous = pump.concurrency;
             pump.setMaxConcurrency(nCollectors);
             if (previous !== pump.concurrency) {
-                info(
+                log.info(
                     `Result collectors running: ${pump.getConcurrency()}, new max: ${
                         pump.concurrency
                     }`

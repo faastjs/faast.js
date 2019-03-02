@@ -3,7 +3,7 @@ import { createHash } from "crypto";
 import { caches } from "../cache";
 import { CostBreakdown, CostMetric } from "../cost";
 import { faast } from "../faast";
-import { info, logGc, warn, logProviderSdk } from "../log";
+import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import { readFile } from "fs-extra";
 import {
@@ -53,7 +53,7 @@ const defaultGcWorker = throttle(
                         })
                     )
                 ) {
-                    logGc(
+                    log.gc(
                         `Added retention policy of ${work.retentionInDays} day(s) to ${
                             work.logGroupName
                         }`
@@ -61,7 +61,7 @@ const defaultGcWorker = throttle(
                 }
                 break;
             case "DeleteResources":
-                await deleteResources(work.resources, services, logGc);
+                await deleteResources(work.resources, services, log.gc);
                 break;
         }
     }
@@ -202,18 +202,12 @@ export interface AwsPrices {
     logsIngestedPerGb: number;
 }
 
-/**
- * @public
- */
 export class AwsMetrics {
     outboundBytes = 0;
     sns64kRequests = 0;
     sqs64kRequests = 0;
 }
 
-/**
- * @public
- */
 export interface AwsResources {
     FunctionName: string;
     RoleName: string;
@@ -239,15 +233,13 @@ export interface AwsServices {
 }
 
 /**
- * @public
+ * @internal
  */
 export interface AwsState {
     resources: AwsResources;
-    /** @internal */
     services: AwsServices;
     options: Required<AwsOptions>;
     metrics: AwsMetrics;
-    /** @internal */
     gcPromise?: Promise<void>;
 }
 
@@ -263,7 +255,7 @@ export type AwsGcWork =
       };
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
-    return arg.promise().catch(err => warn(err));
+    return arg.promise().catch(err => log.warn(err));
 }
 
 export async function quietly<U>(arg: aws.Request<U, aws.AWSError>) {
@@ -286,7 +278,7 @@ function zipStreamToBuffer(zipStream: NodeJS.ReadableStream): Promise<Buffer> {
 export const createAwsApis = throttle(
     { concurrency: 1, memoize: true },
     async (region: string) => {
-        const logger = logProviderSdk.enabled ? { log: logProviderSdk } : undefined;
+        const logger = log.awssdk.enabled ? { log: log.awssdk } : undefined;
         aws.config.update({ correctClockSkew: true, maxRetries: 6, logger });
         const services = {
             iam: new aws.IAM({ apiVersion: "2010-05-08", region }),
@@ -306,7 +298,7 @@ const ensureRole = throttle(
     { concurrency: 1, rate: 5, memoize: true },
     async (RoleName: string, services: AwsServices) => {
         const { iam } = services;
-        info(`Checking for cached lambda role`);
+        log.info(`Checking for cached lambda role`);
         const previousRole = await quietly(iam.getRole({ RoleName }));
         if (previousRole) {
             return previousRole.Role.Arn;
@@ -314,7 +306,7 @@ const ensureRole = throttle(
         if (RoleName !== defaults.RoleName) {
             throw new Error(`Could not find role ${RoleName}`);
         }
-        info(`Creating default role "${RoleName}" for faast trampoline function`);
+        log.info(`Creating default role "${RoleName}" for faast trampoline function`);
         const AssumeRolePolicyDocument = JSON.stringify({
             Version: "2012-10-17",
             Statement: [
@@ -331,11 +323,11 @@ const ensureRole = throttle(
             Description: "role for lambda functions created by faast",
             MaxSessionDuration: 3600
         };
-        info(`Calling createRole`);
+        log.info(`Calling createRole`);
         const PolicyArn = "arn:aws:iam::aws:policy/AdministratorAccess";
         try {
             const roleResponse = await iam.createRole(roleParams).promise();
-            info(`Attaching administrator role policy`);
+            log.info(`Attaching administrator role policy`);
             await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
             return roleResponse.Role.Arn;
         } catch (err) {
@@ -352,12 +344,12 @@ const ensureRole = throttle(
 const createCacheBucket = throttle(
     { concurrency: 1, rate: 10, memoize: true },
     async (s3: aws.S3, Bucket: string, region: string) => {
-        info(`Checking for cache bucket`);
+        log.info(`Checking for cache bucket`);
         const bucket = await quietly(s3.getBucketLocation({ Bucket }));
         if (bucket) {
             return;
         }
-        info(`Creating cache bucket`);
+        log.info(`Creating cache bucket`);
         const createdBucket = await s3
             .createBucket({
                 Bucket,
@@ -365,7 +357,7 @@ const createCacheBucket = throttle(
             })
             .promise();
         if (createdBucket) {
-            info(`Setting lifecycle expiration to 1 day for cached objects`);
+            log.info(`Setting lifecycle expiration to 1 day for cached objects`);
 
             s3.putBucketLifecycleConfiguration({
                 Bucket,
@@ -394,7 +386,7 @@ export async function buildModulesOnLambda(
     FunctionName: string,
     useDependencyCaching: boolean
 ): Promise<aws.Lambda.FunctionCode> {
-    info(`Building node_modules`);
+    log.info(`Building node_modules`);
 
     const packageJsonContents =
         typeof packageJson === "string"
@@ -411,7 +403,7 @@ export async function buildModulesOnLambda(
 
         const cacheEntry = await persistentCache.get(cacheKey);
         if (cacheEntry) {
-            info(`Using persistent cache entry ${persistentCache.dir}/${cacheKey}`);
+            log.info(`Using persistent cache entry ${persistentCache.dir}/${cacheKey}`);
 
             const stream = await awsNpm.addIndexToPackage(cacheEntry, indexContents);
             const buf = await zipStreamToBuffer(stream);
@@ -437,7 +429,7 @@ export async function buildModulesOnLambda(
             cacheKey
         };
         const installLog = await lambda.functions.npmInstall(installArgs);
-        info(installLog);
+        log.info(installLog);
 
         if (cacheKey) {
             const cachedPackage = await s3.getObject({ Bucket, Key: cacheKey }).promise();
@@ -445,7 +437,7 @@ export async function buildModulesOnLambda(
         }
         return { S3Bucket: Bucket, S3Key: Key };
     } catch (err) {
-        warn(err);
+        log.warn(err);
         throw err;
     } finally {
         await lambda.cleanup();
@@ -460,9 +452,9 @@ export function logUrl(state: AwsState) {
 export const initialize = throttle(
     { concurrency: Infinity, rate: 2 },
     async (fModule: string, nonce: UUID, options: Required<AwsOptions>) => {
-        info(`Nonce: ${nonce}`);
+        log.info(`Nonce: ${nonce}`);
         const { region, timeout, memorySize } = options;
-        info(`Creating AWS APIs`);
+        log.info(`Creating AWS APIs`);
         const services = await createAwsApis(region);
         const { lambda, s3, sts } = services;
         const FunctionName = `faast-${nonce}`;
@@ -488,19 +480,19 @@ export const initialize = throttle(
                 DeadLetterConfig: { TargetArn: responseQueueArn },
                 ...options.awsLambdaOptions
             };
-            info(`createFunctionRequest: %O`, request);
+            log.info(`createFunctionRequest: %O`, request);
             try {
                 const func = await retry(4, () =>
                     lambda.createFunction(request).promise()
                 );
-                info(
+                log.info(
                     `Created function ${func.FunctionName}, FunctionArn: ${
                         func.FunctionArn
                     }`
                 );
                 return func;
             } catch (err) {
-                warn(`Could not initialize lambda function: ${err}`);
+                log.warn(`Could not initialize lambda function: ${err}`);
                 throw err;
             }
         }
@@ -542,7 +534,7 @@ export const initialize = throttle(
 
         const { gc, retentionInDays, gcWorker } = options;
         if (gc) {
-            logGc(`Starting garbage collector`);
+            log.gc(`Starting garbage collector`);
             state.gcPromise = collectGarbage(
                 gcWorker,
                 services,
@@ -555,7 +547,7 @@ export const initialize = throttle(
         }
 
         try {
-            info(`Creating lambda function`);
+            log.info(`Creating lambda function`);
             const rolePromise = ensureRole(RoleName, services);
             const responseQueuePromise = createResponseQueueImpl(state, FunctionName);
             const pricingPromise = requestAwsPrices(services.pricing, region);
@@ -578,12 +570,12 @@ export const initialize = throttle(
                 await createRequestQueueImpl(state, FunctionName, lambda.FunctionArn!);
             }
             await pricingPromise;
-            info(`Lambda function initialization complete.`);
+            log.info(`Lambda function initialization complete.`);
             return state;
         } catch (err) {
             const newError = new Error("Could not initialize cloud function");
-            warn(`${newError.stack}`);
-            warn(`Underlying error: ${err.stack}`);
+            log.warn(`${newError.stack}`);
+            log.warn(`Underlying error: ${err.stack}`);
             await cleanup(state, { deleteResources: true });
             throw err;
         }
@@ -645,14 +637,14 @@ async function invokeHttps(
     let awsRequest = lambda.invoke(request);
     const rawResponse = await Promise.race([awsRequest.promise(), cancel]);
     if (!rawResponse) {
-        info(`cancelling lambda invoke`);
+        log.info(`cancelling lambda invoke`);
 
         awsRequest.abort();
         return;
     }
 
     if (rawResponse.LogResult) {
-        info(Buffer.from(rawResponse.LogResult!, "base64").toString());
+        log.info(Buffer.from(rawResponse.LogResult!, "base64").toString());
     }
 
     let body: string | FunctionReturn;
@@ -685,7 +677,7 @@ export async function deleteRole(RoleName: string, iam: aws.IAM) {
         AttachedPolicies.map(p => p.PolicyArn!).map(PolicyArn =>
             carefully(iam.detachRolePolicy({ RoleName, PolicyArn }))
         )
-    ).catch(warn);
+    ).catch(log.warn);
     const rolePolicyListResponse = await carefully(iam.listRolePolicies({ RoleName }));
     const RolePolicies =
         (rolePolicyListResponse && rolePolicyListResponse.PolicyNames) || [];
@@ -693,14 +685,14 @@ export async function deleteRole(RoleName: string, iam: aws.IAM) {
         RolePolicies.map(PolicyName =>
             carefully(iam.deleteRolePolicy({ RoleName, PolicyName }))
         )
-    ).catch(warn);
+    ).catch(log.warn);
     await carefully(iam.deleteRole({ RoleName }));
 }
 
 async function deleteResources(
     resources: Partial<AwsResources>,
     services: AwsServices,
-    output: (msg: string) => void = info
+    output: (msg: string) => void = log.info
 ) {
     const {
         FunctionName,
@@ -751,7 +743,7 @@ async function deleteResources(
     }
     if (logGroupName) {
         if (await quietly(services.cloudwatch.deleteLogGroup({ logGroupName }))) {
-            logGc(`Deleted log group ${logGroupName}`);
+            log.gc(`Deleted log group ${logGroupName}`);
         }
     }
 }
@@ -765,28 +757,30 @@ async function addLogRetentionPolicy(
         cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 })
     );
     if (response !== undefined) {
-        info(`Added 1 day retention policy to log group ${logGroupName}`);
+        log.info(`Added 1 day retention policy to log group ${logGroupName}`);
     }
 }
 
 export async function cleanup(state: AwsState, options: Required<CleanupOptions>) {
-    info(`aws cleanup starting.`);
+    log.info(`aws cleanup starting.`);
     await addLogRetentionPolicy(state.resources.FunctionName, state.services.cloudwatch);
     if (state.gcPromise) {
-        info(`Waiting for garbage collection...`);
+        log.info(`Waiting for garbage collection...`);
         await state.gcPromise;
-        info(`Garbage collection done.`);
+        log.info(`Garbage collection done.`);
     }
 
     if (options.deleteResources) {
-        info(`Cleaning up faast infrastructure for ${state.resources.FunctionName}...`);
+        log.info(
+            `Cleaning up faast infrastructure for ${state.resources.FunctionName}...`
+        );
         // Don't delete cached role. It may be in use by other instances of faast.
         // Don't delete logs. They are often useful. By default log stream retention will
         // be 1 day, and gc will clean out the log group after the streams are expired.
         const { logGroupName, RoleName, ...rest } = state.resources;
         await deleteResources(rest, state.services);
     }
-    info(`aws cleanup done.`);
+    log.info(`aws cleanup done.`);
 }
 
 let lastGc: number | undefined = undefined;
@@ -825,7 +819,7 @@ export async function collectGarbage(
             .describeLogGroups({ logGroupNamePrefix: "/aws/lambda/faast-" })
             .eachPage((err, page, done) => {
                 if (err) {
-                    warn(`GC: Error when describing log groups: ${err}`);
+                    log.warn(`GC: Error when describing log groups: ${err}`);
                     reject(err);
                     return false;
                 }
@@ -855,7 +849,7 @@ export async function collectGarbage(
     await new Promise((resolve, reject) =>
         services.lambda.listFunctions().eachPage((err, page, done) => {
             if (err) {
-                warn(`GC: Error listing lambda functions: ${err}`);
+                log.warn(`GC: Error listing lambda functions: ${err}`);
                 reject(err);
                 return false;
             }
@@ -882,7 +876,7 @@ export async function collectGarbage(
 export async function getAccountId(sts: aws.STS) {
     const response = await sts.getCallerIdentity().promise();
     const { Account, Arn, UserId } = response;
-    info(`Account ID: %O`, { Account, Arn, UserId });
+    log.info(`Account ID: %O`, { Account, Arn, UserId });
     return response.Account!;
 }
 
@@ -979,7 +973,7 @@ function createRequestQueueImpl(
     const { sns, lambda } = state.services;
     const { resources } = state;
 
-    info(`Creating SNS request topic`);
+    log.info(`Creating SNS request topic`);
     const createTopicPromise = createSNSTopic(sns, getSNSTopicName(FunctionName));
 
     const assignRequestTopicArnPromise = createTopicPromise.then(
@@ -987,12 +981,12 @@ function createRequestQueueImpl(
     );
 
     const addPermissionsPromise = createTopicPromise.then(topic => {
-        info(`Adding SNS invoke permissions to function`);
+        log.info(`Adding SNS invoke permissions to function`);
         return addSnsInvokePermissionsToFunction(FunctionName, topic, lambda);
     });
 
     const subscribePromise = createTopicPromise.then(topic => {
-        info(`Subscribing SNS to invoke lambda function`);
+        log.info(`Subscribing SNS to invoke lambda function`);
         return sns
             .subscribe({
                 TopicArn: topic,
@@ -1018,7 +1012,7 @@ function createRequestQueueImpl(
 export async function createResponseQueueImpl(state: AwsState, FunctionName: string) {
     const { sqs } = state.services;
     const { resources } = state;
-    info(`Creating SQS response queue`);
+    log.info(`Creating SQS response queue`);
     const { QueueUrl, QueueArn } = await createSQSQueue(
         getSQSName(FunctionName),
         60,
@@ -1026,7 +1020,7 @@ export async function createResponseQueueImpl(state: AwsState, FunctionName: str
     );
     resources.ResponseQueueUrl = QueueUrl;
     resources.ResponseQueueArn = QueueArn;
-    info(`Created response queue`);
+    log.info(`Created response queue`);
     return QueueArn!;
 }
 
@@ -1117,11 +1111,11 @@ export const awsPrice = throttle(
                 })
                 .promise();
             if (priceResult.PriceList!.length > 1) {
-                warn(
+                log.warn(
                     `Price query returned more than one product '${ServiceCode}' ($O)`,
                     filter
                 );
-                priceResult.PriceList!.forEach(p => warn(`%O`, p));
+                priceResult.PriceList!.forEach(p => log.warn(`%O`, p));
             }
             const pList: any = priceResult.PriceList![0];
             const price = extractPrice(first(pList.terms.OnDemand));
@@ -1133,8 +1127,8 @@ export const awsPrice = throttle(
                 !m.match(/EPROTO/) &&
                 !m.match(/socket hang up/)
             ) {
-                warn(`Could not get AWS pricing for '${ServiceCode}' (%O)`, filter);
-                warn(err);
+                log.warn(`Could not get AWS pricing for '${ServiceCode}' (%O)`, filter);
+                log.warn(err);
             }
             throw err;
         }

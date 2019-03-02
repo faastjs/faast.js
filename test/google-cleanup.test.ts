@@ -1,5 +1,5 @@
 import test, { ExecutionContext } from "ava";
-import { CloudFunction, faast, GoogleOptions, warn } from "../index";
+import { CloudFunction, faast, GoogleOptions, log } from "../index";
 import { checkResourcesCleanedUp, keys, quietly } from "./fixtures/util";
 
 export async function getGoogleResources(func: CloudFunction<{}, GoogleOptions>) {
@@ -60,7 +60,7 @@ test("remote google cleanup removes ephemeral resources", async t => {
         await func.cleanup();
         checkResourcesCleanedUp(t, await getGoogleResources(func));
     } catch (err) {
-        warn(`google cleanup error: ${err.stack}`);
+        log.warn(`google cleanup error: ${err.stack}`);
         throw err;
     }
 });

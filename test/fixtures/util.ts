@@ -1,7 +1,7 @@
 import { ExecutionContext } from "ava";
 import * as lolex from "lolex";
 import { inspect } from "util";
-import { CommonOptions, info, logGc, Provider } from "../../index";
+import { CommonOptions, log, Provider } from "../../index";
 import { keys } from "../../src/shared";
 import { Fn } from "../../src/types";
 import { Timing } from "./functions";
@@ -61,7 +61,7 @@ export function record<A extends any[], R>(fn: Fn<A, R>) {
         (...args: A) => {
             const rv = fn(...args);
             func.recordings.push({ args, rv });
-            info(`func.recordings: %O`, func.recordings);
+            log.info(`func.recordings: %O`, func.recordings);
             return rv;
         },
         { recordings: [] }
@@ -75,7 +75,7 @@ export function contains<T extends U, U extends object>(container: T, obj: U) {
             return false;
         }
     }
-    logGc(`Contains: %O, %O`, container, obj);
+    log.gc(`Contains: %O, %O`, container, obj);
     return true;
 }
 

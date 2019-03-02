@@ -1,16 +1,6 @@
 // @public (undocumented)
 declare const awsConfigurations: CostAnalyzerConfiguration[];
 
-// @public (undocumented)
-declare class AwsMetrics {
-    // (undocumented)
-    outboundBytes: number;
-    // (undocumented)
-    sns64kRequests: number;
-    // (undocumented)
-    sqs64kRequests: number;
-}
-
 // @public
 interface AwsOptions extends CommonOptions {
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
@@ -23,44 +13,6 @@ interface AwsOptions extends CommonOptions {
 
 // @public
 declare type AwsRegion = "us-east-1" | "us-east-2" | "us-west-1" | "us-west-2" | "ca-central-1" | "eu-central-1" | "eu-west-1" | "eu-west-2" | "eu-west-3" | "ap-northeast-1" | "ap-northeast-2" | "ap-northeast-3" | "ap-southeast-1" | "ap-southeast-2" | "ap-south-1" | "sa-east-1";
-
-// @public (undocumented)
-interface AwsResources {
-    // (undocumented)
-    FunctionName: string;
-    // (undocumented)
-    logGroupName: string;
-    // (undocumented)
-    region: AwsRegion;
-    // (undocumented)
-    RequestTopicArn?: string;
-    // (undocumented)
-    ResponseQueueArn?: string;
-    // (undocumented)
-    ResponseQueueUrl?: string;
-    // (undocumented)
-    RoleName: string;
-    // (undocumented)
-    s3Bucket?: string;
-    // (undocumented)
-    s3Key?: string;
-    // (undocumented)
-    SNSLambdaSubscriptionArn?: string;
-}
-
-// @public (undocumented)
-interface AwsState {
-    // @internal (undocumented)
-    gcPromise?: Promise<void>;
-    // (undocumented)
-    metrics: AwsMetrics;
-    // (undocumented)
-    options: Required<AwsOptions>;
-    // (undocumented)
-    resources: AwsResources;
-    // @internal (undocumented)
-    services: AwsServices;
-}
 
 // @public
 interface CleanupOptions {
@@ -254,14 +206,6 @@ declare class FunctionStatsEvent {
 declare const googleConfigurations: CostAnalyzerConfiguration[];
 
 // @public (undocumented)
-declare class GoogleMetrics {
-    // (undocumented)
-    outboundBytes: number;
-    // (undocumented)
-    pubSubBytes: number;
-}
-
-// @public (undocumented)
 interface GoogleOptions extends CommonOptions {
     // @internal (undocumented)
     gcWorker?: (services: GoogleServices, resources: GoogleResources) => Promise<void>;
@@ -272,83 +216,22 @@ interface GoogleOptions extends CommonOptions {
 }
 
 // @public (undocumented)
-interface GoogleResources {
-    // (undocumented)
-    region: string;
-    // (undocumented)
-    requestQueueTopic?: string;
-    // (undocumented)
-    responseQueueTopic?: string;
-    // (undocumented)
-    responseSubscription?: string;
-    // (undocumented)
-    trampoline: string;
-}
-
-// @public (undocumented)
-interface GoogleState {
-    // (undocumented)
-    functionName: string;
-    // @internal (undocumented)
-    gcPromise?: Promise<void>;
-    // (undocumented)
-    metrics: GoogleMetrics;
-    // (undocumented)
-    options: Required<GoogleOptions>;
-    // (undocumented)
-    project: string;
-    // (undocumented)
-    resources: GoogleResources;
-    // @internal (undocumented)
-    services: GoogleServices;
-    // (undocumented)
-    url?: string;
-}
-
-// @public (undocumented)
-declare const info: default.Debugger;
-
-// @public (undocumented)
 interface LocalOptions extends CommonOptions {
     // @internal (undocumented)
     gcWorker?: (tempdir: string) => Promise<void>;
 }
 
-// @public (undocumented)
-interface LocalState {
-    // @internal (undocumented)
-    gcPromise?: Promise<void>;
-    // @internal (undocumented)
-    getWrapper: () => Promise<Wrapper>;
-    // @internal (undocumented)
-    logStreams: Writable[];
-    // (undocumented)
-    logUrl: string;
-    // @internal (undocumented)
-    queue: AsyncQueue<ReceivableMessage>;
-    // (undocumented)
-    tempDir: string;
-    // @internal (undocumented)
-    wrappers: Wrapper[];
-}
-
-// @public (undocumented)
-declare const logCalls: default.Debugger;
-
-// @public (undocumented)
-declare const logGc: default.Debugger;
-
-// @public (undocumented)
-declare const logLeaks: default.Debugger;
-
-// @public (undocumented)
-declare const logProvider: default.Debugger;
-
-// @public (undocumented)
-declare const logProviderSdk: default.Debugger;
-
-// @public (undocumented)
-declare const logWebpack: default.Debugger;
+// @public
+declare const log: {
+    info: default.Debugger;
+    warn: default.Debugger;
+    gc: default.Debugger;
+    leaks: default.Debugger;
+    calls: default.Debugger;
+    webpack: default.Debugger;
+    provider: default.Debugger;
+    awssdk: default.Debugger;
+};
 
 // @public (undocumented)
 declare type Metrics<K extends string> = {
@@ -404,9 +287,6 @@ declare function toCSV<K extends string>(profile: Array<CostAnalysisProfile<K>>,
 
 // @public (undocumented)
 declare type Unpacked<T> = T extends Promise<infer D> ? D : T;
-
-// @public (undocumented)
-declare const warn: default.Debugger;
 
 // @public (undocumented)
 interface Workload<T extends object, K extends string> {

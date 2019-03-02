@@ -3,7 +3,7 @@ import * as childProcess from "child_process";
 import * as process from "process";
 import * as proctor from "process-doctor";
 import { inspect } from "util";
-import { logProvider } from "./log";
+import { log } from "./log";
 import { Deferred } from "./throttle";
 import { AnyFunction } from "./types";
 
@@ -216,7 +216,7 @@ export class Wrapper {
                 );
                 this.child.send(call, err => {
                     if (err) {
-                        logProvider(`child send error: rejecting deferred on ${err}`);
+                        log.provider(`child send error: rejecting deferred on ${err}`);
                         this.deferred!.reject(err);
                     }
                 });
@@ -243,10 +243,10 @@ export class Wrapper {
                         }
                     }, timeout);
                 }
-                logProvider(`awaiting deferred promise`);
+                log.provider(`awaiting deferred promise`);
                 try {
                     const rv = await this.deferred.promise;
-                    logProvider(`deferred promise returned`);
+                    log.provider(`deferred promise returned`);
                     this.verbose &&
                         this.log(`returned from child process: ${inspect(rv)}`);
                     return rv;
@@ -279,7 +279,7 @@ export class Wrapper {
                 };
             }
         } catch (err) {
-            logProvider(`wrapper function exception: ${err}`);
+            log.provider(`wrapper function exception: ${err}`);
             this.log(`faast: wrapped function exception or promise rejection: ${err}`);
             return createErrorResponse(err, callingContext);
         } finally {
@@ -317,7 +317,7 @@ export class Wrapper {
             execArgv
         };
 
-        // logProvider(`childProcess.fork %O`, forkOptions);
+        // log.provider(`childProcess.fork %O`, forkOptions);
 
         const child = childProcess.fork("./index.js", [], forkOptions);
 
@@ -334,19 +334,19 @@ export class Wrapper {
         child.stderr.on("data", this.logLines);
         child.stderr.on("data", detectOom);
         child.on("message", (value: FunctionReturn) => {
-            logProvider(`child message: resolving with %O`, value);
+            log.provider(`child message: resolving with %O`, value);
             this.deferred!.resolve(value);
         });
         child.on("error", err => {
-            logProvider(`child error: rejecting deferred with ${err}`);
+            log.provider(`child error: rejecting deferred with ${err}`);
             this.child = undefined;
             this.deferred!.reject(err);
         });
         child.on("exit", (code, signal) => {
-            logProvider(`child exit: %O`, { code, signal });
+            log.provider(`child exit: %O`, { code, signal });
             this.child = undefined;
             if (!this.deferred) {
-                logProvider(`child exit: no deferred, exiting normally`);
+                log.provider(`child exit: no deferred, exiting normally`);
                 return;
             }
             if (code !== null) {

@@ -54,7 +54,7 @@ These options are available:
 - faast:calls - Print debugging information about each call to a remote function. Disabled by default.
 - faast:webpack - Print debugging information about webpack, used to pack up remote function code. Disabled by default.
 - faast:provider - Print debugging information about each interaction with cloud-provider specific code from the higher-level faast.js abstraction. Useful for debugging issues with specific cloud providers. Disabled by default.
-- faast:providersdk - Only available for AWS, this enables aws-sdk's verbose logging output. Disabled by default.
+- faast:awssdk - Only available for AWS, this enables aws-sdk's verbose logging output. Disabled by default.
 
 ## Memory leak detector
 
