@@ -13,9 +13,7 @@ declare class AwsMetrics {
 
 // @public
 interface AwsOptions extends CommonOptions {
-    // (undocumented)
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
-    // (undocumented)
     CacheBucket?: string;
     // @internal (undocumented)
     gcWorker?: (services: AwsServices, work: AwsGcWork) => Promise<void>;

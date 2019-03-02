@@ -79,7 +79,7 @@ export interface AwsOptions extends CommonOptions {
     region?: AwsRegion;
     /**
      * The role that the lambda function will assume when executing user code.
-     * Default: `"faast-cached-lambda-role"`.
+     * Default: `"faast-cached-lambda-role"`. Rarely used.
      * @remarks
      * When a lambda executes, it first assumes an
      * {@link https://docs.aws.amazon.com/lambda/latest/dg/lambda-intro-execution-role.html | execution role}
@@ -140,7 +140,44 @@ export interface AwsOptions extends CommonOptions {
      *
      */
     RoleName?: string;
+    /**
+     * Additional options to pass to AWS Lambda creation.
+     * @remarks
+     * If you need specialized options, you can pass them to the AWS Lambda SDK
+     * directly. Note that if you override any settings set by faast.js, you may
+     * cause faast.js to not work:
+     *
+     * ```typescript
+     *   const request: aws.Lambda.Types.CreateFunctionRequest = {
+     *       FunctionName,
+     *       Role,
+     *       Runtime: "nodejs8.10",
+     *       Handler: "index.trampoline",
+     *       Code,
+     *       Description: "faast trampoline function",
+     *       Timeout,
+     *       MemorySize,
+     *       DeadLetterConfig: { TargetArn: responseQueueArn },
+     *       ...awsLambdaOptions
+     *   };
+     * ```
+     *
+     * One use case for this option is to use
+     * {@link https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html | Lambda Layers}
+     * with faast.js.
+     */
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
+    /**
+     * Use a custom S3 bucket for caching. Default:
+     * `"faast-cache-${accountId}-${region}`;"`
+     * @remarks
+     * When building with dependencies (see {@link CommonOptions.packageJson}),
+     * faast.js will create cache objects containing the contents of the
+     * installed `node_modules` directory. You can specify an alternative bucket
+     * name and faast.js will create it if it does not already exist. If
+     * faast.js creates the bucket for you, it will automatically apply a
+     * lifecycle policy to expire cache objects after 1 day.
+     */
     CacheBucket?: string;
     /** @internal */
     gcWorker?: (services: AwsServices, work: AwsGcWork) => Promise<void>;
