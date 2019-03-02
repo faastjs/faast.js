@@ -810,7 +810,7 @@ export async function collectGarbage(
     function scheduleWork(work: AwsGcWork) {
         promises.push(executor(services, work));
     }
-    const throttlePaging = throttle({ concurrency: 1, rate: 2 }, async () => {});
+    const throttlePaging = throttle({ concurrency: 1, rate: 1 }, async () => {});
     const functionsWithLogGroups = new Set();
 
     // Collect functions with log groups
