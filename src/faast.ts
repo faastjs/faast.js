@@ -376,6 +376,7 @@ async function createFunction<M extends object, O extends CommonOptions, S>(
 }
 
 /**
+ * Summarize statistics about remote function invocations.
  * @public
  */
 export class FunctionStatsEvent {

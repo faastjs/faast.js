@@ -15,7 +15,6 @@ import { GoogleMetrics } from "./google-faast";
 import PubSubApi = pubsub_v1;
 import PubSubMessage = pubsub_v1.Schema$PubsubMessage;
 import { serializeReturn } from "../wrapper";
-import Gaxios from "gaxios";
 import { AbortController } from "abort-controller";
 
 function pubsubMessageAttribute(message: PubSubMessage, attr: string) {

@@ -1,22 +1,37 @@
 /**
+ * Incrementally updated statistics on a set of values.
  * @public
  */
 export class Statistics {
+    /** Number of values observed. */
     samples = 0;
+    /** The maximum value observed. Initialized to `Number.NEGATIVE_INFINITY`. */
     max = Number.NEGATIVE_INFINITY;
+    /** The minimum value observed. Initialized to `Number.POSITIVE_INFINITY`. */
     min = Number.POSITIVE_INFINITY;
+    /** The variance of the values observed. */
     variance = 0;
+    /** The standard deviation of the values observed. */
     stdev = 0;
+    /** The mean (average) of the values observed. */
     mean = NaN;
 
+    /**
+     * Construct a Statistics object.
+     * @param printFixedPrecision The number of decimal places to print in
+     * {@link Statistics.toString}.
+     */
     constructor(protected printFixedPrecision: number = 1) {}
 
-    // https://math.stackexchange.com/questions/374881/recursive-formula-for-variance
+    /**
+     * Incrementally update statistics with the observation of a new value.
+     */
     update(value: number) {
         if (value === undefined) {
             return;
         }
         let previousMean = this.mean;
+        // https://math.stackexchange.com/questions/374881/recursive-formula-for-variance
         let previousVariance = this.variance;
         if (this.samples === 0) {
             previousMean = 0;
@@ -37,6 +52,10 @@ export class Statistics {
         }
     }
 
+    /**
+     * Print the mean of the observations seen, with the precision specified in
+     * the constructor.
+     */
     toString() {
         return `${this.mean.toFixed(this.printFixedPrecision)}`;
     }

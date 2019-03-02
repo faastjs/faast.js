@@ -156,39 +156,27 @@ declare class FaastError extends Error {
     logUrl?: string;
 }
 
-// @public (undocumented)
+// @public
 declare class FunctionCounters {
-    // (undocumented)
     completed: number;
-    // (undocumented)
     errors: number;
-    // (undocumented)
     invocations: number;
-    // (undocumented)
     retries: number;
-    // (undocumented)
     toString(): string;
 }
 
-// @public (undocumented)
+// @public
 declare class FunctionStats {
-    // (undocumented)
     estimatedBilledTime: Statistics;
-    // (undocumented)
     executionTime: Statistics;
-    // (undocumented)
     localStartLatency: Statistics;
-    // (undocumented)
     remoteStartLatency: Statistics;
-    // (undocumented)
     returnLatency: Statistics;
-    // (undocumented)
     sendResponseLatency: Statistics;
-    // (undocumented)
     toString(): string;
 }
 
-// @public (undocumented)
+// @public
 declare class FunctionStatsEvent {
     // (undocumented)
     constructor(fn: string, counters: FunctionCounters, stats?: FunctionStats | undefined);
@@ -205,13 +193,11 @@ declare class FunctionStatsEvent {
 // @public (undocumented)
 declare const googleConfigurations: CostAnalyzerConfiguration[];
 
-// @public (undocumented)
+// @public
 interface GoogleOptions extends CommonOptions {
     // @internal (undocumented)
     gcWorker?: (services: GoogleServices, resources: GoogleResources) => Promise<void>;
-    // (undocumented)
     googleCloudFunctionOptions?: cloudfunctions_v1.Schema$CloudFunction;
-    // (undocumented)
     region?: string;
 }
 
@@ -255,27 +241,18 @@ declare type Provider = "aws" | "google" | "local";
 // @public (undocumented)
 declare const providers: Provider[];
 
-// @public (undocumented)
+// @public
 declare class Statistics {
-    // (undocumented)
     constructor(printFixedPrecision?: number);
-    // (undocumented)
     max: number;
-    // (undocumented)
     mean: number;
-    // (undocumented)
     min: number;
     // (undocumented)
     protected printFixedPrecision: number;
-    // (undocumented)
     samples: number;
-    // (undocumented)
     stdev: number;
-    // (undocumented)
     toString(): string;
-    // (undocumented)
     update(value: number): void;
-    // (undocumented)
     variance: number;
 }
 

@@ -48,10 +48,35 @@ import CloudBilling = cloudbilling_v1;
 const gaxios = new Gaxios();
 
 /**
+ * Google-specific options
  * @public
  */
 export interface GoogleOptions extends CommonOptions {
+    /**
+     * The region to create resources in. Garbage collection is also limited to
+     * this region. Default: `"us-central1"`.
+     */
     region?: string;
+    /**
+     * Additional options to pass to Google Cloud Function creation.
+     * @remarks
+     * If you need specialized options, you can pass them to the Google Cloud
+     * Functions API directly. Note that if you override any settings set by
+     * faast.js, you may cause faast.js to not work:
+     *
+     * ```typescript
+     *  const requestBody: CloudFunctions.Schema$CloudFunction = {
+     *      name,
+     *      entryPoint: "trampoline",
+     *      timeout,
+     *      availableMemoryMb,
+     *      sourceUploadUrl,
+     *      runtime: "nodejs8",
+     *      ...googleCloudFunctionOptions
+     *  };
+     * ```
+     *
+     */
     googleCloudFunctionOptions?: CloudFunctions.Schema$CloudFunction;
 
     /** @internal */
@@ -66,9 +91,6 @@ export interface GoogleResources {
     region: string;
 }
 
-/**
- * @public
- */
 export interface GoogleCloudPricing {
     perInvocation: number;
     perGhzSecond: number;
@@ -89,22 +111,14 @@ export interface GoogleServices {
     readonly cloudBilling: CloudBilling.Cloudbilling;
 }
 
-/**
- * @public
- */
 export interface GoogleState {
     resources: GoogleResources;
-
-    /** @internal */
     services: GoogleServices;
     url?: string;
     project: string;
     functionName: string;
     metrics: GoogleMetrics;
     options: Required<GoogleOptions>;
-    /**
-     * @internal
-     */
     gcPromise?: Promise<void>;
 }
 

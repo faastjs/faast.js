@@ -351,14 +351,31 @@ export const CleanupOptionDefaults: Required<CleanupOptions> = {
 };
 
 /**
+ * Counters summarizing function invocations.
  * @public
  */
 export class FunctionCounters {
+    /** The number of invocations attempted. If an invocation is retried, this only counts the invocation once. */
     invocations = 0;
+    /** The number of invocations that were successfully completed. */
     completed = 0;
+    /**
+     * The number of invocation retries attempted. This counts retries
+     * attempted by faast.js to recover from transient errors, but does not
+     * count retries by the cloud provider.
+     */
     retries = 0;
+    /**
+     * The number of invocations that resulted in an error. If an invocation is
+     * retried, an error is only counted once, no matter how many retries were
+     * attempted.
+     */
     errors = 0;
 
+    /**
+     * returns a string showing the value of completed, retries, and errors.
+     * This string excludes invocations by default because it is often fixed.
+     */
     toString() {
         return `completed: ${this.completed}, retries: ${this.retries}, errors: ${
             this.errors
@@ -367,16 +384,88 @@ export class FunctionCounters {
 }
 
 /**
+ * Summary statistics for function invocations.
+ * @remarks
+ * ```
+ *               localStartLatency      remoteStartLatency      executionTime
+ *             ◀──────────────────▶◁ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ▷◀──────────▶
+ *
+ * ┌───────────────────────────────────┬──────────────────────────────────────┐
+ * │                                   │                                      │
+ * │               Local               │            Cloud Provider            │
+ * │                                   │                                      │
+ * │                    ┌─────────┐    │   ┌──────────┐         ┌──────────┐  │
+ * │                    │         │    │   │          │         │          │  │
+ * │                    │  local  │    │   │ request  │         │          │  │
+ * │   invoke  ────────▶│  queue  │────┼──▶│  queue   ├────────▶│          │  │
+ * │                    │         │    │   │          │         │          │  │
+ * │                    └─────────┘    │   └──────────┘         │  cloud   │  │
+ * │                                   │                        │ function │  │
+ * │                    ┌─────────┐    │   ┌──────────┐         │          │  │
+ * │                    │         │    │   │          │         │          │  │
+ * │   result  ◀────────│  local  │◀───┼───│ response │◀────────│          │  │
+ * │                    │ polling │    │   │  queue   │         │          │  │
+ * │                    │         │    │   │          │         │          │  │
+ * │                    └─────────┘    │   └──────────┘         └──────────┘  │
+ * │                                   │                                      │
+ * └───────────────────────────────────┴──────────────────────────────────────┘
+ *
+ *             ◁ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ▷
+ *                      returnLatency                  ◀───────▶
+ *                                                     sendResponseLatency
+ * ```
+ *
+ * `localStartLatency` and `executionTime` are measured on one machine and are
+ * free of clock skew. `remoteStartLatency` and `returnLatency` are measured as
+ * time differences between machines and are subject to much more uncertainty,
+ * and effects like clock skew.
+ *
  * @public
  */
 export class FunctionStats {
+    /**
+     * Statistics for how long invocations stay in the local queue before being
+     * sent to the cloud provider.
+     */
     localStartLatency = new Statistics();
+    /**
+     * Statistics for how long requests take to start execution after being sent
+     * to the cloud provider. This typically includes remote queueing and cold
+     * start times. Because this measurement requires comparing timestamps from
+     * different machines, it is subject to clock skew and other effects, and
+     * should not be considered highly accurate. It can be useful for detecting
+     * excessively high latency problems. Faast.js attempt to correct for clock
+     * skew heuristically.
+     */
     remoteStartLatency = new Statistics();
+    /**
+     * Statistics for how long a function executes.  This is measured as wall
+     * clock time, and does not include the time taken to send the response to
+     * the response queue.
+     */
     executionTime = new Statistics();
+    /**
+     * Statistics for how long it takes to send the response to the response
+     * queue.
+     */
     sendResponseLatency = new Statistics();
+    /**
+     * Statistics for how long it takes to return a response from the end of
+     * execution time to the receipt of the response locally. This measurement
+     * requires comparing timestamps from different machines, and is subject to
+     * clock skew and other effects. It should not be considered highly
+     * accurate. It can be useful for detecting excessively high latency
+     * problems. Faast.js attempts to correct for clock skew heuristically.
+     */
     returnLatency = new Statistics();
+    /**
+     * Statistics for amount of time billed. This is similar to
+     * {@link FunctionStats.executionTime} except each sampled time is rounded
+     * up to the next 100ms.
+     */
     estimatedBilledTime = new Statistics();
 
+    /** returns a string showing the mean of each statistic. */
     toString() {
         return Object.keys(this)
             .map(key => `${key}: ${(<any>this)[key]}`)
