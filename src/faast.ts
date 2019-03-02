@@ -56,7 +56,9 @@ export class FaastError extends Error {
                 `Error response object has no keys, likely a bug in faast (not serializing error objects)`
             );
         }
-        this.logUrl = logUrl;
+        // Surround the logUrl with spaces because URL links are broken in
+        // vscode if there's no whitespace surrounding the URL.
+        this.logUrl = ` ${logUrl} `;
         this.name = errObj.name;
         this.stack = errObj.stack;
     }
@@ -564,15 +566,26 @@ export class CloudFunction<
         return async (...args: A) => {
             let retries = 0;
             const startTime = Date.now();
-            const initialInvocationTime = this._initialInvocationTime.getOrCreate(
-                fn.name
-            );
+            let fname = fn.name;
+            if (!fname) {
+                for (const key of Object.keys(this.fmodule)) {
+                    if ((this.fmodule as any)[key] === fn) {
+                        fname = key;
+                        log.info(`Found arrow function name: ${key}`);
+                        break;
+                    }
+                }
+            }
+            if (!fname) {
+                throw new Error(`Could not find function name`);
+            }
+            const initialInvocationTime = this._initialInvocationTime.getOrCreate(fname);
             // XXX capture google retries in stats?
 
             const shouldRetry = () => {
                 if (retries < this.options.maxRetries) {
                     retries++;
-                    this.counters.incr(fn.name, "retries");
+                    this.counters.incr(fname, "retries");
                     return true;
                 }
                 return false;
@@ -580,11 +593,11 @@ export class CloudFunction<
 
             const invoke = async () => {
                 const callId = uuidv4();
-                log.calls(`Calling '${fn.name}' (${callId})`);
+                log.calls(`Calling '${fname}' (${callId})`);
                 const ResponseQueueId =
                     this.impl.responseQueueId(this.state) || undefined;
                 const callObject: FunctionCall = {
-                    name: fn.name,
+                    name: fname,
                     args,
                     callId,
                     modulePath: this.modulePath,
@@ -594,7 +607,7 @@ export class CloudFunction<
                 this._callResultsPending.set(callId, pending);
 
                 const invokeCloudFunction = () => {
-                    this.counters.incr(fn.name, "invocations");
+                    this.counters.incr(fname, "invocations");
                     const invocation: Invocation = {
                         callId,
                         body: pending.serialized
@@ -621,7 +634,7 @@ export class CloudFunction<
                     });
                 };
 
-                const fnStats = this.stats.fAggregate.getOrCreate(fn.name);
+                const fnStats = this.stats.fAggregate.getOrCreate(fname);
 
                 this.withCancellation(cancel =>
                     retryFunctionIfNeededToReduceTailLatency(
@@ -657,7 +670,7 @@ export class CloudFunction<
                 });
 
                 this._callResultsPending.delete(rv.callId);
-                log.calls(`Returning '${fn.name}' (${callId}): ${util.inspect(rv)}`);
+                log.calls(`Returning '${fname}' (${callId}): ${util.inspect(rv)}`);
 
                 return processResponse<R>(
                     rv,

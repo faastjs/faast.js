@@ -6,6 +6,10 @@ export function identity(name: string) {
     return name;
 }
 
+export const arrow = (str: string) => str;
+
+export const asyncArrow = async (str: string) => str;
+
 export function hello(name: string) {
     return `Hello ${name}!`;
 }

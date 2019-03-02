@@ -15,6 +15,8 @@ async function testBasic(
     try {
         t.is(await remote.hello("Andy"), "Hello Andy!");
         t.is(await remote.identity("你好"), "你好");
+        t.is(await remote.arrow("arrow"), "arrow");
+        t.is(await remote.asyncArrow("asyncArrow"), "asyncArrow");
         t.is(await remote.fact(5), 120);
         t.is(await remote.concat("abc", "def"), "abcdef");
         await t.throwsAsync(() => remote.error("hey"), /Expected error. Arg: hey/);
