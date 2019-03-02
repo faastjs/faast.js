@@ -64,7 +64,8 @@ test("remote aws custom role", async t => {
         await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
 
         cloudFunc = await faast("aws", funcs, "./fixtures/functions", {
-            RoleName
+            RoleName,
+            gc: false
         });
         t.is(await cloudFunc.functions.identity("hello"), "hello");
     } finally {

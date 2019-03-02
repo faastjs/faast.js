@@ -6,7 +6,8 @@ test("remote aws throttling to no concurrency", async t => {
     const cloudFunc = await faast("aws", funcs, "./fixtures/functions", {
         mode: "https",
         memorySize: 1024,
-        concurrency: 1
+        concurrency: 1,
+        gc: false
     });
     try {
         const N = 10;
