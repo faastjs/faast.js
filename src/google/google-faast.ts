@@ -351,10 +351,12 @@ export async function initialize(
             )
         );
     } catch (err) {
-        log.warn(`createFunction error: ${err.stack}`);
-        log.info(`delete function ${trampoline}`);
-        await deleteFunction(cloudFunctions, trampoline).catch(() => {});
-        throw err;
+        if (!err.message.match(/already exists/)) {
+            log.warn(`createFunction error: ${err.stack}`);
+            log.info(`delete function ${trampoline}`);
+            await deleteFunction(cloudFunctions, trampoline).catch(() => {});
+            throw err;
+        }
     }
     if (mode === "https" || mode === "auto") {
         const func = await cloudFunctions.projects.locations.functions.get({
