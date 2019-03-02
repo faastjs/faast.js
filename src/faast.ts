@@ -874,7 +874,14 @@ export type Provider = "aws" | "google" | "local";
 /**
  * The main entry point for faast with AWS provider. {@link faast:COMMON}
  * {@label AWS}
- * @param options - {@link AwsOptions}
+ * @param provider - `"aws"`
+ * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
+ * `require` also works but loses type information.
+ * @param modulePath - The path to the module, as it would be specified to
+ * `import` or `require`. It should be the same as `"BBB"` from importing
+ * fmodule.
+ * @param awsOptions - Most common options are in {@link CommonOptions}.
+ * Additional AWS-specific options are in {@link AwsOptions}.
  * @public
  */
 export function faast<M extends object>(
@@ -886,7 +893,14 @@ export function faast<M extends object>(
 /**
  * The main entry point for faast with Google provider. {@link faast:COMMON}
  * {@label GOOGLE}
- * @param options - {@link GoogleOptions}
+ * @param provider - `"google"`
+ * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
+ * `require` also works but loses type information.
+ * @param modulePath - The path to the module, as it would be specified to
+ * `import` or `require`. It should be the same as `"BBB"` from importing
+ * fmodule.
+ * @param googleOptions - Most common options are in {@link CommonOptions}.
+ * Additional Google-specific options are in {@link GoogleOptions}.
  * @public
  */
 export function faast<M extends object>(
@@ -898,7 +912,14 @@ export function faast<M extends object>(
 /**
  * The main entry point for faast with Local provider. {@link faast:COMMON}
  * {@label LOCAL}
- * @param options - {@link LocalOptions}
+ * @param provider - `"local"`
+ * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
+ * `require` also works but loses type information.
+ * @param modulePath - The path to the module, as it would be specified to
+ * `import` or `require`. It should be the same as `"BBB"` from importing
+ * fmodule.
+ * @param localOptions - Most common options are in {@link CommonOptions}.
+ * Additional Local-specific options are in {@link LocalOptions}.
  * @public
  */
 export function faast<M extends object>(
