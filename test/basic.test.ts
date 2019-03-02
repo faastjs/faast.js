@@ -43,6 +43,19 @@ async function testBasic(
     }
 }
 
+async function testBasicRequire(t: ExecutionContext, provider: Provider) {
+    const requiredFuncs = require("./fixtures/functions");
+    const opts = { timeout: 30, gc: false };
+    const cloudFunc = await faast(provider, requiredFuncs, "./fixtures/functions", opts);
+    const remote = cloudFunc.functions;
+    try {
+        t.is(await remote.identity("id"), "id");
+        t.is(await remote.arrow("arrow"), "arrow");
+    } finally {
+        await cloudFunc.cleanup();
+    }
+}
+
 // async function testCpuMetrics(t: ExecutionContext, provider: Provider) {
 //     t.plan(4);
 
@@ -76,4 +89,5 @@ for (const provider of providers) {
     }
     // XXX Disable CPU metrics for now.
     // test(title(provider, `cpu metrics are received`), testCpuMetrics, provider);
+    test(title(provider, `basic calls with require`), testBasicRequire, provider);
 }
