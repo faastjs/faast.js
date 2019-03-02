@@ -201,6 +201,22 @@ interface GoogleOptions extends CommonOptions {
     region?: string;
 }
 
+// @public (undocumented)
+interface Limits {
+    // (undocumented)
+    burst?: number;
+    // (undocumented)
+    cache?: PersistentCache;
+    // (undocumented)
+    concurrency: number;
+    // (undocumented)
+    memoize?: boolean;
+    // (undocumented)
+    rate?: number;
+    // (undocumented)
+    retry?: number | ((err: any, retries: number) => boolean);
+}
+
 // @public
 interface LocalOptions extends CommonOptions {
     // @internal (undocumented)
@@ -209,13 +225,21 @@ interface LocalOptions extends CommonOptions {
 
 // @public
 declare const log: {
+    // (undocumented)
     info: default.Debugger;
+    // (undocumented)
     warn: default.Debugger;
+    // (undocumented)
     gc: default.Debugger;
+    // (undocumented)
     leaks: default.Debugger;
+    // (undocumented)
     calls: default.Debugger;
+    // (undocumented)
     webpack: default.Debugger;
+    // (undocumented)
     provider: default.Debugger;
+    // (undocumented)
     awssdk: default.Debugger;
 };
 
@@ -256,7 +280,7 @@ declare class Statistics {
     variance: number;
 }
 
-// @public (undocumented)
+// @public
 declare function throttle<A extends any[], R>({ concurrency, retry: retryN, rate, burst, memoize, cache }: Limits, fn: PromiseFn<A, R>): PromiseFn<A, R>;
 
 // @public (undocumented)

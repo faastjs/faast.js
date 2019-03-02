@@ -31,7 +31,7 @@ export {
     FunctionStats
 } from "./src/provider";
 export { Statistics } from "./src/shared";
-export { throttle } from "./src/throttle";
+export { throttle, Limits } from "./src/throttle";
 export { Unpacked } from "./src/types";
 
 /** @internal */
