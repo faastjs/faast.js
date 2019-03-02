@@ -138,13 +138,13 @@ declare class CostMetric {
 declare function estimateWorkloadCost<T extends object, K extends string>(mod: T, fmodule: string, configurations: CostAnalyzerConfiguration[] | undefined, workload: Workload<T, K>): Promise<CostAnalysisProfile<K>[]>;
 
 // @public
-declare function faast<M extends object>(provider: "aws", fmodule: M, modulePath: string, options?: AwsOptions): Promise<CloudFunction<M, AwsOptions, AwsState>>;
+declare function faast<M extends object>(provider: "aws", fmodule: M, modulePath: string, awsOptions?: AwsOptions): Promise<CloudFunction<M, AwsOptions, AwsState>>;
 
 // @public
-declare function faast<M extends object>(provider: "google", fmodule: M, modulePath: string, options?: GoogleOptions): Promise<CloudFunction<M, GoogleOptions, GoogleState>>;
+declare function faast<M extends object>(provider: "google", fmodule: M, modulePath: string, googleOptions?: GoogleOptions): Promise<CloudFunction<M, GoogleOptions, GoogleState>>;
 
 // @public
-declare function faast<M extends object>(provider: "local", fmodule: M, modulePath: string, options?: LocalOptions): Promise<CloudFunction<M, LocalOptions, LocalState>>;
+declare function faast<M extends object>(provider: "local", fmodule: M, modulePath: string, localOptions?: LocalOptions): Promise<CloudFunction<M, LocalOptions, LocalState>>;
 
 // @public
 declare function faast<M extends object, S>(provider: Provider, fmodule: M, modulePath: string, options?: CommonOptions): Promise<CloudFunction<M, CommonOptions, S>>;

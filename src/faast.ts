@@ -469,6 +469,7 @@ export class CloudFunction<
             this._funnel.clear();
             this._cleanupHooks.forEach(hook => hook.resolve());
             this._cleanupHooks.clear();
+            this._emitter.removeAllListeners();
             this.stopStats();
             this._initialInvocationTime.clear();
             this._callResultsPending.clear();
@@ -871,7 +872,8 @@ export class LocalFunction<M extends object = object> extends CloudFunction<
 export type Provider = "aws" | "google" | "local";
 
 /**
- * The main entry point for faast with AWS provider.
+ * The main entry point for faast with AWS provider. {@link faast:COMMON}
+ * {@label AWS}
  * @param options - {@link AwsOptions}
  * @public
  */
@@ -879,10 +881,11 @@ export function faast<M extends object>(
     provider: "aws",
     fmodule: M,
     modulePath: string,
-    options?: AwsOptions
+    awsOptions?: AwsOptions
 ): Promise<CloudFunction<M, AwsOptions, AwsState>>;
 /**
- * The main entry point for faast with Google provider.
+ * The main entry point for faast with Google provider. {@link faast:COMMON}
+ * {@label GOOGLE}
  * @param options - {@link GoogleOptions}
  * @public
  */
@@ -890,10 +893,11 @@ export function faast<M extends object>(
     provider: "google",
     fmodule: M,
     modulePath: string,
-    options?: GoogleOptions
+    googleOptions?: GoogleOptions
 ): Promise<CloudFunction<M, GoogleOptions, GoogleState>>;
 /**
- * The main entry point for faast with Local provider.
+ * The main entry point for faast with Local provider. {@link faast:COMMON}
+ * {@label LOCAL}
  * @param options - {@link LocalOptions}
  * @public
  */
@@ -901,10 +905,11 @@ export function faast<M extends object>(
     provider: "local",
     fmodule: M,
     modulePath: string,
-    options?: LocalOptions
+    localOptions?: LocalOptions
 ): Promise<CloudFunction<M, LocalOptions, LocalState>>;
 /**
  * The main entry point for faast with any provider and common options.
+ * {@label COMMON}
  * @param options - {@link CommonOptions}
  * @public
  */
