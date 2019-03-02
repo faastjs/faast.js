@@ -52,6 +52,7 @@ export interface LocalState {
 }
 
 /**
+ * Local provider options. Extends {@link CommonOptions}.
  * @public
  */
 export interface LocalOptions extends CommonOptions {

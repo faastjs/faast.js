@@ -201,7 +201,7 @@ interface GoogleOptions extends CommonOptions {
     region?: string;
 }
 
-// @public (undocumented)
+// @public
 interface LocalOptions extends CommonOptions {
     // @internal (undocumented)
     gcWorker?: (tempdir: string) => Promise<void>;

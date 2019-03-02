@@ -871,7 +871,8 @@ export class LocalFunction<M extends object = object> extends CloudFunction<
 export type Provider = "aws" | "google" | "local";
 
 /**
- * The main entry point for faast.
+ * The main entry point for faast with AWS provider.
+ * @param options - {@link AwsOptions}
  * @public
  */
 export function faast<M extends object>(
@@ -881,7 +882,8 @@ export function faast<M extends object>(
     options?: AwsOptions
 ): Promise<CloudFunction<M, AwsOptions, AwsState>>;
 /**
- * The main entry point for faast.
+ * The main entry point for faast with Google provider.
+ * @param options - {@link GoogleOptions}
  * @public
  */
 export function faast<M extends object>(
@@ -891,7 +893,8 @@ export function faast<M extends object>(
     options?: GoogleOptions
 ): Promise<CloudFunction<M, GoogleOptions, GoogleState>>;
 /**
- * The main entry point for faast.
+ * The main entry point for faast with Local provider.
+ * @param options - {@link LocalOptions}
  * @public
  */
 export function faast<M extends object>(
@@ -901,7 +904,8 @@ export function faast<M extends object>(
     options?: LocalOptions
 ): Promise<CloudFunction<M, LocalOptions, LocalState>>;
 /**
- * The main entry point for faast.
+ * The main entry point for faast with any provider and common options.
+ * @param options - {@link CommonOptions}
  * @public
  */
 export function faast<M extends object, S>(
@@ -910,10 +914,6 @@ export function faast<M extends object, S>(
     modulePath: string,
     options?: CommonOptions
 ): Promise<CloudFunction<M, CommonOptions, S>>;
-/**
- * The main entry point for faast.
- * @public
- */
 export async function faast<M extends object, O extends CommonOptions, S>(
     provider: Provider,
     fmodule: M,

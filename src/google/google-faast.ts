@@ -48,7 +48,7 @@ import CloudBilling = cloudbilling_v1;
 const gaxios = new Gaxios();
 
 /**
- * Google-specific options
+ * Google-specific options. Extends {@link CommonOptions}.
  * @public
  */
 export interface GoogleOptions extends CommonOptions {
