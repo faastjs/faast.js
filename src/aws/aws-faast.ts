@@ -24,7 +24,6 @@ import {
     computeHttpResponseBytes,
     defined,
     hasExpired,
-    sleep,
     uuidv4Pattern
 } from "../shared";
 import { throttle, retry } from "../throttle";
@@ -784,14 +783,14 @@ export async function cleanup(state: AwsState, options: Required<CleanupOptions>
     log.info(`aws cleanup done.`);
 }
 
-let lastGc: number | undefined = undefined;
-
 const logGroupNameRegexp = new RegExp(`^/aws/lambda/(faast-${uuidv4Pattern})$`);
 
 function functionNameFromLogGroup(logGroupName: string) {
     const match = logGroupName.match(logGroupNameRegexp);
     return match && match[1];
 }
+
+let lastGc: number | undefined;
 
 export async function collectGarbage(
     executor: (services: AwsServices, work: AwsGcWork) => Promise<void>,
@@ -805,7 +804,24 @@ export async function collectGarbage(
         if (lastGc && Date.now() <= lastGc + 3600 * 1000) {
             return;
         }
+        const gcEntry = await caches.awsGc.get("gc");
+        if (gcEntry) {
+            try {
+                const lastGcPersistent = JSON.parse(gcEntry.toString());
+                if (
+                    lastGcPersistent &&
+                    typeof lastGcPersistent === "number" &&
+                    Date.now() <= lastGcPersistent + 3600 * 1000
+                ) {
+                    lastGc = lastGcPersistent;
+                    return;
+                }
+            } catch (err) {
+                log.warn(err);
+            }
+        }
         lastGc = Date.now();
+        caches.awsGc.set("gc", lastGc.toString());
     }
     const promises: Promise<void>[] = [];
     function scheduleWork(work: AwsGcWork) {
