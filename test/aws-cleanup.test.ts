@@ -56,7 +56,7 @@ export async function getAWSResources(func: CloudFunction<{}, AwsOptions>) {
         s3Result
     };
 }
-test("remote aws removes ephemeral resources", async t => {
+test("remote aws cleanup removes ephemeral resources", async t => {
     const func = await faast("aws", {}, "./fixtures/functions", {
         mode: "queue",
         gc: false
@@ -65,7 +65,7 @@ test("remote aws removes ephemeral resources", async t => {
     await checkResourcesCleanedUp(t, await getAWSResources(func));
 });
 
-test("remote aws removes s3 buckets", async t => {
+test("remote aws cleanup removes s3 buckets", async t => {
     const func = await faast("aws", {}, "./fixtures/functions", {
         packageJson: "test/fixtures/package.json",
         gc: false

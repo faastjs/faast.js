@@ -416,7 +416,8 @@ export async function buildModulesOnLambda(
     const lambda = await faast("aws", awsNpm, require.resolve("./aws-npm"), {
         timeout: 300,
         memorySize: 2048,
-        mode: "https"
+        mode: "https",
+        gc: false
     });
     try {
         const Key = getS3Key(FunctionName);
