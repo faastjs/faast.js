@@ -40,17 +40,33 @@ import Module = require("module");
 export const providers: Provider[] = ["aws", "google", "local"];
 
 /**
+ * Error type returned by remote functions when they reject their promises.
+ * @remarks
+ * When a faast.js remote function throws an exception or rejects the promise it
+ * returns, that error is returned as a `FaastError` on the local side. The
+ * original error type is not used. `FaastError` copies the properties of the
+ * original error and adds them to FaastError.
+ *
+ * If available, a log URL for the specific invocation that caused the error is
+ * appended to the log message. This log URL is also available as the `logUrl`
+ * property. It will be surrounded by whilespace on both sides to ease parsing
+ * as a URL by IDEs.
+ *
+ * Stack traces and error names should be preserved from the remote side.
  * @public
  */
 export class FaastError extends Error {
     /** The log URL for the specific invocation that caused this error. */
     logUrl?: string;
+
     constructor(errObj: any, logUrl?: string) {
+        super("");
+        Object.assign(this, errObj);
         let message = errObj.message;
         if (logUrl) {
             message += `\nlogs: ${logUrl} `;
         }
-        super(message);
+        this.message = message;
         if (Object.keys(errObj).length === 0 && !(errObj instanceof Error)) {
             log.warn(
                 `Error response object has no keys, likely a bug in faast (not serializing error objects)`
@@ -62,6 +78,8 @@ export class FaastError extends Error {
         this.name = errObj.name;
         this.stack = errObj.stack;
     }
+
+    [key: string]: any;
 }
 
 /**
@@ -85,6 +103,10 @@ export interface ResponseDetails<D> {
 export type Response<D> = ResponseDetails<Unpacked<D>>;
 
 /**
+ * Given argument types A and return type R of a function,
+ * PromisifiedFunction<A,R> is a type with the same signature except the return
+ * value is replaced with a Promise. If the original function already returned a
+ * promise, the signature is unchanged. This is used by {@link Promisified}.
  * @public
  */
 export type PromisifiedFunction<A extends any[], R> = (
@@ -92,6 +114,10 @@ export type PromisifiedFunction<A extends any[], R> = (
 ) => Promise<Unpacked<R>>;
 
 /**
+ * Promisified<M> is the type of {@link CloudFunction.functions}. It maps an
+ * imported module's functions to promise-returning versions of those functions
+ * (see {@link PromisifiedFunction}). Non-function exports of the module are
+ * omitted.
  * @public
  */
 export type Promisified<M> = {
