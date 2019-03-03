@@ -88,6 +88,7 @@ test.serial(
         const gcRecorder = record(async (_: AwsServices, _work: AwsGcWork) => {});
 
         const func = await faast("aws", functions, "./fixtures/functions", {
+            gc: false,
             mode: "queue"
         });
         await func.cleanup({ deleteResources: false });

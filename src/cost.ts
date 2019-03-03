@@ -167,11 +167,11 @@ export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
             provider: "aws",
             repetitions: 10,
             options: {
-                mode: "https",
+                mode: "queue",
                 memorySize,
                 timeout: 300,
                 gc: false,
-                childProcess: false
+                childProcess: true
             },
             repetitionConcurrency: 10
         });
@@ -193,7 +193,7 @@ export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
                 memorySize,
                 timeout: 300,
                 gc: false,
-                childProcess: false
+                childProcess: true
             },
             repetitionConcurrency: 10
         });

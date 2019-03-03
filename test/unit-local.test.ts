@@ -7,7 +7,10 @@ import { measureConcurrency, sleep } from "./fixtures/util";
 import { URL } from "url";
 
 async function testCleanup(t: ExecutionContext, options: LocalOptions) {
-    const cloudFunc = await faast("local", funcs, "./fixtures/functions", options);
+    const cloudFunc = await faast("local", funcs, "./fixtures/functions", {
+        gc: false,
+        ...options
+    });
     const { hello, sleep } = cloudFunc.functions;
     let done = 0;
 
@@ -24,7 +27,10 @@ async function testCleanup(t: ExecutionContext, options: LocalOptions) {
 }
 
 async function testOrder(t: ExecutionContext, options: LocalOptions) {
-    const cloudFunc = await faast("local", funcs, "./fixtures/functions", options);
+    const cloudFunc = await faast("local", funcs, "./fixtures/functions", {
+        gc: false,
+        ...options
+    });
     t.plan(2);
 
     const a = cloudFunc.functions.emptyReject();
@@ -53,6 +59,7 @@ async function testConcurrency(
 ) {
     const cloudFunc = await faast("local", funcs, "./fixtures/functions", {
         ...options,
+        gc: false,
         concurrency: maxConcurrency
     });
 
@@ -100,7 +107,8 @@ async function readFirstLogfile(logDirectoryUrl: string) {
 test("local provider console.log, console.warn, and console.error with child process", async t => {
     const cloudFunc = await faast("local", funcs, "./fixtures/functions", {
         childProcess: true,
-        concurrency: 1
+        concurrency: 1,
+        gc: false
     });
     try {
         await cloudFunc.functions.consoleLog("Remote console.log output");
@@ -121,7 +129,8 @@ test("local provider log files should be appended, not truncated, after child pr
     const cloudFunc = await faast("local", funcs, "./fixtures/functions", {
         childProcess: true,
         concurrency: 1,
-        maxRetries: 1
+        maxRetries: 1,
+        gc: false
     });
     try {
         await cloudFunc.functions.consoleLog("output 1");
@@ -161,7 +170,8 @@ test("local provider no concurrency for cpu bound work without child processes",
 
 test("local provider cleanup waits for all child processes to exit", async t => {
     const cloudFunc = await faast("local", funcs, "./fixtures/functions", {
-        childProcess: true
+        childProcess: true,
+        gc: false
     });
     cloudFunc.functions.spin(5000).catch(_ => {});
     while (true) {

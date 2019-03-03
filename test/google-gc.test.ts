@@ -32,7 +32,8 @@ test("remote google garbage collector works for functions that are called", asyn
 
 test("remote google garbage collector works for functions that are never called", async t => {
     const func = await faast("google", functions, "./fixtures/functions", {
-        mode: "queue"
+        mode: "queue",
+        gc: false
     });
     await func.cleanup({ deleteResources: false });
     const gcRecorder = record(
