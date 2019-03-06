@@ -360,8 +360,8 @@ export async function createLayer(
         const cacheKey = hasher.digest("hex");
         LayerName = `faast-${cacheKey}`;
         const layers = await quietly(lambda.listLayerVersions({ LayerName }));
-        if (layers && layers.LayerVersions) {
-            const { Version, LayerVersionArn } = layers.LayerVersions[0];
+        if (layers && layers.LayerVersions && layers.LayerVersions.length > 0) {
+            const [{ Version, LayerVersionArn }] = layers.LayerVersions;
             if (Version && LayerVersionArn) {
                 return { Version, LayerVersionArn, LayerName };
             }

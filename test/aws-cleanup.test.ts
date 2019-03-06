@@ -23,14 +23,16 @@ export async function getAWSResources(func: AwsLambda) {
         lambda.getFunctionConfiguration({ FunctionName }).promise()
     );
 
-    const layerResult = await quietly(
-        lambda
-            .getLayerVersion({
-                LayerName: layer!.LayerName,
-                VersionNumber: layer!.Version
-            })
-            .promise()
-    );
+    const layerResult =
+        layer &&
+        (await quietly(
+            lambda
+                .getLayerVersion({
+                    LayerName: layer!.LayerName,
+                    VersionNumber: layer!.Version
+                })
+                .promise()
+        ));
 
     const snsResult = await quietly(
         sns.getTopicAttributes({ TopicArn: RequestTopicArn! }).promise()
