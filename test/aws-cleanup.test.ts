@@ -1,9 +1,9 @@
 import test from "ava";
-import { AwsOptions, CloudFunction, faast } from "../index";
+import { AwsLambda, faast } from "../index";
 import { checkResourcesCleanedUp, quietly } from "./fixtures/util";
 
-export async function getAWSResources(func: CloudFunction<{}, AwsOptions>) {
-    const { lambda, sns, sqs, s3 } = func.state.services;
+export async function getAWSResources(func: AwsLambda) {
+    const { lambda, sns, sqs } = func.state.services;
     const {
         FunctionName,
         RoleName,
@@ -12,9 +12,8 @@ export async function getAWSResources(func: CloudFunction<{}, AwsOptions>) {
         RequestTopicArn,
         ResponseQueueUrl,
         ResponseQueueArn,
-        s3Bucket,
-        s3Key,
         logGroupName,
+        layer,
         ...rest
     } = func.state.resources;
 
@@ -23,6 +22,16 @@ export async function getAWSResources(func: CloudFunction<{}, AwsOptions>) {
     const functionResult = await quietly(
         lambda.getFunctionConfiguration({ FunctionName }).promise()
     );
+
+    const layerResult = await quietly(
+        lambda
+            .getLayerVersion({
+                LayerName: layer!.LayerName,
+                VersionNumber: layer!.Version
+            })
+            .promise()
+    );
+
     const snsResult = await quietly(
         sns.getTopicAttributes({ TopicArn: RequestTopicArn! }).promise()
     );
@@ -32,10 +41,6 @@ export async function getAWSResources(func: CloudFunction<{}, AwsOptions>) {
 
     const subscriptionResult = await quietly(
         sns.listSubscriptionsByTopic({ TopicArn: RequestTopicArn! }).promise()
-    );
-
-    const s3Result = await quietly(
-        s3.getObject({ Bucket: s3Bucket!, Key: s3Key! }).promise()
     );
 
     if (
@@ -53,7 +58,7 @@ export async function getAWSResources(func: CloudFunction<{}, AwsOptions>) {
         snsResult,
         sqsResult,
         subscriptionResult,
-        s3Result
+        layerResult
     };
 }
 test("remote aws cleanup removes ephemeral resources", async t => {
@@ -61,15 +66,15 @@ test("remote aws cleanup removes ephemeral resources", async t => {
         mode: "queue",
         gc: false
     });
-    await func.cleanup();
+    await func.cleanup({ deleteCaches: true });
     await checkResourcesCleanedUp(t, await getAWSResources(func));
 });
 
-test("remote aws cleanup removes s3 buckets", async t => {
+test("remote aws cleanup removes lambda layers", async t => {
     const func = await faast("aws", {}, "./fixtures/functions", {
         packageJson: "test/fixtures/package.json",
         gc: false
     });
-    await func.cleanup();
+    await func.cleanup({ deleteCaches: true });
     await checkResourcesCleanedUp(t, await getAWSResources(func));
 });

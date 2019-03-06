@@ -1,5 +1,5 @@
 import test, { ExecutionContext } from "ava";
-import { CommonOptions, faast, Provider, providers } from "../index";
+import { CommonOptions, faast, Provider, providers, FaastError } from "../index";
 import * as funcs from "./fixtures/functions";
 import { configs, title } from "./fixtures/util";
 
@@ -38,6 +38,15 @@ async function testBasic(
             t.is(err, "intentionally rejected");
         }
         await t.throwsAsync(() => remote.promiseArg(Promise.resolve()), /not supported/);
+        try {
+            await remote.customError();
+            t.fail("remote.customError() did not reject as expected");
+        } catch (err) {
+            t.true(err instanceof FaastError);
+            const ferr = err as FaastError;
+            t.truthy(ferr.message.match(/^message/));
+            t.is(ferr.custom, "custom");
+        }
     } finally {
         await cloudFunc.cleanup();
     }

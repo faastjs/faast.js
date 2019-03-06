@@ -16,7 +16,7 @@ test("remote google garbage collector works for functions that are called", asyn
     await func.functions.hello("gc-test");
     await func.cleanup({ deleteResources: false });
     const gcRecorder = record(
-        async (_: GoogleServices, _resources: GoogleResources) => {}
+        async (_resources: GoogleResources, _: GoogleServices) => {}
     );
     const func2 = await faast("google", functions, "./fixtures/functions", {
         gc: true,
@@ -26,7 +26,7 @@ test("remote google garbage collector works for functions that are called", asyn
 
     await func2.cleanup();
     const resources = func.state.resources;
-    t.truthy(gcRecorder.recordings.find(r => contains(r.args[1], resources)));
+    t.truthy(gcRecorder.recordings.find(({ args: [work] }) => contains(work, resources)));
     await func.cleanup();
 });
 
@@ -36,7 +36,7 @@ test("remote google garbage collector works for functions that are never called"
     });
     await func.cleanup({ deleteResources: false });
     const gcRecorder = record(
-        async (_: GoogleServices, _resources: GoogleResources) => {}
+        async (_resources: GoogleResources, _: GoogleServices) => {}
     );
     const func2 = await faast("google", functions, "./fixtures/functions", {
         gc: true,
@@ -46,6 +46,6 @@ test("remote google garbage collector works for functions that are never called"
 
     await func2.cleanup();
     const resources = func.state.resources;
-    t.truthy(gcRecorder.recordings.find(r => contains(r.args[1], resources)));
+    t.truthy(gcRecorder.recordings.find(({ args: [work] }) => contains(work, resources)));
     await func.cleanup();
 });

@@ -5,7 +5,6 @@ import * as commander from "commander";
 import { readdir, remove } from "fs-extra";
 import { GaxiosPromise, GaxiosResponse } from "gaxios";
 import { google } from "googleapis";
-import * as inquirer from "inquirer";
 import * as ora from "ora";
 import { tmpdir } from "os";
 import * as path from "path";
@@ -67,9 +66,7 @@ async function deleteResources(
 async function cleanupAWS({ region, execute }: CleanupOptions) {
     let nResources = 0;
     const output = (msg: string) => !execute && log(msg);
-    const { cloudwatch, iam, lambda, sns, sqs, s3 } = await awsFaast.createAwsApis(
-        region!
-    );
+    const { cloudwatch, iam, lambda, sns, sqs } = await awsFaast.createAwsApis(region!);
 
     function listAWSResource<T, U>(
         pattern: RegExp,
@@ -170,32 +167,25 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
         RoleName => awsFaast.deleteRole(RoleName, iam)
     );
 
-    output(`S3 bucket keys`);
-    const buckets = await listAWSResource(
-        new RegExp(`^faast-${uuidv4Pattern}$`),
-        () => s3.listBuckets(),
-        page => page.Buckets,
-        bucket => bucket.Name
-    );
-    for (const Bucket of buckets) {
-        await deleteAWSResource(
-            "S3 Bucket key(s)",
-            /./,
-            () => s3.listObjectsV2({ Bucket }),
-            object => object.Contents,
-            content => content.Key,
-            Key => s3.deleteObject({ Key, Bucket }).promise()
-        );
-    }
+    output(`Lambda layers`);
 
-    output(`S3 buckets`);
     await deleteAWSResource(
-        "S3 Bucket(s)",
-        new RegExp(`^faast-${uuidv4Pattern}$`),
-        () => s3.listBuckets(),
-        page => page.Buckets,
-        bucket => bucket.Name,
-        Bucket => s3.deleteBucket({ Bucket }).promise()
+        "Lambda layer(s)",
+        new RegExp(`^faast-(${uuidv4Pattern})|([a-f0-9]{64})`),
+        () => lambda.listLayers({ CompatibleRuntime: "nodejs" }),
+        page => page.Layers,
+        layer => layer.LayerName,
+        async LayerName => {
+            const versions = await lambda.listLayerVersions({ LayerName }).promise();
+            for (const layerVersion of versions.LayerVersions || []) {
+                await lambda
+                    .deleteLayerVersion({
+                        LayerName,
+                        VersionNumber: layerVersion.Version!
+                    })
+                    .promise();
+            }
+        }
     );
 
     async function cleanupCacheDir(cache: PersistentCache) {
@@ -357,19 +347,27 @@ async function cleanupLocal({ execute }: CleanupOptions) {
     return nResources;
 }
 
+import * as readline from "readline";
+
 async function prompt() {
-    const answer = await inquirer.prompt<any>([
-        {
-            type: "confirm",
-            name: "execute",
-            message: "WARNING: this operation will delete resources. Confirm?",
-            default: false
-        }
-    ]);
-    if (!answer.execute) {
-        log(`Execution aborted.`);
-        process.exit(0);
-    }
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
+    await new Promise(resolve => {
+        rl.question(
+            "WARNING: this operation will delete resources. Confirm? [y/N] ",
+            answer => {
+                if (answer !== "y") {
+                    log(`Execution aborted.`);
+                    process.exit(0);
+                }
+                rl.close();
+                resolve();
+            }
+        );
+    });
 }
 
 async function runCleanup(cloud: string, options: CleanupOptions) {

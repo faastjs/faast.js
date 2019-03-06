@@ -16,14 +16,27 @@ export interface CommonOptions {
      * @remarks
      * Each directory is recursively traversed. On the remote side, the
      * directories will be available on the file system relative to the current
-     * working directory.
+     * working directory. Directories can be specified as an absolute path or a
+     * relative path. If the path is relative, it is searched for in the
+     * following order:
+     *
+     * (1) The directory containing the script that imports the `faast` module.
+     * Specifically, the value of `__dirname` from that script.
+     *
+     * (2) The current working directory of the executing process.
      */
     addDirectory?: string | string[];
     /**
      * Add zip files to the code package.
      * @remarks
      * Each file is unzipped on the remote side under the current working
-     * directory.
+     * directory. Zip files can be specified as an absolute path or a relative
+     * path. If the path is relative, it is searched for in the following order:
+     *
+     * (1) The directory containing the script that imports the `faast` module.
+     * Specifically, the value of `__dirname` from that script.
+     *
+     * (2) The current working directory of the executing process.
      */
     addZipFile?: string | string[];
     /**
@@ -46,7 +59,7 @@ export interface CommonOptions {
      *   be used for automatically retrying calls to reduce tail latency.
      *
      * The cost of creating a child process is mainly in the memory overhead of
-     * creating another node process, which may consume a baseline of XXX.
+     * creating another node process.
      */
     childProcess?: boolean;
     /**
@@ -163,33 +176,47 @@ export interface CommonOptions {
      *
      * The way the `packageJson` is handled varies by provider:
      *
-     * - local: Runs `npm install` in a temporary directory it prepares for
-     *   the function.
+     * - local: Runs `npm install` in a temporary directory it prepares for the
+     *   function.
      *
      * - google: uses Google Cloud Function's
      *   {@link https://cloud.google.com/functions/docs/writing/specifying-dependencies-nodejs | native support for package.json}.
      *
-     * - aws: Recursively calls faast.js to run `npm install` inside a
-     *   separate lambda function specifically created for this purpose.
-     *   Faast.js uses lambda to install dependencies to ensure that native
-     *   dependencies are compiled in an environment that can produce binaries
-     *   linked against lambda's
+     * - aws: Recursively calls faast.js to run `npm install` inside a separate
+     *   lambda function specifically created for this purpose. Faast.js uses
+     *   lambda to install dependencies to ensure that native dependencies are
+     *   compiled in an environment that can produce binaries linked against
+     *   lambda's
      *   {@link https://aws.amazon.com/blogs/compute/running-executables-in-aws-lambda/ | execution environment}.
+     *   Packages are saved in a Lambda Layer.
      *
-     * Also see {@link CommonOptions.useDependencyCaching}.
+     * For AWS, if {@link CommonOptions.useDependencyCaching} is `true` (which
+     * is the default), then the Lambda Layer created will be reused in future
+     * function creation requests if the contents of `packageJson` are the same.
+     *
+     * The path specified by `packageJson` is searched for in the same manner as
+     * {@link CommonOptions.addZipFile}.
+     *
+     * The `FAAST_PACKAGE_DIR` environment variable can be useful for debugging
+     * `packageJson` issues.
      */
     packageJson?: string | object;
     /**
      * Cache installed dependencies from {@link CommonOptions.packageJson}. Only
      * applies to AWS. Default: true.
      * @remarks
-     * The resulting `node_modules` folder is cached both locally and also on S3
-     * under the bucket `faast-cache-*-${region}`. These cache entries expire by
-     * default after 24h. Using caching reduces the need to install and upload
-     * dependencies every time a function is created. This is important for AWS
-     * because it creates an entirely separate lambda function to install
-     * dependencies remotely, which can substantially increase function
-     * deployment time.
+     * If `useDependencyCaching` is `true`, The resulting `node_modules` folder
+     * is cached in a Lambda Layer with the name `faast-${key}`, where `key` is
+     * the SHA1 hash of the `packageJson` contents. These cache entries are
+     * removed by garbage collection, by default after 24h. Using caching
+     * reduces the need to install and upload dependencies every time a function
+     * is created. This is important for AWS because it creates an entirely
+     * separate lambda function to install dependencies remotely, which can
+     * substantially increase function deployment time.
+     *
+     * If `useDependencyCaching` is false, the lambda layer is created with the
+     * same name as the lambda function, and then is deleted when cleanup is
+     * run.
      */
     useDependencyCaching?: boolean;
     /**
@@ -299,11 +326,14 @@ export interface CommonOptions {
      *
      * Default:
      *
-     * - aws: `{ externals: "aws-sdk" }`. In the lambda
+     * - aws: `{ externals: new RegExp("^aws-sdk/?") }`. In the lambda
      *   environment `"aws-sdk"` is available in the ambient environment and
      *   does not need to be bundled.
      *
      * - other providers: `{}`
+     *
+     * The `FAAST_PACKAGE_DIR` environment variable can be useful for debugging
+     * webpack issues.
      */
     webpackOptions?: webpack.Configuration;
 }
@@ -344,10 +374,27 @@ export interface CleanupOptions {
      * again set to `true` to delete resources. This can be useful for testing.
      */
     deleteResources?: boolean;
+
+    /**
+     * If true, delete cached resources. Default: false.
+     * @remarks
+     * Some resources are cached persistently between calls for performance
+     * reasons. If this option is set to true, these cached resources are
+     * deleted when cleanup occurs, instead of being left behind for future use.
+     * For example, on AWS this includes the Lambda Layers that are created for
+     * {@link CommonOptions.packageJson} dependencies. Note that only the cached
+     * resources created by this instance of CloudFunction are deleted, not
+     * cached resources from other CloudFunctions. This is similar to setting
+     * `useCachedDependencies` to `false` during function construction, except
+     * `deleteCaches` can be set at function cleanup time, and any other
+     * CloudFunctions created before cleanup may use the cached Layers.
+     */
+    deleteCaches?: boolean;
 }
 
 export const CleanupOptionDefaults: Required<CleanupOptions> = {
-    deleteResources: true
+    deleteResources: true,
+    deleteCaches: false
 };
 
 /**
@@ -540,7 +587,12 @@ export interface CloudFunctionImpl<O extends CommonOptions, S> {
     name: string;
     defaults: Required<O>;
 
-    initialize(serverModule: string, nonce: UUID, options: Required<O>): Promise<S>;
+    initialize(
+        serverModule: string,
+        nonce: UUID,
+        options: Required<O>,
+        parentDir: string
+    ): Promise<S>;
 
     costEstimate?: (
         state: S,

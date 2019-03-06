@@ -80,7 +80,7 @@ export interface GoogleOptions extends CommonOptions {
     googleCloudFunctionOptions?: CloudFunctions.Schema$CloudFunction;
 
     /** @internal */
-    gcWorker?: (services: GoogleServices, resources: GoogleResources) => Promise<void>;
+    gcWorker?: (resources: GoogleResources, services: GoogleServices) => Promise<void>;
 }
 
 export interface GoogleResources {
@@ -122,7 +122,7 @@ export interface GoogleState {
     gcPromise?: Promise<void>;
 }
 
-function gcWorkerDefault(services: GoogleServices, resources: GoogleResources) {
+function gcWorkerDefault(resources: GoogleResources, services: GoogleServices) {
     return deleteResources(services, resources, log.gc);
 }
 
@@ -237,7 +237,8 @@ async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) 
 export async function initialize(
     fmodule: string,
     nonce: UUID,
-    options: Required<GoogleOptions>
+    options: Required<GoogleOptions>,
+    parentDir: string
 ): Promise<GoogleState> {
     log.info(`Create google cloud function`);
     const services = await initializeGoogleServices();
@@ -252,7 +253,12 @@ export async function initialize(
         const wrapperOptions = {
             childProcessTimeoutMs: timeout * 1000 - 100
         };
-        const { archive } = await googlePacker(fmodule, options, wrapperOptions);
+        const { archive } = await googlePacker(
+            fmodule,
+            parentDir,
+            options,
+            wrapperOptions
+        );
         const uploadUrlResponse = await cloudFunctions.projects.locations.functions.generateUploadUrl(
             {
                 parent: location
@@ -559,7 +565,7 @@ export async function cleanup(state: GoogleState, options: CleanupOptions) {
 let garbageCollectorRunning = false;
 
 async function collectGarbage(
-    gcWorker: (services: GoogleServices, resources: GoogleResources) => Promise<void>,
+    gcWorker: typeof gcWorkerDefault,
     services: GoogleServices,
     project: string,
     retentionInDays: number
@@ -592,7 +598,7 @@ async function collectGarbage(
                     responseQueueTopic: getResponseQueueTopic(project, name),
                     responseSubscription: getResponseSubscription(project, name)
                 };
-                await gcWorker(services, resources);
+                await gcWorker(resources, services);
             }
         );
 
@@ -688,13 +694,14 @@ async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
 
 export async function googlePacker(
     functionModule: string,
+    parentDir: string,
     options: GoogleOptions,
     wrapperOptions: WrapperOptions
 ): Promise<PackerResult> {
     const { mode } = options;
     const trampolineModule =
         mode === "queue" ? googleTrampolineQueue : googleTrampolineHttps;
-    return packer(trampolineModule, functionModule, options, wrapperOptions);
+    return packer(parentDir, trampolineModule, functionModule, options, wrapperOptions);
 }
 
 const getGooglePrice = throttle(

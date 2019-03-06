@@ -5,11 +5,9 @@
     "repository": "none",
     "license": "ISC",
     "dependencies": {
+        "fs-extra": "^7.0.1",
         "googleapis": "^37.2.0",
-        "tslib": "^1.9.1",
-        "uuid": "^3.3.2"
+        "tslib": "^1.9.1"
     },
-    "devDependencies": {
-        "@types/uuid": "^3.4.4"
-    }
+    "devDependencies": {}
 }

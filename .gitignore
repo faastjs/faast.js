@@ -71,3 +71,5 @@ tmp/
 cost*.csv
 docs/api
 temp
+src/provider.ts
+pkg/

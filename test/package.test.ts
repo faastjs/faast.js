@@ -2,19 +2,22 @@ import test, { ExecutionContext } from "ava";
 import { CommonOptions, faast, Provider, providers } from "../index";
 import * as funcs from "./fixtures/functionsPackage";
 import { configs, title } from "./fixtures/util";
-import { uuidv4Pattern } from "../src/shared";
 
 async function testPackage(
     t: ExecutionContext,
     provider: Provider,
     options: CommonOptions
 ) {
-    const opts = { gc: false, ...options };
+    const opts = {
+        ...options,
+        gc: false,
+        packageJson: "test/fixtures/package.json",
+        useDependencyCaching: false
+    };
     const cloudFunc = await faast(provider, funcs, "./fixtures/functionsPackage", opts);
     const remote = cloudFunc.functions;
-
     try {
-        t.regex(await remote.uuid(), new RegExp(uuidv4Pattern));
+        t.is(await remote.isDir("."), true);
     } finally {
         await cloudFunc.cleanup();
     }
@@ -22,10 +25,31 @@ async function testPackage(
 
 for (const provider of providers) {
     for (const config of configs) {
-        test(title(provider, "package dependencies", config), testPackage, provider, {
-            ...config,
-            packageJson: "test/fixtures/package.json",
-            useDependencyCaching: false
-        });
+        test(
+            title(provider, "package dependencies", config),
+            testPackage,
+            provider,
+            config
+        );
     }
 }
+
+test("aws package dependencies with lambda layer caching", async t => {
+    const cloudFunc = await faast("aws", funcs, "./fixtures/functionsPackage", {
+        gc: false,
+        packageJson: "test/fixtures/package.json"
+    });
+
+    try {
+        const cloudFunc2 = await faast("aws", funcs, "./fixtures/functionsPackage", {
+            gc: false,
+            packageJson: "test/fixtures/package.json"
+        });
+
+        t.not(cloudFunc.state.resources.layer, undefined);
+        t.deepEqual(cloudFunc.state.resources.layer, cloudFunc2.state.resources.layer);
+        await cloudFunc2.cleanup();
+    } finally {
+        await cloudFunc.cleanup({ deleteCaches: true });
+    }
+});

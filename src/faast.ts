@@ -33,6 +33,7 @@ import { Deferred, Funnel, Pump } from "./throttle";
 import { NonFunctionProperties, Unpacked } from "./types";
 import { CpuMeasurement, FunctionCall, FunctionReturn, serializeCall } from "./wrapper";
 import Module = require("module");
+import { dirname } from "path";
 
 /**
  * @public
@@ -40,12 +41,14 @@ import Module = require("module");
 export const providers: Provider[] = ["aws", "google", "local"];
 
 /**
- * Error type returned by remote functions when they reject their promises.
+ * Error type returned by remote functions when they reject their promises with
+ * an instance of Error or any object.
  * @remarks
  * When a faast.js remote function throws an exception or rejects the promise it
- * returns, that error is returned as a `FaastError` on the local side. The
- * original error type is not used. `FaastError` copies the properties of the
- * original error and adds them to FaastError.
+ * returns with an instance of Error or any object, that error is returned as a
+ * `FaastError` on the local side. The original error type is not used.
+ * `FaastError` copies the properties of the original error and adds them to
+ * FaastError.
  *
  * If available, a log URL for the specific invocation that caused the error is
  * appended to the log message. This log URL is also available as the `logUrl`
@@ -59,6 +62,7 @@ export class FaastError extends Error {
     /** The log URL for the specific invocation that caused this error. */
     logUrl?: string;
 
+    /** @internal */
     constructor(errObj: any, logUrl?: string) {
         super("");
         Object.assign(this, errObj);
@@ -79,6 +83,7 @@ export class FaastError extends Error {
         this.stack = errObj.stack;
     }
 
+    /** Additional properties from the remotely thrown Error. */
     [key: string]: any;
 }
 
@@ -392,7 +397,12 @@ async function createFunction<M extends object, O extends CommonOptions, S>(
         log.provider(`options ${inspectProvider(options)}`);
         return new CloudFunction(
             impl,
-            await impl.initialize(resolvedModule, functionId, options),
+            await impl.initialize(
+                resolvedModule,
+                functionId,
+                options,
+                dirname(_parentModule!.filename)
+            ),
             fmodule,
             resolvedModule,
             options
@@ -879,7 +889,7 @@ export class CloudFunction<
  * A CloudFunction type suitable to hold the return value of `faast("aws", ...)`
  * @public
  */
-export class AWSLambda<M extends object = object> extends CloudFunction<
+export class AwsLambda<M extends object = object> extends CloudFunction<
     M,
     AwsOptions,
     AwsState

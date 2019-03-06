@@ -86,7 +86,8 @@ export const LocalImpl: CloudFunctionImpl<LocalOptions, LocalState> = {
 async function initialize(
     serverModule: string,
     nonce: UUID,
-    options: Required<LocalOptions>
+    options: Required<LocalOptions>,
+    parentDir: string
 ): Promise<LocalState> {
     const wrappers: Wrapper[] = [];
     const logStreams: Writable[] = [];
@@ -141,7 +142,7 @@ async function initialize(
         return wrapper;
     };
 
-    const packerResult = await localPacker(serverModule, options, {});
+    const packerResult = await localPacker(serverModule, parentDir, options, {});
 
     await unzipInDir(tempDir, packerResult.archive);
     const packageJsonFile = join(tempDir, "package.json");
@@ -173,10 +174,17 @@ export function logUrl(state: LocalState) {
 
 export async function localPacker(
     functionModule: string,
+    parentDir: string,
     options: LocalOptions,
     wrapperOptions: WrapperOptions
 ): Promise<PackerResult> {
-    return packer(localTrampolineFactory, functionModule, options, wrapperOptions);
+    return packer(
+        parentDir,
+        localTrampolineFactory,
+        functionModule,
+        options,
+        wrapperOptions
+    );
 }
 
 async function invoke(

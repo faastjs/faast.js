@@ -1,5 +1,5 @@
-import * as uuidv4 from "uuid/v4";
+import * as fs from "fs-extra";
 
-export function uuid() {
-    return uuidv4();
+export function isDir(dir: string) {
+    return fs.stat(dir).then(s => s.isDirectory());
 }

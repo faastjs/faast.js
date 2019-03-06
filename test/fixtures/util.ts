@@ -46,7 +46,7 @@ export function checkResourcesCleanedUp<T extends object>(
     }
 }
 
-export interface RecordedCall<A, R> {
+export interface RecordedCall<A extends any[], R> {
     args: A;
     rv: R;
 }

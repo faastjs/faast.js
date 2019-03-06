@@ -17,7 +17,6 @@ import archiver = require("archiver");
 
 export interface PackerResult {
     archive: NodeJS.ReadableStream;
-    indexContents: string;
 }
 
 function getUrlEncodedQueryParameters(options: LoaderOptions) {
@@ -28,6 +27,7 @@ function getUrlEncodedQueryParameters(options: LoaderOptions) {
 }
 
 export async function packer(
+    parentDir: string,
     trampolineFactory: TrampolineFactory,
     functionModule: string,
     userOptions: CommonOptions,
@@ -61,7 +61,7 @@ export async function packer(
     async function addPackageJson(packageJsonFile: string | object) {
         const parsedPackageJson =
             typeof packageJsonFile === "string"
-                ? JSON.parse((await readFile(packageJsonFile)).toString())
+                ? JSON.parse((await readFile(await resolve(packageJsonFile))).toString())
                 : packageJsonFile;
         parsedPackageJson.main = "index.js";
         mfs.writeFileSync(
@@ -71,19 +71,28 @@ export async function packer(
         return Object.keys(parsedPackageJson.dependencies);
     }
 
+    async function resolve(pathName: string) {
+        if (path.isAbsolute(pathName)) {
+            return pathName;
+        }
+        let relativeDir = path.join(parentDir, pathName);
+        if (await pathExists(relativeDir)) {
+            return relativeDir;
+        } else if (await pathExists(pathName)) {
+            return pathName;
+        }
+        throw new Error(`Could not find "${pathName}" or "${relativeDir}"`);
+    }
+
     async function processAddDirectories(archive: Archiver, directories: string[]) {
         for (const dir of directories) {
-            log.info(`Adding directory to archive: ${dir}`);
-            if (!(await pathExists(dir))) {
-                log.warn(`Directory ${dir} not found`);
-            }
-            archive.directory(dir, false);
+            archive.directory(await resolve(dir), false);
         }
     }
 
     async function processAddZips(archive: Archiver, zipFiles: string[]) {
         for (const zipFile of zipFiles) {
-            await processZip(zipFile, (filename, contents) => {
+            await processZip(await resolve(zipFile), (filename, contents) => {
                 archive.append(contents, { name: filename });
             });
         }
@@ -105,8 +114,7 @@ export async function packer(
             await processAddZips(archive, addZipFile);
         }
         archive.finalize();
-        const indexContents = mfs.readFileSync("/index.js").toString();
-        return { archive, indexContents };
+        return { archive };
     }
 
     const dependencies = (packageJson && (await addPackageJson(packageJson))) || [];
@@ -126,7 +134,11 @@ export async function packer(
             resolveLoader: { modules: [__dirname, `${__dirname}/build}`] },
             ...webpackOptions
         };
-        config.externals = [...externalsArray, ...dependencies];
+        config.externals = [
+            ...externalsArray,
+            ...dependencies,
+            ...dependencies.map(d => new RegExp(`${d}/.*`))
+        ];
         log.webpack(`webpack config: %O`, config);
         const compiler = webpack(config);
         compiler.outputFileSystem = mfs as any;
@@ -135,8 +147,13 @@ export async function packer(
                 if (err) {
                     reject(err);
                 } else {
-                    log.webpack(stats.toString());
-                    log.webpack(`Memory filesystem: %O`, mfs.data);
+                    if (log.webpack.enabled) {
+                        log.webpack(stats.toString());
+                        log.webpack(`Memory filesystem: `);
+                        for (const file of Object.keys(mfs.data)) {
+                            log.webpack(`  ${file}: ${mfs.data[file].length}`);
+                        }
+                    }
                     resolve();
                 }
             })
@@ -172,7 +189,6 @@ export async function packer(
 }
 
 /**
- * @export
  * @param {NodeJS.ReadableStream | string} archive A zip archive as a stream or a filename
  * @param {(filename: string, contents: Readable) => void} processEntry Every
  * entry's contents must be consumed, otherwise the next entry won't be read.
