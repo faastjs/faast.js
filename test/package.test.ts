@@ -12,7 +12,13 @@ async function testPackage(
     const opts = {
         ...options,
         gc: false,
-        packageJson: "test/fixtures/package.json",
+        packageJson: {
+            name: "package-test",
+            dependencies: {
+                "fs-extra": "^7.0.1",
+                tslib: "^1.9.1"
+            }
+        },
         useDependencyCaching: false
     };
     const cloudFunc = await faast(provider, funcs, "./fixtures/functionsPackage", opts);
@@ -37,6 +43,8 @@ for (const provider of providers) {
 
 test("remote aws package dependencies with lambda layer caching", async t => {
     const packageJson = {
+        // Need unique name to avoid problems with communication between
+        // concurrent tests, esp on aws node8 + node10 copies of the testsuite.
         name: uuid(),
         dependencies: {
             tslib: "^1.9.1"
