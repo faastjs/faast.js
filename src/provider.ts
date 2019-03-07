@@ -548,10 +548,6 @@ export interface DeadLetterMessage {
     message?: string;
 }
 
-export interface StopQueueMessage {
-    kind: "stopqueue";
-}
-
 export interface FunctionStartedMessage {
     kind: "functionstarted";
     callId: CallId;
@@ -568,17 +564,13 @@ export interface PollResult {
     isFullMessageBatch?: boolean;
 }
 
-export type SendableMessage = StopQueueMessage;
-
 export type ReceivableMessage =
     | DeadLetterMessage
     | ResponseMessage
     | FunctionStartedMessage
-    | StopQueueMessage
     | CpuMetricsMessage;
 
-export type Message = SendableMessage | ReceivableMessage;
-export type SendableKind = SendableMessage["kind"];
+export type Message = ReceivableMessage;
 export type ReceivableKind = ReceivableMessage["kind"];
 export type Kind = Message["kind"];
 export type UUID = string;
@@ -607,7 +599,6 @@ export interface CloudFunctionImpl<O extends CommonOptions, S> {
         request: Invocation,
         cancel: Promise<void>
     ): Promise<ResponseMessage | void>;
-    publish(state: S, message: SendableMessage): Promise<void>;
     poll(state: S, cancel: Promise<void>): Promise<PollResult>;
     responseQueueId(state: S): string | void;
 }

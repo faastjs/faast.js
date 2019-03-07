@@ -17,7 +17,6 @@ import {
     FunctionCounters,
     FunctionStats,
     Invocation,
-    StopQueueMessage,
     UUID
 } from "./provider";
 import {
@@ -512,21 +511,6 @@ export class CloudFunction<
             this._initialInvocationTime.clear();
             this._callResultsPending.clear();
             this._collectorPump.stop();
-
-            let count = 0;
-            const tasks = [];
-            const stopMessage: StopQueueMessage = { kind: "stopqueue" };
-            while (this._collectorPump.getConcurrency() > 0 && count++ < 10) {
-                for (let i = 0; i < this._collectorPump.getConcurrency(); i++) {
-                    log.provider(`publish ${inspectProvider(stopMessage)}`);
-                    tasks.push(this.impl.publish(this.state, stopMessage));
-                }
-                await Promise.all(tasks);
-                if (this._collectorPump.getConcurrency() > 0) {
-                    await sleep(1000);
-                }
-            }
-
             log.provider(`cleanup`);
             await this.impl.cleanup(this.state, options);
             log.provider(`cleanup done`);
@@ -805,8 +789,6 @@ export class CloudFunction<
 
         for (const m of Messages) {
             switch (m.kind) {
-                case "stopqueue":
-                    return;
                 case "deadletter":
                     const callRequest = callResultsPending.get(m.callId);
                     log.info(`Error "${m.message}" in call request %O`, callRequest);

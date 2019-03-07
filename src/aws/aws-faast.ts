@@ -13,7 +13,6 @@ import {
     Invocation,
     PollResult,
     ResponseMessage,
-    SendableMessage,
     CommonOptions,
     CommonOptionDefaults,
     CleanupOptions,
@@ -33,7 +32,6 @@ import {
     createSQSQueue,
     processAwsErrorMessage,
     publishInvocationMessage,
-    sendResponseQueueMessage,
     receiveMessages
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
@@ -565,11 +563,6 @@ async function invoke(
     }
 }
 
-function publish(state: AwsState, message: SendableMessage): Promise<void> {
-    const { services, resources } = state;
-    return sendResponseQueueMessage(services.sqs, resources.ResponseQueueUrl!, message);
-}
-
 function poll(state: AwsState, cancel: Promise<void>): Promise<PollResult> {
     return receiveMessages(
         state.services.sqs,
@@ -737,9 +730,7 @@ export async function cleanup(state: AwsState, options: Required<CleanupOptions>
     }
 
     if (options.deleteResources) {
-        log.info(
-            `Cleaning up faast infrastructure for ${state.resources.FunctionName}...`
-        );
+        log.info(`Cleaning up infrastructure for ${state.resources.FunctionName}...`);
         // Don't delete cached role. It may be in use by other instances of
         // faast. Don't delete logs. They are often useful. By default log
         // stream retention will be 1 day, and gc will clean out the log group
@@ -1261,6 +1252,7 @@ export async function costEstimate(
     return costs;
 }
 
+
 export const AwsImpl: CloudFunctionImpl<AwsOptions, AwsState> = {
     name: "aws",
     initialize,
@@ -1269,7 +1261,6 @@ export const AwsImpl: CloudFunctionImpl<AwsOptions, AwsState> = {
     costEstimate,
     logUrl,
     invoke,
-    publish,
     poll,
     responseQueueId
 };

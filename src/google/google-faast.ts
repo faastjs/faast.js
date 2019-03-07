@@ -23,7 +23,6 @@ import {
     Invocation,
     PollResult,
     ResponseMessage,
-    SendableMessage,
     UUID
 } from "../provider";
 import {
@@ -141,7 +140,6 @@ export const GoogleImpl: CloudFunctionImpl<GoogleOptions, GoogleState> = {
     costEstimate,
     logUrl,
     invoke,
-    publish,
     poll,
     responseQueueId
 };
@@ -482,13 +480,6 @@ async function invoke(
         default:
             assertNever(options.mode);
     }
-}
-
-async function publish(state: GoogleState, message: SendableMessage): Promise<void> {
-    const { services, resources } = state;
-    const { pubsub } = services;
-    const queue = resources.responseQueueTopic!;
-    return publishResponseMessage(pubsub, queue, message);
 }
 
 function poll(state: GoogleState, cancel: Promise<void>): Promise<PollResult> {

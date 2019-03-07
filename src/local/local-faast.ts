@@ -23,7 +23,6 @@ import {
     PollResult,
     ReceivableMessage,
     ResponseMessage,
-    SendableMessage,
     UUID
 } from "../provider";
 import { hasExpired, uuidv4Pattern } from "../shared";
@@ -79,7 +78,6 @@ export const LocalImpl: CloudFunctionImpl<LocalOptions, LocalState> = {
     logUrl,
     invoke,
     poll,
-    publish,
     responseQueueId
 };
 
@@ -215,10 +213,6 @@ async function invoke(
         rawResponse: undefined,
         timestamp: Date.now()
     };
-}
-
-async function publish(state: LocalState, message: SendableMessage): Promise<void> {
-    state.queue.enqueue(message);
 }
 
 async function poll(state: LocalState, cancel: Promise<void>): Promise<PollResult> {

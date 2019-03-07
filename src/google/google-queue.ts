@@ -80,8 +80,6 @@ function processMessage(m: PubSubMessage): ReceivableMessage | void {
         case "deadletter":
             log.warn("Not expecting deadletter message from google queue");
             return;
-        case "stopqueue":
-            return { kind };
         case "functionstarted":
             if (!callId) {
                 return;
@@ -118,8 +116,6 @@ export function publishResponseMessage(
 ) {
     const kind = { [KIND_ATTR]: message.kind };
     switch (message.kind) {
-        case "stopqueue":
-            return publishPubSub(pubsub, ResponseQueue, "", kind);
         case "functionstarted":
             return publishPubSub(pubsub, ResponseQueue, "", {
                 ...kind,
