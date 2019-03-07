@@ -2,7 +2,7 @@ import { faast } from "../index";
 import * as m from "./functions";
 
 async function main() {
-    const cloudFunc = await faast("aws", m, "./module", {
+    const cloudFunc = await faast("aws", m, "./functions", {
         mode: "https"
     });
 
