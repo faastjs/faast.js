@@ -77,6 +77,10 @@ test("remote aws cleanup removes lambda layers", async t => {
     const func = await faast("aws", {}, "./fixtures/functions", {
         packageJson: {
             name: uuid(),
+            version: "0.0.2",
+            description: "aws cleanup layer test",
+            repository: "foo",
+            license: "ISC",
             dependencies: {
                 tslib: "^1.9.1"
             }

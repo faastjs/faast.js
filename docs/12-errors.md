@@ -178,3 +178,7 @@ used in other tests. The fixed code generates a unique `packageJson`
 specifically for this test, with a unique uuid as part of the name to ensure it
 never collides with another test. Also ensure that `packageJson` is readonly in
 the packer.
+
+The fix was also wrong in using Object.create() to create a new object with the
+original `packageJson` as a prototype. This resulted in JSON.stringify not
+working on it... the fix was to use `Object.assign`.

@@ -62,7 +62,7 @@ export async function packer(
         const parsedPackageJson =
             typeof packageJsonFile === "string"
                 ? JSON.parse((await readFile(await resolve(packageJsonFile))).toString())
-                : Object.create(packageJsonFile);
+                : Object.assign({}, packageJsonFile);
         parsedPackageJson.main = "index.js";
         mfs.writeFileSync(
             "/package.json",

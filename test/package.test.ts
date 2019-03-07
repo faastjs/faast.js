@@ -14,6 +14,10 @@ async function testPackage(
         gc: false,
         packageJson: {
             name: "package-test",
+            version: "0.0.2",
+            description: "package dependency test",
+            repository: "foo",
+            license: "ISC",
             dependencies: {
                 "fs-extra": "^7.0.1",
                 tslib: "^1.9.1"
@@ -46,6 +50,9 @@ test("remote aws package dependencies with lambda layer caching", async t => {
         // Need unique name to avoid problems with communication between
         // concurrent tests, esp on aws node8 + node10 copies of the testsuite.
         name: uuid(),
+        version: "0.0.2",
+        description: "aws layer test",
+        license: "ISC",
         dependencies: {
             tslib: "^1.9.1"
         }

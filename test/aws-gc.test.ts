@@ -154,6 +154,10 @@ test.serial(
             mode: "queue",
             packageJson: {
                 name: uuid(),
+                version: "0.0.2",
+                description: "aws gc layer test",
+                repository: "foo",
+                license: "ISC",
                 dependencies: {
                     tslib: "^1.9.1"
                 }
