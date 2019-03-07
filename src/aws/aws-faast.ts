@@ -1034,7 +1034,7 @@ function addSnsInvokePermissionsToFunction(
     RequestTopicArn: string,
     lambda: aws.Lambda
 ) {
-    lambda
+    return lambda
         .addPermission({
             FunctionName,
             Action: "lambda:InvokeFunction",
@@ -1251,7 +1251,6 @@ export async function costEstimate(
 
     return costs;
 }
-
 
 export const AwsImpl: CloudFunctionImpl<AwsOptions, AwsState> = {
     name: "aws",
