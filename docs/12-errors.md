@@ -182,3 +182,56 @@ the packer.
 The fix was also wrong in using Object.create() to create a new object with the
 original `packageJson` as a prototype. This resulted in JSON.stringify not
 working on it... the fix was to use `Object.assign`.
+
+## Layer test interference
+
+Tests need to be designed to be independent for execution with Ava, and this can
+be tricky in some cases.
+
+The following error occurred:
+
+```
+aws-gc › remote aws garbage collector works for packageJson (lambda layers)
+ /codebuild/output/src028605080/src/github.com/acchou/faast.js/test/aws-gc.test.ts:210
+ 209: }
+ 210: t.truthy(layerDeletionRecord);
+ 211: }
+ Value is not truthy:
+ undefined
+ layerDeletionRecord
+ => undefined
+```
+
+In addition there was this console message earlier in the test:
+
+```
+AWS garbage collection test failure: Could not find deletion record for layer { LayerName: 'faast-c4e27de2-b6a1-4c8a-9899-69c454a12e74',
+ LayerArn:
+ 'arn:aws:lambda:us-west-2:547696317263:layer:faast-c4e27de2-b6a1-4c8a-9899-69c454a12e74',
+ LatestMatchingVersion:
+ { LayerVersionArn:
+ 'arn:aws:lambda:us-west-2:547696317263:layer:faast-c4e27de2-b6a1-4c8a-9899-69c454a12e74:1',
+ Version: 1,
+ Description:
+ 'faast packageJson layer with LayerName faast-c4e27de2-b6a1-4c8a-9899-69c454a12e74',
+ CreatedDate: '2019-03-07T14:50:53.996+0000',
+ CompatibleRuntimes: [ 'nodejs' ],
+ LicenseInfo: null } }, version { LayerVersionArn:
+ 'arn:aws:lambda:us-west-2:547696317263:layer:faast-c4e27de2-b6a1-4c8a-9899-69c454a12e74:1',
+ Version: 1,
+ Description:
+ 'faast packageJson layer with LayerName faast-c4e27de2-b6a1-4c8a-9899-69c454a12e74',
+ CreatedDate: '2019-03-07T14:50:53.996+0000',
+ CompatibleRuntimes: [ 'nodejs' ],
+ LicenseInfo: null }
+```
+
+The root cause was that the aws-gc lambda layers test was incorrectly looking at
+_all_ layer resources to determine if they had been caught by the garbage
+collector. But this is incorrect; the principle of the test is to check that the
+resources created _only_ by the prior faast call in the test has its resources
+recorded as garbage collected. By enumerating all cloud resources, we detected
+layers created during the parallel execution of the other tests, which has some
+tests which delete layers on their own, which are created _after_ garbage
+collection is done. This causes the test to fail, claiming gc was missing a
+resource.

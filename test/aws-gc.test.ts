@@ -172,44 +172,22 @@ test.serial(
             });
 
             await func2.cleanup();
-            const { lambda } = func.state.services;
-            const layers = await lambda
-                .listLayers({
-                    CompatibleRuntime: "nodejs"
-                })
-                .promise();
-            const faastLayers = (layers.Layers || []).filter(layer =>
-                layer!.LayerName!.match(/^faast/)
-            );
-            t.truthy(faastLayers.length > 0);
-            for (const layer of faastLayers) {
-                const layerVersions = await lambda
-                    .listLayerVersions({
-                        LayerName: layer.LayerName!,
-                        CompatibleRuntime: "nodejs"
-                    })
-                    .promise();
-                t.truthy((layerVersions.LayerVersions || []).length > 0);
-                for (const layerVersion of layerVersions.LayerVersions || []) {
-                    const layerDeletionRecord = gcRecorder.recordings.find(
-                        ({ args: [work] }) => {
-                            return (
-                                work.type === "DeleteLayerVersion" &&
-                                work.layerName === layer.LayerName &&
-                                work.layerVersion === layerVersion.Version
-                            );
-                        }
-                    );
-                    if (!layerDeletionRecord) {
-                        console.log(
-                            `AWS garbage collection test failure: Could not find deletion record for layer %O, version %O`,
-                            layer,
-                            layerVersion
-                        );
-                    }
-                    t.truthy(layerDeletionRecord);
-                }
+            const { layer } = func.state.resources;
+            if (!layer) {
+                t.fail("Initial function did not create Lambda Layer");
+                return;
             }
+            const layerDeletionRecord = gcRecorder.recordings.find(({ args: [work] }) => {
+                return (
+                    work.type === "DeleteLayerVersion" &&
+                    work.layerName === layer.LayerName &&
+                    work.layerVersion === layer.Version
+                );
+            });
+            if (!layerDeletionRecord) {
+                console.log(`Could not find deletion record for layer %O`, layer);
+            }
+            t.truthy(layerDeletionRecord);
         } finally {
             await func.cleanup({ deleteResources: true, deleteCaches: true });
         }
