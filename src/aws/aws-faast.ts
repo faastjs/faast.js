@@ -5,7 +5,7 @@ import { CostBreakdown, CostMetric } from "../cost";
 import { faast } from "../faast";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
-import { readFile } from "fs-extra";
+import { readFile, ensureDir, writeFile } from "fs-extra";
 import {
     CloudFunctionImpl,
     FunctionCounters,
@@ -13,7 +13,6 @@ import {
     Invocation,
     PollResult,
     ResponseMessage,
-    SendableMessage,
     CommonOptions,
     CommonOptionDefaults,
     CleanupOptions,
@@ -24,7 +23,6 @@ import {
     computeHttpResponseBytes,
     defined,
     hasExpired,
-    sleep,
     uuidv4Pattern
 } from "../shared";
 import { throttle, retry } from "../throttle";
@@ -34,16 +32,17 @@ import {
     createSQSQueue,
     processAwsErrorMessage,
     publishInvocationMessage,
-    sendResponseQueueMessage,
     receiveMessages
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
 import { FunctionReturn, WrapperOptions } from "../wrapper";
+import { AwsLayerInfo } from "./aws-npm";
+import { join } from "path";
 
 const defaultGcWorker = throttle(
     { concurrency: 5, rate: 5, burst: 2 },
-    async (services: AwsServices, work: AwsGcWork) => {
+    async (work: AwsGcWork, services: AwsServices) => {
         switch (work.type) {
             case "SetLogRetention":
                 if (
@@ -63,6 +62,17 @@ const defaultGcWorker = throttle(
             case "DeleteResources":
                 await deleteResources(work.resources, services, log.gc);
                 break;
+            case "DeleteLayerVersion":
+                await services.lambda
+                    .deleteLayerVersion({
+                        LayerName: work.layerName,
+                        VersionNumber: work.layerVersion
+                    })
+                    .promise();
+                log.gc(`deleted layer: ${work.layerName}:${work.layerVersion}`);
+                break;
+            default:
+                assertNever(work);
         }
     }
 );
@@ -106,11 +116,6 @@ export interface AwsOptions extends CommonOptions {
      *               "Effect": "Allow",
      *               "Action": ["logs:*"],
      *               "Resource": "arn:aws:logs:*:*:log-group:faast-*"
-     *           },
-     *           {
-     *               "Effect": "Allow",
-     *               "Action": ["s3:*"],
-     *               "Resource": "arn:aws:s3:::faast-*"
      *           },
      *           {
      *               "Effect": "Allow",
@@ -167,20 +172,8 @@ export interface AwsOptions extends CommonOptions {
      * with faast.js.
      */
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
-    /**
-     * Use a custom S3 bucket for caching. Default:
-     * `"faast-cache-${accountId}-${region}`;"`
-     * @remarks
-     * When building with dependencies (see {@link CommonOptions.packageJson}),
-     * faast.js will create cache objects containing the contents of the
-     * installed `node_modules` directory. You can specify an alternative bucket
-     * name and faast.js will create it if it does not already exist. If
-     * faast.js creates the bucket for you, it will automatically apply a
-     * lifecycle policy to expire cache objects after 1 day.
-     */
-    CacheBucket?: string;
     /** @internal */
-    gcWorker?: (services: AwsServices, work: AwsGcWork) => Promise<void>;
+    gcWorker?: (work: AwsGcWork, services: AwsServices) => Promise<void>;
 }
 
 export let defaults: Required<AwsOptions> = {
@@ -189,7 +182,6 @@ export let defaults: Required<AwsOptions> = {
     RoleName: "faast-cached-lambda-role",
     memorySize: 1728,
     awsLambdaOptions: {},
-    CacheBucket: "",
     gcWorker: defaultGcWorker
 };
 
@@ -216,9 +208,8 @@ export interface AwsResources {
     ResponseQueueArn?: string;
     RequestTopicArn?: string;
     SNSLambdaSubscriptionArn?: string;
-    s3Bucket?: string;
-    s3Key?: string;
     logGroupName: string;
+    layer?: AwsLayerInfo;
 }
 
 export interface AwsServices {
@@ -227,7 +218,6 @@ export interface AwsServices {
     readonly iam: aws.IAM;
     readonly sqs: aws.SQS;
     readonly sns: aws.SNS;
-    readonly s3: aws.S3;
     readonly pricing: aws.Pricing;
     readonly sts: aws.STS;
 }
@@ -252,6 +242,11 @@ export type AwsGcWork =
     | {
           type: "DeleteResources";
           resources: AwsResources;
+      }
+    | {
+          type: "DeleteLayerVersion";
+          layerName: string;
+          layerVersion: number;
       };
 
 export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
@@ -286,7 +281,6 @@ export const createAwsApis = throttle(
             cloudwatch: new aws.CloudWatchLogs({ apiVersion: "2014-03-28", region }),
             sqs: new aws.SQS({ apiVersion: "2012-11-05", region }),
             sns: new aws.SNS({ apiVersion: "2010-03-31", region }),
-            s3: new aws.S3({ apiVersion: "2006-03-01", region }),
             pricing: new aws.Pricing({ region: "us-east-1" }),
             sts: new aws.STS({ apiVersion: "2011-06-15", region })
         };
@@ -341,51 +335,15 @@ const ensureRole = throttle(
     }
 );
 
-const createCacheBucket = throttle(
-    { concurrency: 1, rate: 10, memoize: true },
-    async (s3: aws.S3, Bucket: string, region: string) => {
-        log.info(`Checking for cache bucket`);
-        const bucket = await quietly(s3.getBucketLocation({ Bucket }));
-        if (bucket) {
-            return;
-        }
-        log.info(`Creating cache bucket`);
-        const createdBucket = await s3
-            .createBucket({
-                Bucket,
-                CreateBucketConfiguration: { LocationConstraint: region }
-            })
-            .promise();
-        if (createdBucket) {
-            log.info(`Setting lifecycle expiration to 1 day for cached objects`);
-
-            s3.putBucketLifecycleConfiguration({
-                Bucket,
-                LifecycleConfiguration: {
-                    Rules: [{ Expiration: { Days: 1 }, Status: "Enabled", Prefix: "" }]
-                }
-            }).promise();
-        }
+export async function createLayer(
+    lambda: aws.Lambda,
+    packageJson: string | object | undefined,
+    useDependencyCaching: boolean,
+    FunctionName: string
+): Promise<AwsLayerInfo | undefined> {
+    if (!packageJson) {
+        return;
     }
-);
-
-function getBucketName(region: string, accountId: string) {
-    return `faast-cache-${accountId}-${region}`;
-}
-
-function getS3Key(FunctionName: string) {
-    return FunctionName;
-}
-
-export async function buildModulesOnLambda(
-    s3: aws.S3,
-    region: string,
-    Bucket: string,
-    packageJson: string | object,
-    indexContents: Promise<string>,
-    FunctionName: string,
-    useDependencyCaching: boolean
-): Promise<aws.Lambda.FunctionCode> {
     log.info(`Building node_modules`);
 
     const packageJsonContents =
@@ -393,55 +351,50 @@ export async function buildModulesOnLambda(
             ? (await readFile(packageJson)).toString()
             : JSON.stringify(packageJson);
 
-    const persistentCache = await caches.awsPackage;
-
-    let cacheKey: string | undefined;
+    let LayerName;
     if (useDependencyCaching) {
         const hasher = createHash("sha256");
         hasher.update(packageJsonContents);
-        cacheKey = hasher.digest("hex");
-
-        const cacheEntry = await persistentCache.get(cacheKey);
-        if (cacheEntry) {
-            log.info(`Using persistent cache entry ${persistentCache.dir}/${cacheKey}`);
-
-            const stream = await awsNpm.addIndexToPackage(cacheEntry, indexContents);
-            const buf = await zipStreamToBuffer(stream);
-            return { ZipFile: buf };
+        const cacheKey = hasher.digest("hex");
+        LayerName = `faast-${cacheKey}`;
+        const layers = await quietly(lambda.listLayerVersions({ LayerName }));
+        if (layers && layers.LayerVersions && layers.LayerVersions.length > 0) {
+            const [{ Version, LayerVersionArn }] = layers.LayerVersions;
+            if (Version && LayerVersionArn) {
+                return { Version, LayerVersionArn, LayerName };
+            }
         }
+    } else {
+        LayerName = FunctionName;
     }
 
-    await createCacheBucket(s3, Bucket, region);
-
-    const lambda = await faast("aws", awsNpm, require.resolve("./aws-npm"), {
-        timeout: 300,
-        memorySize: 2048,
-        mode: "queue",
-        gc: false
-    });
     try {
-        const Key = getS3Key(FunctionName);
-
-        const installArgs: awsNpm.NpmInstallArgs = {
-            packageJsonContents,
-            indexContents: await indexContents,
-            Bucket,
-            Key,
-            cacheKey
-        };
-        const installLog = await lambda.functions.npmInstall(installArgs);
-        log.info(installLog);
-
-        if (cacheKey) {
-            const cachedPackage = await s3.getObject({ Bucket, Key: cacheKey }).promise();
-            await persistentCache.set(cacheKey, cachedPackage.Body!);
+        const cloudFunc = await faast("aws", awsNpm, require.resolve("./aws-npm"), {
+            timeout: 300,
+            memorySize: 2048,
+            mode: "https",
+            gc: false,
+            maxRetries: 0,
+            webpackOptions: {
+                externals: []
+            }
+        });
+        try {
+            const installArgs: awsNpm.NpmInstallArgs = {
+                packageJsonContents,
+                LayerName
+            };
+            const { installLog, layerInfo } = await cloudFunc.functions.npmInstall(
+                installArgs
+            );
+            log.info(installLog);
+            return layerInfo;
+        } finally {
+            await cloudFunc.cleanup();
         }
-        return { S3Bucket: Bucket, S3Key: Key };
     } catch (err) {
-        log.warn(err);
+        log.warn(`createPackageLayer error:`);
         throw err;
-    } finally {
-        await lambda.cleanup();
     }
 }
 
@@ -452,23 +405,27 @@ export function logUrl(state: AwsState) {
 
 export const initialize = throttle(
     { concurrency: Infinity, rate: 2 },
-    async (fModule: string, nonce: UUID, options: Required<AwsOptions>) => {
+    async (fModule: string, nonce: UUID, options: Required<AwsOptions>, dir: string) => {
         log.info(`Nonce: ${nonce}`);
         const { region, timeout, memorySize } = options;
         log.info(`Creating AWS APIs`);
         const services = await createAwsApis(region);
-        const { lambda, s3, sts } = services;
+        const { lambda, sts } = services;
         const FunctionName = `faast-${nonce}`;
         const accountId = await getAccountId(sts);
-        const CacheBucket = options.CacheBucket || getBucketName(region, accountId);
 
-        const { packageJson, useDependencyCaching, childProcess } = options;
+        const { packageJson, useDependencyCaching } = options;
 
         async function createFunctionRequest(
             Code: aws.Lambda.FunctionCode,
             Role: string,
-            responseQueueArn: string
+            responseQueueArn: string,
+            layerInfo?: AwsLayerInfo
         ) {
+            const { Layers = [], ...rest } = options.awsLambdaOptions;
+            if (layerInfo) {
+                Layers.push(layerInfo.LayerVersionArn);
+            }
             const request: aws.Lambda.Types.CreateFunctionRequest = {
                 FunctionName,
                 Role,
@@ -479,7 +436,8 @@ export const initialize = throttle(
                 Timeout: timeout,
                 MemorySize: memorySize,
                 DeadLetterConfig: { TargetArn: responseQueueArn },
-                ...options.awsLambdaOptions
+                Layers,
+                ...rest
             };
             log.info(`createFunctionRequest: %O`, request);
             try {
@@ -502,22 +460,8 @@ export const initialize = throttle(
             const wrapperOptions = {
                 childProcessTimeoutMs: timeout * 1000 - 50
             };
-            const bundle = awsPacker(fModule, options, wrapperOptions);
-            let Code: aws.Lambda.FunctionCode;
-            if (packageJson) {
-                Code = await buildModulesOnLambda(
-                    s3,
-                    region,
-                    CacheBucket,
-                    packageJson,
-                    bundle.then(b => b.indexContents),
-                    FunctionName,
-                    useDependencyCaching
-                );
-            } else {
-                Code = { ZipFile: await zipStreamToBuffer((await bundle).archive) };
-            }
-            return Code;
+            const bundle = awsPacker(fModule, dir, options, wrapperOptions);
+            return { ZipFile: await zipStreamToBuffer((await bundle).archive) };
         }
 
         const { RoleName } = options;
@@ -541,7 +485,6 @@ export const initialize = throttle(
                 services,
                 region,
                 accountId,
-                CacheBucket,
                 retentionInDays
             );
             state.gcPromise.catch(_silenceWarningLackOfSynchronousCatch => {});
@@ -552,18 +495,33 @@ export const initialize = throttle(
             const rolePromise = ensureRole(RoleName, services);
             const responseQueuePromise = createResponseQueueImpl(state, FunctionName);
             const pricingPromise = requestAwsPrices(services.pricing, region);
+            const layerPromise = createLayer(
+                services.lambda,
+                packageJson,
+                useDependencyCaching,
+                FunctionName
+            );
 
             const codeBundle = await createCodeBundle();
-            if (codeBundle.S3Bucket) {
-                state.resources.s3Bucket = codeBundle.S3Bucket;
-                state.resources.s3Key = codeBundle.S3Key;
+            const packageDir = process.env["FAAST_PACKAGE_DIR"];
+            if (packageDir) {
+                log.webpack(`FAAST_PACKAGE_DIR: ${packageDir}`);
+                const packageFile = join(packageDir, FunctionName) + ".zip";
+                await ensureDir(packageDir);
+                await writeFile(packageFile, codeBundle.ZipFile);
+                log.info(`Wrote ${packageFile}`);
             }
             const roleArn = await rolePromise;
             const responseQueueArn = await responseQueuePromise;
+            const layer = await layerPromise;
+            if (layer) {
+                state.resources.layer = layer;
+            }
             const lambda = await createFunctionRequest(
                 codeBundle,
                 roleArn,
-                responseQueueArn
+                responseQueueArn,
+                layer
             );
 
             const { mode } = options;
@@ -577,7 +535,7 @@ export const initialize = throttle(
             const newError = new Error("Could not initialize cloud function");
             log.warn(`${newError.stack}`);
             log.warn(`Underlying error: ${err.stack}`);
-            await cleanup(state, { deleteResources: true });
+            await cleanup(state, { deleteResources: true, deleteCaches: false });
             throw err;
         }
     }
@@ -603,11 +561,6 @@ async function invoke(
         default:
             assertNever(options.mode);
     }
-}
-
-function publish(state: AwsState, message: SendableMessage): Promise<void> {
-    const { services, resources } = state;
-    return sendResponseQueueMessage(services.sqs, resources.ResponseQueueUrl!, message);
 }
 
 function poll(state: AwsState, cancel: Promise<void>): Promise<PollResult> {
@@ -703,14 +656,13 @@ async function deleteResources(
         ResponseQueueUrl,
         ResponseQueueArn,
         SNSLambdaSubscriptionArn,
-        s3Bucket,
-        s3Key,
         logGroupName,
+        layer,
         ...rest
     } = resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
 
-    const { lambda, sqs, sns, s3, iam } = services;
+    const { lambda, sqs, sns, iam } = services;
     if (SNSLambdaSubscriptionArn) {
         if (
             await quietly(sns.unsubscribe({ SubscriptionArn: SNSLambdaSubscriptionArn }))
@@ -731,10 +683,16 @@ async function deleteResources(
             output(`Deleted response queue: ${ResponseQueueUrl}`);
         }
     }
-    if (s3Bucket && s3Key) {
-        const deleteKey = quietly(s3.deleteObject({ Bucket: s3Bucket, Key: s3Key }));
-        if (await deleteKey) {
-            output(`Deleted S3 Key: ${s3Key} in Bucket: ${s3Bucket}`);
+    if (layer) {
+        if (
+            await quietly(
+                lambda.deleteLayerVersion({
+                    LayerName: layer.LayerName,
+                    VersionNumber: layer.Version
+                })
+            )
+        ) {
+            output(`Deleted lambda layer: ${layer.LayerName}:${layer.Version}`);
         }
     }
     if (FunctionName) {
@@ -744,7 +702,7 @@ async function deleteResources(
     }
     if (logGroupName) {
         if (await quietly(services.cloudwatch.deleteLogGroup({ logGroupName }))) {
-            log.gc(`Deleted log group ${logGroupName}`);
+            output(`Deleted log group ${logGroupName}`);
         }
     }
 }
@@ -772,19 +730,20 @@ export async function cleanup(state: AwsState, options: Required<CleanupOptions>
     }
 
     if (options.deleteResources) {
-        log.info(
-            `Cleaning up faast infrastructure for ${state.resources.FunctionName}...`
-        );
-        // Don't delete cached role. It may be in use by other instances of faast.
-        // Don't delete logs. They are often useful. By default log stream retention will
-        // be 1 day, and gc will clean out the log group after the streams are expired.
-        const { logGroupName, RoleName, ...rest } = state.resources;
+        log.info(`Cleaning up infrastructure for ${state.resources.FunctionName}...`);
+        // Don't delete cached role. It may be in use by other instances of
+        // faast. Don't delete logs. They are often useful. By default log
+        // stream retention will be 1 day, and gc will clean out the log group
+        // after the streams are expired. Don't delete a lambda layer that is
+        // used to cache packages.
+        const { logGroupName, RoleName, layer, ...rest } = state.resources;
         await deleteResources(rest, state.services);
+        if (!state.options.useDependencyCaching || options.deleteCaches) {
+            await deleteResources({ layer }, state.services);
+        }
     }
     log.info(`aws cleanup done.`);
 }
-
-let lastGc: number | undefined = undefined;
 
 const logGroupNameRegexp = new RegExp(`^/aws/lambda/(faast-${uuidv4Pattern})$`);
 
@@ -793,84 +752,128 @@ function functionNameFromLogGroup(logGroupName: string) {
     return match && match[1];
 }
 
-export async function collectGarbage(
-    executor: (services: AwsServices, work: AwsGcWork) => Promise<void>,
-    services: AwsServices,
-    region: AwsRegion,
-    accountId: string,
-    Bucket: string,
-    retentionInDays: number
+let lastGc: number | undefined;
+
+function forEachPage<R>(
+    description: string,
+    request: aws.Request<R, aws.AWSError>,
+    process: (page: R) => Promise<void>
 ) {
-    if (executor === defaultGcWorker) {
-        if (lastGc && Date.now() <= lastGc + 3600 * 1000) {
-            return;
-        }
-        lastGc = Date.now();
-    }
-    const promises: Promise<void>[] = [];
-    function scheduleWork(work: AwsGcWork) {
-        promises.push(executor(services, work));
-    }
     const throttlePaging = throttle({ concurrency: 1, rate: 1 }, async () => {});
-    const functionsWithLogGroups = new Set();
-
-    // Collect functions with log groups
-    await new Promise((resolve, reject) =>
-        services.cloudwatch
-            .describeLogGroups({ logGroupNamePrefix: "/aws/lambda/faast-" })
-            .eachPage((err, page, done) => {
-                if (err) {
-                    log.warn(`GC: Error when describing log groups: ${err}`);
-                    reject(err);
-                    return false;
-                }
-                if (page === null) {
-                    resolve();
-                } else if (page.logGroups) {
-                    page.logGroups.forEach(g =>
-                        functionsWithLogGroups.add(
-                            functionNameFromLogGroup(g.logGroupName!)
-                        )
-                    );
-                    garbageCollectLogGroups(
-                        page.logGroups!,
-                        retentionInDays,
-                        region,
-                        accountId,
-                        Bucket,
-                        scheduleWork
-                    );
-                }
-                throttlePaging().then(done);
-                return true;
-            })
-    );
-
-    // Collect functions without log groups
-    await new Promise((resolve, reject) =>
-        services.lambda.listFunctions().eachPage((err, page, done) => {
+    return new Promise((resolve, reject) => {
+        request.eachPage((err, page, done) => {
             if (err) {
-                log.warn(`GC: Error listing lambda functions: ${err}`);
+                log.warn(`GC: Error when listing ${description}: ${err}`);
                 reject(err);
                 return false;
             }
             if (page === null) {
                 resolve();
             } else {
-                const fnPattern = new RegExp(`^faast-${uuidv4Pattern}$`);
-                const funcs = (page.Functions || [])
-                    .filter(fn => fn.FunctionName!.match(fnPattern))
-                    .filter(fn => !functionsWithLogGroups.has(fn.FunctionName))
-                    .filter(fn => hasExpired(fn.LastModified, retentionInDays))
-                    .map(fn => fn.FunctionName!);
-
-                deleteGarbageFunctions(region, accountId, Bucket, funcs, scheduleWork);
-                throttlePaging().then(done);
+                process(page).then(() => throttlePaging().then(done));
             }
             return true;
-        })
+        });
+    });
+}
+
+export async function collectGarbage(
+    executor: typeof defaultGcWorker,
+    services: AwsServices,
+    region: AwsRegion,
+    accountId: string,
+    retentionInDays: number
+) {
+    if (executor === defaultGcWorker) {
+        if (lastGc && Date.now() <= lastGc + 3600 * 1000) {
+            return;
+        }
+        const gcEntry = await caches.awsGc.get("gc");
+        if (gcEntry) {
+            try {
+                const lastGcPersistent = JSON.parse(gcEntry.toString());
+                if (
+                    lastGcPersistent &&
+                    typeof lastGcPersistent === "number" &&
+                    Date.now() <= lastGcPersistent + 3600 * 1000
+                ) {
+                    lastGc = lastGcPersistent;
+                    return;
+                }
+            } catch (err) {
+                log.warn(err);
+            }
+        }
+        lastGc = Date.now();
+        caches.awsGc.set("gc", lastGc.toString());
+    }
+    const promises: Promise<void>[] = [];
+    function scheduleWork(work: AwsGcWork) {
+        promises.push(executor(work, services));
+    }
+    const functionsWithLogGroups = new Set();
+
+    const logGroupRequest = services.cloudwatch.describeLogGroups({
+        logGroupNamePrefix: "/aws/lambda/faast-"
+    });
+    await forEachPage("log groups", logGroupRequest, async ({ logGroups = [] }) => {
+        logGroups.forEach(g =>
+            functionsWithLogGroups.add(functionNameFromLogGroup(g.logGroupName!))
+        );
+
+        garbageCollectLogGroups(
+            logGroups,
+            retentionInDays,
+            region,
+            accountId,
+            scheduleWork
+        );
+    });
+
+    const listFunctionsRequest = services.lambda.listFunctions();
+    await forEachPage(
+        "lambda functions",
+        listFunctionsRequest,
+        async ({ Functions = [] }) => {
+            const fnPattern = new RegExp(`^faast-${uuidv4Pattern}$`);
+            const funcs = (Functions || [])
+                .filter(fn => fn.FunctionName!.match(fnPattern))
+                .filter(fn => !functionsWithLogGroups.has(fn.FunctionName))
+                .filter(fn => hasExpired(fn.LastModified, retentionInDays))
+                .map(fn => fn.FunctionName!);
+            deleteGarbageFunctions(region, accountId, funcs, scheduleWork);
+        }
     );
 
+    // Collect Lambda Layers
+    const layersRequest = services.lambda.listLayers({
+        CompatibleRuntime: "nodejs"
+    });
+    await forEachPage("Lambda Layers", layersRequest, async ({ Layers = [] }) => {
+        for (const layer of Layers) {
+            if (layer.LayerName!.match(/^faast-/)) {
+                const layerVersionRequest = services.lambda.listLayerVersions({
+                    LayerName: layer.LayerName!,
+                    CompatibleRuntime: "nodejs"
+                });
+                await forEachPage(
+                    "Lambda Layer Versions",
+                    layerVersionRequest,
+                    async ({ LayerVersions = [] }) => {
+                        LayerVersions.forEach(layerVersion => {
+                            if (hasExpired(layerVersion.CreatedDate, retentionInDays)) {
+                                scheduleWork({
+                                    type: "DeleteLayerVersion",
+                                    layerName: layer.LayerName!,
+                                    layerVersion: layerVersion.Version!
+                                });
+                            }
+                        });
+                    }
+                );
+            }
+        }
+    });
     await Promise.all(promises);
 }
 
@@ -886,7 +889,6 @@ function garbageCollectLogGroups(
     retentionInDays: number,
     region: AwsRegion,
     accountId: string,
-    s3Bucket: string,
     scheduleWork: (work: AwsGcWork) => void
 ) {
     const logGroupsMissingRetentionPolicy = logGroups.filter(
@@ -907,13 +909,12 @@ function garbageCollectLogGroups(
         .map(g => functionNameFromLogGroup(g.logGroupName!))
         .filter(defined);
 
-    deleteGarbageFunctions(region, accountId, s3Bucket, garbageFunctions, scheduleWork);
+    deleteGarbageFunctions(region, accountId, garbageFunctions, scheduleWork);
 }
 
 function deleteGarbageFunctions(
     region: AwsRegion,
     accountId: string,
-    s3Bucket: string,
     garbageFunctions: string[],
     scheduleWork: (work: AwsGcWork) => void
 ) {
@@ -924,8 +925,6 @@ function deleteGarbageFunctions(
             RoleName: "",
             RequestTopicArn: getSNSTopicArn(region, accountId, FunctionName),
             ResponseQueueUrl: getResponseQueueUrl(region, accountId, FunctionName),
-            s3Bucket,
-            s3Key: getS3Key(FunctionName),
             logGroupName: getLogGroupName(FunctionName)
         };
         scheduleWork({ type: "DeleteResources", resources });
@@ -934,15 +933,20 @@ function deleteGarbageFunctions(
 
 export async function awsPacker(
     functionModule: string,
+    dir: string,
     options: CommonOptions,
     wrapperOptions: WrapperOptions
 ): Promise<PackerResult> {
     return packer(
+        dir,
         awsTrampoline,
         functionModule,
         {
             ...options,
-            webpackOptions: { externals: "aws-sdk", ...options.webpackOptions }
+            webpackOptions: {
+                externals: new RegExp("^aws-sdk/?"),
+                ...options.webpackOptions
+            }
         },
         wrapperOptions
     );
@@ -1030,7 +1034,7 @@ function addSnsInvokePermissionsToFunction(
     RequestTopicArn: string,
     lambda: aws.Lambda
 ) {
-    lambda
+    return lambda
         .addPermission({
             FunctionName,
             Action: "lambda:InvokeFunction",
@@ -1256,7 +1260,6 @@ export const AwsImpl: CloudFunctionImpl<AwsOptions, AwsState> = {
     costEstimate,
     logUrl,
     invoke,
-    publish,
     poll,
     responseQueueId
 };

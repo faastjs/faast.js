@@ -62,8 +62,6 @@ export function sendResponseQueueMessage(
 ) {
     const kind = { [KIND_ATTR]: message.kind };
     switch (message.kind) {
-        case "stopqueue":
-            return publishSQS(sqs, QueueUrl, "{}", kind);
         case "functionstarted":
             return publishSQS(sqs, QueueUrl, "{}", {
                 ...kind,
@@ -211,8 +209,6 @@ function processIncomingQueueMessage(m: aws.SQS.Message): ReceivableMessage | vo
                 return;
             }
             return { kind, callId };
-        case "stopqueue":
-            return { kind };
         case "cpumetrics":
             return JSON.parse(m.Body!);
     }

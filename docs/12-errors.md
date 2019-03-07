@@ -92,4 +92,146 @@ google-https-package
 
 This can be caused by having the wrong test/fixtures/package.json. In particular, `googleapis` should be a dependency because adding it makes webpack skip googleapis and leaves it as an external, so the package size is much smaller.
 
-XXX Question: is googleapis included by default?
+## Unhandled rejection error
+
+This was a mysterious one:
+
+```
+  Unhandled rejection in build/test/package.test.js
+
+  /Users/achou/Code/faast.js/node_modules/aws-sdk/lib/protocol/json.js:51
+
+  ResourceNotFoundException: Function not found: arn:aws:lambda:us-west-2:343675226624:function:faast-9d77c20a-872f-4b7b-ae9b-13d81c0a2163
+
+  Object.extractError (node_modules/aws-sdk/lib/protocol/json.js:51:27)
+  Request.extractError (node_modules/aws-sdk/lib/protocol/rest_json.js:52:8)
+  Request.callListeners (node_modules/aws-sdk/lib/sequential_executor.js:106:20)
+  Request.emit (node_modules/aws-sdk/lib/sequential_executor.js:78:10)
+  Request.emit (node_modules/aws-sdk/lib/request.js:683:14)
+  Request.transition (node_modules/aws-sdk/lib/request.js:22:10)
+  AcceptorStateMachine.runTo (node_modules/aws-sdk/lib/state_machine.js:14:12)
+  node_modules/aws-sdk/lib/state_machine.js:26:10
+  Request.<anonymous> (node_modules/aws-sdk/lib/request.js:38:9)
+  Request.<anonymous> (node_modules/aws-sdk/lib/request.js:685:12)
+```
+
+The root cause turned out to be this function:
+
+```typescript
+function addSnsInvokePermissionsToFunction(
+ FunctionName: string,
+ RequestTopicArn: string,
+ lambda: aws.Lambda
+) {
+ // Missing "return" on the following line
+ lambda
+  .addPermission({
+   FunctionName,
+   Action: "lambda:InvokeFunction",
+   Principal: "sns.amazonaws.com",
+   StatementId: `${FunctionName}-Invoke`,
+   SourceArn: RequestTopicArn
+  })
+  .promise();
+}
+```
+
+The function issued a request but did not return the promise, which meant that
+the function initialization promise (which includes the return value of this
+promise) returned before the addPermission request was complete. In the test
+case above, there is no execution and a faast function is created and then
+cleaned up immediately. The lambda function is therefore deleted before the
+addPermission can succeed. It was difficult to debug because the stack trace
+only went up to a node timer, not the originating call here.
+
+Ultimately it was found through code review. It could probably be found by
+adding a promise return type to this function or by type checking that `await`
+doesn't happen on non-promises.
+
+## Layer version difference in aws package test
+
+Error message:
+
+```
+  package › remote aws package dependencies with lambda layer caching
+
+  /Users/achou/Code/faast.js/test/package.test.ts:50
+
+   49:         t.not(cloudFunc.state.resources.layer, undefined);
+   50:         t.deepEqual(cloudFunc.state.resources.layer, cloudFunc2.state.resources.layer);
+   51:         await cloudFunc2.cleanup();
+
+  Difference:
+
+    {
+      LayerName: 'faast-5aac4dc1700793c5552ef4df2d705616ff8f63a42e985aa89d67c78c15f3a61e',
+  -   LayerVersionArn: 'arn:aws:lambda:us-west-2:343675226624:layer:faast-5aac4dc1700793c5552ef4df2d705616ff8f63a42e985aa89d67c78c15f3a61e:41',
+  +   LayerVersionArn: 'arn:aws:lambda:us-west-2:343675226624:layer:faast-5aac4dc1700793c5552ef4df2d705616ff8f63a42e985aa89d67c78c15f3a61e:42',
+  -   Version: 41,
+  +   Version: 42,
+    }
+```
+
+This was caused by a bug in the packer where it destructively modified the
+`packageJson` value. A secondary bug was using a `packageJson` that was the same
+used in other tests. The fixed code generates a unique `packageJson`
+specifically for this test, with a unique uuid as part of the name to ensure it
+never collides with another test. Also ensure that `packageJson` is readonly in
+the packer.
+
+The fix was also wrong in using Object.create() to create a new object with the
+original `packageJson` as a prototype. This resulted in JSON.stringify not
+working on it... the fix was to use `Object.assign`.
+
+## Layer test interference
+
+Tests need to be designed to be independent for execution with Ava, and this can
+be tricky in some cases.
+
+The following error occurred:
+
+```
+aws-gc › remote aws garbage collector works for packageJson (lambda layers)
+ /codebuild/output/src028605080/src/github.com/acchou/faast.js/test/aws-gc.test.ts:210
+ 209: }
+ 210: t.truthy(layerDeletionRecord);
+ 211: }
+ Value is not truthy:
+ undefined
+ layerDeletionRecord
+ => undefined
+```
+
+In addition there was this console message earlier in the test:
+
+```
+AWS garbage collection test failure: Could not find deletion record for layer { LayerName: 'faast-c4e27de2-b6a1-4c8a-9899-69c454a12e74',
+ LayerArn:
+ 'arn:aws:lambda:us-west-2:547696317263:layer:faast-c4e27de2-b6a1-4c8a-9899-69c454a12e74',
+ LatestMatchingVersion:
+ { LayerVersionArn:
+ 'arn:aws:lambda:us-west-2:547696317263:layer:faast-c4e27de2-b6a1-4c8a-9899-69c454a12e74:1',
+ Version: 1,
+ Description:
+ 'faast packageJson layer with LayerName faast-c4e27de2-b6a1-4c8a-9899-69c454a12e74',
+ CreatedDate: '2019-03-07T14:50:53.996+0000',
+ CompatibleRuntimes: [ 'nodejs' ],
+ LicenseInfo: null } }, version { LayerVersionArn:
+ 'arn:aws:lambda:us-west-2:547696317263:layer:faast-c4e27de2-b6a1-4c8a-9899-69c454a12e74:1',
+ Version: 1,
+ Description:
+ 'faast packageJson layer with LayerName faast-c4e27de2-b6a1-4c8a-9899-69c454a12e74',
+ CreatedDate: '2019-03-07T14:50:53.996+0000',
+ CompatibleRuntimes: [ 'nodejs' ],
+ LicenseInfo: null }
+```
+
+The root cause was that the aws-gc lambda layers test was incorrectly looking at
+_all_ layer resources to determine if they had been caught by the garbage
+collector. But this is incorrect; the principle of the test is to check that the
+resources created _only_ by the prior faast call in the test has its resources
+recorded as garbage collected. By enumerating all cloud resources, we detected
+layers created during the parallel execution of the other tests, which has some
+tests which delete layers on their own, which are created _after_ garbage
+collection is done. This causes the test to fail, claiming gc was missing a
+resource.

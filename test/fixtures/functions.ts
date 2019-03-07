@@ -110,6 +110,16 @@ export function processExit() {
     process.exit();
 }
 
+class CustomError extends Error {
+    constructor(message: string, public custom: string) {
+        super(message);
+    }
+}
+
+export function customError() {
+    throw new CustomError("message", "custom");
+}
+
 export async function allocate(bytes: number) {
     const array = new Array(bytes / 8);
     const elems = array.length;

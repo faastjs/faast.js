@@ -18,7 +18,10 @@ export {
     Promisified,
     PromisifiedFunction,
     Provider,
-    providers
+    providers,
+    AwsLambda,
+    GoogleCloudFunction,
+    LocalFunction
 } from "./src/faast";
 export { AwsOptions, AwsRegion } from "./src/aws/aws-faast";
 export { GoogleOptions } from "./src/google/google-faast";

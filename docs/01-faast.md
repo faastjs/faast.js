@@ -99,3 +99,18 @@ When errors are thrown by faast.js functions, log URLs may be appended to the er
 In addition to these options, each cloud provider has cloud-specific options. See [aws](./04-aws-lambda#Options), [google](./05-google-cloud-functions#Options), or [local](./06-local#Options) for details.
 
 ## Bundling, dependencies, and package.json
+
+Providers may have code size limits. For AWS, the code size limit is 50MB when
+uploaded directly. If you have a large directory, consider creating a
+[Lambda Layer](https://us-west-2.console.aws.amazon.com/lambda/home?#/layers)
+and add it to [AwsOptions.awsLambdaOptions](api/faastjs.awsoptions.awslambdaoptions.md) under the `Layers` property.
+This increases the maximum size to 250MB.
+
+Faast.js automatically creates layers for when `packageJson` is used.
+
+Up to 500MB may also be put into temp space. This would need to be manually uploaded to S3 and
+
+## FAAST_PACKAGE_DIR
+
+Set this environment variable to a directory and faast.js will place the code
+bundle zip files it creates for each function in the directory.

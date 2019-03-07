@@ -2,11 +2,14 @@
 declare const awsConfigurations: CostAnalyzerConfiguration[];
 
 // @public
+declare class AwsLambda<M extends object = object> extends CloudFunction<M, AwsOptions, AwsState> {
+}
+
+// @public
 interface AwsOptions extends CommonOptions {
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
-    CacheBucket?: string;
     // @internal (undocumented)
-    gcWorker?: (services: AwsServices, work: AwsGcWork) => Promise<void>;
+    gcWorker?: (work: AwsGcWork, services: AwsServices) => Promise<void>;
     region?: AwsRegion;
     RoleName?: string;
 }
@@ -16,6 +19,7 @@ declare type AwsRegion = "us-east-1" | "us-east-2" | "us-west-1" | "us-west-2" |
 
 // @public
 interface CleanupOptions {
+    deleteCaches?: boolean;
     deleteResources?: boolean;
 }
 
@@ -149,10 +153,11 @@ declare function faast<M extends object>(provider: "local", fmodule: M, modulePa
 // @public
 declare function faast<M extends object, S>(provider: Provider, fmodule: M, modulePath: string, options?: CommonOptions): Promise<CloudFunction<M, CommonOptions, S>>;
 
-// @public (undocumented)
+// @public
 declare class FaastError extends Error {
-    // (undocumented)
+    // @internal (undocumented)
     constructor(errObj: any, logUrl?: string);
+    [key: string]: any;
     logUrl?: string;
 }
 
@@ -190,13 +195,17 @@ declare class FunctionStatsEvent {
     toString(): string;
 }
 
+// @public
+declare class GoogleCloudFunction<M extends object = object> extends CloudFunction<M, GoogleOptions, GoogleState> {
+}
+
 // @public (undocumented)
 declare const googleConfigurations: CostAnalyzerConfiguration[];
 
 // @public
 interface GoogleOptions extends CommonOptions {
     // @internal (undocumented)
-    gcWorker?: (services: GoogleServices, resources: GoogleResources) => Promise<void>;
+    gcWorker?: (resources: GoogleResources, services: GoogleServices) => Promise<void>;
     googleCloudFunctionOptions?: cloudfunctions_v1.Schema$CloudFunction;
     region?: string;
 }
@@ -215,6 +224,10 @@ interface Limits {
     rate?: number;
     // (undocumented)
     retry?: number | ((err: any, retries: number) => boolean);
+}
+
+// @public
+declare class LocalFunction<M extends object = object> extends CloudFunction<M, LocalOptions, LocalState> {
 }
 
 // @public
@@ -251,12 +264,12 @@ declare type Metrics<K extends string> = {
 // @internal (undocumented)
 declare const _parentModule: NodeModule | null;
 
-// @public (undocumented)
+// @public
 declare type Promisified<M> = {
     [K in keyof M]: M[K] extends (...args: infer A) => infer R ? PromisifiedFunction<A, R> : never;
 };
 
-// @public (undocumented)
+// @public
 declare type PromisifiedFunction<A extends any[], R> = (...args: A) => Promise<Unpacked<R>>;
 
 // @public

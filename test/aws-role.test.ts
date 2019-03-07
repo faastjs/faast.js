@@ -5,6 +5,10 @@ import * as aws from "aws-sdk";
 import { deleteRole } from "../src/aws/aws-faast";
 import * as uuidv4 from "uuid/v4";
 
+/**
+ * The policies tested here should match those in the documentation at
+ * {@link AwsOptions.RoleName}.
+ */
 test("remote aws custom role", async t => {
     t.plan(1);
     const iam = new aws.IAM();
@@ -38,11 +42,6 @@ test("remote aws custom role", async t => {
                     Effect: "Allow",
                     Action: ["logs:*"],
                     Resource: "arn:aws:logs:*:*:log-group:faast-*"
-                },
-                {
-                    Effect: "Allow",
-                    Action: ["s3:*"],
-                    Resource: "arn:aws:s3:::faast-*"
                 },
                 {
                     Effect: "Allow",

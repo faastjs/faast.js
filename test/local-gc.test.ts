@@ -19,7 +19,7 @@ test("local garbage collector works for functions that are called", async t => {
         retentionInDays: 0
     });
     await func2.cleanup();
-    t.truthy(gcRecorder.recordings.find(r => r.args[0] === func.state.tempDir));
+    t.truthy(gcRecorder.recordings.find(({ args: [dir] }) => dir === func.state.tempDir));
     await func.cleanup();
 });
 
@@ -35,6 +35,6 @@ test("local garbage collector works for functions that are never called", async 
     });
 
     await func2.cleanup();
-    t.truthy(gcRecorder.recordings.find(r => r.args[0] === func.state.tempDir));
+    t.truthy(gcRecorder.recordings.find(({ args: [dir] }) => dir === func.state.tempDir));
     await func.cleanup();
 });
