@@ -1,0 +1,12 @@
+{
+    "name": "test",
+    "version": "0.0.2",
+    "description": "unique package.json for test 'remote aws package dependencies with lambda layer caching'",
+    "repository": "none",
+    "license": "ISC",
+    "dependencies": {
+        "fs-extra": "^7.0.1",
+        "tslib": "^1.9.1"
+    },
+    "devDependencies": {}
+}

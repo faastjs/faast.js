@@ -37,13 +37,13 @@ for (const provider of providers) {
 test("remote aws package dependencies with lambda layer caching", async t => {
     const cloudFunc = await faast("aws", funcs, "./fixtures/functionsPackage", {
         gc: false,
-        packageJson: "test/fixtures/package.json"
+        packageJson: "test/fixtures/package-2.json"
     });
 
     try {
         const cloudFunc2 = await faast("aws", funcs, "./fixtures/functionsPackage", {
             gc: false,
-            packageJson: "test/fixtures/package.json"
+            packageJson: "test/fixtures/package-2.json"
         });
 
         t.not(cloudFunc.state.resources.layer, undefined);

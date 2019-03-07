@@ -147,3 +147,35 @@ only went up to a node timer, not the originating call here.
 Ultimately it was found through code review. It could probably be found by
 adding a promise return type to this function or by type checking that `await`
 doesn't happen on non-promises.
+
+## Layer version difference in aws package test
+
+Error message:
+
+```
+  package › remote aws package dependencies with lambda layer caching
+
+  /Users/achou/Code/faast.js/test/package.test.ts:50
+
+   49:         t.not(cloudFunc.state.resources.layer, undefined);
+   50:         t.deepEqual(cloudFunc.state.resources.layer, cloudFunc2.state.resources.layer);
+   51:         await cloudFunc2.cleanup();
+
+  Difference:
+
+    {
+      LayerName: 'faast-5aac4dc1700793c5552ef4df2d705616ff8f63a42e985aa89d67c78c15f3a61e',
+  -   LayerVersionArn: 'arn:aws:lambda:us-west-2:343675226624:layer:faast-5aac4dc1700793c5552ef4df2d705616ff8f63a42e985aa89d67c78c15f3a61e:41',
+  +   LayerVersionArn: 'arn:aws:lambda:us-west-2:343675226624:layer:faast-5aac4dc1700793c5552ef4df2d705616ff8f63a42e985aa89d67c78c15f3a61e:42',
+  -   Version: 41,
+  +   Version: 42,
+    }
+```
+
+This was a race condition in the testsuite. Need to make sure that the
+`packageJson` is not the same as other tests, which could jump in and create a
+layer in-between the two faast invocations in this test, making the cached layer
+version different. Solved by providing a different, unique `package-2.json` test
+fixture specifically for this test. The contents of this file need to be
+different, not just the name, because `packageJson` caching is done based on the
+hash of the packageJson argument's contents.
