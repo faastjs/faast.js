@@ -572,11 +572,10 @@ export class CloudFunction<
         this._cleanupHooks.add(deferred);
         const promise = fn(deferred.promise);
         try {
-            await promise;
+            return await promise;
         } finally {
             this._cleanupHooks.delete(deferred);
         }
-        return promise;
     }
 
     private wrapFunctionWithResponse<A extends any[], R>(
