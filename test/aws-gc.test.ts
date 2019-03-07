@@ -3,6 +3,7 @@ import { faast, log } from "../index";
 import { AwsGcWork, AwsServices } from "../src/aws/aws-faast";
 import * as functions from "./fixtures/functions";
 import { contains, quietly, record, sleep } from "./fixtures/util";
+import * as uuid from "uuid/v4";
 
 test.serial(
     "remote aws garbage collector works for functions that are called",
@@ -151,7 +152,12 @@ test.serial(
 
         const func = await faast("aws", functions, "./fixtures/functions", {
             mode: "queue",
-            packageJson: "test/fixtures/package.json"
+            packageJson: {
+                name: uuid(),
+                dependencies: {
+                    tslib: "^1.9.1"
+                }
+            }
         });
         try {
             await func.cleanup({ deleteResources: false });
