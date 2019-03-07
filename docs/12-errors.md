@@ -172,10 +172,9 @@ Error message:
     }
 ```
 
-This was a race condition in the testsuite. Need to make sure that the
-`packageJson` is not the same as other tests, which could jump in and create a
-layer in-between the two faast invocations in this test, making the cached layer
-version different. Solved by providing a different, unique `package-2.json` test
-fixture specifically for this test. The contents of this file need to be
-different, not just the name, because `packageJson` caching is done based on the
-hash of the packageJson argument's contents.
+This was caused by a bug in the packer where it destructively modified the
+`packageJson` value. A secondary bug was using a `packageJson` that was the same
+used in other tests. The fixed code generates a unique `packageJson`
+specifically for this test, with a unique uuid as part of the name to ensure it
+never collides with another test. Also ensure that `packageJson` is readonly in
+the packer.

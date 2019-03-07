@@ -2,6 +2,7 @@ import test, { ExecutionContext } from "ava";
 import { CommonOptions, faast, Provider, providers } from "../index";
 import * as funcs from "./fixtures/functionsPackage";
 import { configs, title } from "./fixtures/util";
+import uuid = require("uuid/v4");
 
 async function testPackage(
     t: ExecutionContext,
@@ -35,15 +36,21 @@ for (const provider of providers) {
 }
 
 test("remote aws package dependencies with lambda layer caching", async t => {
+    const packageJson = {
+        name: uuid(),
+        dependencies: {
+            tslib: "^1.9.1"
+        }
+    };
     const cloudFunc = await faast("aws", funcs, "./fixtures/functionsPackage", {
         gc: false,
-        packageJson: "test/fixtures/package-2.json"
+        packageJson
     });
 
     try {
         const cloudFunc2 = await faast("aws", funcs, "./fixtures/functionsPackage", {
             gc: false,
-            packageJson: "test/fixtures/package-2.json"
+            packageJson
         });
 
         t.not(cloudFunc.state.resources.layer, undefined);
