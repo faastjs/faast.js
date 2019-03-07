@@ -242,7 +242,7 @@ export async function initialize(
     const services = await initializeGoogleServices();
     const project = await google.auth.getProjectId();
     const { cloudFunctions, pubsub } = services;
-    const { region, childProcess, timeout } = options;
+    const { region, timeout } = options;
 
     log.info(`Nonce: ${nonce}`);
     const location = `projects/${project}/locations/${region}`;

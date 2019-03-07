@@ -69,24 +69,15 @@ const testPacker: Macro<[Provider, Packer, PackageConfiguration, number]> = asyn
 testPacker.title = (_title = "", provider, _packer, options) =>
     `packer ${provider}-${options.name}`;
 
-function pkg(config: PackageConfiguration) {
-    const name = config.name + "-package";
-    return { ...config, name, packageJson: "test/fixtures/package.json" };
-}
-
 async function addedFile(t: ExecutionContext, root: string) {
     t.true(await pathExists(join(root, "file.txt")));
 }
 
 const configs: PackageConfiguration[] = [
-    { name: "https", mode: "https", childProcess: false },
-    { name: "https-childprocess", mode: "https", childProcess: true },
-    { name: "queue", mode: "queue", childProcess: false },
-    { name: "queue-childprocess", mode: "queue", childProcess: true },
-    pkg({ name: "https", mode: "https", childProcess: false }),
-    pkg({ name: "https-childprocess", mode: "https", childProcess: true }),
-    pkg({ name: "queue", mode: "queue", childProcess: false }),
-    pkg({ name: "queue-childprocess", mode: "queue", childProcess: true }),
+    { name: "https", mode: "https" },
+    { name: "queue", mode: "queue" },
+    { name: "https-package", mode: "https", packageJson: "test/fixtures/package.json" },
+    { name: "queue-package", mode: "queue", packageJson: "test/fixtures/package.json" },
     { name: "addDirectory", addDirectory: "test/fixtures/dir", check: addedFile },
     { name: "addZipFile", addZipFile: "test/fixtures/file.txt.zip", check: addedFile },
     {
