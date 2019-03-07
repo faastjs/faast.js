@@ -573,7 +573,6 @@ export class CloudFunction<
         const promise = fn(deferred.promise);
         try {
             await promise;
-        } catch (err) {
         } finally {
             this._cleanupHooks.delete(deferred);
         }
