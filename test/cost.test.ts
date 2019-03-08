@@ -43,7 +43,7 @@ async function testCostAnalyzer(
         t.is(p.counters.completed, repetitions);
         t.is(p.counters.errors, 0);
         t.true(p.stats.estimatedBilledTime.mean > 0);
-        t.true(p.costEstimate.total() > 0);
+        t.true(p.total() > 0);
     }
 
     const parsed = ppp.parse(toCSV(profile), {
@@ -86,13 +86,13 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
         const { estimatedBilledTime } = cloudFunc.stats.aggregate;
         t.is(
             (estimatedBilledTime.mean * estimatedBilledTime.samples) / 1000,
-            costs.metrics.find(m => m.name === "functionCallDuration")!.measured
+            costs.costMetrics.find(m => m.name === "functionCallDuration")!.measured
         );
 
-        t.true(costs.metrics.length > 1);
+        t.true(costs.costMetrics.length > 1);
         t.true(costs.find("functionCallRequests")!.measured === 1);
         let hasPricedMetric = false;
-        for (const metric of costs.metrics) {
+        for (const metric of costs.costMetrics) {
             if (!metric.informationalOnly) {
                 t.true(metric.cost() > 0);
                 t.true(metric.measured > 0);

@@ -819,7 +819,7 @@ async function costEstimate(
     counters: FunctionCounters,
     stats: FunctionStats
 ): Promise<CostBreakdown> {
-    const costs = new CostBreakdown();
+    const costs = new CostBreakdown("google", state.options, stats, counters);
     const { memorySize = defaults.memorySize } = state.options;
     const provisionableSizes = keys(gcfProvisonableMemoryTable)
         .map(n => Number(n))

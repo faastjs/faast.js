@@ -17,7 +17,8 @@ import {
     FunctionCounters,
     FunctionStats,
     Invocation,
-    UUID
+    UUID,
+    Provider
 } from "./provider";
 import {
     assertNever,
@@ -450,7 +451,7 @@ export class CloudFunction<
     O extends CommonOptions = CommonOptions,
     S = any
 > {
-    cloudName = this.impl.name;
+    provider = this.impl.name;
     functions: Promisified<M>;
     /** @internal */
     counters = new FunctionCountersMap();
@@ -745,10 +746,10 @@ export class CloudFunction<
             }
             return estimate;
         } else {
-            const costs = new CostBreakdown();
             const billedTimeStats = this.stats.aggregate.estimatedBilledTime;
             const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples || 0;
 
+            const costMetrics: CostMetric[] = [];
             const functionCallDuration = new CostMetric({
                 name: "functionCallDuration",
                 pricing: 0,
@@ -756,7 +757,7 @@ export class CloudFunction<
                 measured: seconds,
                 informationalOnly: true
             });
-            costs.push(functionCallDuration);
+            costMetrics.push(functionCallDuration);
 
             const functionCallRequests = new CostMetric({
                 name: "functionCallRequests",
@@ -765,8 +766,14 @@ export class CloudFunction<
                 unit: "request",
                 informationalOnly: true
             });
-            costs.push(functionCallRequests);
-            return costs;
+            costMetrics.push(functionCallRequests);
+            return new CostBreakdown(
+                this.provider,
+                this.options,
+                this.stats.aggregate,
+                this.counters.aggregate,
+                costMetrics
+            );
         }
     }
 
@@ -866,7 +873,7 @@ export class CloudFunction<
 }
 
 /**
- * A CloudFunction type suitable to hold the return value of `faast("aws", ...)`
+ * The return type of `faast("aws", ...)`. See {@link CloudFunction}.
  * @public
  */
 export class AwsLambda<M extends object = object> extends CloudFunction<
@@ -875,7 +882,7 @@ export class AwsLambda<M extends object = object> extends CloudFunction<
     AwsState
 > {}
 /**
- * A CloudFunction type suitable to hold the return value of `faast("google", ...)`
+ * The return type of `faast("google", ...)`. See {@link CloudFunction}.
  * @public
  */
 export class GoogleCloudFunction<M extends object = object> extends CloudFunction<
@@ -885,7 +892,7 @@ export class GoogleCloudFunction<M extends object = object> extends CloudFunctio
 > {}
 
 /**
- * A CloudFunction type suitable to hold the return value of `faast("local", ...)`
+ * The return type of `faast("local", ...)`. See {@link CloudFunction}.
  * @public
  */
 export class LocalFunction<M extends object = object> extends CloudFunction<
@@ -893,12 +900,6 @@ export class LocalFunction<M extends object = object> extends CloudFunction<
     LocalOptions,
     LocalState
 > {}
-
-/**
- * The type of all supported cloud providers.
- * @public
- */
-export type Provider = "aws" | "google" | "local";
 
 /**
  * The main entry point for faast with AWS provider. {@link faast:COMMON}

@@ -1,6 +1,5 @@
 export {
     awsConfigurations,
-    CostAnalysisProfile,
     CostAnalyzerConfiguration,
     CostBreakdown,
     CostMetric,
@@ -17,7 +16,6 @@ export {
     FunctionStatsEvent,
     Promisified,
     PromisifiedFunction,
-    Provider,
     providers,
     AwsLambda,
     GoogleCloudFunction,
@@ -31,7 +29,8 @@ export {
     CleanupOptions,
     CommonOptions,
     FunctionCounters,
-    FunctionStats
+    FunctionStats,
+    Provider
 } from "./src/provider";
 export { Statistics } from "./src/shared";
 export { throttle, Limits } from "./src/throttle";

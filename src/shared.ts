@@ -26,7 +26,7 @@ export class Statistics {
     /**
      * Incrementally update statistics with the observation of a new value.
      */
-    update(value: number) {
+    update(value: number | undefined) {
         if (value === undefined) {
             return;
         }

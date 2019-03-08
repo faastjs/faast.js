@@ -354,10 +354,10 @@ export function cacheFn<A extends any[], R>(
  * @public
  */
 export function throttle<A extends any[], R>(
-    { concurrency, retry: retryN, rate, burst, memoize, cache }: Limits,
+    { concurrency, retry, rate, burst, memoize, cache }: Limits,
     fn: PromiseFn<A, R>
 ) {
-    const funnel = new Funnel<R>(concurrency, retryN);
+    const funnel = new Funnel<R>(concurrency, retry);
 
     let conditionedFunc: PromiseFn<A, R>;
 

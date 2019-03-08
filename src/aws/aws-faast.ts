@@ -1180,10 +1180,9 @@ export async function costEstimate(
     counters: FunctionCounters,
     statistics: FunctionStats
 ): Promise<CostBreakdown> {
-    const costs = new CostBreakdown();
     const { region } = state.resources;
     const prices = await requestAwsPrices(state.services.pricing, region);
-
+    const costMetrics: CostMetric[] = [];
     const { memorySize = defaults.memorySize } = state.options;
     const billedTimeStats = statistics.estimatedBilledTime;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples || 0;
@@ -1199,7 +1198,7 @@ export async function costEstimate(
             prices.lambdaPerGbSecond * provisionedGb
         ).toFixed(8)}/second)`
     });
-    costs.push(functionCallDuration);
+    costMetrics.push(functionCallDuration);
 
     const functionCallRequests = new CostMetric({
         name: "functionCallRequests",
@@ -1208,7 +1207,7 @@ export async function costEstimate(
         unit: "request",
         comment: "https://aws.amazon.com/lambda/pricing"
     });
-    costs.push(functionCallRequests);
+    costMetrics.push(functionCallRequests);
 
     const { metrics } = state;
     const outboundDataTransfer = new CostMetric({
@@ -1218,7 +1217,7 @@ export async function costEstimate(
         unit: "GB",
         comment: "https://aws.amazon.com/ec2/pricing/on-demand/#Data_Transfer"
     });
-    costs.push(outboundDataTransfer);
+    costMetrics.push(outboundDataTransfer);
 
     const sqs: CostMetric = new CostMetric({
         name: "sqs",
@@ -1227,7 +1226,7 @@ export async function costEstimate(
         unit: "request",
         comment: "https://aws.amazon.com/sqs/pricing"
     });
-    costs.push(sqs);
+    costMetrics.push(sqs);
 
     const sns: CostMetric = new CostMetric({
         name: "sns",
@@ -1236,7 +1235,7 @@ export async function costEstimate(
         unit: "request",
         comment: "https://aws.amazon.com/sns/pricing"
     });
-    costs.push(sns);
+    costMetrics.push(sns);
 
     const logIngestion: CostMetric = new CostMetric({
         name: "logIngestion",
@@ -1247,9 +1246,9 @@ export async function costEstimate(
             "https://aws.amazon.com/cloudwatch/pricing/ - Log ingestion costs not currently included.",
         informationalOnly: true
     });
-    costs.push(logIngestion);
+    costMetrics.push(logIngestion);
 
-    return costs;
+    return new CostBreakdown("aws", state.options, statistics, counters, costMetrics);
 }
 
 export const AwsImpl: CloudFunctionImpl<AwsOptions, AwsState> = {

@@ -7,6 +7,12 @@ export const CALLID_ATTR = "__faast_callid__";
 export const KIND_ATTR = "__faast_kind__";
 
 /**
+ * The type of all supported cloud providers.
+ * @public
+ */
+export type Provider = "aws" | "google" | "local";
+
+/**
  * Options common across all faast.js providers.
  * @public
  */
@@ -576,7 +582,7 @@ export type Kind = Message["kind"];
 export type UUID = string;
 
 export interface CloudFunctionImpl<O extends CommonOptions, S> {
-    name: string;
+    name: Provider;
     defaults: Required<O>;
 
     initialize(

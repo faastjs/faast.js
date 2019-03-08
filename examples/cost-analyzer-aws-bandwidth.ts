@@ -4,7 +4,8 @@ import {
     estimateWorkloadCost,
     awsConfigurations,
     toCSV,
-    Statistics
+    Statistics,
+    Metrics
 } from "../index";
 import * as m from "./map-buckets-module";
 import { listAllObjects, f1, GB, f2, assertNever } from "./util";
@@ -15,7 +16,7 @@ const writeFile = promisify(fsWriteFile);
 
 type FilterFn = (s: string) => boolean;
 
-interface Metrics {
+interface BandwidthMetrics extends Metrics {
     bytesGB: number;
     bandwidthMbps: number;
     // aggregateBandwidthMbps: number;
@@ -43,7 +44,7 @@ const workload = (Bucket: string, filter: FilterFn) => async (
         bytes += result.bytes;
         bandwidth.update(result.bandwidthMbps);
     }
-    const metrics: Metrics = {
+    const metrics: BandwidthMetrics = {
         bytesGB: bytes / GB,
         bandwidthMbps: bandwidth.mean
         // aggregateBandwidthMbps: ((bytes / MB) * 8) / (elapsed / 1000)
@@ -52,7 +53,7 @@ const workload = (Bucket: string, filter: FilterFn) => async (
 };
 
 const makeFormatter = ({ csv = false }) => {
-    return function format(key: keyof Metrics, value: number) {
+    return function format(key: keyof BandwidthMetrics, value: number) {
         if (value === undefined) {
             return "N/A";
         }
@@ -63,7 +64,7 @@ const makeFormatter = ({ csv = false }) => {
         } else if (key === "aggregateBandwidthMbps") {
             return csv ? f1(value) : `${f1(value)}Mbps-effective`;
         }
-        return assertNever(key);
+        throw new Error(`Bad key in format: '${key}'`);
     };
 };
 
