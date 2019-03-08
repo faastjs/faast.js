@@ -10,7 +10,7 @@ import {
 } from "googleapis";
 import * as util from "util";
 import { caches } from "../cache";
-import { CostBreakdown, CostMetric } from "../cost";
+import { CostSnapshot, CostMetric } from "../cost";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import {
@@ -818,8 +818,8 @@ async function costEstimate(
     state: GoogleState,
     counters: FunctionCounters,
     stats: FunctionStats
-): Promise<CostBreakdown> {
-    const costs = new CostBreakdown("google", state.options, stats, counters);
+): Promise<CostSnapshot> {
+    const costs = new CostSnapshot("google", state.options, stats, counters);
     const { memorySize = defaults.memorySize } = state.options;
     const provisionableSizes = keys(gcfProvisonableMemoryTable)
         .map(n => Number(n))

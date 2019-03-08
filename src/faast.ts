@@ -4,7 +4,7 @@ import * as util from "util";
 import * as uuidv4 from "uuid/v4";
 import { _parentModule } from "../index";
 import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
-import { CostBreakdown, CostMetric } from "./cost";
+import { CostSnapshot, CostMetric } from "./cost";
 import { GoogleImpl, GoogleOptions, GoogleState } from "./google/google-faast";
 import { LocalImpl, LocalOptions, LocalState } from "./local/local-faast";
 import { inspectProvider, log } from "./log";
@@ -767,7 +767,7 @@ export class CloudFunction<
                 informationalOnly: true
             });
             costMetrics.push(functionCallRequests);
-            return new CostBreakdown(
+            return new CostSnapshot(
                 this.provider,
                 this.options,
                 this.stats.aggregate,

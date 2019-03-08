@@ -5,7 +5,7 @@ import {
     awsConfigurations,
     toCSV,
     Statistics,
-    Metrics
+    CustomWorkloadMetrics
 } from "../index";
 import * as m from "./map-buckets-module";
 import { listAllObjects, f1, GB, f2, assertNever } from "./util";
@@ -16,7 +16,7 @@ const writeFile = promisify(fsWriteFile);
 
 type FilterFn = (s: string) => boolean;
 
-interface BandwidthMetrics extends Metrics {
+interface BandwidthMetrics extends CustomWorkloadMetrics {
     bytesGB: number;
     bandwidthMbps: number;
     // aggregateBandwidthMbps: number;

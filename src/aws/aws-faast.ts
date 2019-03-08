@@ -1,7 +1,7 @@
 import * as aws from "aws-sdk";
 import { createHash } from "crypto";
 import { caches } from "../cache";
-import { CostBreakdown, CostMetric } from "../cost";
+import { CostSnapshot, CostMetric } from "../cost";
 import { faast } from "../faast";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
@@ -1179,7 +1179,7 @@ export async function costEstimate(
     state: AwsState,
     counters: FunctionCounters,
     statistics: FunctionStats
-): Promise<CostBreakdown> {
+): Promise<CostSnapshot> {
     const { region } = state.resources;
     const prices = await requestAwsPrices(state.services.pricing, region);
     const costMetrics: CostMetric[] = [];
@@ -1248,7 +1248,7 @@ export async function costEstimate(
     });
     costMetrics.push(logIngestion);
 
-    return new CostBreakdown("aws", state.options, statistics, counters, costMetrics);
+    return new CostSnapshot("aws", state.options, statistics, counters, costMetrics);
 }
 
 export const AwsImpl: CloudFunctionImpl<AwsOptions, AwsState> = {

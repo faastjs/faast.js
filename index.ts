@@ -1,11 +1,11 @@
 export {
     awsConfigurations,
     CostAnalyzerConfiguration,
-    CostBreakdown,
+    CostSnapshot,
     CostMetric,
     estimateWorkloadCost,
     googleConfigurations,
-    Metrics,
+    CustomWorkloadMetrics,
     toCSV,
     Workload
 } from "./src/cost";

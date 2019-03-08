@@ -11,14 +11,14 @@ import { NonFunctionProperties } from "./types";
 /**
  * @public
  */
-export type Metrics = { [key: string]: number };
+export type CustomWorkloadMetrics = { [key: string]: number };
 
 /**
  * @public
  */
 export interface Workload<T extends object> {
-    work: (module: Promisified<T>) => Promise<Metrics | void>;
-    summarize?: (summaries: Array<Metrics>) => Metrics;
+    work: (module: Promisified<T>) => Promise<CustomWorkloadMetrics | void>;
+    summarize?: (summaries: CustomWorkloadMetrics[]) => CustomWorkloadMetrics;
     format?: (key: string, value: number) => string;
     silent?: boolean;
 }
@@ -79,7 +79,7 @@ export class CostMetric {
 /**
  * @public
  */
-export class CostBreakdown {
+export class CostSnapshot {
     constructor(
         readonly provider: string,
         readonly options: CommonOptions | AwsOptions | GoogleOptions,
@@ -87,7 +87,7 @@ export class CostBreakdown {
         readonly counters: FunctionCounters,
         readonly costMetrics: CostMetric[] = [],
         public repetitions: number = 1,
-        public extraMetrics: Metrics = {}
+        public extraMetrics: CustomWorkloadMetrics = {}
     ) {}
 
     total() {
@@ -155,26 +155,12 @@ export interface CostAnalyzerConfiguration {
     repetitionConcurrency: number;
 }
 
-export const AWSLambdaMemorySizes = (() => {
-    const rv = [];
-    for (let memorySize = 128; memorySize <= 3008; memorySize += 64) {
-        rv.push(memorySize);
-    }
-    return rv;
-})();
-
-export const GoogleCloudFunctionsMemorySizes = [128, 256, 512, 1024, 2048];
-
-export const CommonMemorySizes = GoogleCloudFunctionsMemorySizes.filter(size =>
-    AWSLambdaMemorySizes.find(asize => asize === size)
-);
-
 /**
  * @public
  */
 export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
     const rv: CostAnalyzerConfiguration[] = [];
-    for (const memorySize of AWSLambdaMemorySizes) {
+    for (let memorySize = 128; memorySize <= 3008; memorySize += 64) {
         rv.push({
             provider: "aws",
             repetitions: 10,
@@ -196,7 +182,7 @@ export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
  */
 export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
     const rv: CostAnalyzerConfiguration[] = [];
-    for (const memorySize of GoogleCloudFunctionsMemorySizes) {
+    for (let memorySize of [128, 256, 512, 1024, 2048]) {
         rv.push({
             provider: "google",
             repetitions: 10,
@@ -215,7 +201,7 @@ export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
 
 const ps = (n: number) => (n / 1000).toFixed(3);
 
-function summarizeMean(extraMetrics: Metrics[]) {
+function summarizeMean(extraMetrics: CustomWorkloadMetrics[]) {
     const stats: { [key: string]: Statistics } = {};
     extraMetrics.forEach(m =>
         keys(m).forEach(key => {
@@ -225,7 +211,7 @@ function summarizeMean(extraMetrics: Metrics[]) {
             stats[key].update(m[key]);
         })
     );
-    const result = {} as Metrics;
+    const result = {} as CustomWorkloadMetrics;
     keys(stats).forEach(key => {
         result[key] = stats[key].mean;
     });
@@ -237,15 +223,15 @@ async function estimate<T extends object>(
     fmodule: string,
     workload: Workload<T>,
     config: CostAnalyzerConfiguration
-): Promise<CostBreakdown> {
+): Promise<CostSnapshot> {
     const { provider, repetitions, options, repetitionConcurrency } = config;
     const cloudFunc = await faast(provider, mod, fmodule, options);
     const doWork = throttle({ concurrency: repetitionConcurrency }, workload.work);
-    const results: Promise<Metrics | void>[] = [];
+    const results: Promise<CustomWorkloadMetrics | void>[] = [];
     for (let i = 0; i < repetitions; i++) {
         results.push(doWork(cloudFunc.functions).catch(_ => {}));
     }
-    const rv = (await Promise.all(results)).filter(r => r) as Metrics[];
+    const rv = (await Promise.all(results)).filter(r => r) as CustomWorkloadMetrics[];
     await cloudFunc.cleanup();
     let summarize = workload.summarize || summarizeMean;
     const costEstimate = await cloudFunc.costEstimate();
@@ -265,7 +251,7 @@ export async function estimateWorkloadCost<T extends object>(
 ) {
     const scheduleEstimate = throttle<
         [T, string, Workload<T>, CostAnalyzerConfiguration],
-        CostBreakdown
+        CostSnapshot
     >(
         {
             concurrency: 8,
@@ -320,7 +306,7 @@ export async function estimateWorkloadCost<T extends object>(
  * @public
  */
 export function toCSV(
-    profile: Array<CostBreakdown>,
+    profile: Array<CostSnapshot>,
     format?: (key: string, value: number) => string
 ) {
     const allKeys = new Set<string>();

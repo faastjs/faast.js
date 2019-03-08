@@ -1,5 +1,5 @@
 import * as webpack from "webpack";
-import { CostBreakdown } from "./cost";
+import { CostSnapshot } from "./cost";
 import { Statistics } from "./shared";
 import { CpuMeasurement, FunctionReturn } from "./wrapper";
 
@@ -596,7 +596,7 @@ export interface CloudFunctionImpl<O extends CommonOptions, S> {
         state: S,
         counters: FunctionCounters,
         stats: FunctionStats
-    ) => Promise<CostBreakdown>;
+    ) => Promise<CostSnapshot>;
 
     cleanup(state: S, options: Required<CleanupOptions>): Promise<void>;
     logUrl(state: S): string;

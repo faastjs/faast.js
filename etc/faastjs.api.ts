@@ -29,8 +29,6 @@ declare class CloudFunction<M extends object, O extends CommonOptions = CommonOp
     constructor(impl: CloudFunctionImpl<O, S>, state: S, fmodule: M, modulePath: string, options: Required<CommonOptions>);
     // (undocumented)
     cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
-    // (undocumented)
-    cloudName: string;
     costEstimate(): Promise<CostBreakdown>;
     // @internal (undocumented)
     counters: FunctionCountersMap;
@@ -41,6 +39,8 @@ declare class CloudFunction<M extends object, O extends CommonOptions = CommonOp
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
     // (undocumented)
     readonly options: Required<CommonOptions>;
+    // (undocumented)
+    provider: Provider;
     // (undocumented)
     readonly state: S;
     // @internal (undocumented)
@@ -67,24 +67,6 @@ interface CommonOptions {
 }
 
 // @public (undocumented)
-interface CostAnalysisProfile<K extends string> {
-    // (undocumented)
-    config: CostAnalyzerConfiguration;
-    // (undocumented)
-    costEstimate: CostBreakdown;
-    // (undocumented)
-    counters: FunctionCounters;
-    // (undocumented)
-    metrics: Metrics<K>;
-    // (undocumented)
-    options: CommonOptions | AwsOptions | GoogleOptions;
-    // (undocumented)
-    provider: "aws" | "google";
-    // (undocumented)
-    stats: FunctionStats;
-}
-
-// @public (undocumented)
 interface CostAnalyzerConfiguration {
     // (undocumented)
     options: AwsOptions | GoogleOptions | CommonOptions;
@@ -99,13 +81,27 @@ interface CostAnalyzerConfiguration {
 // @public (undocumented)
 declare class CostBreakdown {
     // (undocumented)
+    constructor(provider: string, options: CommonOptions | AwsOptions | GoogleOptions, stats: FunctionStats, counters: FunctionCounters, costMetrics?: CostMetric[], repetitions?: number, extraMetrics?: Metrics);
+    // (undocumented)
+    readonly costMetrics: CostMetric[];
+    // (undocumented)
+    readonly counters: FunctionCounters;
+    // (undocumented)
     csv(): string;
+    // (undocumented)
+    extraMetrics: Metrics;
     // (undocumented)
     find(name: string): CostMetric | undefined;
     // (undocumented)
-    metrics: CostMetric[];
+    readonly options: CommonOptions | AwsOptions | GoogleOptions;
+    // (undocumented)
+    readonly provider: string;
     // (undocumented)
     push(metric: CostMetric): void;
+    // (undocumented)
+    repetitions: number;
+    // (undocumented)
+    readonly stats: FunctionStats;
     // (undocumented)
     toString(): string;
     // (undocumented)
@@ -139,7 +135,7 @@ declare class CostMetric {
 }
 
 // @public (undocumented)
-declare function estimateWorkloadCost<T extends object, K extends string>(mod: T, fmodule: string, configurations: CostAnalyzerConfiguration[] | undefined, workload: Workload<T, K>): Promise<CostAnalysisProfile<K>[]>;
+declare function estimateWorkloadCost<T extends object>(mod: T, fmodule: string, configurations: CostAnalyzerConfiguration[] | undefined, workload: Workload<T>): Promise<CostBreakdown[]>;
 
 // @public
 declare function faast<M extends object>(provider: "aws", fmodule: M, modulePath: string, awsOptions?: AwsOptions): Promise<CloudFunction<M, AwsOptions, AwsState>>;
@@ -257,8 +253,9 @@ declare const log: {
 };
 
 // @public (undocumented)
-declare type Metrics<K extends string> = {
-    [key in K]: number;
+declare type Metrics = {
+    // (undocumented)
+    [key: string]: number;
 };
 
 // @internal (undocumented)
@@ -289,29 +286,29 @@ declare class Statistics {
     samples: number;
     stdev: number;
     toString(): string;
-    update(value: number): void;
+    update(value: number | undefined): void;
     variance: number;
 }
 
 // @public
-declare function throttle<A extends any[], R>({ concurrency, retry: retryN, rate, burst, memoize, cache }: Limits, fn: PromiseFn<A, R>): PromiseFn<A, R>;
+declare function throttle<A extends any[], R>({ concurrency, retry, rate, burst, memoize, cache }: Limits, fn: PromiseFn<A, R>): PromiseFn<A, R>;
 
 // @public (undocumented)
-declare function toCSV<K extends string>(profile: Array<CostAnalysisProfile<K>>, format?: (key: K, value: number) => string): string;
+declare function toCSV(profile: Array<CostBreakdown>, format?: (key: string, value: number) => string): string;
 
 // @public (undocumented)
 declare type Unpacked<T> = T extends Promise<infer D> ? D : T;
 
 // @public (undocumented)
-interface Workload<T extends object, K extends string> {
+interface Workload<T extends object> {
     // (undocumented)
-    format?: (key: K, value: number) => string;
+    format?: (key: string, value: number) => string;
     // (undocumented)
     silent?: boolean;
     // (undocumented)
-    summarize?: (summaries: Array<Metrics<K>>) => Metrics<K>;
+    summarize?: (summaries: Array<Metrics>) => Metrics;
     // (undocumented)
-    work: (module: Promisified<T>) => Promise<Metrics<K> | void>;
+    work: (module: Promisified<T>) => Promise<Metrics | void>;
 }
 
 
