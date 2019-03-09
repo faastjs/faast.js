@@ -17,14 +17,20 @@ export class Statistics {
     mean = NaN;
 
     /**
-     * Construct a Statistics object.
+     * Incrementally track mean, stdev, min, max, of a sequence of values.
      * @param printFixedPrecision The number of decimal places to print in
      * {@link Statistics.toString}.
      */
     constructor(protected printFixedPrecision: number = 1) {}
 
+    /** @internal */
+    clone() {
+        const rv = new Statistics(this.printFixedPrecision);
+        return Object.assign(rv, this);
+    }
+
     /**
-     * Incrementally update statistics with the observation of a new value.
+     * Update statistics with a new value in the sequence.
      */
     update(value: number | undefined) {
         if (value === undefined) {

@@ -5,9 +5,9 @@ export {
     CostMetric,
     estimateWorkloadCost,
     googleConfigurations,
-    CustomWorkloadMetrics,
-    toCSV,
-    Workload
+    WorkloadAttribute,
+    Workload,
+    Estimate
 } from "./src/cost";
 export {
     CloudFunction,

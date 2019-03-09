@@ -36,7 +36,7 @@ import {
 import { retry, throttle } from "../throttle";
 import { Mutable } from "../types";
 import { WrapperOptions } from "../wrapper";
-import { publishPubSub, publishResponseMessage, receiveMessages } from "./google-queue";
+import { publishPubSub, receiveMessages } from "./google-queue";
 import * as googleTrampolineHttps from "./google-trampoline-https";
 import * as googleTrampolineQueue from "./google-trampoline-queue";
 

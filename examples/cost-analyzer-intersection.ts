@@ -2,8 +2,7 @@ import {
     Promisified,
     awsConfigurations,
     googleConfigurations,
-    estimateWorkloadCost,
-    toCSV
+    estimateWorkloadCost
 } from "../index";
 import * as m from "./functions";
 import { writeFile as fsWriteFile } from "fs";
@@ -42,7 +41,7 @@ async function compareIntersection() {
         }
     );
 
-    await writeFile("cost.csv", toCSV(result));
+    await writeFile("cost.csv", result.csv());
 }
 
 compareIntersection();

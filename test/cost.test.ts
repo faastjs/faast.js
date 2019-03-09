@@ -10,8 +10,7 @@ import {
     log,
     Promisified,
     Provider,
-    providers,
-    toCSV
+    providers
 } from "../index";
 import * as funcs from "./fixtures/functions";
 import { title } from "./fixtures/util";
@@ -38,15 +37,15 @@ async function testCostAnalyzer(
         silent: true
     });
 
-    t.is(profile.length, configs.length);
-    for (const p of profile) {
-        t.is(p.counters.completed, repetitions);
-        t.is(p.counters.errors, 0);
-        t.true(p.stats.estimatedBilledTime.mean > 0);
-        t.true(p.total() > 0);
+    t.is(profile.estimates.length, configs.length);
+    for (const { costSnapshot } of profile.estimates) {
+        t.is(costSnapshot.counters.completed, repetitions);
+        t.is(costSnapshot.counters.errors, 0);
+        t.true(costSnapshot.stats.estimatedBilledTime.mean > 0);
+        t.true(costSnapshot.total() > 0);
     }
 
-    const parsed = ppp.parse(toCSV(profile), {
+    const parsed = ppp.parse(profile.csv(), {
         header: true,
         skipEmptyLines: true,
         dynamicTyping: true

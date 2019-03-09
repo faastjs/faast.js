@@ -3,21 +3,21 @@ import { MaxHeap, SmallestN, Statistics } from "../src/shared";
 import { deepCopyUndefined } from "../src/wrapper";
 import { avg, stdev } from "./fixtures/util";
 
-test("shared module deepCopyUndefined copies undefined properties", t => {
+test("deepCopyUndefined copies undefined properties", t => {
     const obj = { prop: undefined };
     const obj2 = {};
     deepCopyUndefined(obj2, obj);
     t.deepEqual(obj2, obj);
 });
 
-test("shared module deepCopyUndefined copies nested undefined properties", t => {
+test("deepCopyUndefined copies nested undefined properties", t => {
     const obj = { outer: { inner: undefined } };
     const obj2 = { outer: {} };
     deepCopyUndefined(obj2, obj);
     t.deepEqual(obj2, obj);
 });
 
-test("shared module deepCopyUndefined should not hang on cyclical references", t => {
+test("deepCopyUndefined should not hang on cyclical references", t => {
     const obj = { ref: {} };
     obj.ref = obj;
 
@@ -28,7 +28,7 @@ test("shared module deepCopyUndefined should not hang on cyclical references", t
     t.deepEqual(obj2, obj);
 });
 
-test("shared module deep copy should not fail when objects are not shaped similarly", t => {
+test("deep copy should not fail when objects are not shaped similarly", t => {
     const obj = { geometry: { theorem: { name: "Pythagorean" } } };
     const obj2 = { hypothesis: "Riemann" };
     t.notThrows(() => deepCopyUndefined(obj2, obj));
@@ -42,14 +42,14 @@ function check(t: Assertions, values: number[]) {
     t.is(stat.samples, values.length);
 }
 
-test("statistics shared module empty values", t => {
+test("statistics empty values", t => {
     const emptyStat = new Statistics();
     t.is(emptyStat.mean, NaN);
     t.is(emptyStat.stdev, 0);
     t.is(emptyStat.samples, 0);
 });
 
-test("statistics shared module single values", t => {
+test("statistics single values", t => {
     check(t, [0]);
     check(t, [1]);
     check(t, [-1]);
@@ -59,7 +59,7 @@ test("statistics shared module single values", t => {
     check(t, [-0.1]);
 });
 
-test("statistics shared module multiple values", t => {
+test("statistics multiple values", t => {
     check(t, [0, 1]);
     check(t, [0, 1, 2]);
     check(t, [42, 100, 1000]);
@@ -69,7 +69,7 @@ test("statistics shared module multiple values", t => {
     check(t, [3.14159, 2.717]);
 });
 
-test("statistics shared module random values", t => {
+test("statistics random values", t => {
     const a = [];
     const b = [];
     const c = [];
@@ -81,6 +81,22 @@ test("statistics shared module random values", t => {
     check(t, a);
     check(t, b);
     check(t, c);
+});
+
+test(`statistics clone`, t => {
+    const stats = new Statistics();
+    stats.update(10);
+    stats.update(100);
+    stats.update(5);
+
+    const cloned = stats.clone();
+    t.deepEqual(cloned, stats);
+    t.is(cloned.toString(), stats.toString());
+    cloned.update(42);
+    t.true(cloned.mean !== stats.mean);
+    t.true(cloned.stdev !== stats.stdev);
+    t.is(stats.samples, 3);
+    t.is(cloned.samples, 4);
 });
 
 test("MaxHeap basics", t => {

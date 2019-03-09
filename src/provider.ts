@@ -1,6 +1,6 @@
 import * as webpack from "webpack";
 import { CostSnapshot } from "./cost";
-import { Statistics } from "./shared";
+import { Statistics, keys } from "./shared";
 import { CpuMeasurement, FunctionReturn } from "./wrapper";
 
 export const CALLID_ATTR = "__faast_callid__";
@@ -434,6 +434,12 @@ export class FunctionCounters {
             this.errors
         }`;
     }
+
+    /** @internal */
+    clone(): FunctionCounters {
+        const rv = new FunctionCounters();
+        return Object.assign(rv, this);
+    }
 }
 
 /**
@@ -520,9 +526,18 @@ export class FunctionStats {
 
     /** returns a string showing the mean of each statistic. */
     toString() {
-        return Object.keys(this)
-            .map(key => `${key}: ${(<any>this)[key]}`)
+        return keys(this)
+            .map(key => `${key}: ${this[key]}`)
             .join(", ");
+    }
+
+    /** @internal */
+    clone(): FunctionStats {
+        const rv = Object.assign(Object.create(Object.getPrototypeOf(this)), this);
+        for (const key of keys(rv)) {
+            rv[key] = rv[key].clone();
+        }
+        return rv;
     }
 }
 

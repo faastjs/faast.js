@@ -3,7 +3,6 @@ import * as lolex from "lolex";
 import { inspect } from "util";
 import { CommonOptions, log, Provider } from "../../index";
 import { keys } from "../../src/shared";
-import { Fn } from "../../src/types";
 import { Timing } from "./functions";
 export { keys };
 
@@ -56,7 +55,7 @@ export interface RecordedFunction<A extends any[], R> {
     recordings: Array<RecordedCall<A, R>>;
 }
 
-export function record<A extends any[], R>(fn: Fn<A, R>) {
+export function record<A extends any[], R>(fn: (...args: A) => R) {
     const func: RecordedFunction<A, R> = Object.assign(
         (...args: A) => {
             const rv = fn(...args);

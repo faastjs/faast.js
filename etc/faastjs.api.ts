@@ -29,7 +29,7 @@ declare class CloudFunction<M extends object, O extends CommonOptions = CommonOp
     constructor(impl: CloudFunctionImpl<O, S>, state: S, fmodule: M, modulePath: string, options: Required<CommonOptions>);
     // (undocumented)
     cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
-    costEstimate(): Promise<CostBreakdown>;
+    costEstimate(): Promise<CostSnapshot>;
     // @internal (undocumented)
     counters: FunctionCountersMap;
     // (undocumented)
@@ -78,18 +78,42 @@ interface CostAnalyzerConfiguration {
     repetitions: number;
 }
 
-// @public (undocumented)
-declare class CostBreakdown {
+// @public
+declare class CostMetric {
+    // @internal (undocumented)
+    constructor(arg: NonFunctionProperties<CostMetric>);
     // (undocumented)
-    constructor(provider: string, options: CommonOptions | AwsOptions | GoogleOptions, stats: FunctionStats, counters: FunctionCounters, costMetrics?: CostMetric[], repetitions?: number, extraMetrics?: Metrics);
+    readonly comment?: string;
+    // (undocumented)
+    cost(): number;
+    // (undocumented)
+    describeCostOnly(): string;
+    // (undocumented)
+    readonly informationalOnly?: boolean;
+    // (undocumented)
+    readonly measured: number;
+    // (undocumented)
+    readonly name: string;
+    // (undocumented)
+    readonly pricing: number;
+    // (undocumented)
+    toString(): string;
+    // (undocumented)
+    readonly unit: string;
+    // (undocumented)
+    readonly unitPlural?: string;
+}
+
+// @public (undocumented)
+declare class CostSnapshot {
+    // (undocumented)
+    constructor(provider: string, options: CommonOptions | AwsOptions | GoogleOptions, stats: FunctionStats, counters: FunctionCounters, costMetrics?: CostMetric[]);
     // (undocumented)
     readonly costMetrics: CostMetric[];
     // (undocumented)
     readonly counters: FunctionCounters;
     // (undocumented)
     csv(): string;
-    // (undocumented)
-    extraMetrics: Metrics;
     // (undocumented)
     find(name: string): CostMetric | undefined;
     // (undocumented)
@@ -99,8 +123,6 @@ declare class CostBreakdown {
     // (undocumented)
     push(metric: CostMetric): void;
     // (undocumented)
-    repetitions: number;
-    // (undocumented)
     readonly stats: FunctionStats;
     // (undocumented)
     toString(): string;
@@ -109,33 +131,17 @@ declare class CostBreakdown {
 }
 
 // @public (undocumented)
-declare class CostMetric {
-    // @internal (undocumented)
-    constructor(opts?: NonFunctionProperties<CostMetric>);
+interface Estimate<A extends string> {
     // (undocumented)
-    comment?: string;
+    config: CostAnalyzerConfiguration;
     // (undocumented)
-    cost(): number;
+    costSnapshot: CostSnapshot;
     // (undocumented)
-    describeCostOnly(): string;
-    // (undocumented)
-    informationalOnly?: boolean;
-    // (undocumented)
-    measured: number;
-    // (undocumented)
-    name: string;
-    // (undocumented)
-    pricing: number;
-    // (undocumented)
-    toString(): string;
-    // (undocumented)
-    unit: string;
-    // (undocumented)
-    unitPlural?: string;
+    extraMetrics: WorkloadAttribute<A>;
 }
 
 // @public (undocumented)
-declare function estimateWorkloadCost<T extends object>(mod: T, fmodule: string, configurations: CostAnalyzerConfiguration[] | undefined, workload: Workload<T>): Promise<CostBreakdown[]>;
+declare function estimateWorkloadCost<T extends object, A extends string>(mod: T, fmodule: string, configurations: CostAnalyzerConfiguration[] | undefined, workload: Workload<T, A>): Promise<WorkloadCostAnalyzerResult<T, A>>;
 
 // @public
 declare function faast<M extends object>(provider: "aws", fmodule: M, modulePath: string, awsOptions?: AwsOptions): Promise<CloudFunction<M, AwsOptions, AwsState>>;
@@ -159,6 +165,8 @@ declare class FaastError extends Error {
 
 // @public
 declare class FunctionCounters {
+    // @internal (undocumented)
+    clone(): FunctionCounters;
     completed: number;
     errors: number;
     invocations: number;
@@ -168,6 +176,8 @@ declare class FunctionCounters {
 
 // @public
 declare class FunctionStats {
+    // @internal (undocumented)
+    clone(): FunctionStats;
     estimatedBilledTime: Statistics;
     executionTime: Statistics;
     localStartLatency: Statistics;
@@ -252,12 +262,6 @@ declare const log: {
     awssdk: default.Debugger;
 };
 
-// @public (undocumented)
-declare type Metrics = {
-    // (undocumented)
-    [key: string]: number;
-};
-
 // @internal (undocumented)
 declare const _parentModule: NodeModule | null;
 
@@ -278,6 +282,8 @@ declare const providers: Provider[];
 // @public
 declare class Statistics {
     constructor(printFixedPrecision?: number);
+    // @internal (undocumented)
+    clone(): Statistics & this;
     max: number;
     mean: number;
     min: number;
@@ -291,25 +297,29 @@ declare class Statistics {
 }
 
 // @public
-declare function throttle<A extends any[], R>({ concurrency, retry, rate, burst, memoize, cache }: Limits, fn: PromiseFn<A, R>): PromiseFn<A, R>;
-
-// @public (undocumented)
-declare function toCSV(profile: Array<CostBreakdown>, format?: (key: string, value: number) => string): string;
+declare function throttle<A extends any[], R>({ concurrency, retry, rate, burst, memoize, cache }: Limits, fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;
 
 // @public (undocumented)
 declare type Unpacked<T> = T extends Promise<infer D> ? D : T;
 
 // @public (undocumented)
-interface Workload<T extends object> {
+interface Workload<T extends object, A extends string> {
     // (undocumented)
-    format?: (key: string, value: number) => string;
+    format?: (attr: A, value: number) => string;
+    // (undocumented)
+    formatCSV?: (attr: A, value: number) => string;
     // (undocumented)
     silent?: boolean;
     // (undocumented)
-    summarize?: (summaries: Array<Metrics>) => Metrics;
+    summarize?: (summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>;
     // (undocumented)
-    work: (module: Promisified<T>) => Promise<Metrics | void>;
+    work: (module: Promisified<T>) => Promise<WorkloadAttribute<A> | void>;
 }
+
+// @public (undocumented)
+declare type WorkloadAttribute<A extends string> = {
+    [attr in A]: number;
+};
 
 
 // (No @packageDocumentation comment for this package)

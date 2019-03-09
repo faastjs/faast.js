@@ -1,6 +1,5 @@
 import * as assert from "assert";
 import { sleep } from "./shared";
-import { PromiseFn } from "./types";
 import { PersistentCache } from "./cache";
 import { createHash } from "crypto";
 
@@ -355,11 +354,11 @@ export function cacheFn<A extends any[], R>(
  */
 export function throttle<A extends any[], R>(
     { concurrency, retry, rate, burst, memoize, cache }: Limits,
-    fn: PromiseFn<A, R>
+    fn: (...args: A) => Promise<R>
 ) {
     const funnel = new Funnel<R>(concurrency, retry);
 
-    let conditionedFunc: PromiseFn<A, R>;
+    let conditionedFunc: (...args: A) => Promise<R>;
 
     if (rate) {
         const rateLimiter = new RateLimiter<R>(rate, burst);

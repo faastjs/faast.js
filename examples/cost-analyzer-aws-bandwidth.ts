@@ -3,12 +3,10 @@ import {
     Promisified,
     estimateWorkloadCost,
     awsConfigurations,
-    toCSV,
-    Statistics,
-    CustomWorkloadMetrics
+    Statistics
 } from "../index";
 import * as m from "./map-buckets-module";
-import { listAllObjects, f1, GB, f2, assertNever } from "./util";
+import { listAllObjects, f1, GB, f2 } from "./util";
 import { writeFile as fsWriteFile } from "fs";
 import { promisify } from "util";
 
@@ -16,10 +14,9 @@ const writeFile = promisify(fsWriteFile);
 
 type FilterFn = (s: string) => boolean;
 
-interface BandwidthMetrics extends CustomWorkloadMetrics {
+interface BandwidthMetrics {
     bytesGB: number;
     bandwidthMbps: number;
-    // aggregateBandwidthMbps: number;
 }
 
 const workload = (Bucket: string, filter: FilterFn) => async (
@@ -47,26 +44,37 @@ const workload = (Bucket: string, filter: FilterFn) => async (
     const metrics: BandwidthMetrics = {
         bytesGB: bytes / GB,
         bandwidthMbps: bandwidth.mean
-        // aggregateBandwidthMbps: ((bytes / MB) * 8) / (elapsed / 1000)
     };
     return metrics;
 };
 
-const makeFormatter = ({ csv = false }) => {
-    return function format(key: keyof BandwidthMetrics, value: number) {
-        if (value === undefined) {
-            return "N/A";
-        }
-        if (key === "bytesGB") {
-            return csv ? f2(value) : `${f2(value)}GB`;
-        } else if (key === "bandwidthMbps") {
-            return csv ? f1(value) : `${f1(value)}Mbps`;
-        } else if (key === "aggregateBandwidthMbps") {
-            return csv ? f1(value) : `${f1(value)}Mbps-effective`;
-        }
-        throw new Error(`Bad key in format: '${key}'`);
-    };
-};
+function format(key: keyof BandwidthMetrics, value: number) {
+    if (value === undefined) {
+        return "N/A";
+    }
+    if (key === "bytesGB") {
+        return `${f2(value)}GB`;
+    } else if (key === "bandwidthMbps") {
+        return `${f1(value)}Mbps`;
+    } else if (key === "aggregateBandwidthMbps") {
+        return `${f1(value)}Mbps-effective`;
+    }
+    throw new Error(`Bad key in format: '${key}'`);
+}
+
+function formatCSV(key: keyof BandwidthMetrics, value: number) {
+    if (value === undefined) {
+        return "N/A";
+    }
+    if (key === "bytesGB") {
+        return f2(value);
+    } else if (key === "bandwidthMbps") {
+        return f1(value);
+    } else if (key === "aggregateBandwidthMbps") {
+        return f1(value);
+    }
+    throw new Error(`Bad key in format: '${key}'`);
+}
 
 async function compareAws(Bucket: string, filter: FilterFn) {
     const result = await estimateWorkloadCost(
@@ -77,13 +85,9 @@ async function compareAws(Bucket: string, filter: FilterFn) {
             repetitions: 5,
             repetitionConcurrency: 5
         })),
-        {
-            work: workload(Bucket, filter),
-            format: makeFormatter({ csv: false })
-        }
+        { work: workload(Bucket, filter), format, formatCSV }
     );
-    writeFile("cost.csv", toCSV(result, makeFormatter({ csv: true })));
-    // console.log(`${toCSV(result, makeFormatter(true))}`);
+    writeFile("cost.csv", result.csv());
 }
 
 async function main() {

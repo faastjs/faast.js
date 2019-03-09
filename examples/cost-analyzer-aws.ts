@@ -1,5 +1,5 @@
 import { writeFileSync } from "fs";
-import { awsConfigurations, estimateWorkloadCost, Promisified, toCSV } from "../index";
+import { awsConfigurations, estimateWorkloadCost, Promisified } from "../index";
 import * as m from "./functions";
 
 async function work(remote: Promisified<typeof m>) {
@@ -14,7 +14,7 @@ async function compareAws() {
         { work }
     );
 
-    writeFileSync("cost.csv", toCSV(results));
+    writeFileSync("cost.csv", results.csv());
 }
 
 compareAws();
