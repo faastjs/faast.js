@@ -6,8 +6,7 @@ export {
     estimateWorkloadCost,
     googleConfigurations,
     WorkloadAttribute,
-    Workload,
-    Estimate
+    Workload
 } from "./src/cost";
 export {
     CloudFunction,

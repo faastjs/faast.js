@@ -168,12 +168,15 @@ export class CostSnapshot {
 /**
  * @public
  */
-export interface CostAnalyzerConfiguration {
-    provider: "aws" | "google";
-    repetitions: number;
-    options: AwsOptions | GoogleOptions | CommonOptions;
-    repetitionConcurrency: number;
-}
+export type CostAnalyzerConfiguration =
+    | {
+          provider: "aws";
+          options: AwsOptions;
+      }
+    | {
+          provider: "google";
+          options: GoogleOptions;
+      };
 
 /**
  * @public
@@ -183,15 +186,13 @@ export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
     for (let memorySize = 128; memorySize <= 3008; memorySize += 64) {
         rv.push({
             provider: "aws",
-            repetitions: 10,
             options: {
                 mode: "queue",
                 memorySize,
                 timeout: 300,
                 gc: false,
                 childProcess: true
-            },
-            repetitionConcurrency: 10
+            }
         });
     }
     return rv;
@@ -205,15 +206,13 @@ export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
     for (let memorySize of [128, 256, 512, 1024, 2048]) {
         rv.push({
             provider: "google",
-            repetitions: 10,
             options: {
                 mode: "https",
                 memorySize,
                 timeout: 300,
                 gc: false,
                 childProcess: true
-            },
-            repetitionConcurrency: 10
+            }
         });
     }
     return rv;
@@ -238,22 +237,22 @@ function summarizeMean<A extends string>(attributes: WorkloadAttribute<A>[]) {
     return result;
 }
 
-/**
- * @public
- */
-export interface Estimate<A extends string> {
+interface Estimate<A extends string> {
     costSnapshot: CostSnapshot;
     config: CostAnalyzerConfiguration;
     extraMetrics: WorkloadAttribute<A>;
+    repetitions: number;
 }
 
 async function estimate<T extends object, K extends string>(
     mod: T,
     fmodule: string,
     workload: Workload<T, K>,
-    config: CostAnalyzerConfiguration
+    config: CostAnalyzerConfiguration,
+    repetitions: number,
+    repetitionConcurrency: number
 ): Promise<Estimate<K>> {
-    const { provider, repetitions, options, repetitionConcurrency } = config;
+    const { provider, options } = config;
     const cloudFunc = await faast(provider, mod, fmodule, options);
     const doWork = throttle({ concurrency: repetitionConcurrency }, workload.work);
     const results: Promise<WorkloadAttribute<K> | void>[] = [];
@@ -265,7 +264,7 @@ async function estimate<T extends object, K extends string>(
     let summarize = workload.summarize || summarizeMean;
     const costSnapshot = await cloudFunc.costEstimate();
     const extraMetrics = summarize(rv);
-    return { costSnapshot, config, extraMetrics };
+    return { costSnapshot, config, extraMetrics, repetitions };
 }
 
 /**
@@ -275,10 +274,12 @@ export async function estimateWorkloadCost<T extends object, A extends string>(
     mod: T,
     fmodule: string,
     configurations: CostAnalyzerConfiguration[] = awsConfigurations,
-    workload: Workload<T, A>
+    workload: Workload<T, A>,
+    repetitions: number = 10,
+    repetitionConcurrency: number = 10
 ) {
     const scheduleEstimate = throttle<
-        [T, string, Workload<T, A>, CostAnalyzerConfiguration],
+        [T, string, Workload<T, A>, CostAnalyzerConfiguration, number, number],
         Estimate<A>
     >(
         {
@@ -291,7 +292,14 @@ export async function estimateWorkloadCost<T extends object, A extends string>(
     );
 
     const promises = configurations.map(config =>
-        scheduleEstimate(mod, fmodule, workload, config)
+        scheduleEstimate(
+            mod,
+            fmodule,
+            workload,
+            config,
+            repetitions,
+            repetitionConcurrency
+        )
     );
 
     const format = workload.format || defaultFormat;
@@ -300,7 +308,7 @@ export async function estimateWorkloadCost<T extends object, A extends string>(
 
     const list = new Listr(
         promises.map((promise, i) => {
-            const { provider, repetitions, options } = configurations[i];
+            const { provider, options } = configurations[i];
             const { memorySize, mode } = options;
 
             return {
@@ -329,7 +337,7 @@ export async function estimateWorkloadCost<T extends object, A extends string>(
     results.sort(
         (a, b) => a.costSnapshot.options.memorySize! - b.costSnapshot.options.memorySize!
     );
-    return new WorkloadCostAnalyzerResult(workload, results);
+    return new WorkloadCostAnalyzerResult(workload, results, repetitions);
 }
 
 /**
@@ -337,7 +345,11 @@ export async function estimateWorkloadCost<T extends object, A extends string>(
  */
 class WorkloadCostAnalyzerResult<T extends object, A extends string> {
     /** @internal */
-    constructor(readonly workload: Workload<T, A>, readonly estimates: Estimate<A>[]) {}
+    constructor(
+        readonly workload: Workload<T, A>,
+        readonly estimates: Estimate<A>[],
+        readonly repetitions: number
+    ) {}
 
     csv() {
         const attributes = new Set<A>();
@@ -360,11 +372,11 @@ class WorkloadCostAnalyzerResult<T extends object, A extends string> {
         ];
         let rv = columns.join(",") + "\n";
 
-        this.estimates.forEach(({ costSnapshot, config, extraMetrics }) => {
+        this.estimates.forEach(({ costSnapshot, extraMetrics }) => {
             const { memorySize, mode, ...rest } = costSnapshot.options;
             const options = `"${inspect(rest).replace('"', '""')}"`;
             const { completed, errors, retries } = costSnapshot.counters;
-            const cost = (costSnapshot.total() / config.repetitions).toFixed(8);
+            const cost = (costSnapshot.total() / this.repetitions).toFixed(8);
             const formatter = this.workload.formatCSV || defaultFormatCSV;
 
             const metrics: { [attr in string]: string } = {};
