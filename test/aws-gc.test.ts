@@ -22,7 +22,7 @@ test.serial(
             mode: "queue"
         });
         try {
-            const cloudwatch = new CloudWatchLogs();
+            const cloudwatch = func.state.services.cloudwatch;
             await new Promise(async resolve => {
                 let done = false;
                 func.functions.hello("gc-test");
