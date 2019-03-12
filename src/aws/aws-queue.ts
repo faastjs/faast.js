@@ -212,5 +212,5 @@ function processIncomingQueueMessage(m: aws.SQS.Message): ReceivableMessage | vo
         case "cpumetrics":
             return JSON.parse(m.Body!);
     }
-    assertNever(kind);
+    return assertNever(kind);
 }

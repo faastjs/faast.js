@@ -11,6 +11,9 @@ export {
 export {
     CloudFunction,
     faast,
+    faastAws,
+    faastGoogle,
+    faastLocal,
     FaastError,
     FunctionStatsEvent,
     Promisified,

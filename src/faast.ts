@@ -3,22 +3,22 @@ import * as path from "path";
 import * as util from "util";
 import * as uuidv4 from "uuid/v4";
 import { _parentModule } from "../index";
-import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
-import { CostSnapshot, CostMetric } from "./cost";
-import { GoogleImpl, GoogleOptions, GoogleState } from "./google/google-faast";
-import { LocalImpl, LocalOptions, LocalState } from "./local/local-faast";
+import { AwsOptions, AwsState, AwsImpl } from "./aws/aws-faast";
+import { CostMetric, CostSnapshot } from "./cost";
+import { GoogleOptions, GoogleState, GoogleImpl } from "./google/google-faast";
+import { LocalOptions, LocalState, LocalImpl } from "./local/local-faast";
 import { inspectProvider, log } from "./log";
 import {
     CallId,
     CleanupOptionDefaults,
     CleanupOptions,
     CloudFunctionImpl,
-    CommonOptions,
     FunctionCounters,
     FunctionStats,
     Invocation,
     UUID,
-    Provider
+    Provider,
+    CommonOptions
 } from "./provider";
 import {
     assertNever,
@@ -384,18 +384,19 @@ function processResponse<R>(
     return rv;
 }
 
-async function createFunction<M extends object, O extends CommonOptions, S>(
+/** @internal */
+export async function createCloudFunction<M extends object, O extends CommonOptions, S>(
+    impl: CloudFunctionImpl<O, S>,
     fmodule: M,
     modulePath: string,
-    impl: CloudFunctionImpl<O, S>,
     userOptions?: O
-): Promise<CloudFunction<M, O, S>> {
+): Promise<CloudFunctionWrapper<M, O, S>> {
     try {
         const resolvedModule = resolveModule(modulePath);
         const functionId = uuidv4() as UUID;
         const options = Object.assign({}, impl.defaults, userOptions);
         log.provider(`options ${inspectProvider(options)}`);
-        return new CloudFunction(
+        return new CloudFunctionWrapper(
             impl,
             await impl.initialize(
                 resolvedModule,
@@ -443,14 +444,27 @@ class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
     }
 }
 
+export type FaastOptions = AwsOptions | GoogleOptions | LocalOptions;
+
+export interface CloudFunction<M extends object> {
+    provider: Provider;
+    functions: Promisified<M>;
+    stats: FunctionStatsMap;
+    counters: FunctionCountersMap;
+    cleanup(options?: CleanupOptions): Promise<void>;
+    logUrl(): string;
+    on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
+    off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
+    costEstimate(): Promise<CostSnapshot>;
+    asAwsLambda(): AwsLambda<M>;
+    asGoogleCloudFunction(): GoogleCloudFunction<M>;
+    asLocalFunction(): LocalFunction<M>;
+}
+
 /**
  * @public
  */
-export class CloudFunction<
-    M extends object,
-    O extends CommonOptions = CommonOptions,
-    S = any
-> {
+export class CloudFunctionWrapper<M extends object, O, S> implements CloudFunction<M> {
     provider = this.impl.name;
     functions: Promisified<M>;
     /** @internal */
@@ -722,59 +736,28 @@ export class CloudFunction<
      * invocations so far.
      */
     async costEstimate() {
-        if (this.impl.costEstimate) {
-            const estimate = await this.impl.costEstimate(
-                this.state,
-                this.counters.aggregate,
-                this.stats.aggregate
-            );
-            log.provider(`costEstimate returned ${inspectProvider(estimate)}`);
-            if (this.counters.aggregate.retries > 0) {
-                const { retries, invocations } = this.counters.aggregate;
-                const retryPct = ((retries / invocations) * 100).toFixed(1);
-                estimate.push(
-                    new CostMetric({
-                        name: "retries",
-                        pricing: 0,
-                        measured: retries,
-                        unit: "retry",
-                        unitPlural: "retries",
-                        comment: `Retries were ${retryPct}% of requests and may have incurred charges not accounted for by faast.`,
-                        informationalOnly: true
-                    })
-                );
-            }
-            return estimate;
-        } else {
-            const billedTimeStats = this.stats.aggregate.estimatedBilledTime;
-            const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples || 0;
-
-            const costMetrics: CostMetric[] = [];
-            const functionCallDuration = new CostMetric({
-                name: "functionCallDuration",
-                pricing: 0,
-                unit: "second",
-                measured: seconds,
-                informationalOnly: true
-            });
-            costMetrics.push(functionCallDuration);
-
-            const functionCallRequests = new CostMetric({
-                name: "functionCallRequests",
-                pricing: 0,
-                measured: this.counters.aggregate.invocations,
-                unit: "request",
-                informationalOnly: true
-            });
-            costMetrics.push(functionCallRequests);
-            return new CostSnapshot(
-                this.provider,
-                this.options,
-                this.stats.aggregate,
-                this.counters.aggregate,
-                costMetrics
+        const estimate = await this.impl.costEstimate(
+            this.state,
+            this.counters.aggregate,
+            this.stats.aggregate
+        );
+        log.provider(`costEstimate returned ${inspectProvider(estimate)}`);
+        if (this.counters.aggregate.retries > 0) {
+            const { retries, invocations } = this.counters.aggregate;
+            const retryPct = ((retries / invocations) * 100).toFixed(1);
+            estimate.push(
+                new CostMetric({
+                    name: "retries",
+                    pricing: 0,
+                    measured: retries,
+                    unit: "retry",
+                    unitPlural: "retries",
+                    comment: `Retries were ${retryPct}% of requests and may have incurred charges not accounted for by faast.`,
+                    informationalOnly: true
+                })
             );
         }
+        return estimate;
     }
 
     private async resultCollector() {
@@ -870,41 +853,93 @@ export class CloudFunction<
             }
         }
     }
+
+    asAwsLambda() {
+        if (this.provider !== "aws") {
+            throw new Error(`provider '${this.provider}' is not castable to AwsLambda`);
+        }
+        return (this as any) as AwsLambda<M>;
+    }
+
+    asGoogleCloudFunction() {
+        if (this.provider !== "google") {
+            throw new Error(
+                `provider '${this.provider}' is not castable to GoogleCloudFunction`
+            );
+        }
+        return (this as any) as GoogleCloudFunction<M>;
+    }
+
+    asLocalFunction() {
+        if (this.provider !== "local") {
+            throw new Error(
+                `provider '${this.provider}' is not castable to LocalFunction`
+            );
+        }
+        return (this as any) as LocalFunction<M>;
+    }
 }
 
 /**
- * The return type of `faast("aws", ...)`. See {@link CloudFunction}.
+ * The return type of {@link faastAws}. See {@link CloudFunctionWrapper}.
  * @public
  */
-export class AwsLambda<M extends object = object> extends CloudFunction<
+export type AwsLambda<M extends object = object> = CloudFunctionWrapper<
     M,
     AwsOptions,
     AwsState
-> {}
+>;
+
 /**
- * The return type of `faast("google", ...)`. See {@link CloudFunction}.
+ * The return type of {@link faastGoogle}. See {@link CloudFunctionWrapper}.
  * @public
  */
-export class GoogleCloudFunction<M extends object = object> extends CloudFunction<
+export type GoogleCloudFunction<M extends object = object> = CloudFunctionWrapper<
     M,
     GoogleOptions,
     GoogleState
-> {}
+>;
 
 /**
- * The return type of `faast("local", ...)`. See {@link CloudFunction}.
+ * The return type of {@link faastLocal}. See {@link CloudFunctionWrapper}.
  * @public
  */
-export class LocalFunction<M extends object = object> extends CloudFunction<
+export type LocalFunction<M extends object = object> = CloudFunctionWrapper<
     M,
     LocalOptions,
     LocalState
-> {}
+>;
 
 /**
- * The main entry point for faast with AWS provider. {@link faast:COMMON}
- * {@label AWS}
- * @param provider - `"aws"`
+ * The main entry point for faast with any provider and common options.
+ * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
+ * `require` also works but loses type information.
+ * @param modulePath - The path to the module, as it would be specified to
+ * `import` or `require`. It should be the same as `"BBB"` from importing
+ * fmodule.
+ * @param options - {@link CommonOptions}
+ * @public
+ */
+export async function faast<M extends object>(
+    provider: Provider,
+    fmodule: M,
+    modulePath: string,
+    options?: CommonOptions
+): Promise<CloudFunction<M>> {
+    switch (provider) {
+        case "aws":
+            return faastAws(fmodule, modulePath, options);
+        case "google":
+            return faastGoogle(fmodule, modulePath, options);
+        case "local":
+            return faastLocal(fmodule, modulePath, options);
+        default:
+            throw new Error(`Unknown cloud provider option '${provider}'`);
+    }
+}
+
+/**
+ * The main entry point for faast with AWS provider.
  * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
  * `require` also works but loses type information.
  * @param modulePath - The path to the module, as it would be specified to
@@ -914,16 +949,21 @@ export class LocalFunction<M extends object = object> extends CloudFunction<
  * Additional AWS-specific options are in {@link AwsOptions}.
  * @public
  */
-export function faast<M extends object>(
-    provider: "aws",
+export function faastAws<M extends object>(
     fmodule: M,
     modulePath: string,
-    awsOptions?: AwsOptions
-): Promise<CloudFunction<M, AwsOptions, AwsState>>;
+    options?: AwsOptions
+): Promise<AwsLambda<M>> {
+    return createCloudFunction<M, AwsOptions, AwsState>(
+        AwsImpl,
+        fmodule,
+        modulePath,
+        options
+    );
+}
+
 /**
- * The main entry point for faast with Google provider. {@link faast:COMMON}
- * {@label GOOGLE}
- * @param provider - `"google"`
+ * The main entry point for faast with Google provider.
  * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
  * `require` also works but loses type information.
  * @param modulePath - The path to the module, as it would be specified to
@@ -933,16 +973,21 @@ export function faast<M extends object>(
  * Additional Google-specific options are in {@link GoogleOptions}.
  * @public
  */
-export function faast<M extends object>(
-    provider: "google",
+export function faastGoogle<M extends object>(
     fmodule: M,
     modulePath: string,
-    googleOptions?: GoogleOptions
-): Promise<CloudFunction<M, GoogleOptions, GoogleState>>;
+    options?: GoogleOptions
+): Promise<GoogleCloudFunction<M>> {
+    return createCloudFunction<M, GoogleOptions, GoogleState>(
+        GoogleImpl,
+        fmodule,
+        modulePath,
+        options
+    );
+}
+
 /**
- * The main entry point for faast with Local provider. {@link faast:COMMON}
- * {@label LOCAL}
- * @param provider - `"local"`
+ * The main entry point for faast with Local provider.
  * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
  * `require` also works but loses type information.
  * @param modulePath - The path to the module, as it would be specified to
@@ -952,45 +997,17 @@ export function faast<M extends object>(
  * Additional Local-specific options are in {@link LocalOptions}.
  * @public
  */
-export function faast<M extends object>(
-    provider: "local",
+export function faastLocal<M extends object>(
     fmodule: M,
     modulePath: string,
-    localOptions?: LocalOptions
-): Promise<CloudFunction<M, LocalOptions, LocalState>>;
-/**
- * The main entry point for faast with any provider and common options.
- * {@label COMMON}
- * @param options - {@link CommonOptions}
- * @public
- */
-export function faast<M extends object, S>(
-    provider: Provider,
-    fmodule: M,
-    modulePath: string,
-    options?: CommonOptions
-): Promise<CloudFunction<M, CommonOptions, S>>;
-export async function faast<M extends object, O extends CommonOptions, S>(
-    provider: Provider,
-    fmodule: M,
-    modulePath: string,
-    options?: O
-): Promise<CloudFunction<M, O, S>> {
-    let impl: any;
-    switch (provider) {
-        case "aws":
-            impl = AwsImpl;
-            break;
-        case "google":
-            impl = GoogleImpl;
-            break;
-        case "local":
-            impl = LocalImpl;
-            break;
-        default:
-            throw new Error(`Unknown cloud provider option '${provider}'`);
-    }
-    return createFunction<M, O, S>(fmodule, modulePath, impl, options);
+    options?: LocalOptions
+): Promise<LocalFunction<M>> {
+    return createCloudFunction<M, LocalOptions, LocalState>(
+        LocalImpl,
+        fmodule,
+        modulePath,
+        options
+    );
 }
 
 function estimateFunctionLatency(fnStats: FunctionStats) {

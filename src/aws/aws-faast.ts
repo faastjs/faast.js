@@ -2,7 +2,7 @@ import * as aws from "aws-sdk";
 import { createHash } from "crypto";
 import { caches } from "../cache";
 import { CostSnapshot, CostMetric } from "../cost";
-import { faast } from "../faast";
+import { faast, faastAws } from "../faast";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import { readFile, ensureDir, writeFile } from "fs-extra";
@@ -14,7 +14,7 @@ import {
     PollResult,
     ResponseMessage,
     CommonOptions,
-    CommonOptionDefaults,
+    commonDefaults,
     CleanupOptions,
     UUID
 } from "../provider";
@@ -177,7 +177,7 @@ export interface AwsOptions extends CommonOptions {
 }
 
 export let defaults: Required<AwsOptions> = {
-    ...CommonOptionDefaults,
+    ...commonDefaults,
     region: "us-west-2",
     RoleName: "faast-cached-lambda-role",
     memorySize: 1728,
@@ -369,7 +369,7 @@ export async function createLayer(
     }
 
     try {
-        const cloudFunc = await faast("aws", awsNpm, require.resolve("./aws-npm"), {
+        const cloudFunc = await faastAws(awsNpm, require.resolve("./aws-npm"), {
             timeout: 300,
             memorySize: 2048,
             mode: "https",

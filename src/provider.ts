@@ -344,7 +344,7 @@ export interface CommonOptions {
     webpackOptions?: webpack.Configuration;
 }
 
-export const CommonOptionDefaults: Required<CommonOptions> = {
+export const commonDefaults: Required<CommonOptions> = {
     addDirectory: [],
     addZipFile: [],
     childProcess: true,
@@ -607,11 +607,11 @@ export interface CloudFunctionImpl<O extends CommonOptions, S> {
         parentDir: string
     ): Promise<S>;
 
-    costEstimate?: (
+    costEstimate(
         state: S,
         counters: FunctionCounters,
         stats: FunctionStats
-    ) => Promise<CostSnapshot>;
+    ): Promise<CostSnapshot>;
 
     cleanup(state: S, options: Required<CleanupOptions>): Promise<void>;
     logUrl(state: S): string;

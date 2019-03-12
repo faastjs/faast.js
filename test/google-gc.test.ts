@@ -1,5 +1,5 @@
 import test from "ava";
-import { faast } from "../index";
+import { faastGoogle } from "../index";
 import { GoogleResources, GoogleServices } from "../src/google/google-faast";
 import * as functions from "./fixtures/functions";
 import { contains, record } from "./fixtures/util";
@@ -10,7 +10,7 @@ test("remote google garbage collector works for functions that are called", asyn
     // function and set its retention to 0, and use a recorder to observe what
     // its garbage collector cleans up. Verify the first function's resources
     // would be cleaned up, which shows that the garbage collector did its job.
-    const func = await faast("google", functions, "./fixtures/functions", {
+    const func = await faastGoogle(functions, "./fixtures/functions", {
         mode: "queue"
     });
     await func.functions.hello("gc-test");
@@ -18,7 +18,7 @@ test("remote google garbage collector works for functions that are called", asyn
     const gcRecorder = record(
         async (_resources: GoogleResources, _: GoogleServices) => {}
     );
-    const func2 = await faast("google", functions, "./fixtures/functions", {
+    const func2 = await faastGoogle(functions, "./fixtures/functions", {
         gc: true,
         gcWorker: gcRecorder,
         retentionInDays: 0
@@ -31,7 +31,7 @@ test("remote google garbage collector works for functions that are called", asyn
 });
 
 test("remote google garbage collector works for functions that are never called", async t => {
-    const func = await faast("google", functions, "./fixtures/functions", {
+    const func = await faastGoogle(functions, "./fixtures/functions", {
         mode: "queue",
         gc: false
     });
@@ -39,7 +39,7 @@ test("remote google garbage collector works for functions that are never called"
     const gcRecorder = record(
         async (_resources: GoogleResources, _: GoogleServices) => {}
     );
-    const func2 = await faast("google", functions, "./fixtures/functions", {
+    const func2 = await faastGoogle(functions, "./fixtures/functions", {
         gc: true,
         gcWorker: gcRecorder,
         retentionInDays: 0

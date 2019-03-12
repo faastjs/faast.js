@@ -1,9 +1,9 @@
 import test from "ava";
-import { faast } from "../index";
-import * as funcs from "./fixtures/functions";
 import * as aws from "aws-sdk";
-import { deleteRole } from "../src/aws/aws-faast";
 import * as uuidv4 from "uuid/v4";
+import { faastAws } from "../index";
+import { deleteRole } from "../src/aws/aws-faast";
+import * as funcs from "./fixtures/functions";
 
 /**
  * The policies tested here should match those in the documentation at
@@ -62,7 +62,7 @@ test("remote aws custom role", async t => {
         PolicyArn = executionPolicy.Policy!.Arn!;
         await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
 
-        cloudFunc = await faast("aws", funcs, "./fixtures/functions", {
+        cloudFunc = await faastAws(funcs, "./fixtures/functions", {
             RoleName,
             gc: false
         });

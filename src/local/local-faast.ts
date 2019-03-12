@@ -17,18 +17,21 @@ import { packer, PackerResult, unzipInDir } from "../packer";
 import {
     CleanupOptions,
     CloudFunctionImpl,
-    CommonOptionDefaults,
+    commonDefaults,
     CommonOptions,
     Invocation,
     PollResult,
     ReceivableMessage,
     ResponseMessage,
-    UUID
+    UUID,
+    FunctionCounters,
+    FunctionStats
 } from "../provider";
 import { hasExpired, uuidv4Pattern } from "../shared";
 import { AsyncQueue } from "../throttle";
 import { FunctionCall, Wrapper, WrapperOptions } from "../wrapper";
 import * as localTrampolineFactory from "./local-trampoline";
+import { CostSnapshot, CostMetric } from "../cost";
 
 const exec = promisify(sys.exec);
 
@@ -48,6 +51,7 @@ export interface LocalState {
     gcPromise?: Promise<void>;
     /** @internal */
     queue: AsyncQueue<ReceivableMessage>;
+    options: Required<LocalOptions>;
 }
 
 /**
@@ -64,7 +68,7 @@ function defaultGcWorker(dir: string) {
 }
 
 export const defaults: Required<LocalOptions> = {
-    ...CommonOptionDefaults,
+    ...commonDefaults,
     concurrency: 10,
     memorySize: 512,
     gcWorker: defaultGcWorker
@@ -75,6 +79,7 @@ export const LocalImpl: CloudFunctionImpl<LocalOptions, LocalState> = {
     initialize,
     defaults,
     cleanup,
+    costEstimate,
     logUrl,
     invoke,
     poll,
@@ -162,7 +167,8 @@ async function initialize(
         tempDir,
         logUrl,
         gcPromise,
-        queue: new AsyncQueue()
+        queue: new AsyncQueue(),
+        options
     };
 }
 
@@ -173,7 +179,7 @@ export function logUrl(state: LocalState) {
 export async function localPacker(
     functionModule: string,
     parentDir: string,
-    options: LocalOptions,
+    options: CommonOptions,
     wrapperOptions: WrapperOptions
 ): Promise<PackerResult> {
     return packer(
@@ -285,4 +291,33 @@ async function collectGarbage(
             garbageCollectorRunning = false;
         }
     }
+}
+
+export async function costEstimate(
+    state: LocalState,
+    counters: FunctionCounters,
+    stats: FunctionStats
+) {
+    const billedTimeStats = stats.estimatedBilledTime;
+    const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples || 0;
+
+    const costMetrics: CostMetric[] = [];
+    const functionCallDuration = new CostMetric({
+        name: "functionCallDuration",
+        pricing: 0,
+        unit: "second",
+        measured: seconds,
+        informationalOnly: true
+    });
+    costMetrics.push(functionCallDuration);
+
+    const functionCallRequests = new CostMetric({
+        name: "functionCallRequests",
+        pricing: 0,
+        measured: counters.invocations,
+        unit: "request",
+        informationalOnly: true
+    });
+    costMetrics.push(functionCallRequests);
+    return new CostSnapshot("local", state.options, stats, counters, costMetrics);
 }

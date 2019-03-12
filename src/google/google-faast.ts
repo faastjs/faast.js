@@ -16,7 +16,7 @@ import { packer, PackerResult } from "../packer";
 import {
     CleanupOptions,
     CloudFunctionImpl,
-    CommonOptionDefaults,
+    commonDefaults,
     CommonOptions,
     FunctionCounters,
     FunctionStats,
@@ -126,7 +126,7 @@ function gcWorkerDefault(resources: GoogleResources, services: GoogleServices) {
 }
 
 export const defaults: Required<GoogleOptions> = {
-    ...CommonOptionDefaults,
+    ...commonDefaults,
     region: "us-central1",
     googleCloudFunctionOptions: {},
     gcWorker: gcWorkerDefault
@@ -686,7 +686,7 @@ async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
 export async function googlePacker(
     functionModule: string,
     parentDir: string,
-    options: GoogleOptions,
+    options: CommonOptions,
     wrapperOptions: WrapperOptions
 ): Promise<PackerResult> {
     const { mode } = options;

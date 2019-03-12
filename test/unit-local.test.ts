@@ -1,13 +1,13 @@
 import test, { ExecutionContext } from "ava";
 import { readFile } from "fs-extra";
+import { URL } from "url";
 import { inspect } from "util";
-import { faast, LocalOptions } from "../index";
+import { faastLocal, LocalOptions } from "../index";
 import * as funcs from "./fixtures/functions";
 import { measureConcurrency, sleep } from "./fixtures/util";
-import { URL } from "url";
 
 async function testCleanup(t: ExecutionContext, options: LocalOptions) {
-    const cloudFunc = await faast("local", funcs, "./fixtures/functions", {
+    const cloudFunc = await faastLocal(funcs, "./fixtures/functions", {
         gc: false,
         ...options
     });
@@ -27,7 +27,7 @@ async function testCleanup(t: ExecutionContext, options: LocalOptions) {
 }
 
 async function testOrder(t: ExecutionContext, options: LocalOptions) {
-    const cloudFunc = await faast("local", funcs, "./fixtures/functions", {
+    const cloudFunc = await faastLocal(funcs, "./fixtures/functions", {
         gc: false,
         ...options
     });
@@ -57,7 +57,7 @@ async function testConcurrency(
         expectedConcurrency: number;
     }
 ) {
-    const cloudFunc = await faast("local", funcs, "./fixtures/functions", {
+    const cloudFunc = await faastLocal(funcs, "./fixtures/functions", {
         ...options,
         gc: false,
         concurrency: maxConcurrency
@@ -105,7 +105,7 @@ async function readFirstLogfile(logDirectoryUrl: string) {
 }
 
 test("local provider console.log, console.warn, and console.error with child process", async t => {
-    const cloudFunc = await faast("local", funcs, "./fixtures/functions", {
+    const cloudFunc = await faastLocal(funcs, "./fixtures/functions", {
         childProcess: true,
         concurrency: 1,
         gc: false
@@ -126,7 +126,7 @@ test("local provider console.log, console.warn, and console.error with child pro
 });
 
 test("local provider log files should be appended, not truncated, after child process crash", async t => {
-    const cloudFunc = await faast("local", funcs, "./fixtures/functions", {
+    const cloudFunc = await faastLocal(funcs, "./fixtures/functions", {
         childProcess: true,
         concurrency: 1,
         maxRetries: 1,
@@ -169,7 +169,7 @@ test("local provider no concurrency for cpu bound work without child processes",
 });
 
 test("local provider cleanup waits for all child processes to exit", async t => {
-    const cloudFunc = await faast("local", funcs, "./fixtures/functions", {
+    const cloudFunc = await faastLocal(funcs, "./fixtures/functions", {
         childProcess: true,
         gc: false
     });

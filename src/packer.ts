@@ -6,7 +6,7 @@ import * as webpack from "webpack";
 import * as yauzl from "yauzl";
 import { LoaderOptions } from "./loader";
 import { log } from "./log";
-import { CommonOptionDefaults, CommonOptions } from "./provider";
+import { commonDefaults, CommonOptions } from "./provider";
 import { keys, streamToBuffer } from "./shared";
 import { TrampolineFactory, WrapperOptionDefaults, WrapperOptions } from "./wrapper";
 
@@ -33,7 +33,7 @@ export async function packer(
     userOptions: CommonOptions,
     userWrapperOptions: WrapperOptions
 ): Promise<PackerResult> {
-    const options = Object.assign(CommonOptionDefaults, userOptions);
+    const options = Object.assign(commonDefaults, userOptions);
     const wrapperOptions = Object.assign(WrapperOptionDefaults, userWrapperOptions);
     let { webpackOptions, packageJson, addDirectory, addZipFile } = options;
 

@@ -1,9 +1,10 @@
 import test from "ava";
-import { faast, log } from "../index";
+import { CloudWatchLogs } from "aws-sdk";
+import * as uuid from "uuid/v4";
+import { faast, faastAws, log } from "../index";
 import { AwsGcWork, AwsServices } from "../src/aws/aws-faast";
 import * as functions from "./fixtures/functions";
 import { contains, quietly, record, sleep } from "./fixtures/util";
-import * as uuid from "uuid/v4";
 
 test.serial(
     "remote aws garbage collector works for functions that are called",
@@ -17,11 +18,11 @@ test.serial(
         const gcRecorder = record(async (work: AwsGcWork) => {
             log.gc(`Recorded gc work: %O`, work);
         });
-        const func = await faast("aws", functions, "./fixtures/functions", {
+        const func = await faastAws(functions, "./fixtures/functions", {
             mode: "queue"
         });
         try {
-            const { cloudwatch } = func.state.services;
+            const cloudwatch = new CloudWatchLogs();
             await new Promise(async resolve => {
                 let done = false;
                 func.functions.hello("gc-test");
@@ -46,7 +47,7 @@ test.serial(
             });
 
             await func.cleanup({ deleteResources: false });
-            const func2 = await faast("aws", functions, "./fixtures/functions", {
+            const func2 = await faastAws(functions, "./fixtures/functions", {
                 gc: true,
                 gcWorker: gcRecorder,
                 retentionInDays: 0
@@ -105,13 +106,13 @@ test.serial(
             log.gc(`Recorded gc work: %O`, work);
         });
 
-        const func = await faast("aws", functions, "./fixtures/functions", {
+        const func = await faastAws(functions, "./fixtures/functions", {
             gc: false,
             mode: "queue"
         });
         try {
             await func.cleanup({ deleteResources: false });
-            const func2 = await faast("aws", functions, "./fixtures/functions", {
+            const func2 = await faastAws(functions, "./fixtures/functions", {
                 gc: true,
                 gcWorker: gcRecorder,
                 retentionInDays: 0
@@ -151,7 +152,7 @@ test.serial(
             log.gc(`Recorded gc work: %O`, work);
         });
 
-        const func = await faast("aws", functions, "./fixtures/functions", {
+        const func = await faastAws(functions, "./fixtures/functions", {
             mode: "queue",
             packageJson: {
                 name: uuid(),
@@ -166,7 +167,7 @@ test.serial(
         });
         try {
             await func.cleanup({ deleteResources: false });
-            const func2 = await faast("aws", functions, "./fixtures/functions", {
+            const func2 = await faastAws(functions, "./fixtures/functions", {
                 gc: true,
                 gcWorker: gcRecorder,
                 retentionInDays: 0
