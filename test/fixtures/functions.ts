@@ -6,6 +6,10 @@ export function identity(name: string) {
     return name;
 }
 
+export function identityNum(n: number) {
+    return n;
+}
+
 export const arrow = (str: string) => str;
 
 export const asyncArrow = async (str: string) => str;
@@ -36,10 +40,6 @@ export function sleep(ms: number) {
 
 export function delayReject(ms: number) {
     return new Promise((_, reject) => setTimeout(reject, ms));
-}
-
-export function echo(n: number) {
-    return n;
 }
 
 export async function async() {
@@ -80,10 +80,6 @@ export function spin(ms: number): Timing {
     }
     const end = Date.now();
     return { start, end };
-}
-
-export function promiseArg(promise: Promise<any>) {
-    return promise;
 }
 
 export function optionalArg(arg?: string) {
@@ -151,3 +147,30 @@ export function monteCarloPI(samples: number): MonteCarloReturn {
         samples
     };
 }
+
+/**
+ * Not supported.
+ * @remarks
+ * Examples of functions arguments or return values that are not supported.
+ */
+export function promiseArg(promise: Promise<any>) {
+    return promise;
+}
+
+export function functionArg(fn: () => void) {
+    fn();
+}
+
+export function functionReturn() {
+    return () => {
+        console.log("nope");
+    };
+}
+
+export function dateArg(_: Date) {}
+
+export class Cls {
+    constructor() {}
+}
+
+export function classArg(_: Cls) {}

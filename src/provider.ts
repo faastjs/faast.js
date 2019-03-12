@@ -249,11 +249,11 @@ export interface CommonOptions {
      * was set to 5 days when resources were created on Day 0.
      *
      * On Google, logs are retained according to Google's default expiration
-     * policy instead of being deleted by garbage collection.
+     * policy (30 days) instead of being deleted by garbage collection.
      *
      * Note that if `retentionInDays` is set to 0, garbage collection will
      * remove all resources, even ones that may be in use by other running faast
-     * instances.
+     * instances. Not recommended.
      *
      * See {@link CommonOptions.gc}.
      */
@@ -607,7 +607,7 @@ export interface CloudFunctionImpl<O extends CommonOptions, S> {
         parentDir: string
     ): Promise<S>;
 
-    costEstimate(
+    costSnapshot(
         state: S,
         counters: FunctionCounters,
         stats: FunctionStats

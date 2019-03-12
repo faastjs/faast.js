@@ -22,7 +22,7 @@ interface CleanupOptions {
     deleteResources?: boolean;
 }
 
-// @public (undocumented)
+// @public
 interface CloudFunction<M extends object> {
     // (undocumented)
     asAwsLambda(): AwsLambda<M>;
@@ -36,7 +36,6 @@ interface CloudFunction<M extends object> {
     costEstimate(): Promise<CostSnapshot>;
     // (undocumented)
     counters: FunctionCountersMap;
-    // (undocumented)
     functions: Promisified<M>;
     // (undocumented)
     logUrl(): string;

@@ -15,6 +15,7 @@ async function testBasic(
     try {
         t.is(await remote.hello("Andy"), "Hello Andy!");
         t.is(await remote.identity("你好"), "你好");
+        t.is(await remote.identityNum(42), 42);
         t.is(await remote.arrow("arrow"), "arrow");
         t.is(await remote.asyncArrow("asyncArrow"), "asyncArrow");
         t.is(await remote.fact(5), 120);
@@ -37,7 +38,6 @@ async function testBasic(
         } catch (err) {
             t.is(err, "intentionally rejected");
         }
-        await t.throwsAsync(() => remote.promiseArg(Promise.resolve()), /not supported/);
         try {
             await remote.customError();
             t.fail("remote.customError() did not reject as expected");

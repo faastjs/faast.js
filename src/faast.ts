@@ -31,9 +31,10 @@ import {
 } from "./shared";
 import { Deferred, Funnel, Pump } from "./throttle";
 import { NonFunctionProperties, Unpacked } from "./types";
-import { CpuMeasurement, FunctionCall, FunctionReturn, serializeCall } from "./wrapper";
+import { CpuMeasurement, FunctionCall, FunctionReturn } from "./wrapper";
 import Module = require("module");
 import { dirname } from "path";
+import { serializeCall, FaastSerializationError } from "./serialize";
 
 /**
  * @public
@@ -41,10 +42,10 @@ import { dirname } from "path";
 export const providers: Provider[] = ["aws", "google", "local"];
 
 /**
- * Error type returned by remote functions when they reject their promises with
+ * Error type returned by cloud functions when they reject their promises with
  * an instance of Error or any object.
  * @remarks
- * When a faast.js remote function throws an exception or rejects the promise it
+ * When a faast.js cloud function throws an exception or rejects the promise it
  * returns with an instance of Error or any object, that error is returned as a
  * `FaastError` on the local side. The original error type is not used.
  * `FaastError` copies the properties of the original error and adds them to
@@ -55,7 +56,7 @@ export const providers: Provider[] = ["aws", "google", "local"];
  * property. It will be surrounded by whilespace on both sides to ease parsing
  * as a URL by IDEs.
  *
- * Stack traces and error names should be preserved from the remote side.
+ * Stack traces and error names should be preserved from the cloud side.
  * @public
  */
 export class FaastError extends Error {
@@ -414,16 +415,29 @@ async function createCloudFunction<M extends object, O extends CommonOptions, S>
 }
 
 /**
- * Summarize statistics about remote function invocations.
+ * Summarize statistics about cloud function invocations.
  * @public
  */
 export class FunctionStatsEvent {
-    constructor(
-        readonly fn: string,
-        readonly counters: FunctionCounters,
-        readonly stats?: FunctionStats
-    ) {}
+    readonly counters: FunctionCounters;
+    readonly stats?: FunctionStats;
+    /**
+     * @param fn - The name of the cloud function the statistics are about.
+     * @param counters - See {@link FunctionCounters}
+     * @param stats - See {@link FunctionStats}
+     */
+    constructor(readonly fn: string, counters: FunctionCounters, stats?: FunctionStats) {
+        this.counters = counters.clone();
+        this.stats = stats && stats.clone();
+    }
 
+    /**
+     * Returns a string summarizing the statistics event.
+     * @remarks
+     * The string includes number of completed calls, errors, and retries, and
+     * the mean execution time for the calls that completed within the last time
+     * interval (1s).
+     */
     toString() {
         const executionTime = this.stats ? this.stats.executionTime.mean : 0;
         return `[${this.fn}] ${this.counters}, executionTime: ${(
@@ -443,23 +457,182 @@ class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
     }
 }
 
-/** @public */
+/**
+ * The main interface for invoking, cleaning up, and managing faast.js cloud
+ * functions.
+ * @public
+ */
 export interface CloudFunction<M extends object> {
+    /** See {@link Provider}.  */
     provider: Provider;
+    /**
+     * Each call of a cloud function creates a separate remote invocation.
+     * @remarks
+     * The module passed into {@link faast} or its provider-specific variants
+     * ({@link faastAws}, {@link faastGoogle}, and {@link faastLocal}) is mapped
+     * to a {@link Promisifed} version of the module. A Promisified version of a
+     * module performs the following mapping:
+     *
+     * - All function exports that return promises have their type signatures
+     *   preserved as-is.
+     *
+     * - All function exports that return type T where T is not a Promise, are
+     *   mapped to functions that return Promise<T>. Argument types are
+     *   preserved as-is.
+     *
+     * - All non-function exports are omitted in the Promisified module.
+     *
+     * Arguments and return values are serialized with `JSON.stringify` when
+     * cloud functions are called, therefore what is received on the remote
+     * side might not match what was sent. Faast.js attempts to detect
+     * nonsupported arguments on a best effort basis.
+     *
+     * If the cloud function throws an exception or rejects its promise with an
+     * instance of `Error`, then the function will reject with
+     * {@link FaastError} on the local side. If the exception or rejection
+     * resolves to any value that is not an instance of `Error`, the remote
+     * function proxy will reject with the value of
+     * `JSON.parse(JSON.stringify(err))`.
+     *
+     * Arguments and return values have size limitations that vary by provider
+     * and mode:
+     *
+     * - AWS: 256KB in queue mode, 6MB in https mode. See
+     *   {@link https://docs.aws.amazon.com/lambda/latest/dg/limits.html | AWS Lambda Limits}.
+     *
+     * - Google: 10MB in https and queue modes. See
+     *   {@link https://cloud.google.com/functions/quotas | Google Cloud Function Quotas}.
+     *
+     * - Local: limited only by available memory and the limits of
+     *   {@link https://nodejs.org/api/child_process.html#child_process_subprocess_send_message_sendhandle_options_callback | childprocess.send}.
+     *
+     * Note that payloads may be base64 encoded for some providers and therefore
+     * different in size than the original payload. Also, some bookkeeping data
+     * are passed along with arguments and contribute to the size limit.
+     */
     functions: Promisified<M>;
-    stats: FunctionStatsMap;
-    counters: FunctionCountersMap;
+    /**
+     * Stop the faast.js runtime for this cloud function and clean up ephemeral
+     * cloud resources.
+     * @param options - See {@link @CleanupOptions}.
+     * @returns a Promise that resolves when the CloudFunction runtime stops and
+     * ephemeral resources have been deleted.
+     * @remarks
+     * It is best practice to always call `cleanup` when done with a cloud
+     * function. A typical way to ensure this in normal execution is to use the
+     * `finally` construct:
+     *
+     * ```typescript
+     * const cloudFunc = await faast("aws", m, "./path/to/module");
+     * try {
+     *     // Call cloudFunc.functions.*
+     * } finally {
+     *     // Note the `await`
+     *     await cloudFunc.cleanup();
+     * }
+     * ```
+     *
+     * After the cleanup promise resolves, the cloud function instance can no
+     * longer invoke new calls on {@link CloudFunction.functions}. However,
+     * other methods on {@link CloudFunction} are safe to call, such as
+     * {@link CloudFunction.costSnapshot}.
+     *
+     * Cleanup also stops statistics events (See {@link CloudFunction.off}).
+     *
+     * By default, cleanup will delete all ephemeral cloud resources but leave
+     * behind cached resources for use by future cloud functions. Deleted
+     * resources typically include cloud functions, queues, and queue
+     * subscriptions. Logs are not deleted by cleanup.
+     *
+     * Note that `cleanup` leaves behind some provider-specific resources:
+     *
+     * - AWS: Cloudwatch logs are preserved until the garbage collector in a
+     *   future cloud function instance deletes them. The default log expiration
+     *   time is 24h (or the value of {@link CommonOptions.retentionInDays}). In
+     *   addition, the AWS Lambda IAM role is not deleted by cleanup. This role
+     *   is shared across cloud function instances. Lambda layers are also not
+     *   cleaned up immediately on AWS when {@link CommonOptions.packageJson} is
+     *   used and {@link CommonOptions.useDependencyCaching} is true. Cached
+     *   layers are cleaned up by garbage collection. Also see
+     *   {@link CleanupOptions.deleteCaches}.
+     *
+     * - Google: Google Stackdriver automatically deletes log entries after 30
+     *   days.
+     *
+     * - Local: Logs are preserved in a temporary directory on local disk.
+     *   Garbage collection in a future cloud function instance will delete logs
+     *   older than 24h.
+     */
     cleanup(options?: CleanupOptions): Promise<void>;
+    /**
+     * The URL of logs generated by this cloud function.
+     * @remarks
+     * Logs are not automatically downloaded because they cause outbound data
+     * transfer, which can be expensive. Also, logs may arrive at the logging
+     * service well after the cloud functions have completed. This log URL
+     * specifically filters the logs for this cloud function instance.
+     * Authentication is required to view cloud provider logs.
+     *
+     * The local provider returns a `file://` url pointing to a file for logs.
+     */
     logUrl(): string;
+    /**
+     * Register a callback for statistics events.
+     * @remarks
+     * The callback is invoked once for each cloud function that was invoked
+     * within the last 1s interval, with a {@link FunctionStatsEvent}
+     * summarizing the statistics for each function. Typical usage:
+     *
+     * ```typescript
+     * cloudFunc.on("stats", console.log);
+     * ```
+     */
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
+    /**
+     * Deregister a callback for statistics events.
+     * @remarks
+     * Stops the callback listener from receiving future function statistics
+     * events. Calling {@link CloudFunction.cleanup} also turns off statistics
+     * events.
+     */
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
-    costEstimate(): Promise<CostSnapshot>;
-    asAwsLambda(): AwsLambda<M>;
-    asGoogleCloudFunction(): GoogleCloudFunction<M>;
-    asLocalFunction(): LocalFunction<M>;
+    /**
+     * Get a near real-time cost estimate of cloud function invocations.
+     * @returns a Promise for a {@link CostSnapshot}.
+     * @remarks
+     * A cost snapshot provides a near real-time estimate of the costs of the
+     * cloud functions invoked. The cost estimate only includes the cost of
+     * successfully completed calls. Unsuccessful calls may lack the data
+     * required to provide cost information. Calls that are still in flight are
+     * not included in the cost snapshot. For this reason, it is typically a
+     * good idea to get a cost snapshot after awaiting the result of
+     * {@link CloudFunction.cleanup}.
+     *
+     * Code example:
+     * ```typescript
+     * const cloudFunc = await faast("aws", m, "./path/to/module", options);
+     * try {
+     *     // invoke cloud functions on cloudFunc.functions.*
+     * } finally {
+     *      await cloudFunc.cleanup();
+     *      const costSnapshot = await cloudFunc.costSnapshot();
+     *      console.log(costSnapshot);
+     * }
+     * ```
+     */
+    costSnapshot(): Promise<CostSnapshot>;
+
+    counters: FunctionCountersMap;
+    stats: FunctionStatsMap;
 }
 
 /**
+ * Implementation of the faast.js runtime.
+ * @remarks
+ * `CloudFunctionWrapper` provides a unified developer experience for faast.js
+ * modules on top of provider-specific runtime APIs. Most users will not create
+ * `CloudFunctionWrapper` instances themselves; instead use {@link faast}, or
+ * {@link faastAws}, {@link faastGoogle}, or {@link faastLocal}.
  * @public
  */
 export class CloudFunctionWrapper<M extends object, O, S> implements CloudFunction<M> {
@@ -510,6 +683,7 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
         this._collectorPump.start();
     }
 
+    /** {@inheritdoc CloudFunction} */
     async cleanup(userCleanupOptions: CleanupOptions = {}) {
         try {
             const options = Object.assign({}, CleanupOptionDefaults, userCleanupOptions);
@@ -533,7 +707,7 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
         }
     }
 
-    /** The logs for all invocations. May require logging in to the provider. */
+    /** {@inheritdoc CloudFunction} */
     logUrl() {
         const rv = this.impl.logUrl(this.state);
         log.provider(`logUrl ${rv}`);
@@ -557,10 +731,7 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
         this._statsTimer = undefined;
     }
 
-    /**
-     * Register for statistics events that provide ongoing details about the
-     * progress of in-flight invocations.
-     */
+    /** {@inheritdoc CloudFunction} */
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void) {
         if (!this._statsTimer) {
             this.startStats();
@@ -568,9 +739,7 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
         this._emitter.on(name, listener);
     }
 
-    /**
-     * Deregister a listener for statistics on in-flight invocations.
-     */
+    /** {@inheritdoc CloudFunction} */
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void) {
         this._emitter.off(name, listener);
         if (this._emitter.listenerCount(name) === 0) {
@@ -613,7 +782,10 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
             const initialInvocationTime = this._initialInvocationTime.getOrCreate(fname);
             // XXX capture google retries in stats?
 
-            const shouldRetry = () => {
+            const shouldRetry = (err: any) => {
+                if (err instanceof FaastSerializationError) {
+                    return false;
+                }
                 if (retries < this.options.maxRetries) {
                     retries++;
                     this.counters.incr(fname, "retries");
@@ -682,7 +854,7 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
                             invokeCloudFunction();
                             await pending.promise;
                         },
-                        shouldRetry,
+                        () => shouldRetry(undefined),
                         cancel
                     )
                 );
@@ -729,17 +901,14 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
         return wrappedFunc as any;
     }
 
-    /**
-     * Get a cost estimate report summarizing the cost of all completed
-     * invocations so far.
-     */
-    async costEstimate() {
-        const estimate = await this.impl.costEstimate(
+    /** {@inheritdoc CloudFunction} */
+    async costSnapshot() {
+        const estimate = await this.impl.costSnapshot(
             this.state,
             this.counters.aggregate,
             this.stats.aggregate
         );
-        log.provider(`costEstimate returned ${inspectProvider(estimate)}`);
+        log.provider(`costSnapshot returned ${inspectProvider(estimate)}`);
         if (this.counters.aggregate.retries > 0) {
             const { retries, invocations } = this.counters.aggregate;
             const retryPct = ((retries / invocations) * 100).toFixed(1);
@@ -851,31 +1020,6 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
             }
         }
     }
-
-    asAwsLambda() {
-        if (this.provider !== "aws") {
-            throw new Error(`provider '${this.provider}' is not castable to AwsLambda`);
-        }
-        return (this as any) as AwsLambda<M>;
-    }
-
-    asGoogleCloudFunction() {
-        if (this.provider !== "google") {
-            throw new Error(
-                `provider '${this.provider}' is not castable to GoogleCloudFunction`
-            );
-        }
-        return (this as any) as GoogleCloudFunction<M>;
-    }
-
-    asLocalFunction() {
-        if (this.provider !== "local") {
-            throw new Error(
-                `provider '${this.provider}' is not castable to LocalFunction`
-            );
-        }
-        return (this as any) as LocalFunction<M>;
-    }
 }
 
 /**
@@ -909,7 +1053,7 @@ export type LocalFunction<M extends object = object> = CloudFunctionWrapper<
 >;
 
 /**
- * The main entry point for faast with any provider and common options.
+ * The main entry point for faast with any provider and only common options.
  * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
  * `require` also works but loses type information.
  * @param modulePath - The path to the module, as it would be specified to

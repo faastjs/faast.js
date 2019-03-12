@@ -1,7 +1,8 @@
 import test, { ExecutionContext } from "ava";
-import { CommonOptions, faast, Provider, Pump } from "../index";
+import { CommonOptions, faast, Provider } from "../index";
 import * as funcs from "../test/fixtures/functions";
 import { sleep, title } from "../test/fixtures/util";
+import { Pump } from "../src/throttle";
 
 export async function throughput(
     t: ExecutionContext,
@@ -25,7 +26,7 @@ export async function throughput(
         pump.start();
         await sleep(duration);
         await pump.drain();
-        const cost = await lambda.costEstimate();
+        const cost = await lambda.costSnapshot();
         console.log(`Stats: ${lambda.stats}`);
         console.log(`Counters: ${lambda.counters}`);
 
@@ -85,7 +86,7 @@ export async function rampUp(
         const estimatedPI = (insidePoints / samplePoints) * 4;
         console.log(`PI estimate: ${estimatedPI}`);
         t.is(Number(estimatedPI.toFixed(2)), 3.14);
-        const cost = await lambda.costEstimate();
+        const cost = await lambda.costSnapshot();
         console.log(`Cost: ${cost}`);
     } finally {
         await lambda.cleanup();

@@ -15,7 +15,7 @@ where:
 
 The return value is a promise for an instance of `CloudFunction`.
 
-## Calling remote functions
+## Calling Cloud Functions
 
 The `functions` property on `CloudFunction` contains the same functions as `module`, except they return promises.
 
@@ -44,6 +44,24 @@ async function main() {
 
 main();
 ```
+
+### Terminology
+
+**Provider**: A Functions as a Service (FaaS) provider, such as AWS Lambda or
+Google Cloud Functions. Faast.js also has a "local" provider which uses child
+processes to simulate a FaaS service without cloud usage.
+
+**faast.js module**: The module that contains plain JavaScript/TypeScript
+functions that will be transformed by faast.js into cloud functions. A faast.js
+module corresponds to a single AWS Lambda or Google Cloud Function that
+multiplexes requests to all of the functions exported by the module.
+
+**Cloud function**: A function within a faast.js module instantiated on a
+provider.
+
+**local proxy function**, also known as **proxy**: A function that performs
+serialization of arguments and invocation of cloud functions. `cloudFunc.functions.*` are
+proxy functions that invoke a separate cloud function on each call.
 
 ### Functions must be idempotent
 

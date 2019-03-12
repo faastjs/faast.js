@@ -13,8 +13,9 @@ import {
 } from "../provider";
 import { assertNever, computeHttpResponseBytes, defined, sum } from "../shared";
 import { Attributes } from "../types";
-import { FunctionCall, serializeReturn } from "../wrapper";
+import { FunctionCall } from "../wrapper";
 import { AwsMetrics } from "./aws-faast";
+import { serializeReturn } from "../serialize";
 
 function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
     const a = message.MessageAttributes;

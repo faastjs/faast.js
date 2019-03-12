@@ -262,7 +262,7 @@ async function estimate<T extends object, K extends string>(
     const rv = (await Promise.all(results)).filter(r => r) as WorkloadAttribute<K>[];
     await cloudFunc.cleanup();
     let summarize = workload.summarize || summarizeMean;
-    const costSnapshot = await cloudFunc.costEstimate();
+    const costSnapshot = await cloudFunc.costSnapshot();
     const extraMetrics = summarize(rv);
     return { costSnapshot, config, extraMetrics, repetitions };
 }

@@ -79,7 +79,7 @@ export const LocalImpl: CloudFunctionImpl<LocalOptions, LocalState> = {
     initialize,
     defaults,
     cleanup,
-    costEstimate,
+    costSnapshot,
     logUrl,
     invoke,
     poll,
@@ -293,7 +293,7 @@ async function collectGarbage(
     }
 }
 
-export async function costEstimate(
+export async function costSnapshot(
     state: LocalState,
     counters: FunctionCounters,
     stats: FunctionStats

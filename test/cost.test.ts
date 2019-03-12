@@ -80,7 +80,7 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
 
     try {
         await cloudFunc.functions.hello("there");
-        const costs = await cloudFunc.costEstimate();
+        const costs = await cloudFunc.costSnapshot();
 
         const { estimatedBilledTime } = cloudFunc.stats.aggregate;
         t.is(

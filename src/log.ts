@@ -28,7 +28,7 @@ import { inspect } from "util";
  *
  * `gc` - Garbage collection verbose logging.
  *
- * `leaks` - Memory leak detector warnings for the remote function. Enabled by
+ * `leaks` - Memory leak detector warnings for the cloud function. Enabled by
  * default.
  *
  * `calls` - Verbose logging of each faast.js enabled function invocation.

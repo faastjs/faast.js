@@ -1,4 +1,3 @@
-import { deepStrictEqual } from "assert";
 import * as childProcess from "child_process";
 import * as process from "process";
 import * as proctor from "process-doctor";
@@ -362,69 +361,6 @@ export class Wrapper {
         });
         return child;
     }
-}
-
-export function deepCopyUndefined(dest: object, source: object) {
-    const stack: object[] = [];
-    function isBackReference(o: object) {
-        for (const elem of stack) {
-            if (elem === o) {
-                return true;
-            }
-        }
-        return false;
-    }
-    function recurse(d: any, s: any) {
-        if (isBackReference(s) || d === undefined) {
-            return;
-        }
-        stack.push(s);
-        Object.keys(s).forEach(key => {
-            if (s[key] && typeof s[key] === "object") {
-                recurse(d[key], s[key]);
-            } else if (s[key] === undefined) {
-                d[key] = undefined;
-            }
-        });
-        stack.pop();
-    }
-    typeof source === "object" && recurse(dest, source);
-}
-
-export function serializeCall(call: FunctionCall) {
-    const callStr = JSON.stringify(call);
-    const deserialized = JSON.parse(callStr);
-    deepCopyUndefined(deserialized, call);
-    try {
-        deepStrictEqual(deserialized, call);
-    } catch (_) {
-        throw new Error(
-            `faast: Detected '${
-                call.name
-            }' is not supported because one of its arguments cannot be serialized by JSON.stringify
-  original arguments: ${inspect(call.args)}
-serialized arguments: ${inspect(deserialized.args)}`
-        );
-    }
-    return callStr;
-}
-
-export function serializeReturn(returned: FunctionReturn) {
-    const rv = JSON.stringify(returned);
-    const deserialized = JSON.parse(rv);
-    deepCopyUndefined(deserialized.value, returned.value);
-    try {
-        deepStrictEqual(deserialized.value, returned.value);
-    } catch (err) {
-        throw new Error(
-            `faast: Detected call '${
-                returned.value
-            }' is not supported because one of its arguments cannot be serialized by JSON.stringify
-  original arguments: ${inspect(returned.value)}
-serialized arguments: ${inspect(deserialized.value)}`
-        );
-    }
-    return rv;
 }
 
 export interface CpuMeasurement extends Pick<proctor.Result, "stime" | "utime"> {

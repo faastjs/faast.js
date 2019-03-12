@@ -50,9 +50,9 @@ These options are available:
 - faast:info - Basic verbose logging. Disabled by default.
 - faast:warning - Output warnings to console.warn. Enabled by default.
 - faast:gc - Print debugging information related to garbage collection. Disabled by default.
-- faast:leaks - Print debugging information when a memory is potentially detected within the remote module. Enabled by default. See XXX.
-- faast:calls - Print debugging information about each call to a remote function. Disabled by default.
-- faast:webpack - Print debugging information about webpack, used to pack up remote function code. Disabled by default.
+- faast:leaks - Print debugging information when a memory is potentially detected within the faast.js module. Enabled by default. See XXX.
+- faast:calls - Print debugging information about each call to a cloud function. Disabled by default.
+- faast:webpack - Print debugging information about webpack, used to pack up cloud function code. Disabled by default.
 - faast:provider - Print debugging information about each interaction with cloud-provider specific code from the higher-level faast.js abstraction. Useful for debugging issues with specific cloud providers. Disabled by default.
 - faast:awssdk - Only available for AWS, this enables aws-sdk's verbose logging output. Disabled by default.
 
@@ -76,7 +76,8 @@ npm install -g npx
 
 unzip
 
-Available by default on MacOS and most linux distributions. Install if needed with your local package manager. For example, on Ubuntu:
+Available by default on MacOS and most linux distributions. Install if needed
+with your local package manager. For example, on Ubuntu:
 
 ```
 sudo apt install unzip
@@ -96,7 +97,8 @@ $ npm run build
 Setup credentials for [GCP](https://cloud.google.com/sdk/docs/authorizing)
 
 - Create a project
-- Create a google [service account](https://console.cloud.google.com/iam-admin/serviceaccounts)
+- Create a google [service
+  account](https://console.cloud.google.com/iam-admin/serviceaccounts)
 - Assign Owner permissions for the service account
 - Enable Cloud functions API
 - Run basic Google test
@@ -107,7 +109,8 @@ npx ava -m="*google*" build/test/basic.test.js
 
 ### AWS
 
-Setup credentials for [AWS](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html).
+Setup credentials for
+[AWS](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html).
 
 - Add credentials to system using aws cli (`aws configure`)
 - Ensure AWS user has AdministratorAccess role and Administrator group
@@ -123,7 +126,9 @@ npx ava -m="*aws*" build/test/basic.test.js
 $ npm run test
 ```
 
-Jest sometimes overwrites output during the test (this shows up as garbled Jest test status output, or missing log messages output through the console). Redirect stdout to get clean output:
+Jest sometimes overwrites output during the test (this shows up as garbled Jest
+test status output, or missing log messages output through the console).
+Redirect stdout to get clean output:
 
 ```
 $ npm run test > out
@@ -138,16 +143,27 @@ $ npm run test-local
 
 # Principles
 
-- Ephemeral functions: Faast.js cleans up after itself. It removes functions, roles, logs, and log groups. By default it will leave no trace in your infrastructure once cleanup is completed.
-- Avoids resource exhaustion: doesn't take up log space, function name space, and other limits. Only currently executing functions take up infrastructure namespace.
-- Independence: two separate jobs can be run at the same time and they will not interfere with each other.
+- Ephemeral functions: Faast.js cleans up after itself. It removes functions,
+  roles, logs, and log groups. By default it will leave no trace in your
+  infrastructure once cleanup is completed.
+- Avoids resource exhaustion: doesn't take up log space, function name space,
+  and other limits. Only currently executing functions take up infrastructure
+  namespace.
+- Independence: two separate jobs can be run at the same time and they will not
+  interfere with each other.
 - Works with AWS and Google Cloud Platform.
 
 # AWS Notes
 
 ## IAM Roles
 
-Faast.js will create an IAM role for the lambda function it creates. By default this role will have administrator access. The role will be created dynamically and then deleted when the cleanup function is called. Dynamically creating the role takes some time - up to 5-6 seconds. To speed this up, and also to allow for less permissive roles, you can create a persistent IAM role manually and restrict its permissions. Having a cached role will also make function startup faster because the role will not have to be dynamically created.
+Faast.js will create an IAM role for the lambda function it creates. By default
+this role will have administrator access. The role will be created dynamically
+and then deleted when the cleanup function is called. Dynamically creating the
+role takes some time - up to 5-6 seconds. To speed this up, and also to allow
+for less permissive roles, you can create a persistent IAM role manually and
+restrict its permissions. Having a cached role will also make function startup
+faster because the role will not have to be dynamically created.
 
 ```typescript
 const RoleName = "...cached role name...";
@@ -172,15 +188,24 @@ There are a minimum set of policy permissions required, namely the ones in `arn:
 }
 ```
 
-If Faast.js cannot find the role name specified, it will revert back to dynamically creating a role for you.
+If Faast.js cannot find the role name specified, it will revert back to
+dynamically creating a role for you.
 
-If you want to have dynamically created role with custom permissions, specify the `PolicyArn` option. Faast.js will attach this policy to the role it dynamically creates.
+If you want to have dynamically created role with custom permissions, specify
+the `PolicyArn` option. Faast.js will attach this policy to the role it
+dynamically creates.
 
 # Google Cloud Notes
 
 ## Node version
 
-Google Cloud Functions only supports node 6.11.5 at the moment (as of 6/2016). If your code uses any Node APIs that were introduced after this version, it will fail when run on Google Cloud. This can happen, for example, if your TypeScript target uses features introduced in later node/V8 versions than 6.11.5. Though not strictly required, it can be helpful to synchronize the node version on your local machine with the remote cloud, which can be accomplished by adding the following to your `package.json`:
+Google Cloud Functions only supports node 6.11.5 at the moment (as of 6/2016).
+If your code uses any Node APIs that were introduced after this version, it will
+fail when run on Google Cloud. This can happen, for example, if your TypeScript
+target uses features introduced in later node/V8 versions than 6.11.5. Though
+not strictly required, it can be helpful to synchronize the node version on your
+local machine with the cloud provider version, which can be accomplished by
+adding the following to your `package.json`:
 
 ```json
 "engines": {
@@ -190,7 +215,8 @@ Google Cloud Functions only supports node 6.11.5 at the moment (as of 6/2016). I
 
 # Cleaning up stray resources
 
-Use the `cleanup` utility to clean up stray resources that may be left by Faast.js in some rare instances (e.g. crashes where cleanup is not invoked):
+Use the `cleanup` utility to clean up stray resources that may be left by
+Faast.js in some rare instances (e.g. crashes where cleanup is not invoked):
 
 ```
 $ node build/src/cleanup.js aws
@@ -205,24 +231,37 @@ $ node build/src/cleanup.js aws -x
 
 ## Local caching in ~/.faast
 
-Faast.js will create some local cache files in `~/.faast`, with a subdirectory for each provider used. `cleanup` will delete these files for you. Or, you can clear the local cache by deleting `~/.faast` manually. No configuration is stored there, only caching files.
+Faast.js will create some local cache files in `~/.faast`, with a subdirectory
+for each provider used. `cleanup` will delete these files for you. Or, you can
+clear the local cache by deleting `~/.faast` manually. No configuration is
+stored there, only caching files.
 
 ## Cache anomalies
 
-Faast.js will only cache packages when `packageJson` is specified. The key to the hash is the sha256 hash of the contents of your `package.json`.
+Faast.js will only cache packages when `packageJson` is specified. The key to
+the hash is the sha256 hash of the contents of your `package.json`.
 
-Faast.js cache entries expire 24 hours after they are created (they may not be deleted immediately, but they are not used). this helps ensure that cached packages do not get too out of date.
+Faast.js cache entries expire 24 hours after they are created (they may not be
+deleted immediately, but they are not used). this helps ensure that cached
+packages do not get too out of date.
 
 # Concurrency
 
-Response queue funnel: create a request listener for every 20 outstanding requests. With a minimum of 2.
+Response queue funnel: create a request listener for every 20 outstanding
+requests. With a minimum of 2.
 
 # Limitations
 
-Cloudified function arguments must be serializable with [`JSON.stringify`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify). Faast.js will print a warning if it detects a case where `JSON.stringify` will result in a loss of information passed to the function. This may cause unexpected behavior when the code in the lambda function executes. For example, the following will lose information:
+Cloudified function arguments must be serializable with
+[`JSON.stringify`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify).
+Faast.js will print a warning if it detects a case where `JSON.stringify` will
+result in a loss of information passed to the function. This may cause
+unexpected behavior when the code in the lambda function executes. For example,
+the following will lose information:
 
 - Promises are transformed into `{}`
 - `Date` instances are transformed into strings
-- ... and more. The MDN documentation contains more details about specific cases.
+- ... and more. The MDN documentation contains more details about specific
+  cases.
 
 Faast.js tries its best to detect these cases, but 100% detection is not guaranteed.

@@ -13,7 +13,7 @@ async function main() {
 
     await Promise.all(promises);
     console.log(`Cost estimate:`);
-    console.log(`${await cloudFunc.costEstimate()}`);
+    console.log(`${await cloudFunc.costSnapshot()}`);
 
     await cloudFunc.cleanup();
 }

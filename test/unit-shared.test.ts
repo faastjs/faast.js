@@ -1,6 +1,6 @@
 import test, { Assertions } from "ava";
+import { deepCopyUndefined } from "../src/serialize";
 import { MaxHeap, SmallestN, Statistics } from "../src/shared";
-import { deepCopyUndefined } from "../src/wrapper";
 import { avg, stdev } from "./fixtures/util";
 
 test("deepCopyUndefined copies undefined properties", t => {

@@ -14,8 +14,8 @@ import { Attributes } from "../types";
 import { GoogleMetrics } from "./google-faast";
 import PubSubApi = pubsub_v1;
 import PubSubMessage = pubsub_v1.Schema$PubsubMessage;
-import { serializeReturn } from "../wrapper";
 import { AbortController } from "abort-controller";
+import { serializeReturn } from "../serialize";
 
 function pubsubMessageAttribute(message: PubSubMessage, attr: string) {
     const attributes = message && message.attributes;

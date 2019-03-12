@@ -100,7 +100,7 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
             )}Gbps aggregate bandwidth implied by end to end completion time`
         );
     } finally {
-        const cost = await cloudFunc.costEstimate();
+        const cost = await cloudFunc.costSnapshot();
         console.log(`${cost}`);
         await cloudFunc.cleanup();
     }

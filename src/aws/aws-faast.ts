@@ -1175,7 +1175,7 @@ export const requestAwsPrices = async (
     };
 };
 
-export async function costEstimate(
+export async function costSnapshot(
     state: AwsState,
     counters: FunctionCounters,
     statistics: FunctionStats
@@ -1256,7 +1256,7 @@ export const AwsImpl: CloudFunctionImpl<AwsOptions, AwsState> = {
     initialize,
     defaults,
     cleanup,
-    costEstimate,
+    costSnapshot: costSnapshot,
     logUrl,
     invoke,
     poll,

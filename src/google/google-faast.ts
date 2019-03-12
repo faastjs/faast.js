@@ -137,7 +137,7 @@ export const GoogleImpl: CloudFunctionImpl<GoogleOptions, GoogleState> = {
     initialize,
     defaults,
     cleanup,
-    costEstimate,
+    costSnapshot,
     logUrl,
     invoke,
     poll,
@@ -407,15 +407,6 @@ async function callFunctionHttps(
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
     const source = new AbortController();
-
-    const shouldRetry = (err: GaxiosError) => {
-        if (err.response) {
-            const { status } = err.response;
-            return status !== 503 && status !== 408;
-        }
-        return false;
-    };
-
     try {
         const axiosConfig: GaxiosOptions = {
             method: "PUT",
@@ -814,7 +805,7 @@ const gcfProvisonableMemoryTable: { [mem: number]: number } = {
     2048: 2.4
 };
 
-async function costEstimate(
+async function costSnapshot(
     state: GoogleState,
     counters: FunctionCounters,
     stats: FunctionStats
