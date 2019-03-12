@@ -384,8 +384,7 @@ function processResponse<R>(
     return rv;
 }
 
-/** @internal */
-export async function createCloudFunction<M extends object, O extends CommonOptions, S>(
+async function createCloudFunction<M extends object, O extends CommonOptions, S>(
     impl: CloudFunctionImpl<O, S>,
     fmodule: M,
     modulePath: string,
