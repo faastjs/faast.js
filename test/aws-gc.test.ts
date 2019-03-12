@@ -1,7 +1,7 @@
 import test from "ava";
 import { CloudWatchLogs } from "aws-sdk";
 import * as uuid from "uuid/v4";
-import { faast, faastAws, log } from "../index";
+import { faastAws, log } from "../index";
 import { AwsGcWork, AwsServices } from "../src/aws/aws-faast";
 import * as functions from "./fixtures/functions";
 import { contains, quietly, record, sleep } from "./fixtures/util";

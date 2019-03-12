@@ -2,7 +2,7 @@ import * as aws from "aws-sdk";
 import { createHash } from "crypto";
 import { caches } from "../cache";
 import { CostSnapshot, CostMetric } from "../cost";
-import { faast, faastAws } from "../faast";
+import { faastAws } from "../faast";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import { readFile, ensureDir, writeFile } from "fs-extra";

@@ -444,8 +444,6 @@ class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
     }
 }
 
-export type FaastOptions = AwsOptions | GoogleOptions | LocalOptions;
-
 export interface CloudFunction<M extends object> {
     provider: Provider;
     functions: Promisified<M>;
