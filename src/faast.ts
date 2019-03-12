@@ -443,6 +443,7 @@ class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
     }
 }
 
+/** @public */
 export interface CloudFunction<M extends object> {
     provider: Provider;
     functions: Promisified<M>;

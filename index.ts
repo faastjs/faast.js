@@ -9,11 +9,11 @@ export {
     Workload
 } from "./src/cost";
 export {
-    CloudFunction,
     faast,
     faastAws,
     faastGoogle,
     faastLocal,
+    CloudFunction,
     FaastError,
     FunctionStatsEvent,
     Promisified,
@@ -21,7 +21,8 @@ export {
     providers,
     AwsLambda,
     GoogleCloudFunction,
-    LocalFunction
+    LocalFunction,
+    CloudFunctionWrapper
 } from "./src/faast";
 export { AwsOptions, AwsRegion } from "./src/aws/aws-faast";
 export { GoogleOptions } from "./src/google/google-faast";

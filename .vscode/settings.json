@@ -6,7 +6,7 @@
     "terminal.integrated.env.windows": {
         "DEBUG": "faast:info,faast:stats"
     },
-    "debug.node.autoAttach": "off",
+    "debug.node.autoAttach": "on",
     "search.exclude": {
         "**/markdown": true
     }

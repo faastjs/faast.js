@@ -2,8 +2,7 @@
 declare const awsConfigurations: CostAnalyzerConfiguration[];
 
 // @public
-declare class AwsLambda<M extends object = object> extends CloudFunction<M, AwsOptions, AwsState> {
-}
+declare type AwsLambda<M extends object = object> = CloudFunctionWrapper<M, AwsOptions, AwsState>;
 
 // @public
 interface AwsOptions extends CommonOptions {
@@ -24,9 +23,43 @@ interface CleanupOptions {
 }
 
 // @public (undocumented)
-declare class CloudFunction<M extends object, O extends CommonOptions = CommonOptions, S = any> {
+interface CloudFunction<M extends object> {
+    // (undocumented)
+    asAwsLambda(): AwsLambda<M>;
+    // (undocumented)
+    asGoogleCloudFunction(): GoogleCloudFunction<M>;
+    // (undocumented)
+    asLocalFunction(): LocalFunction<M>;
+    // (undocumented)
+    cleanup(options?: CleanupOptions): Promise<void>;
+    // (undocumented)
+    costEstimate(): Promise<CostSnapshot>;
+    // (undocumented)
+    counters: FunctionCountersMap;
+    // (undocumented)
+    functions: Promisified<M>;
+    // (undocumented)
+    logUrl(): string;
+    // (undocumented)
+    off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
+    // (undocumented)
+    on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
+    // (undocumented)
+    provider: Provider;
+    // (undocumented)
+    stats: FunctionStatsMap;
+}
+
+// @public (undocumented)
+declare class CloudFunctionWrapper<M extends object, O, S> implements CloudFunction<M> {
     // @internal
     constructor(impl: CloudFunctionImpl<O, S>, state: S, fmodule: M, modulePath: string, options: Required<CommonOptions>);
+    // (undocumented)
+    asAwsLambda(): CloudFunctionWrapper<M, AwsOptions, AwsState>;
+    // (undocumented)
+    asGoogleCloudFunction(): CloudFunctionWrapper<M, GoogleOptions, GoogleState>;
+    // (undocumented)
+    asLocalFunction(): CloudFunctionWrapper<M, LocalOptions, LocalState>;
     // (undocumented)
     cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
     costEstimate(): Promise<CostSnapshot>;
@@ -67,16 +100,17 @@ interface CommonOptions {
 }
 
 // @public (undocumented)
-interface CostAnalyzerConfiguration {
+declare type CostAnalyzerConfiguration = {
     // (undocumented)
-    options: AwsOptions | GoogleOptions | CommonOptions;
+    provider: "aws";
     // (undocumented)
-    provider: "aws" | "google";
+    options: AwsOptions;
+} | {
     // (undocumented)
-    repetitionConcurrency: number;
+    provider: "google";
     // (undocumented)
-    repetitions: number;
-}
+    options: GoogleOptions;
+};
 
 // @public
 declare class CostMetric {
@@ -131,29 +165,13 @@ declare class CostSnapshot {
 }
 
 // @public (undocumented)
-interface Estimate<A extends string> {
-    // (undocumented)
-    config: CostAnalyzerConfiguration;
-    // (undocumented)
-    costSnapshot: CostSnapshot;
-    // (undocumented)
-    extraMetrics: WorkloadAttribute<A>;
-}
-
-// @public (undocumented)
-declare function estimateWorkloadCost<T extends object, A extends string>(mod: T, fmodule: string, configurations: CostAnalyzerConfiguration[] | undefined, workload: Workload<T, A>): Promise<WorkloadCostAnalyzerResult<T, A>>;
+declare function estimateWorkloadCost<T extends object, A extends string>(mod: T, fmodule: string, configurations: CostAnalyzerConfiguration[] | undefined, workload: Workload<T, A>, repetitions?: number, repetitionConcurrency?: number): Promise<WorkloadCostAnalyzerResult<T, A>>;
 
 // @public
-declare function faast<M extends object>(provider: "aws", fmodule: M, modulePath: string, awsOptions?: AwsOptions): Promise<CloudFunction<M, AwsOptions, AwsState>>;
+declare function faast<M extends object>(provider: Provider, fmodule: M, modulePath: string, options?: CommonOptions): Promise<CloudFunction<M>>;
 
 // @public
-declare function faast<M extends object>(provider: "google", fmodule: M, modulePath: string, googleOptions?: GoogleOptions): Promise<CloudFunction<M, GoogleOptions, GoogleState>>;
-
-// @public
-declare function faast<M extends object>(provider: "local", fmodule: M, modulePath: string, localOptions?: LocalOptions): Promise<CloudFunction<M, LocalOptions, LocalState>>;
-
-// @public
-declare function faast<M extends object, S>(provider: Provider, fmodule: M, modulePath: string, options?: CommonOptions): Promise<CloudFunction<M, CommonOptions, S>>;
+declare function faastAws<M extends object>(fmodule: M, modulePath: string, options?: AwsOptions): Promise<AwsLambda<M>>;
 
 // @public
 declare class FaastError extends Error {
@@ -162,6 +180,12 @@ declare class FaastError extends Error {
     [key: string]: any;
     logUrl?: string;
 }
+
+// @public
+declare function faastGoogle<M extends object>(fmodule: M, modulePath: string, options?: GoogleOptions): Promise<GoogleCloudFunction<M>>;
+
+// @public
+declare function faastLocal<M extends object>(fmodule: M, modulePath: string, options?: LocalOptions): Promise<LocalFunction<M>>;
 
 // @public
 declare class FunctionCounters {
@@ -202,8 +226,7 @@ declare class FunctionStatsEvent {
 }
 
 // @public
-declare class GoogleCloudFunction<M extends object = object> extends CloudFunction<M, GoogleOptions, GoogleState> {
-}
+declare type GoogleCloudFunction<M extends object = object> = CloudFunctionWrapper<M, GoogleOptions, GoogleState>;
 
 // @public (undocumented)
 declare const googleConfigurations: CostAnalyzerConfiguration[];
@@ -233,8 +256,7 @@ interface Limits {
 }
 
 // @public
-declare class LocalFunction<M extends object = object> extends CloudFunction<M, LocalOptions, LocalState> {
-}
+declare type LocalFunction<M extends object = object> = CloudFunctionWrapper<M, LocalOptions, LocalState>;
 
 // @public
 interface LocalOptions extends CommonOptions {
