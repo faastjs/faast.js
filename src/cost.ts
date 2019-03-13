@@ -250,16 +250,16 @@ async function estimate<T extends object, K extends string>(
     repetitionConcurrency: number
 ): Promise<Estimate<K>> {
     const { provider, options } = config;
-    const cloudFunc = await faast(provider, mod, fmodule, options);
+    const cloudModule = await faast(provider, mod, fmodule, options);
     const doWork = throttle({ concurrency: repetitionConcurrency }, workload.work);
     const results: Promise<WorkloadAttribute<K> | void>[] = [];
     for (let i = 0; i < repetitions; i++) {
-        results.push(doWork(cloudFunc.functions).catch(_ => {}));
+        results.push(doWork(cloudModule.functions).catch(_ => {}));
     }
     const rv = (await Promise.all(results)).filter(r => r) as WorkloadAttribute<K>[];
-    await cloudFunc.cleanup();
+    await cloudModule.cleanup();
     let summarize = workload.summarize || summarizeMean;
-    const costSnapshot = await cloudFunc.costSnapshot();
+    const costSnapshot = await cloudModule.costSnapshot();
     const extraMetrics = summarize(rv);
     return { costSnapshot, config, extraMetrics, repetitions };
 }

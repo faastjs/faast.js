@@ -83,14 +83,15 @@ export interface CommonOptions {
      * @remarks
      * Garbage collection deletes resources that were created by previous
      * instantiations of faast that were not cleaned up by
-     * {@link FaastModule.cleanup}, either because it was not called or
-     * because the process terminated and did not execute this cleanup step.
+     * {@link FaastModule.cleanup}, either because it was not called or because
+     * the process terminated and did not execute this cleanup step.
      *
      * Garbage collection is cloud-specific, but in general garbage collection
-     * should not interfere with the behavior or performance of faast functions.
-     * When {@link FaastModule.cleanup} runs, it waits for garbage collection
-     * to complete. Therefore the cleanup step can in some circumstances take a
-     * significant amount of time even after all invocations have returned.
+     * should not interfere with the behavior or performance of faast cloud
+     * functions. When {@link FaastModule.cleanup} runs, it waits for garbage
+     * collection to complete. Therefore the cleanup step can in some
+     * circumstances take a significant amount of time even after all
+     * invocations have returned.
      *
      * It is generally recommended to leave garbage collection on, otherwise
      * garbage resources may accumulate over time and you will eventually hit

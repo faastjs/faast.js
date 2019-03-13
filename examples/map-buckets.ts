@@ -16,7 +16,7 @@ import { listAllObjects, f1, GB } from "./util";
 let verbose = false;
 
 export async function mapBucket(Bucket: string, keyFilter: (key: string) => boolean) {
-    const cloudFunc = await faast("aws", m, "./map-buckets-module", {
+    const cloudModule = await faast("aws", m, "./map-buckets-module", {
         memorySize: 2048,
         timeout: 300,
         mode: "queue",
@@ -25,8 +25,8 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         gc: false
         // awsLambdaOptions: { TracingConfig: { Mode: "Active" } }
     });
-    console.log(`Logs: ${cloudFunc.logUrl()} `);
-    cloudFunc.on("stats", s => {
+    console.log(`Logs: ${cloudModule.logUrl()} `);
+    cloudModule.on("stats", s => {
         console.log(`${s}`);
     });
 
@@ -40,7 +40,7 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         const start = Date.now();
         for (const Obj of allObjects) {
             promises.push(
-                cloudFunc.functions
+                cloudModule.functions
                     .processBucketObject(Bucket, Obj.Key!)
                     .catch((err: FaastError) => {
                         console.log(`Error processing ${Obj.Key!}`);
@@ -100,26 +100,26 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
             )}Gbps aggregate bandwidth implied by end to end completion time`
         );
     } finally {
-        const cost = await cloudFunc.costSnapshot();
+        const cost = await cloudModule.costSnapshot();
         console.log(`${cost}`);
-        await cloudFunc.cleanup();
+        await cloudModule.cleanup();
     }
 }
 
 export async function mapObjects(Bucket: string, Keys: string[]) {
-    const cloudFunc = await faast("aws", m, "./map-buckets-module", {
+    const cloudModule = await faast("aws", m, "./map-buckets-module", {
         memorySize: 1728,
         timeout: 300,
         mode: "https",
         concurrency: 1
     });
     for (const Key of Keys) {
-        await cloudFunc.functions
+        await cloudModule.functions
             .processBucketObject(Bucket, Key)
             .catch(err => console.error(err));
         console.log(`Processed ${Bucket}/${Key}`);
     }
-    await cloudFunc.cleanup();
+    await cloudModule.cleanup();
 }
 
 export async function copyObjects(
@@ -127,13 +127,13 @@ export async function copyObjects(
     toBucket: string,
     mapper: (key: string) => string | undefined
 ) {
-    const cloudFunc = await faast("aws", m, "./map-buckets-module", {
+    const cloudModule = await faast("aws", m, "./map-buckets-module", {
         memorySize: 256,
         timeout: 300,
         mode: "queue"
     });
 
-    cloudFunc.on("stats", console.log);
+    cloudModule.on("stats", console.log);
     const objects = await listAllObjects(fromBucket);
     const promises: Promise<void>[] = [];
     for (const obj of objects) {
@@ -141,7 +141,7 @@ export async function copyObjects(
         if (toKey) {
             console.log(`Copying ${fromBucket}:${obj.Key} to ${toBucket}:${toKey}`);
             promises.push(
-                cloudFunc.functions
+                cloudModule.functions
                     .copyObject(fromBucket, obj.Key!, toBucket, toKey)
                     .catch(err => console.error(err))
             );
@@ -150,11 +150,11 @@ export async function copyObjects(
         }
     }
     await Promise.all(promises);
-    await cloudFunc.cleanup();
+    await cloudModule.cleanup();
 }
 
 export async function emptyBucket(Bucket: string) {
-    const cloudFunc = await faast("aws", m, "./map-buckets-module", {
+    const cloudModule = await faast("aws", m, "./map-buckets-module", {
         memorySize: 256,
         timeout: 300,
         mode: "https",
@@ -168,10 +168,10 @@ export async function emptyBucket(Bucket: string) {
         if (keys.length === 0) {
             break;
         }
-        promises.push(cloudFunc.functions.deleteObjects(Bucket, keys));
+        promises.push(cloudModule.functions.deleteObjects(Bucket, keys));
     }
     await Promise.all(promises);
-    await cloudFunc.cleanup();
+    await cloudModule.cleanup();
 }
 
 async function main() {

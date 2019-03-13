@@ -103,7 +103,7 @@ export interface AwsOptions extends CommonOptions {
      * You can
      * {@link https://console.aws.amazon.com/iam/home#/roles | create a custom role}
      * that specifies more limited permissions if you prefer not to grant
-     * administrator privileges. Any role you assign for faast functions needs
+     * administrator privileges. Any role you assign for faast.js modules needs
      * at least the following permissions:
      *
      * - Execution Role:
@@ -368,7 +368,7 @@ export async function createLayer(
     }
 
     try {
-        const cloudFunc = await faastAws(awsNpm, require.resolve("./aws-npm"), {
+        const cloudModule = await faastAws(awsNpm, require.resolve("./aws-npm"), {
             timeout: 300,
             memorySize: 2048,
             mode: "https",
@@ -383,13 +383,13 @@ export async function createLayer(
                 packageJsonContents,
                 LayerName
             };
-            const { installLog, layerInfo } = await cloudFunc.functions.npmInstall(
+            const { installLog, layerInfo } = await cloudModule.functions.npmInstall(
                 installArgs
             );
             log.info(installLog);
             return layerInfo;
         } finally {
-            await cloudFunc.cleanup();
+            await cloudModule.cleanup();
         }
     } catch (err) {
         log.warn(`createPackageLayer error:`);

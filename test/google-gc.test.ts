@@ -5,8 +5,8 @@ import * as functions from "./fixtures/functions";
 import { contains, record } from "./fixtures/util";
 
 test("remote google garbage collector works for functions that are called", async t => {
-    // Idea behind this test: create a faast function and make a call.
-    // Then cleanup while leaving the resources in place. Then create another
+    // Idea behind this test: create a faast module and make a call. Then
+    // cleanup while leaving the resources in place. Then create another
     // function and set its retention to 0, and use a recorder to observe what
     // its garbage collector cleans up. Verify the first function's resources
     // would be cleaned up, which shows that the garbage collector did its job.

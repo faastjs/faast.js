@@ -9,8 +9,8 @@ async function testUnsupported(
     options: CommonOptions
 ) {
     const opts = { timeout: 30, gc: false, ...options };
-    const cloudFunc = await faast(provider, funcs, "./fixtures/functions", opts);
-    const remote = cloudFunc.functions;
+    const cloudModule = await faast(provider, funcs, "./fixtures/functions", opts);
+    const remote = cloudModule.functions;
 
     try {
         await t.throwsAsync(remote.identityNum(NaN), /unsupported/);
@@ -22,7 +22,7 @@ async function testUnsupported(
         // XXX Need to detect unsupported return values.
         // await t.throwsAsync(remote.functionReturn(), /unsupported/);
     } finally {
-        await cloudFunc.cleanup();
+        await cloudModule.cleanup();
     }
 }
 for (const provider of providers) {

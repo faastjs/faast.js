@@ -252,7 +252,7 @@ function processResponse<R>(
             );
             log.leaks(`Logs: ${logUrl} `);
             log.leaks(
-                `These logs show only one example faast function invocation that may have a leak.`
+                `These logs show only one example faast cloud function invocation that may have a leak.`
             );
         }
     }
@@ -395,12 +395,12 @@ export interface FaastModule<M extends object> {
      * `finally` construct:
      *
      * ```typescript
-     * const cloudFunc = await faast("aws", m, "./path/to/module");
+     * const cloudModule = await faast("aws", m, "./path/to/module");
      * try {
-     *     // Call cloudFunc.functions.*
+     *     // Call cloudModule.functions.*
      * } finally {
      *     // Note the `await`
-     *     await cloudFunc.cleanup();
+     *     await cloudModule.cleanup();
      * }
      * ```
      *
@@ -456,7 +456,7 @@ export interface FaastModule<M extends object> {
      * summarizing the statistics for each function. Typical usage:
      *
      * ```typescript
-     * cloudFunc.on("stats", console.log);
+     * cloudModule.on("stats", console.log);
      * ```
      */
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
@@ -483,12 +483,12 @@ export interface FaastModule<M extends object> {
      * Code example:
      *
      * ```typescript
-     * const cloudFunc = await faast("aws", m, "./path/to/module", options);
+     * const cloudModule = await faast("aws", m, "./path/to/module", options);
      * try {
-     *     // invoke cloud functions on cloudFunc.functions.*
+     *     // invoke cloud functions on cloudModule.functions.*
      * } finally {
-     *      await cloudFunc.cleanup();
-     *      const costSnapshot = await cloudFunc.costSnapshot();
+     *      await cloudModule.cleanup();
+     *      const costSnapshot = await cloudModule.costSnapshot();
      *      console.log(costSnapshot);
      * }
      * ```

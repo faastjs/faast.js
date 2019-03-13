@@ -9,8 +9,8 @@ async function testBasic(
     options: CommonOptions
 ) {
     const opts = { timeout: 30, gc: false, ...options };
-    const cloudFunc = await faast(provider, funcs, "./fixtures/functions", opts);
-    const remote = cloudFunc.functions;
+    const cloudModule = await faast(provider, funcs, "./fixtures/functions", opts);
+    const remote = cloudModule.functions;
 
     try {
         t.is(await remote.hello("Andy"), "Hello Andy!");
@@ -48,20 +48,20 @@ async function testBasic(
             t.is(ferr.custom, "custom");
         }
     } finally {
-        await cloudFunc.cleanup();
+        await cloudModule.cleanup();
     }
 }
 
 async function testBasicRequire(t: ExecutionContext, provider: Provider) {
     const requiredFuncs = require("./fixtures/functions");
     const opts = { timeout: 30, gc: false };
-    const cloudFunc = await faast(provider, requiredFuncs, "./fixtures/functions", opts);
-    const remote = cloudFunc.functions;
+    const cloudModule = await faast(provider, requiredFuncs, "./fixtures/functions", opts);
+    const remote = cloudModule.functions;
     try {
         t.is(await remote.identity("id"), "id");
         t.is(await remote.arrow("arrow"), "arrow");
     } finally {
-        await cloudFunc.cleanup();
+        await cloudModule.cleanup();
     }
 }
 

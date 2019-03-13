@@ -14,7 +14,7 @@ test("remote aws custom role", async t => {
     const iam = new aws.IAM();
     let uuid = uuidv4();
     const RoleName = `faast-test-custom-role-${uuid}`;
-    let cloudFunc;
+    let cloudModule;
     let PolicyArn;
     try {
         const AssumeRolePolicyDocument = JSON.stringify({
@@ -62,13 +62,13 @@ test("remote aws custom role", async t => {
         PolicyArn = executionPolicy.Policy!.Arn!;
         await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
 
-        cloudFunc = await faastAws(funcs, "./fixtures/functions", {
+        cloudModule = await faastAws(funcs, "./fixtures/functions", {
             RoleName,
             gc: false
         });
-        t.is(await cloudFunc.functions.identity("hello"), "hello");
+        t.is(await cloudModule.functions.identity("hello"), "hello");
     } finally {
-        cloudFunc && (await cloudFunc.cleanup());
+        cloudModule && (await cloudModule.cleanup());
         await deleteRole(RoleName, iam);
         PolicyArn && (await iam.deletePolicy({ PolicyArn }).promise());
     }

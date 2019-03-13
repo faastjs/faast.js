@@ -16,16 +16,16 @@ async function testCancellation(
 ) {
     await sleep(0); // wait until ava sets its timeout so it doesn't get picked up by async_hooks.
     startAsyncTracing();
-    const cloudFunc = await faast(provider, funcs, "./fixtures/functions", {
+    const cloudModule = await faast(provider, funcs, "./fixtures/functions", {
         ...options,
         childProcess: true,
         gc: false
     });
     try {
-        cloudFunc.functions.spin(10000).catch(_ => {});
+        cloudModule.functions.spin(10000).catch(_ => {});
         await sleep(500); // wait until the request actually starts
     } finally {
-        await cloudFunc.cleanup();
+        await cloudModule.cleanup();
     }
     stopAsyncTracing();
     await sleep(500);

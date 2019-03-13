@@ -4,7 +4,7 @@ import { topPackages } from "./top-packages";
 
 const testPackage = throttle({ concurrency: 500 }, async (pkg: string) => {
     try {
-        const cloudFunc = await faast(
+        const cloudModule = await faast(
             "aws",
             require("../test/fixtures/functions"),
             "../test/fixtures/functions",
@@ -15,7 +15,7 @@ const testPackage = throttle({ concurrency: 500 }, async (pkg: string) => {
                 gc: false
             }
         );
-        await cloudFunc.cleanup();
+        await cloudModule.cleanup();
         return pkg;
     } catch (err) {
         return err as Error;

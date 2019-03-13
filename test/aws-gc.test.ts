@@ -9,7 +9,7 @@ import { contains, quietly, record, sleep } from "./fixtures/util";
 test.serial(
     "remote aws garbage collector works for functions that are called",
     async t => {
-        // Idea behind this test: create a faast function and make a call. Then
+        // Idea behind this test: create a faast module and make a call. Then
         // cleanup while leaving the resources in place. Then create another
         // function and set its retention to 0, and use a recorder to observe
         // its garbage collector to verify that it would clean up the first
@@ -18,20 +18,20 @@ test.serial(
         const gcRecorder = record(async (work: AwsGcWork) => {
             log.gc(`Recorded gc work: %O`, work);
         });
-        const func = await faastAws(functions, "./fixtures/functions", {
+        const mod = await faastAws(functions, "./fixtures/functions", {
             mode: "queue"
         });
         try {
-            const cloudwatch = func.state.services.cloudwatch;
+            const cloudwatch = mod.state.services.cloudwatch;
             await new Promise(async resolve => {
                 let done = false;
-                func.functions.hello("gc-test");
+                mod.functions.hello("gc-test");
                 while (!done) {
                     await sleep(1000);
                     const logResult = await quietly(
                         cloudwatch
                             .filterLogEvents({
-                                logGroupName: func.state.resources.logGroupName
+                                logGroupName: mod.state.resources.logGroupName
                             })
                             .promise()
                     );
@@ -46,15 +46,15 @@ test.serial(
                 }
             });
 
-            await func.cleanup({ deleteResources: false });
-            const func2 = await faastAws(functions, "./fixtures/functions", {
+            await mod.cleanup({ deleteResources: false });
+            const mod2 = await faastAws(functions, "./fixtures/functions", {
                 gc: true,
                 gcWorker: gcRecorder,
                 retentionInDays: 0
             });
 
             // Simulate expiration of all log streams
-            const { logGroupName } = func.state.resources;
+            const { logGroupName } = mod.state.resources;
             const logStreamsResponse = await quietly(
                 cloudwatch.describeLogStreams({ logGroupName }).promise()
             );
@@ -67,7 +67,7 @@ test.serial(
                         .promise();
                 }
             }
-            await func2.cleanup();
+            await mod2.cleanup();
             // The role name, SNS subscription, and Request Queue ARN are resources
             // that are not garbage collected. The role name is cached between
             // calls. The SNS subscription is deleted by AWS asynchronously
@@ -80,7 +80,7 @@ test.serial(
                 SNSLambdaSubscriptionArn,
                 ResponseQueueArn,
                 ...resources
-            } = func.state.resources;
+            } = mod.state.resources;
 
             const deleteResourceRecord = gcRecorder.recordings.find(
                 ({ args: [work] }) =>
@@ -94,7 +94,7 @@ test.serial(
             }
             t.truthy(deleteResourceRecord);
         } finally {
-            await func.cleanup();
+            await mod.cleanup();
         }
     }
 );
@@ -106,26 +106,26 @@ test.serial(
             log.gc(`Recorded gc work: %O`, work);
         });
 
-        const func = await faastAws(functions, "./fixtures/functions", {
+        const mod = await faastAws(functions, "./fixtures/functions", {
             gc: false,
             mode: "queue"
         });
         try {
-            await func.cleanup({ deleteResources: false });
-            const func2 = await faastAws(functions, "./fixtures/functions", {
+            await mod.cleanup({ deleteResources: false });
+            const mod2 = await faastAws(functions, "./fixtures/functions", {
                 gc: true,
                 gcWorker: gcRecorder,
                 retentionInDays: 0
             });
 
-            await func2.cleanup();
+            await mod2.cleanup();
 
             const {
                 RoleName,
                 SNSLambdaSubscriptionArn,
                 ResponseQueueArn,
                 ...resources
-            } = func.state.resources;
+            } = mod.state.resources;
 
             const deleteResourceRecord = gcRecorder.recordings.find(
                 ({ args: [work] }) =>
@@ -140,7 +140,7 @@ test.serial(
             }
             t.truthy(deleteResourceRecord);
         } finally {
-            await func.cleanup();
+            await mod.cleanup();
         }
     }
 );
@@ -152,7 +152,7 @@ test.serial(
             log.gc(`Recorded gc work: %O`, work);
         });
 
-        const func = await faastAws(functions, "./fixtures/functions", {
+        const mod = await faastAws(functions, "./fixtures/functions", {
             mode: "queue",
             packageJson: {
                 name: uuid(),
@@ -166,15 +166,15 @@ test.serial(
             }
         });
         try {
-            await func.cleanup({ deleteResources: false });
-            const func2 = await faastAws(functions, "./fixtures/functions", {
+            await mod.cleanup({ deleteResources: false });
+            const mod2 = await faastAws(functions, "./fixtures/functions", {
                 gc: true,
                 gcWorker: gcRecorder,
                 retentionInDays: 0
             });
 
-            await func2.cleanup();
-            const { layer } = func.state.resources;
+            await mod2.cleanup();
+            const { layer } = mod.state.resources;
             if (!layer) {
                 t.fail("Initial function did not create Lambda Layer");
                 return;
@@ -191,7 +191,7 @@ test.serial(
             }
             t.truthy(layerDeletionRecord);
         } finally {
-            await func.cleanup({ deleteResources: true, deleteCaches: true });
+            await mod.cleanup({ deleteResources: true, deleteCaches: true });
         }
     }
 );

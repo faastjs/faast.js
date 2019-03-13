@@ -2,20 +2,20 @@ import { faast } from "../index";
 import * as m from "./functions";
 
 async function main() {
-    const cloudFunc = await faast("aws", m, "./functions", {
+    const cloudModule = await faast("aws", m, "./functions", {
         mode: "https"
     });
 
     const promises = [];
     for (let i = 0; i < 5; i++) {
-        promises.push(cloudFunc.functions.hello("world"));
+        promises.push(cloudModule.functions.hello("world"));
     }
 
     await Promise.all(promises);
     console.log(`Cost estimate:`);
-    console.log(`${await cloudFunc.costSnapshot()}`);
+    console.log(`${await cloudModule.costSnapshot()}`);
 
-    await cloudFunc.cleanup();
+    await cloudModule.cleanup();
 }
 
 main();
