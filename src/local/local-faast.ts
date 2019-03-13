@@ -16,7 +16,7 @@ import { log } from "../log";
 import { packer, PackerResult, unzipInDir } from "../packer";
 import {
     CleanupOptions,
-    CloudFunctionImpl,
+    ProviderImpl,
     commonDefaults,
     CommonOptions,
     Invocation,
@@ -24,7 +24,6 @@ import {
     ReceivableMessage,
     ResponseMessage,
     UUID,
-    FunctionCounters,
     FunctionStats
 } from "../provider";
 import { hasExpired, uuidv4Pattern } from "../shared";
@@ -74,7 +73,7 @@ export const defaults: Required<LocalOptions> = {
     gcWorker: defaultGcWorker
 };
 
-export const LocalImpl: CloudFunctionImpl<LocalOptions, LocalState> = {
+export const LocalImpl: ProviderImpl<LocalOptions, LocalState> = {
     name: "local",
     initialize,
     defaults,
@@ -293,11 +292,7 @@ async function collectGarbage(
     }
 }
 
-export async function costSnapshot(
-    state: LocalState,
-    counters: FunctionCounters,
-    stats: FunctionStats
-) {
+export async function costSnapshot(state: LocalState, stats: FunctionStats) {
     const billedTimeStats = stats.estimatedBilledTime;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples || 0;
 
@@ -314,10 +309,10 @@ export async function costSnapshot(
     const functionCallRequests = new CostMetric({
         name: "functionCallRequests",
         pricing: 0,
-        measured: counters.invocations,
+        measured: stats.invocations,
         unit: "request",
         informationalOnly: true
     });
     costMetrics.push(functionCallRequests);
-    return new CostSnapshot("local", state.options, stats, counters, costMetrics);
+    return new CostSnapshot("local", state.options, stats, costMetrics);
 }

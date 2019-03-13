@@ -3,7 +3,7 @@
 The `faast` function is the main interface:
 
 ```typescript
-function faast(provider, module, moduleFile, options): Promise<CloudFunction>;
+function faast(provider, module, moduleFile, options): Promise<FaastModule>;
 ```
 
 where:
@@ -13,11 +13,11 @@ where:
 - `moduleFile` is the location of the imported module. It can be specified as a relative or full path to a `.js` file, optionally omitting the extension. In general you can pass the same string as you pass to `require` or `import`. Using the output of `require.resolve` for the module also works.
 - `options` are the possible [options](#Options). This argument is not required.
 
-The return value is a promise for an instance of `CloudFunction`.
+The return value is a promise for an instance of `FaastModule`.
 
 ## Calling Cloud Functions
 
-The `functions` property on `CloudFunction` contains the same functions as `module`, except they return promises.
+The `functions` property on `FaastModule` contains the same functions as `module`, except they return promises.
 
 For example:
 
@@ -51,17 +51,14 @@ main();
 Google Cloud Functions. Faast.js also has a "local" provider which uses child
 processes to simulate a FaaS service without cloud usage.
 
-**faast.js module**: The module that contains plain JavaScript/TypeScript
-functions that will be transformed by faast.js into cloud functions. A faast.js
-module corresponds to a single AWS Lambda or Google Cloud Function that
-multiplexes requests to all of the functions exported by the module.
+**faast.js module**, also known as **faast module**: A wrapper around an
+ordinary JavaScript/TypeScript module that transforms exported ordinary
+functions into cloud functions. A faast.js module corresponds to a single AWS
+Lambda or Google Cloud Function that multiplexes requests to all of the
+functions exported by the module.
 
 **Cloud function**: A function within a faast.js module instantiated on a
 provider.
-
-**local proxy function**, also known as **proxy**: A function that performs
-serialization of arguments and invocation of cloud functions. `cloudFunc.functions.*` are
-proxy functions that invoke a separate cloud function on each call.
 
 ### Functions must be idempotent
 

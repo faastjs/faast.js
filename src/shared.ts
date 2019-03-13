@@ -67,21 +67,6 @@ export class Statistics {
     }
 }
 
-export class FactoryMap<K = string, V = {}> extends Map<K, V> {
-    constructor(readonly factory: (key: K) => V) {
-        super();
-    }
-
-    getOrCreate(key: K) {
-        let val = this.get(key);
-        if (!val) {
-            val = this.factory(key);
-            this.set(key, val);
-        }
-        return val;
-    }
-}
-
 export class ExponentiallyDecayingAverageValue {
     samples = 0;
     value = 0;

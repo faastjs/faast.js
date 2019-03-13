@@ -2,7 +2,7 @@
 declare const awsConfigurations: CostAnalyzerConfiguration[];
 
 // @public
-declare type AwsLambda<M extends object = object> = CloudFunctionWrapper<M, AwsOptions, AwsState>;
+declare type AwsModule<M extends object = object> = FaastModuleProxy<M, AwsOptions, AwsState>;
 
 // @public
 interface AwsOptions extends CommonOptions {
@@ -21,45 +21,6 @@ interface CleanupOptions {
     deleteCaches?: boolean;
     deleteResources?: boolean;
 }
-
-// @public
-interface CloudFunction<M extends object> {
-    cleanup(options?: CleanupOptions): Promise<void>;
-    costSnapshot(): Promise<CostSnapshot>;
-    functions: Promisified<M>;
-    logUrl(): string;
-    off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
-    on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
-    provider: Provider;
-}
-
-// @public
-declare class CloudFunctionWrapper<M extends object, O, S> implements CloudFunction<M> {
-    // @internal
-    constructor(impl: CloudFunctionImpl<O, S>, state: S, fmodule: M, modulePath: string, options: Required<CommonOptions>);
-    // (undocumented)
-    cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
-    // (undocumented)
-    costSnapshot(): Promise<CostSnapshot>;
-    // @internal (undocumented)
-    counters: FunctionCountersMap;
-    // (undocumented)
-    functions: Promisified<M>;
-    // (undocumented)
-    logUrl(): string;
-    // (undocumented)
-    off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
-    // (undocumented)
-    on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
-    // (undocumented)
-    readonly options: Required<CommonOptions>;
-    // (undocumented)
-    provider: Provider;
-    // (undocumented)
-    readonly state: S;
-    // @internal (undocumented)
-    stats: FunctionStatsMap;
-    }
 
 // @public
 interface CommonOptions {
@@ -96,7 +57,7 @@ declare type CostAnalyzerConfiguration = {
 // @public
 declare class CostMetric {
     // @internal (undocumented)
-    constructor(arg: NonFunctionProperties<CostMetric>);
+    constructor(arg: PropertiesExcept<CostMetric, AnyFunction>);
     // (undocumented)
     readonly comment?: string;
     // (undocumented)
@@ -122,11 +83,9 @@ declare class CostMetric {
 // @public (undocumented)
 declare class CostSnapshot {
     // (undocumented)
-    constructor(provider: string, options: CommonOptions | AwsOptions | GoogleOptions, stats: FunctionStats, counters: FunctionCounters, costMetrics?: CostMetric[]);
+    constructor(provider: string, options: CommonOptions | AwsOptions | GoogleOptions, stats: FunctionStats, costMetrics?: CostMetric[]);
     // (undocumented)
     readonly costMetrics: CostMetric[];
-    // (undocumented)
-    readonly counters: FunctionCounters;
     // (undocumented)
     csv(): string;
     // (undocumented)
@@ -149,10 +108,10 @@ declare class CostSnapshot {
 declare function estimateWorkloadCost<T extends object, A extends string>(mod: T, fmodule: string, configurations: CostAnalyzerConfiguration[] | undefined, workload: Workload<T, A>, repetitions?: number, repetitionConcurrency?: number): Promise<WorkloadCostAnalyzerResult<T, A>>;
 
 // @public
-declare function faast<M extends object>(provider: Provider, fmodule: M, modulePath: string, options?: CommonOptions): Promise<CloudFunction<M>>;
+declare function faast<M extends object>(provider: Provider, fmodule: M, modulePath: string, options?: CommonOptions): Promise<FaastModule<M>>;
 
 // @public
-declare function faastAws<M extends object>(fmodule: M, modulePath: string, options?: AwsOptions): Promise<AwsLambda<M>>;
+declare function faastAws<M extends object>(fmodule: M, modulePath: string, options?: AwsOptions): Promise<AwsModule<M>>;
 
 // @public
 declare class FaastError extends Error {
@@ -163,30 +122,61 @@ declare class FaastError extends Error {
 }
 
 // @public
-declare function faastGoogle<M extends object>(fmodule: M, modulePath: string, options?: GoogleOptions): Promise<GoogleCloudFunction<M>>;
+declare function faastGoogle<M extends object>(fmodule: M, modulePath: string, options?: GoogleOptions): Promise<GoogleModule<M>>;
 
 // @public
-declare function faastLocal<M extends object>(fmodule: M, modulePath: string, options?: LocalOptions): Promise<LocalFunction<M>>;
+declare function faastLocal<M extends object>(fmodule: M, modulePath: string, options?: LocalOptions): Promise<LocalModule<M>>;
 
 // @public
-declare class FunctionCounters {
-    // @internal (undocumented)
-    clone(): FunctionCounters;
-    completed: number;
-    errors: number;
-    invocations: number;
-    retries: number;
-    toString(): string;
+interface FaastModule<M extends object> {
+    cleanup(options?: CleanupOptions): Promise<void>;
+    costSnapshot(): Promise<CostSnapshot>;
+    functions: Promisified<M>;
+    logUrl(): string;
+    off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
+    on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
+    provider: Provider;
+    stats(functionName?: string): FunctionStats;
 }
+
+// @public
+declare class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> {
+    // @internal
+    constructor(impl: ProviderImpl<O, S>, state: S, fmodule: M, modulePath: string, options: Required<CommonOptions>);
+    // (undocumented)
+    cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
+    // (undocumented)
+    costSnapshot(): Promise<CostSnapshot>;
+    // (undocumented)
+    functions: Promisified<M>;
+    // (undocumented)
+    logUrl(): string;
+    // (undocumented)
+    off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
+    // (undocumented)
+    on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
+    // (undocumented)
+    readonly options: Required<CommonOptions>;
+    // (undocumented)
+    provider: Provider;
+    // (undocumented)
+    readonly state: S;
+    // (undocumented)
+    stats(functionName?: string): FunctionStats;
+    }
 
 // @public
 declare class FunctionStats {
     // @internal (undocumented)
     clone(): FunctionStats;
+    completed: number;
+    errors: number;
     estimatedBilledTime: Statistics;
     executionTime: Statistics;
+    invocations: number;
     localStartLatency: Statistics;
     remoteStartLatency: Statistics;
+    retries: number;
     returnLatency: Statistics;
     sendResponseLatency: Statistics;
     toString(): string;
@@ -195,21 +185,19 @@ declare class FunctionStats {
 // @public
 declare class FunctionStatsEvent {
     // (undocumented)
-    constructor(fn: string, counters: FunctionCounters, stats?: FunctionStats);
-    // (undocumented)
-    readonly counters: FunctionCounters;
+    constructor(fn: string, stats: FunctionStats);
     // (undocumented)
     readonly fn: string;
     // (undocumented)
-    readonly stats?: FunctionStats;
+    readonly stats: FunctionStats;
     toString(): string;
 }
 
-// @public
-declare type GoogleCloudFunction<M extends object = object> = CloudFunctionWrapper<M, GoogleOptions, GoogleState>;
-
 // @public (undocumented)
 declare const googleConfigurations: CostAnalyzerConfiguration[];
+
+// @public
+declare type GoogleModule<M extends object = object> = FaastModuleProxy<M, GoogleOptions, GoogleState>;
 
 // @public
 interface GoogleOptions extends CommonOptions {
@@ -236,7 +224,7 @@ interface Limits {
 }
 
 // @public
-declare type LocalFunction<M extends object = object> = CloudFunctionWrapper<M, LocalOptions, LocalState>;
+declare type LocalModule<M extends object = object> = FaastModuleProxy<M, LocalOptions, LocalState>;
 
 // @public
 interface LocalOptions extends CommonOptions {

@@ -15,10 +15,9 @@ import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import {
     CleanupOptions,
-    CloudFunctionImpl,
+    ProviderImpl,
     commonDefaults,
     CommonOptions,
-    FunctionCounters,
     FunctionStats,
     Invocation,
     PollResult,
@@ -132,7 +131,7 @@ export const defaults: Required<GoogleOptions> = {
     gcWorker: gcWorkerDefault
 };
 
-export const GoogleImpl: CloudFunctionImpl<GoogleOptions, GoogleState> = {
+export const GoogleImpl: ProviderImpl<GoogleOptions, GoogleState> = {
     name: "google",
     initialize,
     defaults,
@@ -807,10 +806,9 @@ const gcfProvisonableMemoryTable: { [mem: number]: number } = {
 
 async function costSnapshot(
     state: GoogleState,
-    counters: FunctionCounters,
     stats: FunctionStats
 ): Promise<CostSnapshot> {
-    const costs = new CostSnapshot("google", state.options, stats, counters);
+    const costs = new CostSnapshot("google", state.options, stats);
     const { memorySize = defaults.memorySize } = state.options;
     const provisionableSizes = keys(gcfProvisonableMemoryTable)
         .map(n => Number(n))
@@ -845,7 +843,7 @@ async function costSnapshot(
     const functionCallRequests = new CostMetric({
         name: "functionCallRequests",
         pricing: prices.perInvocation,
-        measured: counters.invocations,
+        measured: stats.invocations,
         unit: "request",
         comment: "https://cloud.google.com/functions/pricing#invocations"
     });

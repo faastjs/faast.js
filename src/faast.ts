@@ -1,40 +1,42 @@
 import { EventEmitter } from "events";
 import * as path from "path";
+import { dirname } from "path";
 import * as util from "util";
 import * as uuidv4 from "uuid/v4";
 import { _parentModule } from "../index";
-import { AwsOptions, AwsState, AwsImpl } from "./aws/aws-faast";
+import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
 import { CostMetric, CostSnapshot } from "./cost";
-import { GoogleOptions, GoogleState, GoogleImpl } from "./google/google-faast";
-import { LocalOptions, LocalState, LocalImpl } from "./local/local-faast";
+import { GoogleImpl, GoogleOptions, GoogleState } from "./google/google-faast";
+import { LocalImpl, LocalOptions, LocalState } from "./local/local-faast";
 import { inspectProvider, log } from "./log";
 import {
     CallId,
     CleanupOptionDefaults,
     CleanupOptions,
-    CloudFunctionImpl,
-    FunctionCounters,
+    ProviderImpl,
+    CommonOptions,
     FunctionStats,
     Invocation,
-    UUID,
     Provider,
-    CommonOptions
+    UUID
 } from "./provider";
+import { FaastSerializationError, serializeCall } from "./serialize";
 import {
     assertNever,
     ExponentiallyDecayingAverageValue,
-    FactoryMap,
     roundTo100ms,
-    sleep,
-    SmallestN,
-    Statistics
+    sleep
 } from "./shared";
 import { Deferred, Funnel, Pump } from "./throttle";
-import { NonFunctionProperties, Unpacked } from "./types";
+import { Unpacked } from "./types";
 import { CpuMeasurement, FunctionCall, FunctionReturn } from "./wrapper";
+import {
+    FunctionStatsMap,
+    MemoryLeakDetector,
+    FunctionCpuUsage,
+    FactoryMap
+} from "./metrics";
 import Module = require("module");
-import { dirname } from "path";
-import { serializeCall, FaastSerializationError } from "./serialize";
 
 /**
  * @public
@@ -120,7 +122,7 @@ export type PromisifiedFunction<A extends any[], R> = (
 ) => Promise<Unpacked<R>>;
 
 /**
- * Promisified<M> is the type of {@link CloudFunction.functions}. It maps an
+ * Promisified<M> is the type of {@link FaastModule.functions}. It maps an
  * imported module's functions to promise-returning versions of those functions
  * (see {@link PromisifiedFunction}). Non-function exports of the module are
  * omitted.
@@ -152,132 +154,6 @@ function resolveModule(fmodule: string) {
     return (Module as any)._resolveFilename(fmodule, _parentModule);
 }
 
-export class FunctionCountersMap {
-    aggregate = new FunctionCounters();
-    fIncremental = new FactoryMap(() => new FunctionCounters());
-    fAggregate = new FactoryMap(() => new FunctionCounters());
-
-    incr(fn: string, key: keyof NonFunctionProperties<FunctionCounters>, n: number = 1) {
-        this.fIncremental.getOrCreate(fn)[key] += n;
-        this.fAggregate.getOrCreate(fn)[key] += n;
-        this.aggregate[key] += n;
-    }
-
-    resetIncremental() {
-        this.fIncremental.clear();
-    }
-
-    toString() {
-        return [...this.fAggregate].map(([key, value]) => `[${key}] ${value}`).join("\n");
-    }
-
-    clear() {
-        this.fIncremental.clear();
-        this.fAggregate.clear();
-    }
-}
-
-export class FunctionStatsMap {
-    fIncremental = new FactoryMap(() => new FunctionStats());
-    fAggregate = new FactoryMap(() => new FunctionStats());
-    aggregate = new FunctionStats();
-
-    update(fn: string, key: keyof NonFunctionProperties<FunctionStats>, value: number) {
-        this.fIncremental.getOrCreate(fn)[key].update(value);
-        this.fAggregate.getOrCreate(fn)[key].update(value);
-        this.aggregate[key].update(value);
-    }
-
-    resetIncremental() {
-        this.fIncremental.clear();
-    }
-
-    toString() {
-        return [...this.fAggregate].map(([key, value]) => `[${key}] ${value}`).join("\n");
-    }
-
-    clear() {
-        this.fIncremental.clear();
-        this.fAggregate.clear();
-    }
-}
-
-class FunctionCpuUsage {
-    utime = new Statistics();
-    stime = new Statistics();
-    cpuTime = new Statistics();
-    smallest = new SmallestN(100);
-}
-
-class FunctionCpuUsagePerSecond extends FactoryMap<number, FunctionCpuUsage> {
-    constructor() {
-        super(() => new FunctionCpuUsage());
-    }
-}
-
-class FunctionMemoryStats {
-    rss = new Statistics();
-    heapTotal = new Statistics();
-    heapUsed = new Statistics();
-    external = new Statistics();
-}
-
-class FunctionMemoryCounters {
-    heapUsedGrowth = 0;
-    externalGrowth = 0;
-}
-
-class MemoryLeakDetector {
-    private instances = new FactoryMap(() => new FunctionMemoryStats());
-    private counters = new FactoryMap(() => new FunctionMemoryCounters());
-    private warned = new Set<string>();
-    private memorySize: number;
-
-    constructor(memorySize?: number) {
-        this.memorySize = memorySize || 100;
-    }
-
-    detectedNewLeak(fn: string, instanceId: string, memoryUsage: NodeJS.MemoryUsage) {
-        if (this.warned.has(fn)) {
-            return false;
-        }
-        const { rss, heapTotal, heapUsed, external } = memoryUsage;
-        const instanceStats = this.instances.getOrCreate(instanceId);
-        const counters = this.counters.getOrCreate(instanceId);
-        if (heapUsed > instanceStats.heapUsed.max) {
-            counters.heapUsedGrowth++;
-        } else {
-            counters.heapUsedGrowth = 0;
-        }
-        if (external > instanceStats.external.max) {
-            counters.externalGrowth++;
-        } else {
-            counters.externalGrowth = 0;
-        }
-        instanceStats.rss.update(rss);
-        instanceStats.heapTotal.update(heapTotal);
-        instanceStats.heapUsed.update(heapUsed);
-        instanceStats.external.update(external);
-
-        if (
-            heapUsed > this.memorySize * 0.8 * 2 ** 20 ||
-            external > this.memorySize * 0.8 * 2 ** 20
-        ) {
-            if (counters.heapUsedGrowth > 4 || counters.externalGrowth > 4) {
-                this.warned.add(fn);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    clear() {
-        this.instances.clear();
-        this.counters.clear();
-        this.warned.clear();
-    }
-}
-
 interface FunctionReturnWithMetrics extends FunctionReturn {
     rawResponse: any;
     localRequestSentTime: number;
@@ -289,7 +165,6 @@ function processResponse<R>(
     returned: FunctionReturnWithMetrics,
     callRequest: FunctionCall,
     localStartTime: number,
-    fcounters: FunctionCountersMap,
     fstats: FunctionStatsMap,
     prevSkew: ExponentiallyDecayingAverageValue,
     memoryLeakDetector: MemoryLeakDetector
@@ -333,7 +208,7 @@ function processResponse<R>(
         const estimatedRemoteStartTime = localRequestSentTime + networkLatency / 2;
         const estimatedSkew = estimatedRemoteStartTime - remoteExecutionStartTime;
         let skew = estimatedSkew;
-        if (fcounters.aggregate.completed > 1) {
+        if (fstats.aggregate.completed > 1) {
             prevSkew.update(skew);
             skew = prevSkew.value;
         }
@@ -363,9 +238,9 @@ function processResponse<R>(
     }
 
     if (returned.type === "error") {
-        fcounters.incr(fn, "errors");
+        fstats.incr(fn, "errors");
     } else {
-        fcounters.incr(fn, "completed");
+        fstats.incr(fn, "completed");
     }
 
     if (instanceId && memoryUsage) {
@@ -385,18 +260,18 @@ function processResponse<R>(
     return rv;
 }
 
-async function createCloudFunction<M extends object, O extends CommonOptions, S>(
-    impl: CloudFunctionImpl<O, S>,
+async function createFaastModuleProxy<M extends object, O extends CommonOptions, S>(
+    impl: ProviderImpl<O, S>,
     fmodule: M,
     modulePath: string,
     userOptions?: O
-): Promise<CloudFunctionWrapper<M, O, S>> {
+): Promise<FaastModuleProxy<M, O, S>> {
     try {
         const resolvedModule = resolveModule(modulePath);
         const functionId = uuidv4() as UUID;
         const options = Object.assign({}, impl.defaults, userOptions);
         log.provider(`options ${inspectProvider(options)}`);
-        return new CloudFunctionWrapper(
+        return new FaastModuleProxy(
             impl,
             await impl.initialize(
                 resolvedModule,
@@ -419,16 +294,13 @@ async function createCloudFunction<M extends object, O extends CommonOptions, S>
  * @public
  */
 export class FunctionStatsEvent {
-    readonly counters: FunctionCounters;
-    readonly stats?: FunctionStats;
+    readonly stats: FunctionStats;
     /**
      * @param fn - The name of the cloud function the statistics are about.
-     * @param counters - See {@link FunctionCounters}
      * @param stats - See {@link FunctionStats}
      */
-    constructor(readonly fn: string, counters: FunctionCounters, stats?: FunctionStats) {
-        this.counters = counters.clone();
-        this.stats = stats && stats.clone();
+    constructor(readonly fn: string, stats: FunctionStats) {
+        this.stats = stats.clone();
     }
 
     /**
@@ -440,7 +312,7 @@ export class FunctionStatsEvent {
      */
     toString() {
         const executionTime = this.stats ? this.stats.executionTime.mean : 0;
-        return `[${this.fn}] ${this.counters}, executionTime: ${(
+        return `[${this.fn}] ${this.stats}, executionTime: ${(
             executionTime / 1000
         ).toFixed(2)}s`;
     }
@@ -462,7 +334,7 @@ class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
  * functions.
  * @public
  */
-export interface CloudFunction<M extends object> {
+export interface FaastModule<M extends object> {
     /** See {@link Provider}.  */
     provider: Provider;
     /**
@@ -515,7 +387,7 @@ export interface CloudFunction<M extends object> {
      * Stop the faast.js runtime for this cloud function and clean up ephemeral
      * cloud resources.
      * @param options - See {@link @CleanupOptions}.
-     * @returns a Promise that resolves when the CloudFunction runtime stops and
+     * @returns a Promise that resolves when the `FaastModule` runtime stops and
      * ephemeral resources have been deleted.
      * @remarks
      * It is best practice to always call `cleanup` when done with a cloud
@@ -533,11 +405,11 @@ export interface CloudFunction<M extends object> {
      * ```
      *
      * After the cleanup promise resolves, the cloud function instance can no
-     * longer invoke new calls on {@link CloudFunction.functions}. However,
-     * other methods on {@link CloudFunction} are safe to call, such as
-     * {@link CloudFunction.costSnapshot}.
+     * longer invoke new calls on {@link FaastModule.functions}. However, other
+     * methods on {@link FaastModule} are safe to call, such as
+     * {@link FaastModule.costSnapshot}.
      *
-     * Cleanup also stops statistics events (See {@link CloudFunction.off}).
+     * Cleanup also stops statistics events (See {@link FaastModule.off}).
      *
      * By default, cleanup will delete all ephemeral cloud resources but leave
      * behind cached resources for use by future cloud functions. Deleted
@@ -592,7 +464,7 @@ export interface CloudFunction<M extends object> {
      * Deregister a callback for statistics events.
      * @remarks
      * Stops the callback listener from receiving future function statistics
-     * events. Calling {@link CloudFunction.cleanup} also turns off statistics
+     * events. Calling {@link FaastModule.cleanup} also turns off statistics
      * events.
      */
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
@@ -606,9 +478,10 @@ export interface CloudFunction<M extends object> {
      * required to provide cost information. Calls that are still in flight are
      * not included in the cost snapshot. For this reason, it is typically a
      * good idea to get a cost snapshot after awaiting the result of
-     * {@link CloudFunction.cleanup}.
+     * {@link FaastModule.cleanup}.
      *
      * Code example:
+     *
      * ```typescript
      * const cloudFunc = await faast("aws", m, "./path/to/module", options);
      * try {
@@ -622,27 +495,35 @@ export interface CloudFunction<M extends object> {
      */
     costSnapshot(): Promise<CostSnapshot>;
 
-    // counters: FunctionCountersMap;
-    // stats: FunctionStatsMap;
+    /**
+     * Statistics for a specific function or the entire faast.js module.
+     *
+     * @param functionName - The name of the function to retrieve statistics
+     * for. If the function does not exist or has not been invoked, a new
+     * instance of {@link FunctionStats} is returned with zero values. If
+     * `functionName` omitted (undefined), then aggregate statistics are
+     * returned that summarize all cloud functions within this faast.js module.
+     */
+    stats(functionName?: string): FunctionStats;
 }
 
 /**
  * Implementation of the faast.js runtime.
  * @remarks
- * `CloudFunctionWrapper` provides a unified developer experience for faast.js
+ * `FaastModuleProxy` provides a unified developer experience for faast.js
  * modules on top of provider-specific runtime APIs. Most users will not create
- * `CloudFunctionWrapper` instances themselves; instead use {@link faast}, or
+ * `FaastModuleProxy` instances themselves; instead use {@link faast}, or
  * {@link faastAws}, {@link faastGoogle}, or {@link faastLocal}.
  * @public
  */
-export class CloudFunctionWrapper<M extends object, O, S> implements CloudFunction<M> {
+export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> {
     provider = this.impl.name;
     functions: Promisified<M>;
     /** @internal */
-    counters = new FunctionCountersMap();
-    /** @internal */
-    stats = new FunctionStatsMap();
-    private _cpuUsage = new FactoryMap(() => new FunctionCpuUsagePerSecond());
+    private _stats = new FunctionStatsMap();
+    private _cpuUsage = new FactoryMap(
+        () => new FactoryMap((_: number) => new FunctionCpuUsage())
+    );
     private _memoryLeakDetector: MemoryLeakDetector;
     private _funnel: Funnel<any>;
     private _skew = new ExponentiallyDecayingAverageValue(0.3);
@@ -658,7 +539,7 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
      * @internal
      */
     constructor(
-        private impl: CloudFunctionImpl<O, S>,
+        private impl: ProviderImpl<O, S>,
         readonly state: S,
         private fmodule: M,
         private modulePath: string,
@@ -683,12 +564,11 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
         this._collectorPump.start();
     }
 
-    /** {@inheritdoc CloudFunction} */
+    /** {@inheritdoc FaastModule} */
     async cleanup(userCleanupOptions: CleanupOptions = {}) {
         try {
             const options = Object.assign({}, CleanupOptionDefaults, userCleanupOptions);
-            this.counters.clear();
-            this.stats.clear();
+            this._stats.clear();
             this._memoryLeakDetector.clear();
             this._funnel.clear();
             this._cleanupHooks.forEach(hook => hook.resolve());
@@ -707,7 +587,7 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
         }
     }
 
-    /** {@inheritdoc CloudFunction} */
+    /** {@inheritdoc FaastModule} */
     logUrl() {
         const rv = this.impl.logUrl(this.state);
         log.provider(`logUrl ${rv}`);
@@ -716,13 +596,11 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
 
     private startStats(interval: number = 1000) {
         this._statsTimer = setInterval(() => {
-            this.counters.fIncremental.forEach((counters, fn) => {
-                const stats = this.stats.fIncremental.get(fn);
-                this._emitter.emit("stats", new FunctionStatsEvent(fn, counters, stats));
+            this._stats.fIncremental.forEach((stats, fn) => {
+                this._emitter.emit("stats", new FunctionStatsEvent(fn, stats));
             });
 
-            this.counters.resetIncremental();
-            this.stats.resetIncremental();
+            this._stats.resetIncremental();
         }, interval);
     }
 
@@ -731,7 +609,7 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
         this._statsTimer = undefined;
     }
 
-    /** {@inheritdoc CloudFunction} */
+    /** {@inheritdoc FaastModule} */
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void) {
         if (!this._statsTimer) {
             this.startStats();
@@ -739,7 +617,7 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
         this._emitter.on(name, listener);
     }
 
-    /** {@inheritdoc CloudFunction} */
+    /** {@inheritdoc FaastModule} */
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void) {
         this._emitter.off(name, listener);
         if (this._emitter.listenerCount(name) === 0) {
@@ -788,7 +666,7 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
                 }
                 if (retries < this.options.maxRetries) {
                     retries++;
-                    this.counters.incr(fname, "retries");
+                    this._stats.incr(fname, "retries");
                     return true;
                 }
                 return false;
@@ -810,7 +688,7 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
                 this._callResultsPending.set(callId, pending);
 
                 const invokeCloudFunction = () => {
-                    this.counters.incr(fname, "invocations");
+                    this._stats.incr(fname, "invocations");
                     const invocation: Invocation = {
                         callId,
                         body: pending.serialized
@@ -837,7 +715,7 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
                     });
                 };
 
-                const fnStats = this.stats.fAggregate.getOrCreate(fname);
+                const fnStats = this._stats.fAggregate.getOrCreate(fname);
 
                 this.withCancellation(cancel =>
                     retryFunctionIfNeededToReduceTailLatency(
@@ -879,8 +757,7 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
                     rv,
                     callObject,
                     startTime,
-                    this.counters,
-                    this.stats,
+                    this._stats,
                     this._skew,
                     this._memoryLeakDetector
                 );
@@ -901,16 +778,12 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
         return wrappedFunc as any;
     }
 
-    /** {@inheritdoc CloudFunction} */
+    /** {@inheritdoc FaastModule} */
     async costSnapshot() {
-        const estimate = await this.impl.costSnapshot(
-            this.state,
-            this.counters.aggregate,
-            this.stats.aggregate
-        );
+        const estimate = await this.impl.costSnapshot(this.state, this._stats.aggregate);
         log.provider(`costSnapshot returned ${inspectProvider(estimate)}`);
-        if (this.counters.aggregate.retries > 0) {
-            const { retries, invocations } = this.counters.aggregate;
+        if (this._stats.aggregate.retries > 0) {
+            const { retries, invocations } = this._stats.aggregate;
             const retryPct = ((retries / invocations) * 100).toFixed(1);
             estimate.push(
                 new CostMetric({
@@ -925,6 +798,14 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
             );
         }
         return estimate;
+    }
+
+    /** {@inheritdoc FaastModule} */
+    stats(functionName?: string) {
+        if (functionName) {
+            return this._stats.fAggregate.getOrCreate(functionName).clone();
+        }
+        return this._stats.aggregate.clone();
     }
 
     private async resultCollector() {
@@ -1023,30 +904,30 @@ export class CloudFunctionWrapper<M extends object, O, S> implements CloudFuncti
 }
 
 /**
- * The return type of {@link faastAws}. See {@link CloudFunctionWrapper}.
+ * The return type of {@link faastAws}. See {@link FaastModuleProxy}.
  * @public
  */
-export type AwsLambda<M extends object = object> = CloudFunctionWrapper<
+export type AwsModule<M extends object = object> = FaastModuleProxy<
     M,
     AwsOptions,
     AwsState
 >;
 
 /**
- * The return type of {@link faastGoogle}. See {@link CloudFunctionWrapper}.
+ * The return type of {@link faastGoogle}. See {@link FaastModuleProxy}.
  * @public
  */
-export type GoogleCloudFunction<M extends object = object> = CloudFunctionWrapper<
+export type GoogleModule<M extends object = object> = FaastModuleProxy<
     M,
     GoogleOptions,
     GoogleState
 >;
 
 /**
- * The return type of {@link faastLocal}. See {@link CloudFunctionWrapper}.
+ * The return type of {@link faastLocal}. See {@link FaastModuleProxy}.
  * @public
  */
-export type LocalFunction<M extends object = object> = CloudFunctionWrapper<
+export type LocalModule<M extends object = object> = FaastModuleProxy<
     M,
     LocalOptions,
     LocalState
@@ -1067,7 +948,7 @@ export async function faast<M extends object>(
     fmodule: M,
     modulePath: string,
     options?: CommonOptions
-): Promise<CloudFunction<M>> {
+): Promise<FaastModule<M>> {
     switch (provider) {
         case "aws":
             return faastAws(fmodule, modulePath, options);
@@ -1095,8 +976,8 @@ export function faastAws<M extends object>(
     fmodule: M,
     modulePath: string,
     options?: AwsOptions
-): Promise<AwsLambda<M>> {
-    return createCloudFunction<M, AwsOptions, AwsState>(
+): Promise<AwsModule<M>> {
+    return createFaastModuleProxy<M, AwsOptions, AwsState>(
         AwsImpl,
         fmodule,
         modulePath,
@@ -1119,8 +1000,8 @@ export function faastGoogle<M extends object>(
     fmodule: M,
     modulePath: string,
     options?: GoogleOptions
-): Promise<GoogleCloudFunction<M>> {
-    return createCloudFunction<M, GoogleOptions, GoogleState>(
+): Promise<GoogleModule<M>> {
+    return createFaastModuleProxy<M, GoogleOptions, GoogleState>(
         GoogleImpl,
         fmodule,
         modulePath,
@@ -1143,8 +1024,8 @@ export function faastLocal<M extends object>(
     fmodule: M,
     modulePath: string,
     options?: LocalOptions
-): Promise<LocalFunction<M>> {
-    return createCloudFunction<M, LocalOptions, LocalState>(
+): Promise<LocalModule<M>> {
+    return createFaastModuleProxy<M, LocalOptions, LocalState>(
         LocalImpl,
         fmodule,
         modulePath,
@@ -1211,7 +1092,7 @@ async function retryFunctionIfNeededToReduceTailLatency(
 async function proactiveRetry(
     cpuUsage: CpuMeasurement,
     elapsed: number,
-    secondMap: FunctionCpuUsagePerSecond
+    secondMap: FactoryMap<number, FunctionCpuUsage>
 ) {
     const time = cpuUsage.utime + cpuUsage.stime;
     const rounded = Math.round(elapsed);

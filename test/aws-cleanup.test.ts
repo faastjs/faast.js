@@ -1,10 +1,10 @@
 import test from "ava";
 import * as uuid from "uuid/v4";
-import { faast, faastAws, AwsLambda } from "../index";
+import { faastAws, AwsModule } from "../index";
 import { checkResourcesCleanedUp, quietly } from "./fixtures/util";
 
-export async function getAWSResources(func: AwsLambda) {
-    const { lambda, sns, sqs } = func.state.services;
+export async function getAWSResources(mod: AwsModule) {
+    const { lambda, sns, sqs } = mod.state.services;
     const {
         FunctionName,
         RoleName,
@@ -16,7 +16,7 @@ export async function getAWSResources(func: AwsLambda) {
         logGroupName,
         layer,
         ...rest
-    } = func.state.resources;
+    } = mod.state.resources;
 
     const _exhaustiveCheck: Required<typeof rest> = {};
 

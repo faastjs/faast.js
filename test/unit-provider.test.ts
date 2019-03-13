@@ -1,40 +1,34 @@
-import { FunctionStats, FunctionCounters } from "../index";
+import { FunctionStats } from "../index";
 import test from "ava";
 import { keys } from "../src/shared";
 
 test(`FunctionStats clone`, t => {
-    const fstats = new FunctionStats();
+    const stats = new FunctionStats();
 
-    fstats.executionTime.update(100);
-    fstats.estimatedBilledTime.update(101);
-    fstats.localStartLatency.update(102);
-    fstats.remoteStartLatency.update(103);
-    fstats.returnLatency.update(104);
-    fstats.sendResponseLatency.update(105);
+    stats.executionTime.update(100);
+    stats.estimatedBilledTime.update(101);
+    stats.localStartLatency.update(102);
+    stats.remoteStartLatency.update(103);
+    stats.returnLatency.update(104);
+    stats.sendResponseLatency.update(105);
+    stats.completed = 10;
+    stats.errors = 1;
+    stats.invocations = 11;
+    stats.retries = 2;
 
-    const cloned = fstats.clone();
-    t.deepEqual(cloned, fstats);
+    const cloned = stats.clone();
+    t.deepEqual(cloned, stats);
     for (const key of keys(cloned)) {
-        t.true(cloned[key] !== fstats[key]);
+        if (typeof cloned[key] !== "number") {
+            t.true(cloned[key] !== stats[key]);
+        }
     }
-    t.is(cloned.toString(), fstats.toString());
+    t.is(cloned.toString(), stats.toString());
 
-    cloned.estimatedBilledTime.update(0);
-    t.notDeepEqual(cloned, fstats);
-    t.notDeepEqual(cloned.estimatedBilledTime, fstats.estimatedBilledTime);
-    t.true(cloned.toString() !== fstats.toString());
-});
-
-test(`FunctionCounters clone`, t => {
-    const fcounters = new FunctionCounters();
-    fcounters.completed = 10;
-    fcounters.errors = 1;
-    fcounters.invocations = 11;
-    fcounters.retries = 2;
-
-    const clone = fcounters.clone();
-    t.deepEqual(clone, fcounters);
-
-    clone.completed++;
-    t.true(clone.completed !== fcounters.completed);
+    cloned.executionTime.update(0);
+    t.notDeepEqual(cloned, stats);
+    t.notDeepEqual(cloned.executionTime, stats.executionTime);
+    t.true(cloned.toString() !== stats.toString());
+    cloned.completed++;
+    t.true(cloned.completed !== stats.completed);
 });

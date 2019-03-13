@@ -3,10 +3,10 @@ import { inspect } from "util";
 import { faast, Promisified } from "../index";
 import { AwsOptions } from "./aws/aws-faast";
 import { GoogleOptions } from "./google/google-faast";
-import { FunctionCounters, FunctionStats, CommonOptions } from "./provider";
+import { FunctionStats, CommonOptions } from "./provider";
 import { f1, keys, Statistics, sum } from "./shared";
 import { throttle } from "./throttle";
-import { NonFunctionProperties } from "./types";
+import { PropertiesExcept, AnyFunction } from "./types";
 
 /**
  * @public
@@ -47,7 +47,7 @@ export class CostMetric {
     readonly informationalOnly?: boolean;
 
     /** @internal */
-    constructor(arg: NonFunctionProperties<CostMetric>) {
+    constructor(arg: PropertiesExcept<CostMetric, AnyFunction>) {
         this.name = arg.name;
         this.pricing = arg.pricing;
         this.unit = arg.unit;
@@ -96,17 +96,14 @@ export class CostMetric {
  */
 export class CostSnapshot {
     readonly stats: FunctionStats;
-    readonly counters: FunctionCounters;
     readonly costMetrics: CostMetric[] = [];
     constructor(
         readonly provider: string,
         readonly options: CommonOptions | AwsOptions | GoogleOptions,
         stats: FunctionStats,
-        counters: FunctionCounters,
         costMetrics: CostMetric[] = []
     ) {
         this.stats = stats.clone();
-        this.counters = counters.clone();
         this.costMetrics = [...costMetrics];
     }
 
@@ -316,7 +313,7 @@ export async function estimateWorkloadCost<T extends object, A extends string>(
                 task: async (_: any, task: Listr.ListrTaskWrapper) => {
                     const { costSnapshot, extraMetrics } = await promise;
                     const total = (costSnapshot.total() / repetitions).toFixed(8);
-                    const { errors } = costSnapshot.counters;
+                    const { errors } = costSnapshot.stats;
                     const { executionTime } = costSnapshot.stats;
                     const message = `${ps(executionTime.mean)}s ${ps(
                         executionTime.stdev
@@ -375,7 +372,13 @@ class WorkloadCostAnalyzerResult<T extends object, A extends string> {
         this.estimates.forEach(({ costSnapshot, extraMetrics }) => {
             const { memorySize, mode, ...rest } = costSnapshot.options;
             const options = `"${inspect(rest).replace('"', '""')}"`;
-            const { completed, errors, retries } = costSnapshot.counters;
+            const {
+                completed,
+                errors,
+                retries,
+                executionTime,
+                estimatedBilledTime
+            } = costSnapshot.stats;
             const cost = (costSnapshot.total() / this.repetitions).toFixed(8);
             const formatter = this.workload.formatCSV || defaultFormatCSV;
 
@@ -383,7 +386,6 @@ class WorkloadCostAnalyzerResult<T extends object, A extends string> {
             for (const attr of attributes) {
                 metrics[attr] = formatter(attr, extraMetrics[attr]);
             }
-            const { stats } = costSnapshot;
             const row = {
                 memory: memorySize,
                 cloud: costSnapshot.provider,
@@ -393,9 +395,9 @@ class WorkloadCostAnalyzerResult<T extends object, A extends string> {
                 errors,
                 retries,
                 cost: `$${cost}`,
-                executionTime: ps(stats.executionTime.mean),
-                executionTimeStdev: ps(stats.executionTime.stdev),
-                billedTime: ps(stats.estimatedBilledTime.mean),
+                executionTime: ps(executionTime.mean),
+                executionTimeStdev: ps(executionTime.stdev),
+                billedTime: ps(estimatedBilledTime.mean),
                 ...metrics
             };
 

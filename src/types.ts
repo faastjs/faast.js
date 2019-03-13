@@ -1,8 +1,14 @@
-export type NonFunctionPropertyNames<T> = {
-    [K in keyof T]: T[K] extends (...arg: any[]) => any ? never : K
+export type ExtractPropertyNamesWithType<T, U> = {
+    [K in keyof T]: T[K] extends U ? K : never
 }[keyof T];
 
-export type NonFunctionProperties<T> = Pick<T, NonFunctionPropertyNames<T>>;
+export type ExtractPropertyNamesExceptType<T, U> = {
+    [K in keyof T]: T[K] extends U ? never : K
+}[keyof T];
+
+export type PropertiesOfType<T, U> = Pick<T, ExtractPropertyNamesWithType<T, U>>;
+
+export type PropertiesExcept<T, X> = Pick<T, ExtractPropertyNamesExceptType<T, X>>;
 
 export type Omit<T, K> = Pick<T, Exclude<keyof T, K>>;
 

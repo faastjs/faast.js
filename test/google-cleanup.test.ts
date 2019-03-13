@@ -1,9 +1,9 @@
 import test, { ExecutionContext } from "ava";
-import { faastGoogle, GoogleCloudFunction, log } from "../index";
+import { faastGoogle, GoogleModule, log } from "../index";
 import { checkResourcesCleanedUp, keys, quietly } from "./fixtures/util";
 
-export async function getGoogleResources(func: GoogleCloudFunction) {
-    const { cloudFunctions, pubsub } = func.state.services;
+export async function getGoogleResources(mod: GoogleModule) {
+    const { cloudFunctions, pubsub } = mod.state.services;
     const {
         trampoline,
         requestQueueTopic,
@@ -11,7 +11,7 @@ export async function getGoogleResources(func: GoogleCloudFunction) {
         responseSubscription,
         region,
         ...rest
-    } = func.state.resources;
+    } = mod.state.resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
 
     const functionResult = await quietly(

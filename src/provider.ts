@@ -83,12 +83,12 @@ export interface CommonOptions {
      * @remarks
      * Garbage collection deletes resources that were created by previous
      * instantiations of faast that were not cleaned up by
-     * {@link CloudFunction.cleanup}, either because it was not called or
+     * {@link FaastModule.cleanup}, either because it was not called or
      * because the process terminated and did not execute this cleanup step.
      *
      * Garbage collection is cloud-specific, but in general garbage collection
      * should not interfere with the behavior or performance of faast functions.
-     * When {@link CloudFunction.cleanup} runs, it waits for garbage collection
+     * When {@link FaastModule.cleanup} runs, it waits for garbage collection
      * to complete. Therefore the cleanup step can in some circumstances take a
      * significant amount of time even after all invocations have returned.
      *
@@ -236,7 +236,7 @@ export interface CommonOptions {
      * suppose this is the sequence of events:
      *
      * - Day 0: `faast()` is called with `retentionInDays` set to 5. Then, the
-     *   function crashes (or omits the call to {@link CloudFunction.cleanup}).
+     *   function crashes (or omits the call to {@link FaastModule.cleanup}).
      *
      * - Day 1: `faast()` is called with `retentionInDays` set to 1.
      *
@@ -362,7 +362,7 @@ export const commonDefaults: Required<CommonOptions> = {
 };
 
 /**
- * Options that apply to the {@link CloudFunction.cleanup} method.
+ * Options that apply to the {@link FaastModule.cleanup} method.
  * @public
  */
 export interface CleanupOptions {
@@ -375,7 +375,7 @@ export interface CleanupOptions {
      * deleted. This can be useful for debugging and examining the state of
      * resources created by faast.js.
      *
-     * It is supported to call {@link CloudFunction.cleanup} twice: once with
+     * It is supported to call {@link FaastModule.cleanup} twice: once with
      * `deleteResources` set to `false`, which only stops the runtime, and then
      * again set to `true` to delete resources. This can be useful for testing.
      */
@@ -389,11 +389,11 @@ export interface CleanupOptions {
      * deleted when cleanup occurs, instead of being left behind for future use.
      * For example, on AWS this includes the Lambda Layers that are created for
      * {@link CommonOptions.packageJson} dependencies. Note that only the cached
-     * resources created by this instance of CloudFunction are deleted, not
-     * cached resources from other CloudFunctions. This is similar to setting
+     * resources created by this instance of FaastModule are deleted, not cached
+     * resources from other FaastModules. This is similar to setting
      * `useCachedDependencies` to `false` during function construction, except
      * `deleteCaches` can be set at function cleanup time, and any other
-     * CloudFunctions created before cleanup may use the cached Layers.
+     * FaastModules created before cleanup may use the cached Layers.
      */
     deleteCaches?: boolean;
 }
@@ -402,45 +402,6 @@ export const CleanupOptionDefaults: Required<CleanupOptions> = {
     deleteResources: true,
     deleteCaches: false
 };
-
-/**
- * Counters summarizing function invocations.
- * @public
- */
-export class FunctionCounters {
-    /** The number of invocations attempted. If an invocation is retried, this only counts the invocation once. */
-    invocations = 0;
-    /** The number of invocations that were successfully completed. */
-    completed = 0;
-    /**
-     * The number of invocation retries attempted. This counts retries
-     * attempted by faast.js to recover from transient errors, but does not
-     * count retries by the cloud provider.
-     */
-    retries = 0;
-    /**
-     * The number of invocations that resulted in an error. If an invocation is
-     * retried, an error is only counted once, no matter how many retries were
-     * attempted.
-     */
-    errors = 0;
-
-    /**
-     * returns a string showing the value of completed, retries, and errors.
-     * This string excludes invocations by default because it is often fixed.
-     */
-    toString() {
-        return `completed: ${this.completed}, retries: ${this.retries}, errors: ${
-            this.errors
-        }`;
-    }
-
-    /** @internal */
-    clone(): FunctionCounters {
-        const rv = new FunctionCounters();
-        return Object.assign(rv, this);
-    }
-}
 
 /**
  * Summary statistics for function invocations.
@@ -523,19 +484,44 @@ export class FunctionStats {
      * up to the next 100ms.
      */
     estimatedBilledTime = new Statistics();
-
-    /** returns a string showing the mean of each statistic. */
+    /**
+     * The number of invocations attempted. If an invocation is retried, this
+     * only counts the invocation once.
+     */
+    invocations = 0;
+    /**
+     * The number of invocations that were successfully completed.
+     */
+    completed = 0;
+    /**
+     * The number of invocation retries attempted. This counts retries
+     * attempted by faast.js to recover from transient errors, but does not
+     * count retries by the cloud provider.
+     */
+    retries = 0;
+    /**
+     * The number of invocations that resulted in an error. If an invocation is
+     * retried, an error is only counted once, no matter how many retries were
+     * attempted.
+     */
+    errors = 0;
+    /**
+     * returns a string showing the value of completed, retries, and errors.
+     * This string excludes invocations by default because it is often fixed.
+     * Also print the mean of executionTime.
+     */
     toString() {
-        return keys(this)
-            .map(key => `${key}: ${this[key]}`)
-            .join(", ");
+        return `completed: ${this.completed}, retries: ${this.retries}, errors: ${
+            this.errors
+        }, executionTime: ${this.executionTime}`;
     }
-
     /** @internal */
     clone(): FunctionStats {
         const rv = Object.assign(Object.create(Object.getPrototypeOf(this)), this);
         for (const key of keys(rv)) {
-            rv[key] = rv[key].clone();
+            if (typeof rv[key] !== "number") {
+                rv[key] = rv[key].clone();
+            }
         }
         return rv;
     }
@@ -596,7 +582,7 @@ export type ReceivableKind = ReceivableMessage["kind"];
 export type Kind = Message["kind"];
 export type UUID = string;
 
-export interface CloudFunctionImpl<O extends CommonOptions, S> {
+export interface ProviderImpl<O extends CommonOptions, S> {
     name: Provider;
     defaults: Required<O>;
 
@@ -607,12 +593,7 @@ export interface CloudFunctionImpl<O extends CommonOptions, S> {
         parentDir: string
     ): Promise<S>;
 
-    costSnapshot(
-        state: S,
-        counters: FunctionCounters,
-        stats: FunctionStats
-    ): Promise<CostSnapshot>;
-
+    costSnapshot(state: S, stats: FunctionStats): Promise<CostSnapshot>;
     cleanup(state: S, options: Required<CleanupOptions>): Promise<void>;
     logUrl(state: S): string;
     invoke(

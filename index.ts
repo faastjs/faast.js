@@ -13,28 +13,22 @@ export {
     faastAws,
     faastGoogle,
     faastLocal,
-    CloudFunction,
+    FaastModule,
     FaastError,
     FunctionStatsEvent,
     Promisified,
     PromisifiedFunction,
     providers,
-    AwsLambda,
-    GoogleCloudFunction,
-    LocalFunction,
-    CloudFunctionWrapper
+    AwsModule,
+    GoogleModule,
+    LocalModule,
+    FaastModuleProxy
 } from "./src/faast";
 export { AwsOptions, AwsRegion } from "./src/aws/aws-faast";
 export { GoogleOptions } from "./src/google/google-faast";
 export { LocalOptions } from "./src/local/local-faast";
 export { log } from "./src/log";
-export {
-    CleanupOptions,
-    CommonOptions,
-    FunctionCounters,
-    FunctionStats,
-    Provider
-} from "./src/provider";
+export { CleanupOptions, CommonOptions, FunctionStats, Provider } from "./src/provider";
 export { Statistics } from "./src/shared";
 export { throttle, Limits } from "./src/throttle";
 export { Unpacked } from "./src/types";

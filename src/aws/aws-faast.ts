@@ -7,8 +7,7 @@ import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import { readFile, ensureDir, writeFile } from "fs-extra";
 import {
-    CloudFunctionImpl,
-    FunctionCounters,
+    ProviderImpl,
     FunctionStats,
     Invocation,
     PollResult,
@@ -1177,14 +1176,13 @@ export const requestAwsPrices = async (
 
 export async function costSnapshot(
     state: AwsState,
-    counters: FunctionCounters,
-    statistics: FunctionStats
+    stats: FunctionStats
 ): Promise<CostSnapshot> {
     const { region } = state.resources;
     const prices = await requestAwsPrices(state.services.pricing, region);
     const costMetrics: CostMetric[] = [];
     const { memorySize = defaults.memorySize } = state.options;
-    const billedTimeStats = statistics.estimatedBilledTime;
+    const billedTimeStats = stats.estimatedBilledTime;
     const seconds = (billedTimeStats.mean / 1000) * billedTimeStats.samples || 0;
     const provisionedGb = memorySize / 1024;
     const functionCallDuration = new CostMetric({
@@ -1203,7 +1201,7 @@ export async function costSnapshot(
     const functionCallRequests = new CostMetric({
         name: "functionCallRequests",
         pricing: prices.lambdaPerRequest,
-        measured: counters.invocations,
+        measured: stats.invocations,
         unit: "request",
         comment: "https://aws.amazon.com/lambda/pricing"
     });
@@ -1248,10 +1246,10 @@ export async function costSnapshot(
     });
     costMetrics.push(logIngestion);
 
-    return new CostSnapshot("aws", state.options, statistics, counters, costMetrics);
+    return new CostSnapshot("aws", state.options, stats, costMetrics);
 }
 
-export const AwsImpl: CloudFunctionImpl<AwsOptions, AwsState> = {
+export const AwsImpl: ProviderImpl<AwsOptions, AwsState> = {
     name: "aws",
     initialize,
     defaults,

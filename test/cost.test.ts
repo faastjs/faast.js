@@ -39,8 +39,8 @@ async function testCostAnalyzer(
 
     t.is(profile.estimates.length, configs.length);
     for (const { costSnapshot } of profile.estimates) {
-        t.is(costSnapshot.counters.completed, repetitions);
-        t.is(costSnapshot.counters.errors, 0);
+        t.is(costSnapshot.stats.completed, repetitions);
+        t.is(costSnapshot.stats.errors, 0);
         t.true(costSnapshot.stats.estimatedBilledTime.mean > 0);
         t.true(costSnapshot.total() > 0);
     }
@@ -76,13 +76,13 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
         maxRetries: 0,
         gc: false
     };
-    const cloudFunc = await faast(provider, funcs, "./fixtures/functions", args);
+    const cloudModule = await faast(provider, funcs, "./fixtures/functions", args);
 
     try {
-        await cloudFunc.functions.hello("there");
-        const costs = await cloudFunc.costSnapshot();
+        await cloudModule.functions.hello("there");
+        const costs = await cloudModule.costSnapshot();
 
-        const { estimatedBilledTime } = cloudFunc.stats.aggregate;
+        const { estimatedBilledTime } = cloudModule.stats();
         t.is(
             (estimatedBilledTime.mean * estimatedBilledTime.samples) / 1000,
             costs.costMetrics.find(m => m.name === "functionCallDuration")!.measured
@@ -109,7 +109,7 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
             t.true(costs.total() === 0);
         }
     } finally {
-        await cloudFunc.cleanup();
+        await cloudModule.cleanup();
     }
 }
 
