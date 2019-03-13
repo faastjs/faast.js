@@ -470,8 +470,8 @@ export interface CloudFunction<M extends object> {
      * @remarks
      * The module passed into {@link faast} or its provider-specific variants
      * ({@link faastAws}, {@link faastGoogle}, and {@link faastLocal}) is mapped
-     * to a {@link Promisifed} version of the module. A Promisified version of a
-     * module performs the following mapping:
+     * to a {@link Promisified} version of the module, which performs the
+     * following mapping:
      *
      * - All function exports that return promises have their type signatures
      *   preserved as-is.
@@ -483,9 +483,9 @@ export interface CloudFunction<M extends object> {
      * - All non-function exports are omitted in the Promisified module.
      *
      * Arguments and return values are serialized with `JSON.stringify` when
-     * cloud functions are called, therefore what is received on the remote
-     * side might not match what was sent. Faast.js attempts to detect
-     * nonsupported arguments on a best effort basis.
+     * cloud functions are called, therefore what is received on the remote side
+     * might not match what was sent. Faast.js attempts to detect nonsupported
+     * arguments on a best effort basis.
      *
      * If the cloud function throws an exception or rejects its promise with an
      * instance of `Error`, then the function will reject with
@@ -622,8 +622,8 @@ export interface CloudFunction<M extends object> {
      */
     costSnapshot(): Promise<CostSnapshot>;
 
-    counters: FunctionCountersMap;
-    stats: FunctionStatsMap;
+    // counters: FunctionCountersMap;
+    // stats: FunctionStatsMap;
 }
 
 /**

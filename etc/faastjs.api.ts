@@ -24,50 +24,32 @@ interface CleanupOptions {
 
 // @public
 interface CloudFunction<M extends object> {
-    // (undocumented)
-    asAwsLambda(): AwsLambda<M>;
-    // (undocumented)
-    asGoogleCloudFunction(): GoogleCloudFunction<M>;
-    // (undocumented)
-    asLocalFunction(): LocalFunction<M>;
-    // (undocumented)
     cleanup(options?: CleanupOptions): Promise<void>;
-    // (undocumented)
-    costEstimate(): Promise<CostSnapshot>;
-    // (undocumented)
-    counters: FunctionCountersMap;
+    costSnapshot(): Promise<CostSnapshot>;
     functions: Promisified<M>;
-    // (undocumented)
     logUrl(): string;
-    // (undocumented)
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
-    // (undocumented)
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
-    // (undocumented)
     provider: Provider;
-    // (undocumented)
-    stats: FunctionStatsMap;
 }
 
-// @public (undocumented)
+// @public
 declare class CloudFunctionWrapper<M extends object, O, S> implements CloudFunction<M> {
     // @internal
     constructor(impl: CloudFunctionImpl<O, S>, state: S, fmodule: M, modulePath: string, options: Required<CommonOptions>);
     // (undocumented)
-    asAwsLambda(): CloudFunctionWrapper<M, AwsOptions, AwsState>;
-    // (undocumented)
-    asGoogleCloudFunction(): CloudFunctionWrapper<M, GoogleOptions, GoogleState>;
-    // (undocumented)
-    asLocalFunction(): CloudFunctionWrapper<M, LocalOptions, LocalState>;
-    // (undocumented)
     cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
-    costEstimate(): Promise<CostSnapshot>;
+    // (undocumented)
+    costSnapshot(): Promise<CostSnapshot>;
     // @internal (undocumented)
     counters: FunctionCountersMap;
     // (undocumented)
     functions: Promisified<M>;
+    // (undocumented)
     logUrl(): string;
+    // (undocumented)
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
+    // (undocumented)
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
     // (undocumented)
     readonly options: Required<CommonOptions>;
@@ -213,14 +195,13 @@ declare class FunctionStats {
 // @public
 declare class FunctionStatsEvent {
     // (undocumented)
-    constructor(fn: string, counters: FunctionCounters, stats?: FunctionStats | undefined);
+    constructor(fn: string, counters: FunctionCounters, stats?: FunctionStats);
     // (undocumented)
     readonly counters: FunctionCounters;
     // (undocumented)
     readonly fn: string;
     // (undocumented)
-    readonly stats?: FunctionStats | undefined;
-    // (undocumented)
+    readonly stats?: FunctionStats;
     toString(): string;
 }
 
