@@ -507,9 +507,9 @@ export class FunctionStats {
      */
     errors = 0;
     /**
-     * returns a string showing the value of completed, retries, and errors.
-     * This string excludes invocations by default because it is often fixed.
-     * Also print the mean of executionTime.
+     * @returns a string showing the value of completed, retries, errors, and
+     * mean execution time. This string excludes invocations by default because
+     * it is often fixed.
      */
     toString() {
         return `completed: ${this.completed}, retries: ${this.retries}, errors: ${

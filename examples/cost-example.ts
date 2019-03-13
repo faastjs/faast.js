@@ -2,14 +2,14 @@ import { faast } from "../index";
 import * as m from "./functions";
 
 async function main() {
-    const cloudModule = await faast("aws", m, "./module");
+    const faastModule = await faast("aws", m, "./module");
 
-    const result = await cloudModule.functions.hello("world");
-    const cost = await cloudModule.costSnapshot();
+    const result = await faastModule.functions.hello("world");
+    const cost = await faastModule.costSnapshot();
 
     console.log(`Result: ${result}\n`);
     console.log(`${cost}`);
-    await cloudModule.cleanup();
+    await faastModule.cleanup();
 }
 
 main();

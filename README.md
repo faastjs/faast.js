@@ -29,7 +29,7 @@ import * as funcs from "./functions";
 async function main() {
  const lambda = await faast("aws", funcs, "./functions");
  console.log(await lambda.functions.hello("world"));
- await cloudModule.cleanup();
+ await faastModule.cleanup();
 }
 main();
 ```

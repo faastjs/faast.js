@@ -78,7 +78,7 @@ export interface GoogleOptions extends CommonOptions {
     googleCloudFunctionOptions?: CloudFunctions.Schema$CloudFunction;
 
     /** @internal */
-    gcWorker?: (resources: GoogleResources, services: GoogleServices) => Promise<void>;
+    _gcWorker?: (resources: GoogleResources, services: GoogleServices) => Promise<void>;
 }
 
 export interface GoogleResources {
@@ -128,7 +128,7 @@ export const defaults: Required<GoogleOptions> = {
     ...commonDefaults,
     region: "us-central1",
     googleCloudFunctionOptions: {},
-    gcWorker: gcWorkerDefault
+    _gcWorker: gcWorkerDefault
 };
 
 export const GoogleImpl: ProviderImpl<GoogleOptions, GoogleState> = {
@@ -283,7 +283,7 @@ export async function initialize(
         options
     };
 
-    const { gc, retentionInDays, gcWorker } = options;
+    const { gc, retentionInDays, _gcWorker: gcWorker } = options;
     if (gc) {
         log.gc(`Starting garbage collector`);
         state.gcPromise = collectGarbage(gcWorker, services, project, retentionInDays);

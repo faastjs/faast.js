@@ -6,7 +6,8 @@ export {
     estimateWorkloadCost,
     googleConfigurations,
     WorkloadAttribute,
-    Workload
+    Workload,
+    WorkloadCostAnalyzerResult
 } from "./src/cost";
 export {
     faast,
@@ -31,6 +32,7 @@ export { log } from "./src/log";
 export { CleanupOptions, CommonOptions, FunctionStats, Provider } from "./src/provider";
 export { Statistics } from "./src/shared";
 export { throttle, Limits } from "./src/throttle";
+export { PersistentCache } from "./src/cache";
 export { Unpacked } from "./src/types";
 
 /** @internal */

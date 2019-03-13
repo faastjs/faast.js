@@ -172,7 +172,7 @@ export interface AwsOptions extends CommonOptions {
      */
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
     /** @internal */
-    gcWorker?: (work: AwsGcWork, services: AwsServices) => Promise<void>;
+    _gcWorker?: (work: AwsGcWork, services: AwsServices) => Promise<void>;
 }
 
 export let defaults: Required<AwsOptions> = {
@@ -181,7 +181,7 @@ export let defaults: Required<AwsOptions> = {
     RoleName: "faast-cached-lambda-role",
     memorySize: 1728,
     awsLambdaOptions: {},
-    gcWorker: defaultGcWorker
+    _gcWorker: defaultGcWorker
 };
 
 export interface AwsPrices {
@@ -368,7 +368,7 @@ export async function createLayer(
     }
 
     try {
-        const cloudModule = await faastAws(awsNpm, require.resolve("./aws-npm"), {
+        const faastModule = await faastAws(awsNpm, require.resolve("./aws-npm"), {
             timeout: 300,
             memorySize: 2048,
             mode: "https",
@@ -383,13 +383,13 @@ export async function createLayer(
                 packageJsonContents,
                 LayerName
             };
-            const { installLog, layerInfo } = await cloudModule.functions.npmInstall(
+            const { installLog, layerInfo } = await faastModule.functions.npmInstall(
                 installArgs
             );
             log.info(installLog);
             return layerInfo;
         } finally {
-            await cloudModule.cleanup();
+            await faastModule.cleanup();
         }
     } catch (err) {
         log.warn(`createPackageLayer error:`);
@@ -476,7 +476,7 @@ export const initialize = throttle(
             options
         };
 
-        const { gc, retentionInDays, gcWorker } = options;
+        const { gc, retentionInDays, _gcWorker: gcWorker } = options;
         if (gc) {
             log.gc(`Starting garbage collector`);
             state.gcPromise = collectGarbage(

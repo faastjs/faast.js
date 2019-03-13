@@ -179,6 +179,7 @@ declare class FunctionStats {
     retries: number;
     returnLatency: Statistics;
     sendResponseLatency: Statistics;
+    // (undocumented)
     toString(): string;
 }
 

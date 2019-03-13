@@ -33,12 +33,12 @@ import { faast } from "faast";
 import * as funcs from "./functions";
 
 async function main() {
- const cloudModule = await faast("aws", funcs, "./functions");
+ const faastModule = await faast("aws", funcs, "./functions");
  try {
-  const remote = cloudModule.functions;
+  const remote = faastModule.functions;
   console.log(await remote.add(23, 19));
  } finally {
-  await cloudModule.cleanup();
+  await faastModule.cleanup();
  }
 }
 
@@ -81,7 +81,7 @@ If your application crashes while executing, then cleanup won't get done. In thi
 Logs are not downloaded by default; they are preserved in the cloud provider's logging service (e.g. Cloudwatch Logs for AWS Stackdriver Logs for GCP, and a local temporary directory for local mode). Access logs via the `logUrl` method:
 
 ```typescript
-console.log(`Log URL: ${cloudModule.logUrl()}`);
+console.log(`Log URL: ${faastModule.logUrl()}`);
 ```
 
 The main reason for this design is (1) downloading logs causes outbound data transfer, which can be expensive (2) cloud providers have specialized filtering and querying that works well for the cloud-specific metadata they add to log entries, and (3) log services are specifically designed to handle the output of thousands of concurrent log streams.

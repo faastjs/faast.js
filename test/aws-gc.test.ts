@@ -11,9 +11,10 @@ test.serial(
     async t => {
         // Idea behind this test: create a faast module and make a call. Then
         // cleanup while leaving the resources in place. Then create another
-        // function and set its retention to 0, and use a recorder to observe
-        // its garbage collector to verify that it would clean up the first
-        // function, which shows that the garbage collector did its job.
+        // faast module and set its retention to 0, and use a recorder to
+        // observe its garbage collector to verify that it would clean up the
+        // first faast module, which shows that the garbage collector did its
+        // job.
 
         const gcRecorder = record(async (work: AwsGcWork) => {
             log.gc(`Recorded gc work: %O`, work);
@@ -49,7 +50,7 @@ test.serial(
             await mod.cleanup({ deleteResources: false });
             const mod2 = await faastAws(functions, "./fixtures/functions", {
                 gc: true,
-                gcWorker: gcRecorder,
+                _gcWorker: gcRecorder,
                 retentionInDays: 0
             });
 
@@ -114,7 +115,7 @@ test.serial(
             await mod.cleanup({ deleteResources: false });
             const mod2 = await faastAws(functions, "./fixtures/functions", {
                 gc: true,
-                gcWorker: gcRecorder,
+                _gcWorker: gcRecorder,
                 retentionInDays: 0
             });
 
@@ -169,7 +170,7 @@ test.serial(
             await mod.cleanup({ deleteResources: false });
             const mod2 = await faastAws(functions, "./fixtures/functions", {
                 gc: true,
-                gcWorker: gcRecorder,
+                _gcWorker: gcRecorder,
                 retentionInDays: 0
             });
 

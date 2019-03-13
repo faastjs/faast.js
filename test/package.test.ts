@@ -25,12 +25,12 @@ async function testPackage(
         },
         useDependencyCaching: false
     };
-    const cloudModule = await faast(provider, funcs, "./fixtures/functionsPackage", opts);
-    const remote = cloudModule.functions;
+    const faastModule = await faast(provider, funcs, "./fixtures/functionsPackage", opts);
+    const remote = faastModule.functions;
     try {
         t.is(await remote.isDir("."), true);
     } finally {
-        await cloudModule.cleanup();
+        await faastModule.cleanup();
     }
 }
 
@@ -57,24 +57,24 @@ test("remote aws package dependencies with lambda layer caching", async t => {
             tslib: "^1.9.1"
         }
     };
-    const cloudModule = await faastAws(funcs, "./fixtures/functionsPackage", {
+    const faastModule = await faastAws(funcs, "./fixtures/functionsPackage", {
         gc: false,
         packageJson
     });
 
     try {
-        const cloudModule2 = await faastAws(funcs, "./fixtures/functionsPackage", {
+        const faastModule2 = await faastAws(funcs, "./fixtures/functionsPackage", {
             gc: false,
             packageJson
         });
 
-        t.not(cloudModule.state.resources.layer, undefined);
+        t.not(faastModule.state.resources.layer, undefined);
         t.deepEqual(
-            cloudModule.state.resources.layer,
-            cloudModule2.state.resources.layer
+            faastModule.state.resources.layer,
+            faastModule2.state.resources.layer
         );
-        await cloudModule2.cleanup();
+        await faastModule2.cleanup();
     } finally {
-        await cloudModule.cleanup({ deleteCaches: true });
+        await faastModule.cleanup({ deleteCaches: true });
     }
 });

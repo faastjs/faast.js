@@ -1,8 +1,8 @@
 import {
-    Promisified,
     awsConfigurations,
     googleConfigurations,
-    estimateWorkloadCost
+    estimateWorkloadCost,
+    FaastModule
 } from "../index";
 import * as m from "./functions";
 import { writeFile as fsWriteFile } from "fs";
@@ -10,8 +10,8 @@ import { promisify } from "util";
 
 const writeFile = promisify(fsWriteFile);
 
-async function work(remote: Promisified<typeof m>) {
-    await remote.randomNumbers(100000000);
+async function work(faastModule: FaastModule<typeof m>) {
+    await faastModule.functions.randomNumbers(100000000);
 }
 
 const configurations = [

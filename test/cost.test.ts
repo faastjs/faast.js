@@ -8,15 +8,15 @@ import {
     faast,
     googleConfigurations,
     log,
-    Promisified,
     Provider,
-    providers
+    providers,
+    FaastModule
 } from "../index";
 import * as funcs from "./fixtures/functions";
 import { title } from "./fixtures/util";
 
-async function work(remote: Promisified<typeof funcs>) {
-    await remote.monteCarloPI(20000000);
+async function work(faastModule: FaastModule<typeof funcs>) {
+    await faastModule.functions.monteCarloPI(20000000);
 }
 
 const repetitions = 10;
@@ -76,13 +76,13 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
         maxRetries: 0,
         gc: false
     };
-    const cloudModule = await faast(provider, funcs, "./fixtures/functions", args);
+    const faastModule = await faast(provider, funcs, "./fixtures/functions", args);
 
     try {
-        await cloudModule.functions.hello("there");
-        const costs = await cloudModule.costSnapshot();
+        await faastModule.functions.hello("there");
+        const costs = await faastModule.costSnapshot();
 
-        const { estimatedBilledTime } = cloudModule.stats();
+        const { estimatedBilledTime } = faastModule.stats();
         t.is(
             (estimatedBilledTime.mean * estimatedBilledTime.samples) / 1000,
             costs.costMetrics.find(m => m.name === "functionCallDuration")!.measured
@@ -109,7 +109,7 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
             t.true(costs.total() === 0);
         }
     } finally {
-        await cloudModule.cleanup();
+        await faastModule.cleanup();
     }
 }
 

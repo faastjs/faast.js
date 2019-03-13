@@ -395,12 +395,12 @@ export interface FaastModule<M extends object> {
      * `finally` construct:
      *
      * ```typescript
-     * const cloudModule = await faast("aws", m, "./path/to/module");
+     * const faastModule = await faast("aws", m, "./path/to/module");
      * try {
-     *     // Call cloudModule.functions.*
+     *     // Call faastModule.functions.*
      * } finally {
      *     // Note the `await`
-     *     await cloudModule.cleanup();
+     *     await faastModule.cleanup();
      * }
      * ```
      *
@@ -456,7 +456,7 @@ export interface FaastModule<M extends object> {
      * summarizing the statistics for each function. Typical usage:
      *
      * ```typescript
-     * cloudModule.on("stats", console.log);
+     * faastModule.on("stats", console.log);
      * ```
      */
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
@@ -483,12 +483,12 @@ export interface FaastModule<M extends object> {
      * Code example:
      *
      * ```typescript
-     * const cloudModule = await faast("aws", m, "./path/to/module", options);
+     * const faastModule = await faast("aws", m, "./path/to/module");
      * try {
-     *     // invoke cloud functions on cloudModule.functions.*
+     *     // invoke cloud functions on faastModule.functions.*
      * } finally {
-     *      await cloudModule.cleanup();
-     *      const costSnapshot = await cloudModule.costSnapshot();
+     *      await faastModule.cleanup();
+     *      const costSnapshot = await faastModule.costSnapshot();
      *      console.log(costSnapshot);
      * }
      * ```
@@ -503,6 +503,7 @@ export interface FaastModule<M extends object> {
      * instance of {@link FunctionStats} is returned with zero values. If
      * `functionName` omitted (undefined), then aggregate statistics are
      * returned that summarize all cloud functions within this faast.js module.
+     * @returns an snapshot of {@link FunctionStats} at a point in time.
      */
     stats(functionName?: string): FunctionStats;
 }

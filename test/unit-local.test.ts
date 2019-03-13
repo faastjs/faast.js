@@ -7,11 +7,11 @@ import * as funcs from "./fixtures/functions";
 import { measureConcurrency, sleep } from "./fixtures/util";
 
 async function testCleanup(t: ExecutionContext, options: LocalOptions) {
-    const cloudModule = await faastLocal(funcs, "./fixtures/functions", {
+    const faastModule = await faastLocal(funcs, "./fixtures/functions", {
         gc: false,
         ...options
     });
-    const { hello, sleep } = cloudModule.functions;
+    const { hello, sleep } = faastModule.functions;
     let done = 0;
 
     hello("there")
@@ -22,26 +22,26 @@ async function testCleanup(t: ExecutionContext, options: LocalOptions) {
         .then(_ => done++)
         .catch(_ => {});
 
-    await cloudModule.cleanup();
+    await faastModule.cleanup();
     t.is(done, 0);
 }
 
 async function testOrder(t: ExecutionContext, options: LocalOptions) {
-    const cloudModule = await faastLocal(funcs, "./fixtures/functions", {
+    const faastModule = await faastLocal(funcs, "./fixtures/functions", {
         gc: false,
         ...options
     });
     t.plan(2);
 
-    const a = cloudModule.functions.emptyReject();
-    const b = cloudModule.functions.sleep(0);
+    const a = faastModule.functions.emptyReject();
+    const b = faastModule.functions.sleep(0);
     t.is(await b, undefined);
     try {
         await a;
     } catch (err) {
         t.is(err, undefined);
     } finally {
-        await cloudModule.cleanup();
+        await faastModule.cleanup();
     }
 }
 
@@ -57,7 +57,7 @@ async function testConcurrency(
         expectedConcurrency: number;
     }
 ) {
-    const cloudModule = await faastLocal(funcs, "./fixtures/functions", {
+    const faastModule = await faastLocal(funcs, "./fixtures/functions", {
         ...options,
         gc: false,
         concurrency: maxConcurrency
@@ -67,13 +67,13 @@ async function testConcurrency(
         const N = maxConcurrency * 2;
         const promises = [];
         for (let i = 0; i < N; i++) {
-            promises.push(cloudModule.functions.spin(500));
+            promises.push(faastModule.functions.spin(500));
         }
 
         const timings = await Promise.all(promises);
         t.is(measureConcurrency(timings), expectedConcurrency);
     } finally {
-        await cloudModule.cleanup();
+        await faastModule.cleanup();
     }
 }
 
@@ -105,46 +105,46 @@ async function readFirstLogfile(logDirectoryUrl: string) {
 }
 
 test("local provider console.log, console.warn, and console.error with child process", async t => {
-    const cloudModule = await faastLocal(funcs, "./fixtures/functions", {
+    const faastModule = await faastLocal(funcs, "./fixtures/functions", {
         childProcess: true,
         concurrency: 1,
         gc: false
     });
     try {
-        await cloudModule.functions.consoleLog("Remote console.log output");
-        await cloudModule.functions.consoleWarn("Remote console.warn output");
-        await cloudModule.functions.consoleError("Remote console.error output");
+        await faastModule.functions.consoleLog("Remote console.log output");
+        await faastModule.functions.consoleWarn("Remote console.warn output");
+        await faastModule.functions.consoleError("Remote console.error output");
         await sleep(1000);
-        await cloudModule.cleanup({ deleteResources: false });
-        const messages = await readFirstLogfile(cloudModule.logUrl());
+        await faastModule.cleanup({ deleteResources: false });
+        const messages = await readFirstLogfile(faastModule.logUrl());
         t.truthy(messages.find(s => s === "[$pid]: Remote console.log output"));
         t.truthy(messages.find(s => s === "[$pid]: Remote console.warn output"));
         t.truthy(messages.find(s => s === "[$pid]: Remote console.error output"));
     } finally {
-        await cloudModule.cleanup();
+        await faastModule.cleanup();
     }
 });
 
 test("local provider log files should be appended, not truncated, after child process crash", async t => {
-    const cloudModule = await faastLocal(funcs, "./fixtures/functions", {
+    const faastModule = await faastLocal(funcs, "./fixtures/functions", {
         childProcess: true,
         concurrency: 1,
         maxRetries: 1,
         gc: false
     });
     try {
-        await cloudModule.functions.consoleLog("output 1");
+        await faastModule.functions.consoleLog("output 1");
         try {
-            await cloudModule.functions.processExit();
+            await faastModule.functions.processExit();
         } catch (err) {}
-        await cloudModule.functions.consoleWarn("output 2");
+        await faastModule.functions.consoleWarn("output 2");
 
-        const messages = await readFirstLogfile(cloudModule.logUrl());
+        const messages = await readFirstLogfile(faastModule.logUrl());
 
         t.truthy(messages.find(s => s === "[$pid]: output 1"));
         t.truthy(messages.find(s => s === "[$pid]: output 2"));
     } finally {
-        await cloudModule.cleanup();
+        await faastModule.cleanup();
     }
 });
 
@@ -169,18 +169,18 @@ test("local provider no concurrency for cpu bound work without child processes",
 });
 
 test("local provider cleanup waits for all child processes to exit", async t => {
-    const cloudModule = await faastLocal(funcs, "./fixtures/functions", {
+    const faastModule = await faastLocal(funcs, "./fixtures/functions", {
         childProcess: true,
         gc: false
     });
-    cloudModule.functions.spin(5000).catch(_ => {});
+    faastModule.functions.spin(5000).catch(_ => {});
     while (true) {
         await sleep(100);
-        if (cloudModule.state.wrappers.length > 0) {
+        if (faastModule.state.wrappers.length > 0) {
             break;
         }
     }
-    t.is(cloudModule.state.wrappers.length, 1);
-    await cloudModule.cleanup();
-    t.is(cloudModule.state.wrappers.length, 0);
+    t.is(faastModule.state.wrappers.length, 1);
+    await faastModule.cleanup();
+    t.is(faastModule.state.wrappers.length, 0);
 });

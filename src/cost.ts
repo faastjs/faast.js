@@ -1,6 +1,6 @@
 import * as Listr from "listr";
 import { inspect } from "util";
-import { faast, Promisified } from "../index";
+import { faast, FaastModule } from "../index";
 import { AwsOptions } from "./aws/aws-faast";
 import { GoogleOptions } from "./google/google-faast";
 import { FunctionStats, CommonOptions } from "./provider";
@@ -9,15 +9,19 @@ import { throttle } from "./throttle";
 import { PropertiesExcept, AnyFunction } from "./types";
 
 /**
+ * User-defined custom metrics for a workload. These are automatically
+ * summarized in the output; see {@link Workload}.
  * @public
  */
 export type WorkloadAttribute<A extends string> = { [attr in A]: number };
 
 /**
+ * A user-defined cost analyzer workload. This workload is input to
+ * {@link estimateWorkloadCost}.
  * @public
  */
 export interface Workload<T extends object, A extends string> {
-    work: (module: Promisified<T>) => Promise<WorkloadAttribute<A> | void>;
+    work: (faastModule: FaastModule<T>) => Promise<WorkloadAttribute<A> | void>;
     summarize?: (summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>;
     format?: (attr: A, value: number) => string;
     formatCSV?: (attr: A, value: number) => string;
@@ -250,16 +254,16 @@ async function estimate<T extends object, K extends string>(
     repetitionConcurrency: number
 ): Promise<Estimate<K>> {
     const { provider, options } = config;
-    const cloudModule = await faast(provider, mod, fmodule, options);
+    const faastModule = await faast(provider, mod, fmodule, options);
     const doWork = throttle({ concurrency: repetitionConcurrency }, workload.work);
     const results: Promise<WorkloadAttribute<K> | void>[] = [];
     for (let i = 0; i < repetitions; i++) {
-        results.push(doWork(cloudModule.functions).catch(_ => {}));
+        results.push(doWork(faastModule).catch(_ => {}));
     }
     const rv = (await Promise.all(results)).filter(r => r) as WorkloadAttribute<K>[];
-    await cloudModule.cleanup();
+    await faastModule.cleanup();
     let summarize = workload.summarize || summarizeMean;
-    const costSnapshot = await cloudModule.costSnapshot();
+    const costSnapshot = await faastModule.costSnapshot();
     const extraMetrics = summarize(rv);
     return { costSnapshot, config, extraMetrics, repetitions };
 }
@@ -340,7 +344,7 @@ export async function estimateWorkloadCost<T extends object, A extends string>(
 /**
  * @public
  */
-class WorkloadCostAnalyzerResult<T extends object, A extends string> {
+export class WorkloadCostAnalyzerResult<T extends object, A extends string> {
     /** @internal */
     constructor(
         readonly workload: Workload<T, A>,

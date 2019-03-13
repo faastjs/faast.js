@@ -1,9 +1,9 @@
 import * as commander from "commander";
 import {
-    Promisified,
     estimateWorkloadCost,
     awsConfigurations,
-    Statistics
+    Statistics,
+    FaastModule
 } from "../index";
 import * as m from "./map-buckets-module";
 import { listAllObjects, f1, GB, f2 } from "./util";
@@ -20,8 +20,9 @@ interface BandwidthMetrics {
 }
 
 const workload = (Bucket: string, filter: FilterFn) => async (
-    remote: Promisified<typeof m>
+    faastModule: FaastModule<typeof m>
 ) => {
+    const remote = faastModule.functions;
     let allObjects = await listAllObjects(Bucket);
     allObjects = allObjects.filter(obj => filter(obj.Key!));
     const promises = [];
