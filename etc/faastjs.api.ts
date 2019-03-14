@@ -222,19 +222,13 @@ interface GoogleOptions extends CommonOptions {
     region?: string;
 }
 
-// @public (undocumented)
+// @public
 interface Limits {
-    // (undocumented)
     burst?: number;
-    // (undocumented)
     cache?: PersistentCache;
-    // (undocumented)
     concurrency: number;
-    // (undocumented)
     memoize?: boolean;
-    // (undocumented)
     rate?: number;
-    // (undocumented)
     retry?: number | ((err: any, retries: number) => boolean);
 }
 
@@ -272,21 +266,18 @@ declare const _parentModule: NodeModule | null;
 
 // @public
 declare class PersistentCache {
-    // (undocumented)
-    constructor(dirRelativeToHomeDir: string, expiration?: number);
+    constructor(
+    dirRelativeToHomeDir: string, 
+    expiration?: number);
     clear({ leaveEmptyDir }?: {
         // (undocumented)
         leaveEmptyDir?: boolean | undefined;
     }): Promise<void>;
-    // (undocumented)
     readonly dir: string;
-    // (undocumented)
     readonly dirRelativeToHomeDir: string;
     entries(): Promise<string[]>;
-    // (undocumented)
     readonly expiration: number;
     get(key: string): Promise<void | Buffer>;
-    // (undocumented)
     set(key: string, value: Buffer | string | Uint8Array | Readable | Blob): Promise<void>;
 }
 

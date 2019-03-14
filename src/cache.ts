@@ -20,8 +20,10 @@ interface Blob {}
  * actually deleted individually. The entire cache can be deleted at once. Hence
  * this cache is useful for storing results that are expensive to compute but do
  * not change too often (e.g. the node_modules folder from an 'npm install'
- * where 'package.json' is not expected to change too often)
+ * where 'package.json' is not expected to change too often).
  *
+ * This is used to implement {@link Limits.cache} for the {@link throttle}
+ * function.
  * @public
  */
 export class PersistentCache {
@@ -33,17 +35,31 @@ export class PersistentCache {
         }
     }
 
+    /**
+     * The directory on disk where cached values are stored.
+     */
     readonly dir: string;
 
     /**
-     * @param {string} dirRelativeToHomeDir The directory under the user's home
+     * Construct a new persistent cache, typically used with {@link Limits} as
+     * part of the arguments to {@link throttle}.
+     * @param dirRelativeToHomeDir - The directory under the user's home
      * directory that will be used to store cached values. The directory will be
      * created if it doesn't exist.
-     * @param {number} [expiration=24 * 3600 * 1000] The age (in seconds) after
-     * which a cached entry is invalid
+     * @param expiration - The age (in ms) after which a cached entry is
+     * invalid. Default: `24*3600*1000` (1 day).
      */
     constructor(
+        /**
+         * The directory under the user's home directory that will be used to
+         * store cached values. The directory will be created if it doesn't
+         * exist.
+         */
         readonly dirRelativeToHomeDir: string,
+        /**
+         * The age (in ms) after which a cached entry is invalid. Default:
+         * `24*3600*1000` (1 day).
+         */
         readonly expiration: number = 24 * 3600 * 1000
     ) {
         this.dir = join(homedir(), dirRelativeToHomeDir);
@@ -67,6 +83,10 @@ export class PersistentCache {
         return undefined;
     }
 
+    /**
+     * Set the cache key to the given value.
+     * @returns a Promise that resolves when the cache entry has been persisted.
+     */
     async set(key: string, value: Buffer | string | Uint8Array | Readable | Blob) {
         await this.initialized;
         const entry = join(this.dir, key);
@@ -84,6 +104,9 @@ export class PersistentCache {
 
     /**
      * Deletes all cached entries from disk.
+     * @param leaveEmptyDir - If true, leave the cache directory in place after
+     * deleting its contents. If false, the cache directory will be removed.
+     * Default: `true`.
      */
     async clear({ leaveEmptyDir = true } = {}) {
         await this.initialized;
