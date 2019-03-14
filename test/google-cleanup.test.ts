@@ -1,8 +1,8 @@
 import test, { ExecutionContext } from "ava";
-import { faastGoogle, GoogleModule, log } from "../index";
+import { faastGoogle, GoogleFaastModule, log } from "../index";
 import { checkResourcesCleanedUp, keys, quietly } from "./fixtures/util";
 
-export async function getGoogleResources(mod: GoogleModule) {
+export async function getGoogleResources(mod: GoogleFaastModule) {
     const { cloudFunctions, pubsub } = mod.state.services;
     const {
         trampoline,

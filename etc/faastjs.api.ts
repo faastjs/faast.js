@@ -2,7 +2,7 @@
 declare const awsConfigurations: CostAnalyzerConfiguration[];
 
 // @public
-declare type AwsModule<M extends object = object> = FaastModuleProxy<M, AwsOptions, AwsState>;
+declare type AwsFaastModule<M extends object = object> = FaastModuleProxy<M, AwsOptions, AwsState>;
 
 // @public
 interface AwsOptions extends CommonOptions {
@@ -125,7 +125,7 @@ declare class CostSnapshot {
 declare function faast<M extends object>(provider: Provider, fmodule: M, modulePath: string, options?: CommonOptions): Promise<FaastModule<M>>;
 
 // @public
-declare function faastAws<M extends object>(fmodule: M, modulePath: string, options?: AwsOptions): Promise<AwsModule<M>>;
+declare function faastAws<M extends object>(fmodule: M, modulePath: string, options?: AwsOptions): Promise<AwsFaastModule<M>>;
 
 // @public
 declare class FaastError extends Error {
@@ -136,10 +136,10 @@ declare class FaastError extends Error {
 }
 
 // @public
-declare function faastGoogle<M extends object>(fmodule: M, modulePath: string, options?: GoogleOptions): Promise<GoogleModule<M>>;
+declare function faastGoogle<M extends object>(fmodule: M, modulePath: string, options?: GoogleOptions): Promise<GoogleFaastModule<M>>;
 
 // @public
-declare function faastLocal<M extends object>(fmodule: M, modulePath: string, options?: LocalOptions): Promise<LocalModule<M>>;
+declare function faastLocal<M extends object>(fmodule: M, modulePath: string, options?: LocalOptions): Promise<LocalFaastModule<M>>;
 
 // @public
 interface FaastModule<M extends object> {
@@ -212,7 +212,7 @@ declare class FunctionStatsEvent {
 declare const googleConfigurations: CostAnalyzerConfiguration[];
 
 // @public
-declare type GoogleModule<M extends object = object> = FaastModuleProxy<M, GoogleOptions, GoogleState>;
+declare type GoogleFaastModule<M extends object = object> = FaastModuleProxy<M, GoogleOptions, GoogleState>;
 
 // @public
 interface GoogleOptions extends CommonOptions {
@@ -233,7 +233,7 @@ interface Limits {
 }
 
 // @public
-declare type LocalModule<M extends object = object> = FaastModuleProxy<M, LocalOptions, LocalState>;
+declare type LocalFaastModule<M extends object = object> = FaastModuleProxy<M, LocalOptions, LocalState>;
 
 // @public
 interface LocalOptions extends CommonOptions {

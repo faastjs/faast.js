@@ -515,6 +515,10 @@ export interface FaastModule<M extends object> {
  * modules on top of provider-specific runtime APIs. Most users will not create
  * `FaastModuleProxy` instances themselves; instead use {@link faast}, or
  * {@link faastAws}, {@link faastGoogle}, or {@link faastLocal}.
+ * `FaastModuleProxy` implements the {@link FaastModule} interface, which is the
+ * preferred public interface for faast modules. `FaastModuleProxy` can be used
+ * to access provider-specific details and state, and is useful for deeper
+ * testing.
  * @public
  */
 export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> {
@@ -908,7 +912,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
  * The return type of {@link faastAws}. See {@link FaastModuleProxy}.
  * @public
  */
-export type AwsModule<M extends object = object> = FaastModuleProxy<
+export type AwsFaastModule<M extends object = object> = FaastModuleProxy<
     M,
     AwsOptions,
     AwsState
@@ -918,7 +922,7 @@ export type AwsModule<M extends object = object> = FaastModuleProxy<
  * The return type of {@link faastGoogle}. See {@link FaastModuleProxy}.
  * @public
  */
-export type GoogleModule<M extends object = object> = FaastModuleProxy<
+export type GoogleFaastModule<M extends object = object> = FaastModuleProxy<
     M,
     GoogleOptions,
     GoogleState
@@ -928,7 +932,7 @@ export type GoogleModule<M extends object = object> = FaastModuleProxy<
  * The return type of {@link faastLocal}. See {@link FaastModuleProxy}.
  * @public
  */
-export type LocalModule<M extends object = object> = FaastModuleProxy<
+export type LocalFaastModule<M extends object = object> = FaastModuleProxy<
     M,
     LocalOptions,
     LocalState
@@ -971,13 +975,14 @@ export async function faast<M extends object>(
  * fmodule.
  * @param awsOptions - Most common options are in {@link CommonOptions}.
  * Additional AWS-specific options are in {@link AwsOptions}.
+ * @returns a Promise for {@link AwsFaastModule}.
  * @public
  */
 export function faastAws<M extends object>(
     fmodule: M,
     modulePath: string,
     options?: AwsOptions
-): Promise<AwsModule<M>> {
+): Promise<AwsFaastModule<M>> {
     return createFaastModuleProxy<M, AwsOptions, AwsState>(
         AwsImpl,
         fmodule,
@@ -995,13 +1000,14 @@ export function faastAws<M extends object>(
  * fmodule.
  * @param googleOptions - Most common options are in {@link CommonOptions}.
  * Additional Google-specific options are in {@link GoogleOptions}.
+ * @returns a Promise for {@link GoogleFaastModule}.
  * @public
  */
 export function faastGoogle<M extends object>(
     fmodule: M,
     modulePath: string,
     options?: GoogleOptions
-): Promise<GoogleModule<M>> {
+): Promise<GoogleFaastModule<M>> {
     return createFaastModuleProxy<M, GoogleOptions, GoogleState>(
         GoogleImpl,
         fmodule,
@@ -1019,13 +1025,14 @@ export function faastGoogle<M extends object>(
  * fmodule.
  * @param localOptions - Most common options are in {@link CommonOptions}.
  * Additional Local-specific options are in {@link LocalOptions}.
+ * @returns a Promise for {@link LocalFaastModule}.
  * @public
  */
 export function faastLocal<M extends object>(
     fmodule: M,
     modulePath: string,
     options?: LocalOptions
-): Promise<LocalModule<M>> {
+): Promise<LocalFaastModule<M>> {
     return createFaastModuleProxy<M, LocalOptions, LocalState>(
         LocalImpl,
         fmodule,

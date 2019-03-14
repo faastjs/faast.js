@@ -16,13 +16,13 @@ export {
     faastGoogle,
     faastLocal,
     providers,
-    AwsModule,
+    AwsFaastModule,
     FaastError,
     FaastModule,
     FaastModuleProxy,
     FunctionStatsEvent,
-    GoogleModule,
-    LocalModule,
+    GoogleFaastModule,
+    LocalFaastModule,
     Promisified,
     PromisifiedFunction
 } from "./src/faast";

@@ -1,9 +1,9 @@
 import test from "ava";
 import * as uuid from "uuid/v4";
-import { faastAws, AwsModule } from "../index";
+import { faastAws, AwsFaastModule } from "../index";
 import { checkResourcesCleanedUp, quietly } from "./fixtures/util";
 
-export async function getAWSResources(mod: AwsModule) {
+export async function getAWSResources(mod: AwsFaastModule) {
     const { lambda, sns, sqs } = mod.state.services;
     const {
         FunctionName,
