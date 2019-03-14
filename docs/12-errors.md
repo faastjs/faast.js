@@ -235,3 +235,25 @@ layers created during the parallel execution of the other tests, which has some
 tests which delete layers on their own, which are created _after_ garbage
 collection is done. This causes the test to fail, claiming gc was missing a
 resource.
+
+## Nonexistent queue warning
+
+This occurs sometimes when running the cost-analyzer-aws example:
+
+```
+(node:58286) UnhandledPromiseRejectionWarning: AWS.SimpleQueueService.NonExistentQueue: The specified queue does not exist for this wsdl version.
+    at Request.extractError (/Users/achou/Code/faast.js/node_modules/aws-sdk/lib/protocol/query.js:50:29)
+    at Request.callListeners (/Users/achou/Code/faast.js/node_modules/aws-sdk/lib/sequential_executor.js:106:20)
+    at Request.emit (/Users/achou/Code/faast.js/node_modules/aws-sdk/lib/sequential_executor.js:78:10)
+    at Request.emit (/Users/achou/Code/faast.js/node_modules/aws-sdk/lib/request.js:683:14)
+    at Request.transition (/Users/achou/Code/faast.js/node_modules/aws-sdk/lib/request.js:22:10)
+    at AcceptorStateMachine.runTo (/Users/achou/Code/faast.js/node_modules/aws-sdk/lib/state_machine.js:14:12)
+    at /Users/achou/Code/faast.js/node_modules/aws-sdk/lib/state_machine.js:26:10
+    at Request.<anonymous> (/Users/achou/Code/faast.js/node_modules/aws-sdk/lib/request.js:38:9)
+    at Request.<anonymous> (/Users/achou/Code/faast.js/node_modules/aws-sdk/lib/request.js:685:12)
+    at Request.callListeners (/Users/achou/Code/faast.js/node_modules/aws-sdk/lib/sequential_executor.js:116:18)
+(node:58286) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). (rejection id: 1)
+(node:58286) [DEP0018] DeprecationWarning: Unhandled promise rejections are deprecated. In the future, promise rejections that are not handled will terminate the Node.js process with a non-zero exit code.
+```
+
+The cause is unknown.

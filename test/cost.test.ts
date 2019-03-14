@@ -4,7 +4,7 @@ import {
     awsConfigurations,
     CommonOptions,
     CostAnalyzerConfiguration,
-    estimateWorkloadCost,
+    costAnalyzer,
     faast,
     googleConfigurations,
     log,
@@ -32,11 +32,12 @@ async function testCostAnalyzer(
     t: ExecutionContext,
     configs: CostAnalyzerConfiguration[]
 ) {
-    const profile = await estimateWorkloadCost(funcs, "./fixtures/functions", configs, {
-        work,
-        silent: true
-    });
-
+    const profile = await costAnalyzer(
+        funcs,
+        "./fixtures/functions",
+        { work, silent: true },
+        configs
+    );
     t.is(profile.estimates.length, configs.length);
     for (const { costSnapshot } of profile.estimates) {
         t.is(costSnapshot.stats.completed, repetitions);

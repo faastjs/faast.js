@@ -1,7 +1,7 @@
 import {
     awsConfigurations,
     googleConfigurations,
-    estimateWorkloadCost,
+    costAnalyzer,
     FaastModule
 } from "../index";
 import * as m from "./functions";
@@ -32,13 +32,11 @@ const configurations = [
 ];
 
 async function compareIntersection() {
-    const result = await estimateWorkloadCost(
+    const result = await costAnalyzer(
         m,
         require.resolve("./functions"),
-        configurations,
-        {
-            work
-        }
+        { work },
+        configurations
     );
 
     await writeFile("cost.csv", result.csv());

@@ -1,29 +1,30 @@
 export {
     awsConfigurations,
-    CostAnalyzerConfiguration,
-    CostSnapshot,
-    CostMetric,
-    estimateWorkloadCost,
+    costAnalyzer,
     googleConfigurations,
-    WorkloadAttribute,
-    Workload,
-    WorkloadCostAnalyzerResult
+    CostAnalyzerConfiguration,
+    CostAnalyzerConfigurationEstimate,
+    CostAnalyzerResult,
+    CostAnalyzerWorkload,
+    CostMetric,
+    CostSnapshot,
+    WorkloadAttribute
 } from "./src/cost";
 export {
     faast,
     faastAws,
     faastGoogle,
     faastLocal,
-    FaastModule,
-    FaastError,
-    FunctionStatsEvent,
-    Promisified,
-    PromisifiedFunction,
     providers,
     AwsModule,
+    FaastError,
+    FaastModule,
+    FaastModuleProxy,
+    FunctionStatsEvent,
     GoogleModule,
     LocalModule,
-    FaastModuleProxy
+    Promisified,
+    PromisifiedFunction
 } from "./src/faast";
 export { AwsOptions, AwsRegion } from "./src/aws/aws-faast";
 export { GoogleOptions } from "./src/google/google-faast";

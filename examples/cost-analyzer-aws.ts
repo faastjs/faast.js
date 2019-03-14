@@ -1,18 +1,13 @@
 import { writeFileSync } from "fs";
-import { awsConfigurations, estimateWorkloadCost, FaastModule } from "../index";
-import * as m from "./functions";
+import { awsConfigurations, costAnalyzer, FaastModule } from "../index";
+import * as mod from "./functions";
 
-async function work(faastModule: FaastModule<typeof m>) {
+async function work(faastModule: FaastModule<typeof mod>) {
     await faastModule.functions.randomNumbers(100000000);
 }
 
 async function compareAws() {
-    const results = await estimateWorkloadCost(
-        m,
-        require.resolve("./functions"),
-        awsConfigurations,
-        { work }
-    );
+    const results = await costAnalyzer(mod, "./functions", { work }, awsConfigurations);
 
     writeFileSync("cost.csv", results.csv());
 }

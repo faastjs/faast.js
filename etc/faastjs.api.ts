@@ -1,4 +1,4 @@
-// @public (undocumented)
+// @public
 declare const awsConfigurations: CostAnalyzerConfiguration[];
 
 // @public
@@ -8,7 +8,7 @@ declare type AwsModule<M extends object = object> = FaastModuleProxy<M, AwsOptio
 interface AwsOptions extends CommonOptions {
     awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
     // @internal (undocumented)
-    gcWorker?: (work: AwsGcWork, services: AwsServices) => Promise<void>;
+    _gcWorker?: (work: AwsGcWork, services: AwsServices) => Promise<void>;
     region?: AwsRegion;
     RoleName?: string;
 }
@@ -41,7 +41,10 @@ interface CommonOptions {
     webpackOptions?: webpack.Configuration;
 }
 
-// @public (undocumented)
+// @public
+declare function costAnalyzer<T extends object, A extends string>(mod: T, fmodule: string, userWorkload: CostAnalyzerWorkload<T, A>, configurations?: CostAnalyzerConfiguration[]): Promise<CostAnalyzerResult<T, A>>;
+
+// @public
 declare type CostAnalyzerConfiguration = {
     // (undocumented)
     provider: "aws";
@@ -55,57 +58,68 @@ declare type CostAnalyzerConfiguration = {
 };
 
 // @public
+interface CostAnalyzerConfigurationEstimate<A extends string> {
+    config: CostAnalyzerConfiguration;
+    costSnapshot: CostSnapshot;
+    extraMetrics: WorkloadAttribute<A>;
+}
+
+// @public
+declare class CostAnalyzerResult<T extends object, A extends string> {
+    // @internal (undocumented)
+    constructor(
+    workload: Required<CostAnalyzerWorkload<T, A>>, 
+    estimates: CostAnalyzerConfigurationEstimate<A>[]);
+    csv(): string;
+    readonly estimates: CostAnalyzerConfigurationEstimate<A>[];
+    readonly workload: Required<CostAnalyzerWorkload<T, A>>;
+}
+
+// @public
+interface CostAnalyzerWorkload<T extends object, A extends string> {
+    concurrency?: number;
+    format?: (attr: A, value: number) => string;
+    formatCSV?: (attr: A, value: number) => string;
+    repetitions?: number;
+    silent?: boolean;
+    summarize?: (summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>;
+    work: (faastModule: FaastModule<T>) => Promise<WorkloadAttribute<A> | void>;
+}
+
+// @public
 declare class CostMetric {
     // @internal (undocumented)
     constructor(arg: PropertiesExcept<CostMetric, AnyFunction>);
-    // (undocumented)
     readonly comment?: string;
-    // (undocumented)
     cost(): number;
-    // (undocumented)
     describeCostOnly(): string;
-    // (undocumented)
     readonly informationalOnly?: boolean;
-    // (undocumented)
     readonly measured: number;
-    // (undocumented)
     readonly name: string;
-    // (undocumented)
     readonly pricing: number;
-    // (undocumented)
     toString(): string;
-    // (undocumented)
     readonly unit: string;
-    // (undocumented)
     readonly unitPlural?: string;
 }
 
-// @public (undocumented)
+// @public
 declare class CostSnapshot {
-    // (undocumented)
-    constructor(provider: string, options: CommonOptions | AwsOptions | GoogleOptions, stats: FunctionStats, costMetrics?: CostMetric[]);
-    // (undocumented)
+    // @internal (undocumented)
+    constructor(provider: string, 
+    options: CommonOptions | AwsOptions | GoogleOptions, stats: FunctionStats, costMetrics?: CostMetric[]);
     readonly costMetrics: CostMetric[];
-    // (undocumented)
     csv(): string;
     // (undocumented)
     find(name: string): CostMetric | undefined;
-    // (undocumented)
     readonly options: CommonOptions | AwsOptions | GoogleOptions;
     // (undocumented)
     readonly provider: string;
-    // (undocumented)
+    // @internal (undocumented)
     push(metric: CostMetric): void;
-    // (undocumented)
     readonly stats: FunctionStats;
-    // (undocumented)
     toString(): string;
-    // (undocumented)
     total(): number;
 }
-
-// @public (undocumented)
-declare function estimateWorkloadCost<T extends object, A extends string>(mod: T, fmodule: string, configurations: CostAnalyzerConfiguration[] | undefined, workload: Workload<T, A>, repetitions?: number, repetitionConcurrency?: number): Promise<WorkloadCostAnalyzerResult<T, A>>;
 
 // @public
 declare function faast<M extends object>(provider: Provider, fmodule: M, modulePath: string, options?: CommonOptions): Promise<FaastModule<M>>;
@@ -194,7 +208,7 @@ declare class FunctionStatsEvent {
     toString(): string;
 }
 
-// @public (undocumented)
+// @public
 declare const googleConfigurations: CostAnalyzerConfiguration[];
 
 // @public
@@ -203,7 +217,7 @@ declare type GoogleModule<M extends object = object> = FaastModuleProxy<M, Googl
 // @public
 interface GoogleOptions extends CommonOptions {
     // @internal (undocumented)
-    gcWorker?: (resources: GoogleResources, services: GoogleServices) => Promise<void>;
+    _gcWorker?: (resources: GoogleResources, services: GoogleServices) => Promise<void>;
     googleCloudFunctionOptions?: cloudfunctions_v1.Schema$CloudFunction;
     region?: string;
 }
@@ -257,6 +271,26 @@ declare const log: {
 declare const _parentModule: NodeModule | null;
 
 // @public
+declare class PersistentCache {
+    // (undocumented)
+    constructor(dirRelativeToHomeDir: string, expiration?: number);
+    clear({ leaveEmptyDir }?: {
+        // (undocumented)
+        leaveEmptyDir?: boolean | undefined;
+    }): Promise<void>;
+    // (undocumented)
+    readonly dir: string;
+    // (undocumented)
+    readonly dirRelativeToHomeDir: string;
+    entries(): Promise<string[]>;
+    // (undocumented)
+    readonly expiration: number;
+    get(key: string): Promise<void | Buffer>;
+    // (undocumented)
+    set(key: string, value: Buffer | string | Uint8Array | Readable | Blob): Promise<void>;
+}
+
+// @public
 declare type Promisified<M> = {
     [K in keyof M]: M[K] extends (...args: infer A) => infer R ? PromisifiedFunction<A, R> : never;
 };
@@ -293,21 +327,7 @@ declare function throttle<A extends any[], R>({ concurrency, retry, rate, burst,
 // @public (undocumented)
 declare type Unpacked<T> = T extends Promise<infer D> ? D : T;
 
-// @public (undocumented)
-interface Workload<T extends object, A extends string> {
-    // (undocumented)
-    format?: (attr: A, value: number) => string;
-    // (undocumented)
-    formatCSV?: (attr: A, value: number) => string;
-    // (undocumented)
-    silent?: boolean;
-    // (undocumented)
-    summarize?: (summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>;
-    // (undocumented)
-    work: (module: Promisified<T>) => Promise<WorkloadAttribute<A> | void>;
-}
-
-// @public (undocumented)
+// @public
 declare type WorkloadAttribute<A extends string> = {
     [attr in A]: number;
 };

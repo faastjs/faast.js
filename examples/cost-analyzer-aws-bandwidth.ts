@@ -1,10 +1,5 @@
 import * as commander from "commander";
-import {
-    estimateWorkloadCost,
-    awsConfigurations,
-    Statistics,
-    FaastModule
-} from "../index";
+import { costAnalyzer, awsConfigurations, Statistics, FaastModule } from "../index";
 import * as m from "./map-buckets-module";
 import { listAllObjects, f1, GB, f2 } from "./util";
 import { writeFile as fsWriteFile } from "fs";
@@ -78,15 +73,17 @@ function formatCSV(key: keyof BandwidthMetrics, value: number) {
 }
 
 async function compareAws(Bucket: string, filter: FilterFn) {
-    const result = await estimateWorkloadCost(
+    const result = await costAnalyzer(
         m,
         require.resolve("./map-buckets-module"),
-        awsConfigurations.map(c => ({
-            ...c,
+        {
+            work: workload(Bucket, filter),
+            format,
+            formatCSV,
             repetitions: 5,
-            repetitionConcurrency: 5
-        })),
-        { work: workload(Bucket, filter), format, formatCSV }
+            concurrency: 5
+        },
+        awsConfigurations
     );
     writeFile("cost.csv", result.csv());
 }
