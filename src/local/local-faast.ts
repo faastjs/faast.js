@@ -54,7 +54,8 @@ export interface LocalState {
 }
 
 /**
- * Local provider options. Extends {@link CommonOptions}.
+ * Local provider options. Extends {@link CommonOptions}. To be used with
+ * {@link faastLocal}.
  * @public
  */
 export interface LocalOptions extends CommonOptions {

@@ -2,95 +2,164 @@
 
 # Faast.js
 
-Faast.js is a library for turning JavaScript modules into scalable serverless functions for batch processing.
+Faast.js turns JavaScript modules into scalable serverless functions for batch processing.
 
 - **Scalable:** Use serverless functions to scale your batch jobs up to thousands of cores.
-- **Cost-effective:** Understand and optimize your workload costs in real time. Pay only for CPU time actually used.
-- **Zero Ops:** No cluster management. No container management. No management. Focus on Dev, not Ops.
-- **Developer optimized:** A first class developer experience including type safety. Works with TypeScript and JavaScript.
-- **Portable:** Built-in support for [AWS Lambda](https://aws.amazon.com/lambda/) and [Google Cloud Functions](https://cloud.google.com/functions/), as well as local processing mode. Change one line of code to switch.
+- **Cost-effective:** Understand and optimize your workload costs in real time. Pay only for compute time actually used.
+- **Ephemeral:** No cluster management. No container management. Faast.js is designed have zero ops management burden.
+- **Developer optimized:** Includes first class support for TypeScript and JavaScript. Type safety, documentation, and extensive testing already included.
+- **Portable:** Built-in support for [AWS Lambda](https://aws.amazon.com/lambda/) and [Google Cloud Functions](https://cloud.google.com/functions/), as well as [local](./docs/06-local) processing mode. Change one line of code to switch.
 
 ## Installation
 
 ```bash
-$ npm install faast.js
+$ npm install faastjs
 ```
 
 ## Usage
+
+Cloud functions can be written as ordinary TypeScript modules:
 
 ```typescript
 // functions.ts
 export function hello(name: string) {
  return "hello " + name + "!";
 }
+```
 
+The `faast` function to create faast.js modules:
+
+```typescript
 // example.ts
+import { faast } from "faastjs";
 import * as funcs from "./functions";
-async function main() {
- const lambda = await faast("aws", funcs, "./functions");
- console.log(await lambda.functions.hello("world"));
- await faastModule.cleanup();
-}
-main();
+...
+const faastModule = await faast("aws", funcs, "./functions");
+const remote = faastModule.functions;
+console.log(await remote.hello("world"));
 ```
 
 Functions need to be [idempotent](https://stackoverflow.com/questions/1077412/what-is-an-idempotent-operation) because they might be invoked multiple times, either by Faast.js or by the cloud provider (or both).
 
-## Verbosity options
+## Ephemeral Infrastructure
 
-Turn on verbose logging by setting the DEBUG environment variable. For example:
+Every call to `faast` creates its own cloud infrastructure. For example, on AWS this creates an AWS Lambda function, SNS topic, topic subscription, SQS queue, and log group. Faast.js contains a garbage collector that runs asynchronously with your process to clean up old infrastructure from previous instances.
 
-```bash
-$ DEBUG=faast:info node example.js
-$ DEBUG=faast:* node example.js
+There is also a `cleanup` function which cleans up the infrastructure for the faast.js instance immediately. It is recommended that you always call `cleanup` to minimize the infrastructure left behind on your cloud console. Here is a more complete code example with cleanup:
+
+```typescript
+import { faast } from "faastjs";
+import * as funcs from "./functions";
+
+async function main() {
+ const faastModule = await faast("aws", funcs, "./functions");
+ try {
+  const remote = faastModule.functions;
+  console.log(await remote.hello("world"));
+ } finally {
+  await faastModule.cleanup();
+ }
+}
+
+main();
 ```
 
-These options are available:
+## Options
 
-- faast:info - Basic verbose logging. Disabled by default.
-- faast:warning - Output warnings to console.warn. Enabled by default.
-- faast:gc - Print debugging information related to garbage collection. Disabled by default.
-- faast:leaks - Print debugging information when a memory is potentially detected within the faast.js module. Enabled by default. See XXX.
-- faast:calls - Print debugging information about each call to a cloud function. Disabled by default.
-- faast:webpack - Print debugging information about webpack, used to pack up cloud function code. Disabled by default.
-- faast:provider - Print debugging information about each interaction with cloud-provider specific code from the higher-level faast.js abstraction. Useful for debugging issues with specific cloud providers. Disabled by default.
-- faast:awssdk - Only available for AWS, this enables aws-sdk's verbose logging output. Disabled by default.
+Try out different providers:
 
-## Memory leak detector
-
-## Prerequisites for building:
-
-[Node LTS](https://nodejs.org/en/download/)
-
-[AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
-
-```
-pip install awscli --upgrade --user
+```typescript
+faast("aws", ...)
+faast("google", ...)
+faast("local", ...)
 ```
 
-npx
+Modify the amount of memory allocated to the function, timeout, and maximum concurrency:
 
-```
-npm install -g npx
-```
-
-unzip
-
-Available by default on MacOS and most linux distributions. Install if needed
-with your local package manager. For example, on Ubuntu:
-
-```
-sudo apt install unzip
+```typescript
+faast("aws", m, "./module", {
+ memorySize: 1024,
+ timeout: 60,
+ concurrency: 250
+});
 ```
 
-## Building
+Add a local directory or zipfile (which will be unzipped on the remote side) to
+the code package:
+
+```typescript
+faast("aws", m, "./module", {
+ addDirectory: "path/to/directory",
+ addZipFile: "path/to/file.zip"
+});
+```
+
+In most use cases you won't need to specify dependencies explicitly because
+faast.js uses webpack to automatically bundle dependencies for you. But if your
+bundle exceeds 50MB or has native dependencies, you'll need to specify
+`packageJson`. Faast.js even [installs and caches dependencies in a Lambda
+Layer](./api/faastjs.commonoptions.packagejson.md) for you on AWS!
+
+```typescript
+faast("aws", m, "./module", {
+ // Can alternatively specify a file path for packageJson
+ packageJson: {
+  dependencies: {
+   tslib: "^1.9.1"
+  }
+ }
+});
+```
+
+Check out even more options in the [CommonOptions
+interface](./api/faastjs.commonoptions.md) and cloud-specific options in
+[AwsOptions](./api/faastjs.awsoptions.md),
+[GoogleOptions](./api/faastjs.googleoptions.md), and
+[LocalOptions](./api/faastjs.localoptions.md).
+
+## Cost estimates
+
+Get a cost estimate for your workload:
+
+```typescript
+const faastModule = await faast("aws", m, "./path/to/module");
+try {
+ // invoke cloud functions on faastModule.functions.*
+} finally {
+ await faastModule.cleanup();
+ const costSnapshot = await faastModule.costSnapshot();
+ console.log(costSnapshot);
+}
+```
+
+Example cost estimate output:
 
 ```
-$ npm install
-$ npm run build
+functionCallDuration  $0.00002813/second            0.6 second     $0.00001688    68.4%  [1]
+sqs                   $0.00000040/request             9 requests   $0.00000360    14.6%  [2]
+sns                   $0.00000050/request             5 requests   $0.00000250    10.1%  [3]
+functionCallRequests  $0.00000020/request             5 requests   $0.00000100     4.1%  [4]
+outboundDataTransfer  $0.09000000/GB         0.00000769 GB         $0.00000069     2.8%  [5]
+logIngestion          $0.50000000/GB                  0 GB         $0              0.0%  [6]
+---------------------------------------------------------------------------------------
+                                                                   $0.00002467 (USD)
+
+  * Estimated using highest pricing tier for each service. Limitations apply.
+ ** Does not account for free tier.
+[1]: https://aws.amazon.com/lambda/pricing (rate = 0.00001667/(GB*second) * 1.6875 GB = 0.00002813/second)
+[2]: https://aws.amazon.com/sqs/pricing
+[3]: https://aws.amazon.com/sns/pricing
+[4]: https://aws.amazon.com/lambda/pricing
+[5]: https://aws.amazon.com/ec2/pricing/on-demand/#Data_Transfer
+[6]: https://aws.amazon.com/cloudwatch/pricing/ - Log ingestion costs not currently included.
 ```
 
-## Testing live cloud services
+Check out more
+
+## Setting up cloud providers
+
+Using faast.js currently requires an IAM account or service account with
+administrator / owner privileges.
 
 ### GCP
 
@@ -120,26 +189,17 @@ Setup credentials for
 npx ava -m="*aws*" build/test/basic.test.js
 ```
 
-### All "fast" live cloud tests
+### Local
 
-```
-$ npm run test
-```
+Using the `"local"` provider allows you to test faast.js on your local machine.
+Each invocation starts a new process, up to the [concurrency
+limit](./docs/api/faastjs.commonoptions.concurrency.md). Processes are reused
+for subsequent calls just as they are in a real cloud function, allows you to
+test caching strategies.
 
-Jest sometimes overwrites output during the test (this shows up as garbled Jest
-test status output, or missing log messages output through the console).
-Redirect stdout to get clean output:
+## Development workflow
 
-```
-$ npm run test > out
-$ cat out
-```
-
-## Local Testing
-
-```
-$ npm run test-local
-```
+Suggest doing local, then small scale with cloud provider, then large scale.
 
 # Principles
 
@@ -152,66 +212,6 @@ $ npm run test-local
 - Independence: two separate jobs can be run at the same time and they will not
   interfere with each other.
 - Works with AWS and Google Cloud Platform.
-
-# AWS Notes
-
-## IAM Roles
-
-Faast.js will create an IAM role for the lambda function it creates. By default
-this role will have administrator access. The role will be created dynamically
-and then deleted when the cleanup function is called. Dynamically creating the
-role takes some time - up to 5-6 seconds. To speed this up, and also to allow
-for less permissive roles, you can create a persistent IAM role manually and
-restrict its permissions. Having a cached role will also make function startup
-faster because the role will not have to be dynamically created.
-
-```typescript
-const RoleName = "...cached role name...";
-let cloud = faast.create("aws");
-let service = await cloud.createFunction("./functions", {
- RoleName
-});
-```
-
-There are a minimum set of policy permissions required, namely the ones in `arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole`:
-
-```json
-{
- "Version": "2012-10-17",
- "Statement": [
-  {
-   "Effect": "Allow",
-   "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
-   "Resource": "*"
-  }
- ]
-}
-```
-
-If Faast.js cannot find the role name specified, it will revert back to
-dynamically creating a role for you.
-
-If you want to have dynamically created role with custom permissions, specify
-the `PolicyArn` option. Faast.js will attach this policy to the role it
-dynamically creates.
-
-# Google Cloud Notes
-
-## Node version
-
-Google Cloud Functions only supports node 6.11.5 at the moment (as of 6/2016).
-If your code uses any Node APIs that were introduced after this version, it will
-fail when run on Google Cloud. This can happen, for example, if your TypeScript
-target uses features introduced in later node/V8 versions than 6.11.5. Though
-not strictly required, it can be helpful to synchronize the node version on your
-local machine with the cloud provider version, which can be accomplished by
-adding the following to your `package.json`:
-
-```json
-"engines": {
-  "node": "6.11.5"
-}
-```
 
 # Cleaning up stray resources
 
@@ -265,3 +265,7 @@ the following will lose information:
   cases.
 
 Faast.js tries its best to detect these cases, but 100% detection is not guaranteed.
+
+## Contributing
+
+See [contributing](./docs/11-contributing)

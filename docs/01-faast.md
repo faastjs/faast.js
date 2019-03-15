@@ -6,6 +6,8 @@ The `faast` function is the main interface:
 function faast(provider, module, moduleFile, options): Promise<FaastModule>;
 ```
 
+See the [api documentation](./api/faastjs.faast.md) for more details.
+
 where:
 
 - `provider` is "aws" | "google" | "local"
@@ -90,42 +92,37 @@ Faast.js ensures logs will expire; on AWS the log group expiration is set to 1 d
 
 When errors are thrown by faast.js functions, log URLs may be appended to the error message. Whenever possible, these URLs incorporate cloud-specific filtering parameters to focus the log output to just the failed execution.
 
-## Options
+## Understanding code bundles with `FAAST_PACKAGE_DIR`
 
-```typescript
- /**
-  * If true, create a child process to execute the wrapped module's functions.
-  */
- childProcess?: boolean;
- addDirectory?: string | string[];
- addZipFile?: string | string[];
- packageJson?: string | object | false;
- webpackOptions?: webpack.Configuration;
- concurrency?: number;
- gc?: boolean;
- maxRetries?: number;
- memorySize?: number;
- mode?: "https" | "queue" | "auto";
- retentionInDays?: number;
- speculativeRetryThreshold?: number;
- timeout?: number;
+If the environment variable `FAAST_PACKAGE_DIR` points to a directory, faast.js
+will place zip files it creates for each cloud function in the directory. These
+files are helpful in understanding what faast.js actually uploads to the cloud
+provider.
+
+Note that if `packageJson` is specified, AWS Lambda Layers are not in the code
+bundle but rather specified as part of instantiating the lambda function.
+
+## Verbose output
+
+Turn on verbose logging by setting the `DEBUG` environment variable. For example:
+
+```bash
+$ DEBUG=faast:info node example.js
+$ DEBUG=faast:* node example.js
 ```
 
-In addition to these options, each cloud provider has cloud-specific options. See [aws](./04-aws-lambda#Options), [google](./05-google-cloud-functions#Options), or [local](./06-local#Options) for details.
+These options are available:
 
-## Bundling, dependencies, and package.json
+- `faast:*` - Turn on all logging.
+- `faast:info` - Basic verbose logging. Disabled by default.
+- `faast:warning` - Output warnings to console.warn. Enabled by default.
+- `faast:gc` - Print debugging information related to garbage collection. Disabled by default.
+- `faast:leaks` - Print debugging information when a memory is potentially detected within the faast.js module. Enabled by default. See XXX.
+- `faast:calls` - Print debugging information about each call to a cloud function. Disabled by default.
+- `faast:webpack` - Print debugging information about webpack, used to pack up cloud function code. Disabled by default.
+- `faast:provider` - Print debugging information about each interaction with cloud-provider specific code from the higher-level faast.js abstraction. Useful for debugging issues with specific cloud providers. Disabled by default.
+- `faast:awssdk` - Only available for AWS, this enables aws-sdk's verbose logging output. Disabled by default.
 
-Providers may have code size limits. For AWS, the code size limit is 50MB when
-uploaded directly. If you have a large directory, consider creating a
-[Lambda Layer](https://us-west-2.console.aws.amazon.com/lambda/home?#/layers)
-and add it to [AwsOptions.awsLambdaOptions](api/faastjs.awsoptions.awslambdaoptions.md) under the `Layers` property.
-This increases the maximum size to 250MB.
+## Built with
 
-Faast.js automatically creates layers for when `packageJson` is used.
-
-Up to 500MB may also be put into temp space. This would need to be manually uploaded to S3 and
-
-## FAAST_PACKAGE_DIR
-
-Set this environment variable to a directory and faast.js will place the code
-bundle zip files it creates for each function in the directory.
+![webpack](https://raw.githubusercontent.com/webpack/media/master/logo/logo-on-white-bg.png "webpack")

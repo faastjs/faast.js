@@ -174,6 +174,7 @@ export class CostMetric {
 
 /**
  * A summary of the costs incurred by a faast.js module at a point in time.
+ * Output of {@link FaastModule.costSnapshot}.
  * @remarks
  * Cost information provided by faast.js is an estimate. It is derived from
  * internal faast.js measurements and not by consulting data provided by your

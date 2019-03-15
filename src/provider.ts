@@ -14,6 +14,9 @@ export type Provider = "aws" | "google" | "local";
 
 /**
  * Options common across all faast.js providers.
+ * @remarks
+ * There are also more specific options for each provider. See
+ * {@link AwsOptions}, {@link GoogleOptions}, and {@link LocalOptions}.
  * @public
  */
 export interface CommonOptions {
