@@ -102,7 +102,7 @@ provider.
 Note that if `packageJson` is specified, AWS Lambda Layers are not in the code
 bundle but rather specified as part of instantiating the lambda function.
 
-## Verbose output
+## DEBUG environment variable
 
 Turn on verbose logging by setting the `DEBUG` environment variable. For example:
 

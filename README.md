@@ -39,13 +39,20 @@ const remote = faastModule.functions;
 console.log(await remote.hello("world"));
 ```
 
-Functions need to be [idempotent](https://stackoverflow.com/questions/1077412/what-is-an-idempotent-operation) because they might be invoked multiple times, either by Faast.js or by the cloud provider (or both).
+Functions need to be [idempotent][] because they might be invoked multiple
+times, either by Faast.js or by the cloud provider (or both).
 
 ## Ephemeral Infrastructure
 
-Every call to `faast` creates its own cloud infrastructure. For example, on AWS this creates an AWS Lambda function, SNS topic, topic subscription, SQS queue, and log group. Faast.js contains a garbage collector that runs asynchronously with your process to clean up old infrastructure from previous instances.
+Every call to `faast` creates its own cloud infrastructure. For example, on AWS
+this creates an AWS Lambda function, SNS topic, topic subscription, SQS queue,
+and log group. Faast.js contains a garbage collector that runs asynchronously
+with your process to clean up old infrastructure from previous instances.
 
-There is also a `cleanup` function which cleans up the infrastructure for the faast.js instance immediately. It is recommended that you always call `cleanup` to minimize the infrastructure left behind on your cloud console. Here is a more complete code example with cleanup:
+There is also a `cleanup` function which cleans up the infrastructure for the
+faast.js instance immediately. It is recommended that you always call `cleanup`
+to minimize the infrastructure left behind on your cloud console. Here is a more
+complete code example with cleanup:
 
 ```typescript
 import { faast } from "faastjs";
@@ -122,11 +129,6 @@ interface](./api/faastjs.commonoptions.md) and cloud-specific options in
 Get a cost estimate for your workload:
 
 ```typescript
-const faastModule = await faast("aws", m, "./path/to/module");
-try {
- // invoke cloud functions on faastModule.functions.*
-} finally {
- await faastModule.cleanup();
  const costSnapshot = await faastModule.costSnapshot();
  console.log(costSnapshot);
 }
@@ -154,27 +156,38 @@ logIngestion          $0.50000000/GB                  0 GB         $0           
 [6]: https://aws.amazon.com/cloudwatch/pricing/ - Log ingestion costs not currently included.
 ```
 
-Check out more
+Learn more about [cost snapshots](./docs/api/faastjs.costsnapshot.md).
+
+## Cost analyzer
+
+How much memory should you allocate to your function? More memory means a higher
+price per unit time, but also faster CPU. Cost analyzer helps answer this
+question by running your workload against multiple configurations, such as
+differing memory sizes:
+
+```typescript
+costAnalyzer(mod, "./functions", { work });
+```
+
+Cost analyzer output:
+
+```
+  ✔ aws 128MB queue 15.385s 0.274σ $0.00003921
+  ✔ aws 192MB queue 10.024s 0.230σ $0.00003576
+  ✔ aws 256MB queue 8.077s 0.204σ $0.00003779
+     ▲    ▲     ▲     ▲       ▲        ▲
+     │    │     │     │       │        │
+ provider │    mode   │     stdev     average
+          │           │   execution  estimated
+        memory        │     time       cost
+         size         │
+                execution time
+```
 
 ## Setting up cloud providers
 
 Using faast.js currently requires an IAM account or service account with
 administrator / owner privileges.
-
-### GCP
-
-Setup credentials for [GCP](https://cloud.google.com/sdk/docs/authorizing)
-
-- Create a project
-- Create a google [service
-  account](https://console.cloud.google.com/iam-admin/serviceaccounts)
-- Assign Owner permissions for the service account
-- Enable Cloud functions API
-- Run basic Google test
-
-```
-npx ava -m="*google*" build/test/basic.test.js
-```
 
 ### AWS
 
@@ -189,6 +202,21 @@ Setup credentials for
 npx ava -m="*aws*" build/test/basic.test.js
 ```
 
+### Google Cloud Platform
+
+Setup credentials for [GCP](https://cloud.google.com/sdk/docs/authorizing)
+
+- Create a project
+- Create a google [service
+  account](https://console.cloud.google.com/iam-admin/serviceaccounts)
+- Assign Owner permissions for the service account
+- Enable Cloud functions API
+- Run basic Google test
+
+```
+npx ava -m="*google*" build/test/basic.test.js
+```
+
 ### Local
 
 Using the `"local"` provider allows you to test faast.js on your local machine.
@@ -199,7 +227,37 @@ test caching strategies.
 
 ## Development workflow
 
-Suggest doing local, then small scale with cloud provider, then large scale.
+There's a natural way to use faast.js to maximize developer productivity:
+
+1. Design a regular JS/TS module and export functions with arguments that are safe for `JSON.stringify`.
+
+2. Write tests for your module and use all the great debugging tools you're used
+   to, like [node
+   inspector](https://nodejs.org/en/docs/guides/debugging-getting-started/),
+   Chrome DevTools, and Visual Studio Code.
+
+3. Use the `"local"` provider to test your function as a faast.js module. In
+   this mode your invocations execute in local processes. Debug any issues using
+   those standard debugging tools you know and love. Make sure your functions
+   are [idempotent][].
+
+4. Switch from `faast("local", ...)` to `faast("aws", ...)` but limit
+   [concurrency](./docs/api/faastjs.commonoptions.concurrency.md) to a low
+   amount. Use [logUrl](./docs/api/faastjs.faastmodule.logurl.md) to review
+   cloud logs of your code executing. The
+   [DEBUG](./docs/01-faast#DEBUG_environment_variable) environment variable can
+   be useful to see verbose output as well.
+
+5. Run the [cost analyzer](./docs/api/faastjs.costanalyzer.md) to find a good
+   cost-performance tradeoff for the choice of memory size. A good default
+   choice for CPU or S3-bandwidth bound workloads is between 1728MV-2048MB on
+   AWS.
+
+6. Gradually increase concurrency and fix any issues that arise from scaling.
+
+Using this workflow maximizes your ability to use local debugging tools, and
+confines most errors to local or small scale cloud testing. This can help avoid
+costly mistakes which consume lots of procesing time on a large scale.
 
 # Principles
 
@@ -269,3 +327,5 @@ Faast.js tries its best to detect these cases, but 100% detection is not guarant
 ## Contributing
 
 See [contributing](./docs/11-contributing)
+
+[idempotent]: https://stackoverflow.com/questions/1077412/what-is-an-idempotent-operation
