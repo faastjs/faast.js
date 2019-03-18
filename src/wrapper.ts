@@ -178,8 +178,8 @@ export class Wrapper {
     stop() {
         this.stopCpuMonitoring();
         if (this.child) {
-            this.child.stdout.removeListener("data", this.logLines);
-            this.child.stderr.removeListener("data", this.logLines);
+            this.child.stdout!.removeListener("data", this.logLines);
+            this.child.stderr!.removeListener("data", this.logLines);
             this.child!.disconnect();
             this.child!.kill();
             this.child = undefined;
@@ -320,8 +320,8 @@ export class Wrapper {
 
         const child = childProcess.fork("./index.js", [], forkOptions);
 
-        child.stdout.setEncoding("utf8");
-        child.stderr.setEncoding("utf8");
+        child.stdout!.setEncoding("utf8");
+        child.stderr!.setEncoding("utf8");
 
         let oom: string | undefined;
         const detectOom = (chunk: string) => {
@@ -329,9 +329,9 @@ export class Wrapper {
                 oom = chunk;
             }
         };
-        child.stdout.on("data", this.logLines);
-        child.stderr.on("data", this.logLines);
-        child.stderr.on("data", detectOom);
+        child.stdout!.on("data", this.logLines);
+        child.stderr!.on("data", this.logLines);
+        child.stderr!.on("data", detectOom);
         child.on("message", (value: FunctionReturn) => {
             log.provider(`child message: resolving with %O`, value);
             this.deferred!.resolve(value);
