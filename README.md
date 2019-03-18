@@ -10,6 +10,19 @@ Faast.js turns JavaScript modules into scalable serverless functions for batch p
 - **Developer optimized:** Includes first class support for TypeScript and JavaScript. Type safety, documentation, and extensive testing already included.
 - **Portable:** Built-in support for [AWS Lambda](https://aws.amazon.com/lambda/) and [Google Cloud Functions](https://cloud.google.com/functions/), as well as [local](./docs/06-local) processing mode. Change one line of code to switch.
 
+## Prerequisites
+
+Required:
+
+- [Node](https://nodejs.org/en/download/) version 8+.
+
+Convenient if you want to use faast.js with AWS:
+
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
+  ```
+  pip install awscli --upgrade --user
+  ```
+
 ## Installation
 
 ```bash
@@ -46,13 +59,15 @@ times, either by Faast.js or by the cloud provider (or both).
 
 Every call to `faast` creates its own cloud infrastructure. For example, on AWS
 this creates an AWS Lambda function, SNS topic, topic subscription, SQS queue,
-and log group. Faast.js contains a garbage collector that runs asynchronously
-with your process to clean up old infrastructure from previous instances.
+and log group. Faast.js contains a [garbage
+collector](./docs/api/faastjs.commonoptions.gc.md) that runs asynchronously and
+automatically with your process to clean up old infrastructure from previous
+instances.
 
-There is also a `cleanup` function which cleans up the infrastructure for the
-faast.js instance immediately. It is recommended that you always call `cleanup`
-to minimize the infrastructure left behind on your cloud console. Here is a more
-complete code example with cleanup:
+There is also a [cleanup](./docs/api/faastjs.FaastModule.cleanup.md) function
+which cleans up the infrastructure for the faast.js instance immediately. It is
+recommended that you always call `cleanup` to minimize the infrastructure left
+behind on your cloud console. Here is a more complete code example with cleanup:
 
 ```typescript
 import { faast } from "faastjs";
@@ -184,19 +199,30 @@ Cost analyzer output:
                 execution time
 ```
 
+Here's a chart showing the execution time and cost of generating 100M random
+numbers at every memory size on AWS Lambda. The conclusion? You should probably
+pick a memory size around 1728MB-2048MB to get the most performance at a low
+cost if your workload is CPU bound. But your results may vary depending on the
+particulars of your workload. Do your own experiments to verify against your
+workload.
+
+![cost-analyzer-result-aws](./docs/diagrams/cost-analyzer-graph-aws.png "cost analyzer results for AWS")
+
 ## Setting up cloud providers
 
-Using faast.js currently requires an IAM account or service account with
-administrator / owner privileges.
+Using faast.js requires an IAM account or service account with administrator /
+owner privileges.
 
 ### AWS
 
 Setup credentials for
 [AWS](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html).
 
-- Add credentials to system using aws cli (`aws configure`)
+- Create an IAM user.
+- Setup an access key ID and secret access key for the IAM user.
+- Add these credentials to your local machine with aws cli (`aws configure`)
 - Ensure AWS user has AdministratorAccess role and Administrator group
-- Run basic AWS test
+- If you've checked out this repository, you can a basic AWS test (but first see [build instructions](./docs/11-contributing#Building)):
 
 ```
 npx ava -m="*aws*" build/test/basic.test.js
@@ -204,20 +230,21 @@ npx ava -m="*aws*" build/test/basic.test.js
 
 ### Google Cloud Platform
 
-Setup credentials for [GCP](https://cloud.google.com/sdk/docs/authorizing)
+Setup [authentication on
+GCP](https://cloud.google.com/docs/authentication/getting-started).
 
 - Create a project
 - Create a google [service
   account](https://console.cloud.google.com/iam-admin/serviceaccounts)
 - Assign Owner permissions for the service account
-- Enable Cloud functions API
-- Run basic Google test
+- Enable [Cloud functions API](https://console.cloud.google.com/functions)
+- If you've checked out this repository, you can run a basic Google test (but first see [build instructions](./docs/11-contributing#Building)):
 
 ```
 npx ava -m="*google*" build/test/basic.test.js
 ```
 
-### Local
+### Local Provider
 
 Using the `"local"` provider allows you to test faast.js on your local machine.
 Each invocation starts a new process, up to the [concurrency
@@ -238,20 +265,20 @@ There's a natural way to use faast.js to maximize developer productivity:
 
 3. Use the `"local"` provider to test your function as a faast.js module. In
    this mode your invocations execute in local processes. Debug any issues using
-   those standard debugging tools you know and love. Make sure your functions
-   are [idempotent][].
+   standard debugging tools you know and love. Make sure your functions are
+   [idempotent][].
 
-4. Switch from `faast("local", ...)` to `faast("aws", ...)` but limit
+4. Switch from `"local"` to `"aws"` or `"google"` but limit
    [concurrency](./docs/api/faastjs.commonoptions.concurrency.md) to a low
-   amount. Use [logUrl](./docs/api/faastjs.faastmodule.logurl.md) to review
+   amount, between 1-10. Use [logUrl](./docs/api/faastjs.faastmodule.logurl.md) to review
    cloud logs of your code executing. The
    [DEBUG](./docs/01-faast#DEBUG_environment_variable) environment variable can
    be useful to see verbose output as well.
 
-5. Run the [cost analyzer](./docs/api/faastjs.costanalyzer.md) to find a good
-   cost-performance tradeoff for the choice of memory size. A good default
-   choice for CPU or S3-bandwidth bound workloads is between 1728MV-2048MB on
-   AWS.
+5. Next, run a sample of your workload through [cost
+   analyzer](./docs/api/faastjs.costanalyzer.md) to find a good cost-performance
+   tradeoff for the choice of memory size. A good default choice for CPU or
+   S3-bandwidth bound workloads is between 1728MV-2048MB on AWS.
 
 6. Gradually increase concurrency and fix any issues that arise from scaling.
 
@@ -259,54 +286,35 @@ Using this workflow maximizes your ability to use local debugging tools, and
 confines most errors to local or small scale cloud testing. This can help avoid
 costly mistakes which consume lots of procesing time on a large scale.
 
-# Principles
+## Things you won't need to think about with faast.js
 
-- Ephemeral functions: Faast.js cleans up after itself. It removes functions,
-  roles, logs, and log groups. By default it will leave no trace in your
-  infrastructure once cleanup is completed.
-- Avoids resource exhaustion: doesn't take up log space, function name space,
-  and other limits. Only currently executing functions take up infrastructure
-  namespace.
-- Independence: two separate jobs can be run at the same time and they will not
-  interfere with each other.
+- Resource exhaustion: Cloud providers place limits on resources such as log
+  space, number of functions, and many other resources. faast.js ensures that
+  garbage is cleaned up automatically, so you don't run into cloud provider
+  resource limits unexpectedly.
+- Crashes and unexpected termination: Even if your code crashes, the resources
+  faast.js created will be automatically cleaned up when faast.js runs next and
+  at least 24h have elapsed.
+- Independence: separate faast.js jobs can be run at the same time and they will
+  create separate infrastructure for each faast.js module.
 - Works with AWS and Google Cloud Platform.
 
-# Cleaning up stray resources
+## Cleaning up stray resources
 
-Use the `cleanup` utility to clean up stray resources that may be left by
-Faast.js in some rare instances (e.g. crashes where cleanup is not invoked):
+If you don't want to wait for 24h for garbage collection to clean up faast.js
+created cloud resources, you can use the command line tool `faastjs` to manually
+remove all vestiges of faast.js from your account:
 
 ```
-$ node build/src/cleanup.js aws
+$ npx faastjs cleanup aws
 ```
 
 By default the utility runs in dry-run mode, only printing the actions it will
 perform. To actually execute the cleanup, specify the `-x` option:
 
 ```
-$ node build/src/cleanup.js aws -x
+$ npx faastjs cleanup aws -x
 ```
-
-## Local caching in ~/.faast
-
-Faast.js will create some local cache files in `~/.faast`, with a subdirectory
-for each provider used. `cleanup` will delete these files for you. Or, you can
-clear the local cache by deleting `~/.faast` manually. No configuration is
-stored there, only caching files.
-
-## Cache anomalies
-
-Faast.js will only cache packages when `packageJson` is specified. The key to
-the hash is the sha256 hash of the contents of your `package.json`.
-
-Faast.js cache entries expire 24 hours after they are created (they may not be
-deleted immediately, but they are not used). this helps ensure that cached
-packages do not get too out of date.
-
-# Concurrency
-
-Response queue funnel: create a request listener for every 20 outstanding
-requests. With a minimum of 2.
 
 # Limitations
 
@@ -315,17 +323,24 @@ Cloudified function arguments must be serializable with
 Faast.js will print a warning if it detects a case where `JSON.stringify` will
 result in a loss of information passed to the function. This may cause
 unexpected behavior when the code in the lambda function executes. For example,
-the following will lose information:
+the following are not supported as cloud function arguments:
 
-- Promises are transformed into `{}`
-- `Date` instances are transformed into strings
+- Promises arguments (however Promise return values are supported)
+- `Date` arguments or return values
+- Functions passed as arguments or return values
+- Class instances
 - ... and more. The MDN documentation contains more details about specific
   cases.
 
-Faast.js tries its best to detect these cases, but 100% detection is not guaranteed.
+Faast.js tries its best to detect these cases, but 100% detection is not
+guaranteed.
 
 ## Contributing
 
 See [contributing](./docs/11-contributing)
 
 [idempotent]: https://stackoverflow.com/questions/1077412/what-is-an-idempotent-operation
+
+## Built with
+
+![webpack](https://raw.githubusercontent.com/webpack/media/master/logo/logo-on-white-bg.png "webpack")

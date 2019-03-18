@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 require("source-map-support").install();
 
 import * as aws from "aws-sdk";
@@ -380,9 +382,7 @@ async function runCleanup(cloud: string, options: CleanupOptions) {
         nResources = await cleanupLocal(options);
     } else {
         warn(
-            `Unknown cloud name ${
-                commander.cloud
-            }. Must specify "aws" or "google", or "local".`
+            `Unknown cloud name "${cloud}". Must specify "aws" or "google", or "local".`
         );
         process.exit(-1);
     }
@@ -398,26 +398,30 @@ async function runCleanup(cloud: string, options: CleanupOptions) {
 
 async function main() {
     let cloud!: string;
+    let command: string | undefined;
     commander
         .version("0.1.0")
         .option("-v, --verbose", "Verbose mode")
+        .option(
+            "-r, --region <region>",
+            "Cloud region to operate on. Defaults to us-west-2 for AWS, and us-central1 for Google."
+        );
+
+    commander
+        .command("cleanup <cloud>")
+        .description(
+            `Cleanup faast.js resources that may have leaked. The <cloud> argument must be "aws", "google", or "local".
+        By default the output is a dry run and will only print the actions that would be performed if '-x' is specified.`
+        )
         .option(
             "-x, --execute",
             "Execute the cleanup process. If this option is not specified, the output will be a dry run."
         )
         .option("-f, --force", "When used with -x, skips the prompt")
-        .option(
-            "-r, --region <region>",
-            "Region to clean up. Defaults to us-west-2 for AWS, and us-central1 for Google."
-        )
-        .arguments("<cloud>")
         .action(arg => {
+            command = "cleanup";
             cloud = arg;
-        })
-        .description(
-            `Cleanup faast resources that may have leaked. The <cloud> argument must be "aws", "google", or "local".
-  By default the output is a dry run and will only print the actions that would be performed if '-x' is specified.`
-        );
+        });
 
     commander.parse(process.argv);
     if (commander.verbose) {
@@ -441,18 +445,24 @@ async function main() {
     region && log(`Region: ${region}`);
     const options = { region, execute };
     let nResources = 0;
-    if (execute && !force) {
-        nResources = await runCleanup(cloud, { ...options, execute: false });
-        if (nResources > 0) {
-            await prompt();
-        } else {
-            process.exit(0);
+    if (command === "cleanup") {
+        if (execute && !force) {
+            nResources = await runCleanup(cloud, { ...options, execute: false });
+            if (nResources > 0) {
+                await prompt();
+            } else {
+                process.exit(0);
+            }
         }
-    }
-    nResources = await runCleanup(cloud, options);
-
-    if (!execute && nResources > 0) {
-        log(`(dryrun mode, no resources will be deleted, specify -x to execute cleanup)`);
+        nResources = await runCleanup(cloud, options);
+        if (!execute && nResources > 0) {
+            log(
+                `(dryrun mode, no resources will be deleted, specify -x to execute cleanup)`
+            );
+        }
+    } else {
+        log(`No command specified.`);
+        commander.help();
     }
 }
 

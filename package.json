@@ -18,12 +18,15 @@
         "test-aws": "ava --concurrency=8 --timeout=2m -m='!remote*' -m='*aws*'",
         "test-google": "ava --concurrency=4 --timeout=4m -m='!remote*' -m='*google*'",
         "test-debug": "DEBUG=faast:provider,faast:info ava --fail-fast --serial",
-        "cleanup-cloud": "node build/src/cleanup.js aws -x -f && node build/src/cleanup.js google -x -f",
+        "cleanup-cloud": "node build/src/cli.js cleanup aws -x -f && node ./build/src/cli.js cleanup google -x -f",
         "clean": "rm -rf build",
         "tslint": "tslint -p tsconfig.json"
     },
     "author": "Andy Chou",
     "license": "ISC",
+    "bin": {
+        "faastjs": "./build/src/cli.js"
+    },
     "dependencies": {
         "archiver": "^3.0.0",
         "aws-sdk": "^2.403.0",

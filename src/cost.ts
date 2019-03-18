@@ -650,7 +650,7 @@ export async function costAnalyzer<T extends object, A extends string>(
         CostAnalyzerConfigurationEstimate<A>
     >(
         {
-            concurrency: 64,
+            concurrency: 8,
             rate: 4,
             burst: 1,
             retry: 3
@@ -696,7 +696,7 @@ export async function costAnalyzer<T extends object, A extends string>(
                 }
             };
         }),
-        { concurrent: 64, nonTTYRenderer: renderer, renderer }
+        { concurrent: 8, nonTTYRenderer: renderer, renderer }
     );
 
     await list.run();
