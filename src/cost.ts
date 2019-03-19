@@ -41,7 +41,7 @@ export interface CostAnalyzerWorkload<T extends object, A extends string> {
     /**
      * Format an attribute value for console output. This is displayed by the
      * cost analyzer when all of the repetitions for a configuration have
-     * completed. The default returns ``${attribute}:${value.toFixed(1)}``.
+     * completed. The default returns `${attribute}:${value.toFixed(1)}`.
      */
     format?: (attr: A, value: number) => string;
     /**

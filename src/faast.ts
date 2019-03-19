@@ -386,7 +386,7 @@ export interface FaastModule<M extends object> {
     /**
      * Stop the faast.js runtime for this cloud function and clean up ephemeral
      * cloud resources.
-     * @param options - See {@link @CleanupOptions}.
+     * @param options - See {@link CleanupOptions}.
      * @returns a Promise that resolves when the `FaastModule` runtime stops and
      * ephemeral resources have been deleted.
      * @remarks

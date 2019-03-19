@@ -18,7 +18,7 @@ export class Statistics {
 
     /**
      * Incrementally track mean, stdev, min, max, of a sequence of values.
-     * @param printFixedPrecision The number of decimal places to print in
+     * @param printFixedPrecision - The number of decimal places to print in
      * {@link Statistics.toString}.
      */
     constructor(protected printFixedPrecision: number = 1) {}
