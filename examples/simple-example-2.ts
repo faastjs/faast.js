@@ -14,7 +14,7 @@ async function main() {
         await faastModule.cleanup();
         console.log(`Cost estimate:`);
         console.log(`${await faastModule.costSnapshot()}`);
-        console.log(`${(await faastModule.costSnapshot()).csv()}`);
+        //       console.log(`${(await faastModule.costSnapshot()).csv()}`);
     }
 }
 
