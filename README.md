@@ -64,7 +64,7 @@ collector](./docs/api/faastjs.commonoptions.gc.md) that runs asynchronously and
 automatically with your process to clean up old infrastructure from previous
 instances.
 
-There is also a [cleanup](./docs/api/faastjs.FaastModule.cleanup.md) function
+There is also a [cleanup](./docs/api/faastjs.faastmodule.cleanup.md) function
 which cleans up the infrastructure for the faast.js instance immediately. It is
 recommended that you always call `cleanup` to minimize the infrastructure left
 behind on your cloud console. Here is a more complete code example with cleanup:
