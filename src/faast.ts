@@ -112,7 +112,7 @@ export type Response<D> = ResponseDetails<Unpacked<D>>;
 
 /**
  * Given argument types A and return type R of a function,
- * PromisifiedFunction<A,R> is a type with the same signature except the return
+ * PromisifiedFunction\<A,R\> is a type with the same signature except the return
  * value is replaced with a Promise. If the original function already returned a
  * promise, the signature is unchanged. This is used by {@link Promisified}.
  * @public

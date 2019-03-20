@@ -120,7 +120,7 @@ In most use cases you won't need to specify dependencies explicitly because
 faast.js uses webpack to automatically bundle dependencies for you. But if your
 bundle exceeds 50MB or has native dependencies, you'll need to specify
 `packageJson`. Faast.js even [installs and caches dependencies in a Lambda
-Layer](./api/faastjs.commonoptions.packagejson.md) for you on AWS!
+Layer](./docs/api/faastjs.commonoptions.packagejson.md) for you on AWS!
 
 ```typescript
 faast("aws", m, "./module", {
@@ -134,10 +134,10 @@ faast("aws", m, "./module", {
 ```
 
 Check out even more options in the [CommonOptions
-interface](./api/faastjs.commonoptions.md) and cloud-specific options in
-[AwsOptions](./api/faastjs.awsoptions.md),
-[GoogleOptions](./api/faastjs.googleoptions.md), and
-[LocalOptions](./api/faastjs.localoptions.md).
+interface](./docs/api/faastjs.commonoptions.md) and cloud-specific options in
+[AwsOptions](./docs/api/faastjs.awsoptions.md),
+[GoogleOptions](./docs/api/faastjs.googleoptions.md), and
+[LocalOptions](./docs/api/faastjs.localoptions.md).
 
 ## Cost estimates
 

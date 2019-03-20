@@ -10,11 +10,7 @@ declare const awsConfigurations: CostAnalyzerConfiguration[];
 // Warning: (ae-forgotten-export) The symbol "AwsState" needs to be exported by the entry point index.d.ts
 // 
 // @public
-declare type AwsFaastModule<M extends object = object> = FaastModuleProxy<
-    M,
-    AwsOptions,
-    AwsState
->;
+declare type AwsFaastModule<M extends object = object> = FaastModuleProxy<M, AwsOptions, AwsState>;
 
 // @public
 interface AwsOptions extends CommonOptions {
@@ -136,19 +132,10 @@ declare class CostSnapshot {
 }
 
 // @public
-declare function faast<M extends object>(
-    provider: Provider,
-    fmodule: M,
-    modulePath: string,
-    options?: CommonOptions
-): Promise<FaastModule<M>>;
+declare function faast<M extends object>(provider: Provider, fmodule: M, modulePath: string, options?: CommonOptions): Promise<FaastModule<M>>;
 
 // @public
-declare function faastAws<M extends object>(
-    fmodule: M,
-    modulePath: string,
-    options?: AwsOptions
-): Promise<AwsFaastModule<M>>;
+declare function faastAws<M extends object>(fmodule: M, modulePath: string, options?: AwsOptions): Promise<AwsFaastModule<M>>;
 
 // @public
 declare class FaastError extends Error {
@@ -159,18 +146,10 @@ declare class FaastError extends Error {
 }
 
 // @public
-declare function faastGoogle<M extends object>(
-    fmodule: M,
-    modulePath: string,
-    options?: GoogleOptions
-): Promise<GoogleFaastModule<M>>;
+declare function faastGoogle<M extends object>(fmodule: M, modulePath: string, options?: GoogleOptions): Promise<GoogleFaastModule<M>>;
 
 // @public
-declare function faastLocal<M extends object>(
-    fmodule: M,
-    modulePath: string,
-    options?: LocalOptions
-): Promise<LocalFaastModule<M>>;
+declare function faastLocal<M extends object>(fmodule: M, modulePath: string, options?: LocalOptions): Promise<LocalFaastModule<M>>;
 
 // @public
 interface FaastModule<M extends object> {
@@ -189,13 +168,7 @@ declare class FaastModuleProxy<M extends object, O, S> implements FaastModule<M>
     // Warning: (ae-forgotten-export) The symbol "ProviderImpl" needs to be exported by the entry point index.d.ts
     // 
     // @internal
-    constructor(
-        impl: ProviderImpl<O, S>,
-        state: S,
-        fmodule: M,
-        modulePath: string,
-        options: Required<CommonOptions>
-    );
+    constructor(impl: ProviderImpl<O, S>, state: S, fmodule: M, modulePath: string, options: Required<CommonOptions>);
     // (undocumented)
     cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
     // (undocumented)
@@ -253,11 +226,7 @@ declare const googleConfigurations: CostAnalyzerConfiguration[];
 // Warning: (ae-forgotten-export) The symbol "GoogleState" needs to be exported by the entry point index.d.ts
 // 
 // @public
-declare type GoogleFaastModule<M extends object = object> = FaastModuleProxy<
-    M,
-    GoogleOptions,
-    GoogleState
->;
+declare type GoogleFaastModule<M extends object = object> = FaastModuleProxy<M, GoogleOptions, GoogleState>;
 
 // @public
 interface GoogleOptions extends CommonOptions {
@@ -283,11 +252,7 @@ interface Limits {
 // Warning: (ae-forgotten-export) The symbol "LocalState" needs to be exported by the entry point index.d.ts
 // 
 // @public
-declare type LocalFaastModule<M extends object = object> = FaastModuleProxy<
-    M,
-    LocalOptions,
-    LocalState
->;
+declare type LocalFaastModule<M extends object = object> = FaastModuleProxy<M, LocalOptions, LocalState>;
 
 // @public
 interface LocalOptions extends CommonOptions {
@@ -329,15 +294,11 @@ declare class PersistentCache {
 
 // @public
 declare type Promisified<M> = {
-    [K in keyof M]: M[K] extends (...args: infer A) => infer R
-        ? PromisifiedFunction<A, R>
-        : never
+    [K in keyof M]: M[K] extends (...args: infer A) => infer R ? PromisifiedFunction<A, R> : never;
 };
 
 // @public
-declare type PromisifiedFunction<A extends any[], R> = (
-    ...args: A
-) => Promise<Unpacked<R>>;
+declare type PromisifiedFunction<A extends any[], R> = (...args: A) => Promise<Unpacked<R>>;
 
 // @public
 declare type Provider = "aws" | "google" | "local";
