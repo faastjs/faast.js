@@ -1,0 +1,56 @@
+[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [log](./faastjs.log.md)
+
+## log variable
+
+Faast.js loggers.
+
+<b>Signature:</b>
+
+```typescript
+log: {
+    info: debug.Debugger;
+    warn: debug.Debugger;
+    gc: debug.Debugger;
+    leaks: debug.Debugger;
+    calls: debug.Debugger;
+    webpack: debug.Debugger;
+    provider: debug.Debugger;
+    awssdk: debug.Debugger;
+}
+```
+
+## Remarks
+
+Unless otherwise specified, each log is disabled by default unless the value of the DEBUG environment variable is set to the corresponding value. For example:
+
+```
+  $ DEBUG=faast:info,faast:provider <cmd>
+  $ DEBUG=faast:* <cmd>
+
+```
+Logs can also be enabled or disabled programmatically:
+
+```typescript
+import { log } from "faastjs"
+log.info.enabled = true;
+log.provider.enabled = true;
+
+```
+Each log outputs specific information:
+
+`info` - General informational logging.
+
+`warn` - Warnings. Enabled by default.
+
+`gc` - Garbage collection verbose logging.
+
+`leaks` - Memory leak detector warnings for the cloud function. Enabled by default.
+
+`calls` - Verbose logging of each faast.js enabled function invocation.
+
+`webpack` - Verbose logging from webpack and packaging details.
+
+`provider` - Verbose logging of each interaction between faast.js runtime and the provider-specific implementation.
+
+`awssdk` - Verbose logging of AWS SDK. This can be useful for identifying which API calls are failing, retrying, or encountering rate limits.
+

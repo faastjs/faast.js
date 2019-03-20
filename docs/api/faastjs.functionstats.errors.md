@@ -1,0 +1,11 @@
+[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [errors](./faastjs.functionstats.errors.md)
+
+## FunctionStats.errors property
+
+The number of invocations that resulted in an error. If an invocation is retried, an error is only counted once, no matter how many retries were attempted.
+
+<b>Signature:</b>
+
+```typescript
+errors: number;
+```

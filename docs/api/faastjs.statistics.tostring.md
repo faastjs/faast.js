@@ -1,0 +1,15 @@
+[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Statistics](./faastjs.statistics.md) &gt; [toString](./faastjs.statistics.tostring.md)
+
+## Statistics.toString() method
+
+Print the mean of the observations seen, with the precision specified in the constructor.
+
+<b>Signature:</b>
+
+```typescript
+toString(): string;
+```
+<b>Returns:</b>
+
+`string`
+

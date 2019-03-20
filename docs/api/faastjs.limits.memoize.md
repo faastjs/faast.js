@@ -1,0 +1,13 @@
+[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Limits](./faastjs.limits.md) &gt; [memoize](./faastjs.limits.memoize.md)
+
+## Limits.memoize property
+
+If `memoize` is `true`<!-- -->, then every call to the throttled function will be saved as an entry in a map from arguments to return value. If same arguments are seen again in a future call, the return value is retrieved from the Map rather than calling the function again. This can be useful for avoiding redundant calls that are expected to return the same results given the same arguments.
+
+The arguments will be captured with `JSON.stringify`<!-- -->, therefore types that do not stringify uniquely won't be distinguished from each other. Care must be taken when specifying `memoize` to ensure avoid incorrect results.
+
+<b>Signature:</b>
+
+```typescript
+memoize?: boolean;
+```

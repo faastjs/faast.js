@@ -1,0 +1,16 @@
+[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [maxRetries](./faastjs.commonoptions.maxretries.md)
+
+## CommonOptions.maxRetries property
+
+Maximum number of times that faast will retry each invocation. Default: 2 (invocations can therefore be attemped 3 times in total).
+
+<b>Signature:</b>
+
+```typescript
+maxRetries?: number;
+```
+
+## Remarks
+
+Retries are automatically attempted for transient infrastructure-level failures such as rate limits or netowrk failures. User-level exceptions are not retried automatically. In addition to retries performed by faast, some providers automatically attempt retries. These are not controllable by faast. But as a result, your function may be retried many more times than this setting suggests.
+

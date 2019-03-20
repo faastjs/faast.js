@@ -1,0 +1,11 @@
+[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Limits](./faastjs.limits.md) &gt; [cache](./faastjs.limits.cache.md)
+
+## Limits.cache property
+
+Similar to `memoize` except the map from function arguments to results is stored in a persistent cache on disk. This is useful to prevent redundant calls to APIs which are expected to return the same results for the same arguments, and which are likely to be called across many faast.js module instantiations. This is used internally by faast.js for caching cloud prices for AWS and Google, and for saving the last garbage collection date for AWS. Persistent cache entries expire after a period of time. See [PersistentCache](./faastjs.persistentcache.md)<!-- -->.
+
+<b>Signature:</b>
+
+```typescript
+cache?: PersistentCache;
+```

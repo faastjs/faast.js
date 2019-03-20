@@ -1,0 +1,36 @@
+[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [functions](./faastjs.faastmodule.functions.md)
+
+## FaastModule.functions property
+
+Each call of a cloud function creates a separate remote invocation.
+
+<b>Signature:</b>
+
+```typescript
+functions: Promisified<M>;
+```
+
+## Remarks
+
+The module passed into [faast()](./faastjs.faast.md) or its provider-specific variants ([faastAws()](./faastjs.faastaws.md)<!-- -->, [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->, and [faastLocal()](./faastjs.faastlocal.md)<!-- -->) is mapped to a [Promisified](./faastjs.promisified.md) version of the module, which performs the following mapping:
+
+- All function exports that return promises have their type signatures preserved as-is.
+
+- All function exports that return type T where T is not a Promise, are mapped to functions that return Promise<T>. Argument types are preserved as-is.
+
+- All non-function exports are omitted in the Promisified module.
+
+Arguments and return values are serialized with `JSON.stringify` when cloud functions are called, therefore what is received on the remote side might not match what was sent. Faast.js attempts to detect nonsupported arguments on a best effort basis.
+
+If the cloud function throws an exception or rejects its promise with an instance of `Error`<!-- -->, then the function will reject with [FaastError](./faastjs.faasterror.md) on the local side. If the exception or rejection resolves to any value that is not an instance of `Error`<!-- -->, the remote function proxy will reject with the value of `JSON.parse(JSON.stringify(err))`<!-- -->.
+
+Arguments and return values have size limitations that vary by provider and mode:
+
+- AWS: 256KB in queue mode, 6MB in https mode. See [AWS Lambda Limits](https://docs.aws.amazon.com/lambda/latest/dg/limits.html)<!-- -->.
+
+- Google: 10MB in https and queue modes. See [Google Cloud Function Quotas](https://cloud.google.com/functions/quotas)<!-- -->.
+
+- Local: limited only by available memory and the limits of [childprocess.send](https://nodejs.org/api/child_process.html#child_process_subprocess_send_message_sendhandle_options_callback)<!-- -->.
+
+Note that payloads may be base64 encoded for some providers and therefore different in size than the original payload. Also, some bookkeeping data are passed along with arguments and contribute to the size limit.
+

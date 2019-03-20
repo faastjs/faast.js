@@ -1,0 +1,11 @@
+[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [estimatedBilledTime](./faastjs.functionstats.estimatedbilledtime.md)
+
+## FunctionStats.estimatedBilledTime property
+
+Statistics for amount of time billed. This is similar to [FunctionStats.executionTime](./faastjs.functionstats.executiontime.md) except each sampled time is rounded up to the next 100ms.
+
+<b>Signature:</b>
+
+```typescript
+estimatedBilledTime: Statistics;
+```
