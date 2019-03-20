@@ -67,9 +67,9 @@ times, either by Faast.js or by the cloud provider (or both).
 
 Every call to `faast` creates its own cloud infrastructure. For example, on AWS
 this creates an AWS Lambda function, SNS topic, topic subscription, SQS queue,
-and log group. Faast.js contains a [garbage collector][] that runs asynchronously and
-automatically with your process to clean up old infrastructure from previous
-instances.
+and log group. Faast.js contains a [garbage collector][] that runs
+asynchronously and automatically with your process to clean up old
+infrastructure from previous instances.
 
 There is also a [cleanup](./docs/api/faastjs.faastmodule.cleanup.md) function
 which cleans up the infrastructure for the faast.js instance immediately. It is
@@ -351,5 +351,4 @@ See [contributing](./docs/11-contributing)
 ![webpack](https://raw.githubusercontent.com/webpack/media/master/logo/logo-on-white-bg.png "webpack")
 
 [idempotent]: https://stackoverflow.com/questions/1077412/what-is-an-idempotent-operation
-
-[garbage collector](./docs/api/faastjs.commonoptions.gc.md)
+[garbage collector]: ./docs/api/faastjs.commonoptions.gc.md
