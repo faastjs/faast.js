@@ -4,11 +4,19 @@
 
 Faast.js turns JavaScript modules into scalable serverless functions for batch processing.
 
-- **Scalable:** Use serverless functions to scale your batch jobs up to thousands of cores.
-- **Cost-effective:** Understand and optimize your workload costs in real time. Pay only for compute time actually used.
-- **Ephemeral:** No cluster management. No container management. Faast.js is designed have zero ops management burden.
-- **Developer optimized:** Includes first class support for TypeScript and JavaScript. Type safety, documentation, and extensive testing already included.
-- **Portable:** Built-in support for [AWS Lambda](https://aws.amazon.com/lambda/) and [Google Cloud Functions](https://cloud.google.com/functions/), as well as [local](./docs/06-local) processing mode. Change one line of code to switch.
+- **Scalable:** Use serverless functions to scale your batch jobs up to
+  thousands of cores.
+- **Cost-effective:** Understand and optimize your workload costs in real time.
+  Pay only for compute time actually used.
+- **Ephemeral:** No cluster management. No container management. Faast.js is
+  designed have zero ops management burden.
+- **Developer optimized:** Includes first class support for TypeScript and
+  JavaScript. Type safety, documentation, and extensive testing already
+  included.
+- **Portable:** Built-in support for [AWS
+  Lambda](https://aws.amazon.com/lambda/) and [Google Cloud
+  Functions](https://cloud.google.com/functions/), as well as
+  [local](./docs/06-local) processing mode. Change one line of code to switch.
 
 ## Prerequisites
 
@@ -59,8 +67,7 @@ times, either by Faast.js or by the cloud provider (or both).
 
 Every call to `faast` creates its own cloud infrastructure. For example, on AWS
 this creates an AWS Lambda function, SNS topic, topic subscription, SQS queue,
-and log group. Faast.js contains a [garbage
-collector](./docs/api/faastjs.commonoptions.gc.md) that runs asynchronously and
+and log group. Faast.js contains a [garbage collector][] that runs asynchronously and
 automatically with your process to clean up old infrastructure from previous
 instances.
 
@@ -119,8 +126,8 @@ faast("aws", m, "./module", {
 In most use cases you won't need to specify dependencies explicitly because
 faast.js uses webpack to automatically bundle dependencies for you. But if your
 bundle exceeds 50MB or has native dependencies, you'll need to specify
-`packageJson`. Faast.js even [installs and caches dependencies in a Lambda
-Layer](./docs/api/faastjs.commonoptions.packagejson.md) for you on AWS!
+[`packageJson`](./docs/api/faastjs.commonoptions.packagejson.md). Faast.js even
+installs and caches dependencies in a Lambda Layer for you on AWS!
 
 ```typescript
 faast("aws", m, "./module", {
@@ -339,8 +346,10 @@ guaranteed.
 
 See [contributing](./docs/11-contributing)
 
-[idempotent]: https://stackoverflow.com/questions/1077412/what-is-an-idempotent-operation
-
 ## Built with
 
 ![webpack](https://raw.githubusercontent.com/webpack/media/master/logo/logo-on-white-bg.png "webpack")
+
+[idempotent]: https://stackoverflow.com/questions/1077412/what-is-an-idempotent-operation
+
+[garbage collector](./docs/api/faastjs.commonoptions.gc.md)

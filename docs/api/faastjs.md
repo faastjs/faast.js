@@ -59,8 +59,8 @@
 |  [CostAnalyzerConfiguration](./faastjs.costanalyzerconfiguration.md) | An input to [costAnalyzer()](./faastjs.costanalyzer.md)<!-- -->, specifying one configuration of faast.js to run against a workload. See [AwsOptions](./faastjs.awsoptions.md) and [GoogleOptions](./faastjs.googleoptions.md)<!-- -->. |
 |  [GoogleFaastModule](./faastjs.googlefaastmodule.md) | The return type of [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
 |  [LocalFaastModule](./faastjs.localfaastmodule.md) | The return type of [faastLocal()](./faastjs.faastlocal.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
-|  [Promisified](./faastjs.promisified.md) | Promisified<M> is the type of [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. It maps an imported module's functions to promise-returning versions of those functions (see [PromisifiedFunction](./faastjs.promisifiedfunction.md)<!-- -->). Non-function exports of the module are omitted. |
-|  [PromisifiedFunction](./faastjs.promisifiedfunction.md) | Given argument types A and return type R of a function, PromisifiedFunction<!-- -->&lt;<!-- -->A,R<!-- -->&gt; is a type with the same signature except the return value is replaced with a Promise. If the original function already returned a promise, the signature is unchanged. This is used by [Promisified](./faastjs.promisified.md)<!-- -->. |
+|  [Promisified](./faastjs.promisified.md) | `Promisified<M>` is the type of [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. |
+|  [PromisifiedFunction](./faastjs.promisifiedfunction.md) | The type of functions on [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. Used by [Promisified](./faastjs.promisified.md)<!-- -->. |
 |  [Provider](./faastjs.provider.md) | The type of all supported cloud providers. |
 |  [Unpacked](./faastjs.unpacked.md) |  |
 |  [WorkloadAttribute](./faastjs.workloadattribute.md) | User-defined custom metrics for a workload. These are automatically summarized in the output; see [CostAnalyzerWorkload](./faastjs.costanalyzerworkload.md)<!-- -->. |

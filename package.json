@@ -11,7 +11,7 @@
     "scripts": {
         "build": "npm run clean && tsc && npm run doc",
         "watch": "npm run clean && tsc --watch",
-        "doc": "api-extractor run --local && api-documenter markdown -i build -o docs/api",
+        "doc": "api-extractor run --local && api-documenter markdown -i build -o docs/api && cp etc/index.html docs/api",
         "aws-set-gcp-key": "node build/src/aws/aws-set-gcp-key.js",
         "test": "ava build/test/*.test.js",
         "test-local": "ava --concurrency=4 -m='!remote*'",

@@ -111,21 +111,25 @@ export interface ResponseDetails<D> {
 export type Response<D> = ResponseDetails<Unpacked<D>>;
 
 /**
+ * The type of functions on {@link FaastModule.functions}. Used by
+ * {@link Promisified}.
+ *  @remarks
  * Given argument types A and return type R of a function,
- * PromisifiedFunction\<A,R\> is a type with the same signature except the return
- * value is replaced with a Promise. If the original function already returned a
- * promise, the signature is unchanged. This is used by {@link Promisified}.
- * @public
+ * `PromisifiedFunction<A,R>` is a type with the same signature except the
+ * return value is replaced with a Promise. If the original function already
+ * returned a promise, the signature is unchanged.
+ *  @public
  */
 export type PromisifiedFunction<A extends any[], R> = (
     ...args: A
 ) => Promise<Unpacked<R>>;
 
 /**
- * Promisified<M> is the type of {@link FaastModule.functions}. It maps an
- * imported module's functions to promise-returning versions of those functions
- * (see {@link PromisifiedFunction}). Non-function exports of the module are
- * omitted.
+ * `Promisified<M>` is the type of {@link FaastModule.functions}.
+ * @remarks
+ * `Promisified<M>` maps an imported module's functions to promise-returning
+ * versions of those functions (see {@link PromisifiedFunction}). Non-function
+ * exports of the module are omitted.
  * @public
  */
 export type Promisified<M> = {
