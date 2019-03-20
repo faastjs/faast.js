@@ -709,9 +709,10 @@ export async function costAnalyzer<T extends object, A extends string>(
 
 /**
  * Cost analyzer results for each workload and configuration.
- * @public
+ * @remarks
  * The `estimates` property has the cost estimates for each configuration. See
  * {@link CostAnalyzerConfigurationEstimate}.
+ * @public
  */
 export class CostAnalyzerResult<T extends object, A extends string> {
     /** @internal */
@@ -726,22 +727,34 @@ export class CostAnalyzerResult<T extends object, A extends string> {
     ) {}
 
     /**
-     * Comma-separated output of cost analyzer. There is one row per cost
-     * analyzer configuration. The columns are:
+     * Comma-separated output of cost analyzer. One line per cost analyzer
+     * configuration.
+     * @remarks
+     * The columns are:
      *
      * - `memory`: The memory size allocated.
+     *
      * - `cloud`: The cloud provider.
+     *
      * - `mode`: See {@link CommonOptions.mode}.
+     *
      * - `options`: A string summarizing other faast.js options applied to the
      *   `workload`. See {@link CommonOptions}.
+     *
      * - `completed`: Number of repetitions that successfully completed.
+     *
      * - `errors`: Number of invocations that failed.
+     *
      * - `retries`: Number of retries that were attempted.
+     *
      * - `cost`: The average cost of executing the workload once.
+     *
      * - `executionTime`: the aggregate time spent executing on the provider for
      *   all cloud function invocations in the workload. This is averaged across
      *   repetitions.
+     *
      * - `executionTimeStdev`: The standard deviation of `executionTime`.
+     *
      * - `billedTime`: the same as `exectionTime`, except rounded up to the next
      *   100ms for each invocation. Usually very close to `executionTime`.
      */

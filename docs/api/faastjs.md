@@ -6,14 +6,14 @@
 
 |  Class | Description |
 |  --- | --- |
-|  [CostAnalyzerResult](./faastjs.costanalyzerresult.md) | Cost analyzer results for each workload and configuration.<!-- -->The `estimates` property has the cost estimates for each configuration. See [CostAnalyzerConfigurationEstimate](./faastjs.costanalyzerconfigurationestimate.md)<!-- -->. |
+|  [CostAnalyzerResult](./faastjs.costanalyzerresult.md) | Cost analyzer results for each workload and configuration. |
 |  [CostMetric](./faastjs.costmetric.md) | A line item in the cost estimate, including the resource usage metric measured and its pricing. |
 |  [CostSnapshot](./faastjs.costsnapshot.md) | A summary of the costs incurred by a faast.js module at a point in time. Output of [FaastModule.costSnapshot()](./faastjs.faastmodule.costsnapshot.md)<!-- -->. |
 |  [FaastError](./faastjs.faasterror.md) | Error type returned by cloud functions when they reject their promises with an instance of Error or any object. |
 |  [FaastModuleProxy](./faastjs.faastmoduleproxy.md) | Implementation of the faast.js runtime. |
 |  [FunctionStats](./faastjs.functionstats.md) | Summary statistics for function invocations. |
 |  [FunctionStatsEvent](./faastjs.functionstatsevent.md) | Summarize statistics about cloud function invocations. |
-|  [PersistentCache](./faastjs.persistentcache.md) | A simple persistent key-value store. Entries can be expired, but are not actually deleted individually. The entire cache can be deleted at once. Hence this cache is useful for storing results that are expensive to compute but do not change too often (e.g. the node\_modules folder from an 'npm install' where 'package.json' is not expected to change too often).<!-- -->This is used to implement [Limits.cache](./faastjs.limits.cache.md) for the [throttle()](./faastjs.throttle.md) function. |
+|  [PersistentCache](./faastjs.persistentcache.md) | A simple persistent key-value store. Used to implement [Limits.cache](./faastjs.limits.cache.md) for [throttle()](./faastjs.throttle.md)<!-- -->. |
 |  [Statistics](./faastjs.statistics.md) | Incrementally updated statistics on a set of values. |
 
 ## Functions

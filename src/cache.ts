@@ -16,14 +16,14 @@ import * as uuidv4 from "uuid/v4";
 interface Blob {}
 
 /**
- * A simple persistent key-value store. Entries can be expired, but are not
- * actually deleted individually. The entire cache can be deleted at once. Hence
- * this cache is useful for storing results that are expensive to compute but do
- * not change too often (e.g. the node_modules folder from an 'npm install'
- * where 'package.json' is not expected to change too often).
- *
- * This is used to implement {@link Limits.cache} for the {@link throttle}
- * function.
+ * A simple persistent key-value store. Used to implement {@link Limits.cache}
+ * for {@link throttle}.
+ * @remarks
+ * Entries can be expired, but are not actually deleted individually. The entire
+ * cache can be deleted at once. Hence this cache is useful for storing results
+ * that are expensive to compute but do not change too often (e.g. the
+ * node_modules folder from an 'npm install' where 'package.json' is not
+ * expected to change too often).
  * @public
  */
 export class PersistentCache {
