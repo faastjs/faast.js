@@ -326,7 +326,7 @@ declare class Statistics {
 // @public
 declare function throttle<A extends any[], R>({ concurrency, retry, rate, burst, memoize, cache }: Limits, fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;
 
-// @public (undocumented)
+// @public
 declare type Unpacked<T> = T extends Promise<infer D> ? D : T;
 
 // @public

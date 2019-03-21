@@ -2,6 +2,7 @@
 
 ## Unpacked type
 
+The type returned by a `Promise`<!-- -->.
 
 <b>Signature:</b>
 

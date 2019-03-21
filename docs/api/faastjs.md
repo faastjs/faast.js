@@ -33,7 +33,7 @@
 |  --- | --- |
 |  [AwsOptions](./faastjs.awsoptions.md) | AWS-specific options. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. These options should be used with [faastAws()](./faastjs.faastaws.md)<!-- -->. |
 |  [CleanupOptions](./faastjs.cleanupoptions.md) | Options that apply to the [FaastModule.cleanup()](./faastjs.faastmodule.cleanup.md) method. |
-|  [CommonOptions](./faastjs.commonoptions.md) | Options common across all faast.js providers. |
+|  [CommonOptions](./faastjs.commonoptions.md) | Options common across all faast.js providers. Used as argument to [faast()](./faastjs.faast.md)<!-- -->. |
 |  [CostAnalyzerConfigurationEstimate](./faastjs.costanalyzerconfigurationestimate.md) | A cost estimate result for a specific cost analyzer configuration. |
 |  [CostAnalyzerWorkload](./faastjs.costanalyzerworkload.md) | A user-defined cost analyzer workload for [costAnalyzer()](./faastjs.costanalyzer.md)<!-- -->.<!-- -->Example: |
 |  [FaastModule](./faastjs.faastmodule.md) | The main interface for invoking, cleaning up, and managing faast.js cloud functions. |
@@ -62,6 +62,6 @@
 |  [Promisified](./faastjs.promisified.md) | `Promisified<M>` is the type of [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. |
 |  [PromisifiedFunction](./faastjs.promisifiedfunction.md) | The type of functions on [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. Used by [Promisified](./faastjs.promisified.md)<!-- -->. |
 |  [Provider](./faastjs.provider.md) | The type of all supported cloud providers. |
-|  [Unpacked](./faastjs.unpacked.md) |  |
+|  [Unpacked](./faastjs.unpacked.md) | The type returned by a `Promise`<!-- -->. |
 |  [WorkloadAttribute](./faastjs.workloadattribute.md) | User-defined custom metrics for a workload. These are automatically summarized in the output; see [CostAnalyzerWorkload](./faastjs.costanalyzerworkload.md)<!-- -->. |
 

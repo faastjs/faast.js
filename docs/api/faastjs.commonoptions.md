@@ -2,7 +2,7 @@
 
 ## CommonOptions interface
 
-Options common across all faast.js providers.
+Options common across all faast.js providers. Used as argument to [faast()](./faastjs.faast.md)<!-- -->.
 
 <b>Signature:</b>
 

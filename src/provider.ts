@@ -13,7 +13,7 @@ export const KIND_ATTR = "__faast_kind__";
 export type Provider = "aws" | "google" | "local";
 
 /**
- * Options common across all faast.js providers.
+ * Options common across all faast.js providers. Used as argument to {@link faast}.
  * @remarks
  * There are also more specific options for each provider. See
  * {@link AwsOptions}, {@link GoogleOptions}, and {@link LocalOptions}.
