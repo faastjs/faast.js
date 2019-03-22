@@ -31,3 +31,5 @@ export declare class PersistentCache
 
 Entries can be expired, but are not actually deleted individually. The entire cache can be deleted at once. Hence this cache is useful for storing results that are expensive to compute but do not change too often (e.g. the node\_modules folder from an 'npm install' where 'package.json' is not expected to change too often).
 
+By default faast.js will use the directory `~/.faastjs` as a local cache to store data such as pricing retrieved from cloud APIs, and garbage collection information. This directory can be safely deleted if no faast.js instances are running.
+
