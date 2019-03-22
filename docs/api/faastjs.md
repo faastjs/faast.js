@@ -48,7 +48,7 @@
 |  Variable | Description |
 |  --- | --- |
 |  [log](./faastjs.log.md) | Faast.js loggers. |
-|  [providers](./faastjs.providers.md) |  |
+|  [providers](./faastjs.providers.md) | An array of all available provider. |
 
 ## Type Aliases
 

@@ -296,7 +296,7 @@ declare type PromisifiedFunction<A extends any[], R> = (...args: A) => Promise<U
 // @public
 declare type Provider = "aws" | "google" | "local";
 
-// @public (undocumented)
+// @public
 declare const providers: Provider[];
 
 // @public

@@ -2,6 +2,7 @@
 
 ## providers variable
 
+An array of all available provider.
 
 <b>Signature:</b>
 
