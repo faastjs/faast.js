@@ -1,6 +1,6 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzerWorkload](./faastjs.costanalyzerworkload.md) &gt; [format](./faastjs.costanalyzerworkload.format.md)
+[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Workload](./faastjs.costanalyzer.workload.md) &gt; [format](./faastjs.costanalyzer.workload.format.md)
 
-## CostAnalyzerWorkload.format property
+## CostAnalyzer.Workload.format property
 
 Format an attribute value for console output. This is displayed by the cost analyzer when all of the repetitions for a configuration have completed. The default returns `${attribute}:${value.toFixed(1)}`<!-- -->.
 

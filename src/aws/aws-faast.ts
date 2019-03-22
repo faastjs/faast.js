@@ -153,7 +153,7 @@ export interface AwsOptions extends CommonOptions {
      * cause faast.js to not work:
      *
      * ```typescript
-     *   const request: aws.Lambda.Types.CreateFunctionRequest = {
+     *   const request: aws.Lambda.CreateFunctionRequest = {
      *       FunctionName,
      *       Role,
      *       Runtime: "nodejs8.10",
@@ -171,7 +171,7 @@ export interface AwsOptions extends CommonOptions {
      * {@link https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html | Lambda Layers}
      * with faast.js.
      */
-    awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
+    awsLambdaOptions?: Partial<aws.Lambda.CreateFunctionRequest>;
     /** @internal */
     _gcWorker?: (work: AwsGcWork, services: AwsServices) => Promise<void>;
 }
@@ -426,7 +426,7 @@ export const initialize = throttle(
             if (layerInfo) {
                 Layers.push(layerInfo.LayerVersionArn);
             }
-            const request: aws.Lambda.Types.CreateFunctionRequest = {
+            const request: aws.Lambda.CreateFunctionRequest = {
                 FunctionName,
                 Role,
                 Runtime: "nodejs8.10",
@@ -583,7 +583,7 @@ async function invokeHttps(
     metrics: AwsMetrics,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
-    const request: aws.Lambda.Types.InvocationRequest = {
+    const request: aws.Lambda.InvocationRequest = {
         FunctionName,
         Payload: message.body,
         LogType: "None"

@@ -2,6 +2,7 @@
 
 ## FaastModuleProxy.functions property
 
+
 <b>Signature:</b>
 
 ```typescript

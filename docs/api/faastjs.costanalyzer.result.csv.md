@@ -1,6 +1,6 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzerResult](./faastjs.costanalyzerresult.md) &gt; [csv](./faastjs.costanalyzerresult.csv.md)
+[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Result](./faastjs.costanalyzer.result.md) &gt; [csv](./faastjs.costanalyzer.result.csv.md)
 
-## CostAnalyzerResult.csv() method
+## CostAnalyzer.Result.csv() method
 
 Comma-separated output of cost analyzer. One line per cost analyzer configuration.
 

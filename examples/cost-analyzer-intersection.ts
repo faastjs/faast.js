@@ -1,9 +1,4 @@
-import {
-    awsConfigurations,
-    googleConfigurations,
-    costAnalyzer,
-    FaastModule
-} from "../index";
+import { CostAnalyzer, FaastModule } from "../index";
 import * as m from "./functions";
 import { writeFile as fsWriteFile } from "fs";
 import { promisify } from "util";
@@ -15,7 +10,7 @@ async function work(faastModule: FaastModule<typeof m>) {
 }
 
 const configurations = [
-    ...awsConfigurations.filter(c => {
+    ...CostAnalyzer.awsConfigurations.filter(c => {
         switch (c.options.memorySize) {
             case 128:
             case 256:
@@ -28,11 +23,11 @@ const configurations = [
                 return false;
         }
     }),
-    ...googleConfigurations
+    ...CostAnalyzer.googleConfigurations
 ];
 
 async function compareIntersection() {
-    const result = await costAnalyzer(
+    const result = await CostAnalyzer.analyze(
         m,
         require.resolve("./functions"),
         { work },

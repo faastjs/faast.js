@@ -1,13 +1,13 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [googleConfigurations](./faastjs.googleconfigurations.md)
+[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [googleConfigurations](./faastjs.costanalyzer.googleconfigurations.md)
 
-## googleConfigurations variable
+## CostAnalyzer.googleConfigurations variable
 
 Default Google Cloud Functions cost analyzer configurations include all available memory sizes.
 
 <b>Signature:</b>
 
 ```typescript
-googleConfigurations: CostAnalyzerConfiguration[]
+googleConfigurations: Configuration[]
 ```
 
 ## Remarks

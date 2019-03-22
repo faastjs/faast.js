@@ -1,16 +1,13 @@
 import test, { ExecutionContext } from "ava";
 import * as ppp from "papaparse";
 import {
-    awsConfigurations,
     CommonOptions,
-    CostAnalyzerConfiguration,
-    costAnalyzer,
     faast,
-    googleConfigurations,
+    FaastModule,
     log,
     Provider,
     providers,
-    FaastModule
+    CostAnalyzer
 } from "../index";
 import * as funcs from "./fixtures/functions";
 import { title } from "./fixtures/util";
@@ -22,7 +19,7 @@ async function work(faastModule: FaastModule<typeof funcs>) {
 const repetitions = 10;
 const memorySizes = [256, 2048];
 
-function filter(configurations: CostAnalyzerConfiguration[]) {
+function filter(configurations: CostAnalyzer.Configuration[]) {
     return configurations
         .filter(c => memorySizes.includes(c.options.memorySize!))
         .map(c => ({ ...c, repetitions }));
@@ -30,9 +27,9 @@ function filter(configurations: CostAnalyzerConfiguration[]) {
 
 async function testCostAnalyzer(
     t: ExecutionContext,
-    configs: CostAnalyzerConfiguration[]
+    configs: CostAnalyzer.Configuration[]
 ) {
-    const profile = await costAnalyzer(
+    const profile = await CostAnalyzer.analyze(
         funcs,
         "./fixtures/functions",
         { work, silent: true },
@@ -114,6 +111,7 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
     }
 }
 
+const { awsConfigurations, googleConfigurations } = CostAnalyzer;
 test(title("aws", "cost analyzer"), testCostAnalyzer, filter(awsConfigurations));
 test(title("google", "cost analyzer"), testCostAnalyzer, filter(googleConfigurations));
 

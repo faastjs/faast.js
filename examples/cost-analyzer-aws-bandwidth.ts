@@ -1,5 +1,5 @@
 import * as commander from "commander";
-import { costAnalyzer, awsConfigurations, Statistics, FaastModule } from "../index";
+import { CostAnalyzer, Statistics, FaastModule } from "../index";
 import * as m from "./map-buckets-module";
 import { listAllObjects, f1, GB, f2 } from "./util";
 import { writeFile as fsWriteFile } from "fs";
@@ -73,7 +73,7 @@ function formatCSV(key: keyof BandwidthMetrics, value: number) {
 }
 
 async function compareAws(Bucket: string, filter: FilterFn) {
-    const result = await costAnalyzer(
+    const result = await CostAnalyzer.analyze(
         m,
         require.resolve("./map-buckets-module"),
         {
@@ -82,8 +82,7 @@ async function compareAws(Bucket: string, filter: FilterFn) {
             formatCSV,
             repetitions: 5,
             concurrency: 5
-        },
-        awsConfigurations
+        }
     );
     writeFile("cost.csv", result.csv());
 }

@@ -9,85 +9,6 @@ import { throttle } from "./throttle";
 import { PropertiesExcept, AnyFunction } from "./types";
 
 /**
- * User-defined custom metrics for a workload. These are automatically
- * summarized in the output; see {@link CostAnalyzerWorkload}.
- * @public
- */
-export type WorkloadAttribute<A extends string> = { [attr in A]: number };
-
-/**
- * A user-defined cost analyzer workload for {@link costAnalyzer}.
- * @public
- * Example:
- */
-export interface CostAnalyzerWorkload<T extends object, A extends string> {
-    /**
-     * A function that executes cloud functions on `faastModule.functions.*`.
-     * The work function should return `void` if there are no custom workload
-     * attributes. Otherwise, it should return a {@link WorkloadAttribute}
-     * object which maps user-defined attribute names to numerical values for
-     * the workload. For example, this might measure bandwidth or some other
-     * metric not tracked by faast.js, but are relevant for evaluating the
-     * cost-performance tradeoff of the configurations analyzed by the cost
-     * analyzer.
-     */
-    work: (faastModule: FaastModule<T>) => Promise<WorkloadAttribute<A> | void>;
-    /**
-     * Combine {@link WorkloadAttribute} instances returned from multiple
-     * workload executions (caused by value of {@link CostAnalyzerWorkload.repetitions}).
-     * The default is a function that takes the average of each attribute.
-     */
-    summarize?: (summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>;
-    /**
-     * Format an attribute value for console output. This is displayed by the
-     * cost analyzer when all of the repetitions for a configuration have
-     * completed. The default returns `${attribute}:${value.toFixed(1)}`.
-     */
-    format?: (attr: A, value: number) => string;
-    /**
-     * Format an attribute value for CSV. The default returns
-     * `value.toFixed(1)`.
-     */
-    formatCSV?: (attr: A, value: number) => string;
-    /**
-     * If true, do not output live results to the console. Can be useful for
-     * running the cost analyzer as part of automated tests. Default: false.
-     */
-    silent?: boolean;
-    /**
-     * The number of repetitions to run the workload for each cost analyzer
-     * configuration. Higher repetitions help reduce the jitter in the results.
-     * Repetitions execute in the same FaastModule instance. Default: 10.
-     */
-    repetitions?: number;
-    /**
-     * The amount of concurrency to allow. Concurrency can arise from multiple
-     * repetitions of the same configuration, or concurrenct executions of
-     * different configurations. This concurrency limit throttles the total
-     * number of concurrent workload executions across both of these sources of
-     * concurrency. Default: 64.
-     */
-    concurrency?: number;
-}
-
-const workloadDefaults = {
-    summarize: summarizeMean,
-    format: defaultFormat,
-    formatCSV: defaultFormatCSV,
-    silent: false,
-    repetitions: 10,
-    concurrency: 64
-};
-
-function defaultFormat(attr: string, value: number) {
-    return `${attr}:${f1(value)}`;
-}
-
-function defaultFormatCSV(_: string, value: number) {
-    return f1(value);
-}
-
-/**
  * A line item in the cost estimate, including the resource usage metric
  * measured and its pricing.
  * @public
@@ -374,448 +295,543 @@ export class CostSnapshot {
 }
 
 /**
- * An input to {@link costAnalyzer}, specifying one configuration of faast.js to
- * run against a workload. See {@link AwsOptions} and {@link GoogleOptions}.
+ * Analyze the cost of a workload across many provider configurations.
  * @public
  */
-export type CostAnalyzerConfiguration =
-    | {
-          provider: "aws";
-          options: AwsOptions;
-      }
-    | {
-          provider: "google";
-          options: GoogleOptions;
-      };
-
-/**
- * Default AWS cost analyzer configurations include all memory sizes for AWS
- * Lambda.
- * @remarks
- * The default AWS cost analyzer configurations include every memory size from
- * 128MB to 3008MB in 64MB increments. Each configuration has the following
- * settings:
- *
- * ```typescript
- * {
- *     provider: "aws",
- *     options: {
- *         mode: "queue",
- *         memorySize,
- *         timeout: 300,
- *         gc: false,
- *         childProcess: true
- *     }
- * }
- * ```
- *
- * Use `Array.map` to change or `Array.filter` to remove some of these
- * configurations. For example:
- *
- * ```typescript
- * const configsWithAtLeast1GB = awsConfigurations.filter(c => c.memorySize > 1024)
- * const shorterTimeout = awsConfigurations.map(c => ({...c, timeout: 60 }));
- * ```
- * @public
- */
-export const awsConfigurations: CostAnalyzerConfiguration[] = (() => {
-    const rv: CostAnalyzerConfiguration[] = [];
-    for (let memorySize = 128; memorySize <= 3008; memorySize += 64) {
-        rv.push({
-            provider: "aws",
-            options: {
-                mode: "queue",
-                memorySize,
-                timeout: 300,
-                gc: false,
-                childProcess: true
-            }
-        });
-    }
-    return rv;
-})();
-
-/**
- * Default Google Cloud Functions cost analyzer configurations include all
- * available memory sizes.
- * @remarks
- * Each google cost analyzer configuration follows this template:
- *
- * ```typescript
- * {
- *     provider: "google",
- *     options: {
- *         mode: "https",
- *         memorySize,
- *         timeout: 300,
- *         gc: false,
- *         childProcess: true
- *     }
- * }
- * ```
- *
- * where `memorySize` is in `[128, 256, 512, 1024, 2048]`.
- * @public
- */
-export const googleConfigurations: CostAnalyzerConfiguration[] = (() => {
-    const rv: CostAnalyzerConfiguration[] = [];
-    for (let memorySize of [128, 256, 512, 1024, 2048]) {
-        rv.push({
-            provider: "google",
-            options: {
-                mode: "https",
-                memorySize,
-                timeout: 300,
-                gc: false,
-                childProcess: true
-            }
-        });
-    }
-    return rv;
-})();
-
-const ps = (n: number) => (n / 1000).toFixed(3);
-
-function summarizeMean<A extends string>(attributes: WorkloadAttribute<A>[]) {
-    const stats: { [attr: string]: Statistics } = {};
-    attributes.forEach(a =>
-        keys(a).forEach(attr => {
-            if (!(attr in stats)) {
-                stats[attr] = new Statistics();
-            }
-            stats[attr].update(a[attr]);
-        })
-    );
-    const result = {} as any;
-    keys(stats).forEach(attr => {
-        result[attr] = stats[attr].mean;
-    });
-    return result;
-}
-
-/**
- * A cost estimate result for a specific cost analyzer configuration.
- * @public
- */
-export interface CostAnalyzerConfigurationEstimate<A extends string> {
+export namespace CostAnalyzer {
     /**
-     * The cost snapshot for the cost analysis of the specific (workload,
-     * configuration) combination. See {@link CostSnapshot}.
+     * User-defined custom metrics for a workload. These are automatically
+     * summarized in the output; see {@link CostAnalyzer.Workload}.
+     * @public
      */
-    costSnapshot: CostSnapshot;
+    export type WorkloadAttribute<A extends string> = { [attr in A]: number };
+
     /**
-     * The worload configuration that was analyzed. See
-     * {@link CostAnalyzerConfiguration}.
+     * A user-defined cost analyzer workload for {@link CostAnalyzer.analyze}.
+     * @public
+     * Example:
      */
-    config: CostAnalyzerConfiguration;
-    /**
-     * Additional workload metrics returned from the work function. See
-     * {@link WorkloadAttribute}.
-     */
-    extraMetrics: WorkloadAttribute<A>;
-}
-
-async function estimate<T extends object, K extends string>(
-    mod: T,
-    fmodule: string,
-    workload: Required<CostAnalyzerWorkload<T, K>>,
-    config: CostAnalyzerConfiguration
-): Promise<CostAnalyzerConfigurationEstimate<K>> {
-    const { provider, options } = config;
-    const faastModule = await faast(provider, mod, fmodule, options);
-    const { repetitions, concurrency: repetitionConcurrency } = workload;
-    const doWork = throttle({ concurrency: repetitionConcurrency }, workload.work);
-    const results: Promise<WorkloadAttribute<K> | void>[] = [];
-    for (let i = 0; i < repetitions; i++) {
-        results.push(doWork(faastModule).catch(_ => {}));
-    }
-    const rv = (await Promise.all(results)).filter(r => r) as WorkloadAttribute<K>[];
-    await faastModule.cleanup();
-    const costSnapshot = await faastModule.costSnapshot();
-    const extraMetrics = workload.summarize(rv);
-    return { costSnapshot, config, extraMetrics };
-}
-
-/**
- * Estimate the cost of a workload using multiple configurations and providers.
- * @remarks
- * It can be deceptively difficult to set optimal parameters for AWS Lambda and
- * similar services. On the surface there appears to be only one parameter:
- * memory size. Choosing more memory also gives more CPU performance, but it's
- * unclear how much. It's also unclear where single core performance stops
- * getting better. The workload cost analyzer solves these problems by making it
- * easy to run cost experiments.
- * ```
- *                                                      (AWS)
- *                                                    ┌───────┐
- *                                              ┌────▶│ 128MB │
- *                                              │     └───────┘
- *                                              │     ┌───────┐
- *                      ┌─────────────────┐     ├────▶│ 256MB │
- *  ┌──────────────┐    │                 │     │     └───────┘
- *  │   workload   │───▶│                 │     │        ...
- *  └──────────────┘    │                 │     │     ┌───────┐
- *                      │  cost analyzer  │─────┼────▶│3008MB │
- *  ┌──────────────┐    │                 │     │     └───────┘
- *  │configurations│───▶│                 │     │
- *  └──────────────┘    │                 │     │     (Google)
- *                      └─────────────────┘     │     ┌───────┐
- *                                              ├────▶│ 128MB │
- *                                              │     └───────┘
- *                                              │     ┌───────┐
- *                                              └────▶│ 256MB │
- *                                                    └───────┘
- * ```
- * `costAnalyzer` is the entry point. It automatically runs this workload
- * against multiple configurations in parallel. Then it uses faast.js' cost
- * snapshot mechanism to automatically determine the price of running the
- * workload with each configuration.
- *
- * Example:
- *
- * ```typescript
- * // functions.ts
- * export function randomNumbers(n: number) {
- *     let sum = 0;
- *     for (let i = 0; i < n; i++) {
- *         sum += Math.random();
- *     }
- *     return sum;
- * }
- *
- * // cost-analyzer-example.ts
- * import { writeFileSync } from "fs";
- * import { costAnalyzer, FaastModule } from "faastjs";
- * import * as mod from "./functions";
- *
- * async function work(faastModule: FaastModule<typeof mod>) {
- *     await faastModule.functions.randomNumbers(100000000);
- * }
- *
- * async function main() {
- *     const results = await costAnalyzer(mod, "./functions", { work });
- *     writeFileSync("cost.csv", results.csv());
- * }
- *
- * main();
- * ```
- *
- * Example output (this is printed to `console.log` unless the
- * {@link CostAnalyzerWorkload.silent} is `true`):
- * ```
- *   ✔ aws 128MB queue 15.385s 0.274σ $0.00003921
- *   ✔ aws 192MB queue 10.024s 0.230σ $0.00003576
- *   ✔ aws 256MB queue 8.077s 0.204σ $0.00003779
- *      ▲    ▲     ▲     ▲       ▲        ▲
- *      │    │     │     │       │        │
- *  provider │    mode   │     stdev     average
- *           │           │   execution  estimated
- *         memory        │     time       cost
- *          size         │
- *                 average cloud
- *                 execution time
- * ```
- *
- * The output lists the provider, memory size, ({@link CommonOptions.mode}),
- * average time of a single execution of the workload, the standard deviation
- * (in seconds) of the execution time, and average estimated cost for a single
- * run of the workload.
- *
- * The "execution time" referenced here is not wall clock time, but rather
- * execution time in the cloud function. The execution time does not include any
- * time the workload spends waiting locally. If the workload invokes multiple
- * cloud functions, their execution times will be summed even if they happen
- * concurrently. This ensures the execution time and cost are aligned.
- *
- * @param mod - The module containing the remote cloud functions to analyze.
- * @param fmodule - Path to the module `mod`. This can be either an absolute
- * filename (e.g. from `require.resolve`) or a path omitting the `.js` extension
- * as would be use with `require` or `import`.
- * @param userWorkload - a {@link CostAnalyzerWorkload} object specifying the workload to
- * run and additional parameters.
- * @param configurations - an array specifying
- * {@link CostAnalyzerConfiguration}s to run. Default:
- * {@link awsConfigurations}.
- * @returns A promise for a {@link CostAnalyzerResult}
- * @public
- */
-export async function costAnalyzer<T extends object, A extends string>(
-    mod: T,
-    fmodule: string,
-    userWorkload: CostAnalyzerWorkload<T, A>,
-    configurations: CostAnalyzerConfiguration[] = awsConfigurations
-) {
-    const scheduleEstimate = throttle<
-        [T, string, Required<CostAnalyzerWorkload<T, A>>, CostAnalyzerConfiguration],
-        CostAnalyzerConfigurationEstimate<A>
-    >(
-        {
-            concurrency: 8,
-            rate: 4,
-            burst: 1,
-            retry: 3
-        },
-        estimate
-    );
-
-    const { concurrency = workloadDefaults.concurrency } = userWorkload;
-    const workload = Object.assign({}, workloadDefaults, userWorkload, {
-        work: throttle({ concurrency }, userWorkload.work)
-    });
-
-    const promises = configurations.map(config =>
-        scheduleEstimate(mod, fmodule, workload, config)
-    );
-
-    const format = workload.format || defaultFormat;
-
-    const renderer = workload.silent ? "silent" : "default";
-
-    const list = new Listr(
-        promises.map((promise, i) => {
-            const { provider, options } = configurations[i];
-            const { memorySize, mode } = options;
-
-            return {
-                title: `${provider} ${memorySize}MB ${mode}`,
-                task: async (_: any, task: Listr.ListrTaskWrapper) => {
-                    const { costSnapshot, extraMetrics } = await promise;
-                    const total = (costSnapshot.total() / workload.repetitions).toFixed(
-                        8
-                    );
-                    const { errors } = costSnapshot.stats;
-                    const { executionTime } = costSnapshot.stats;
-                    const message = `${ps(executionTime.mean)}s ${ps(
-                        executionTime.stdev
-                    )}σ $${total}`;
-                    const errMessage = errors > 0 ? ` (${errors} errors)` : "";
-                    const extra = keys(extraMetrics)
-                        .map(k => format(k, extraMetrics[k]))
-                        .join(" ");
-                    task.title = `${task.title} ${message}${errMessage} ${extra}`;
-                }
-            };
-        }),
-        { concurrent: 8, nonTTYRenderer: renderer, renderer }
-    );
-
-    await list.run();
-    const results = await Promise.all(promises);
-    results.sort(
-        (a, b) => a.costSnapshot.options.memorySize! - b.costSnapshot.options.memorySize!
-    );
-    return new CostAnalyzerResult(workload, results);
-}
-
-/**
- * Cost analyzer results for each workload and configuration.
- * @remarks
- * The `estimates` property has the cost estimates for each configuration. See
- * {@link CostAnalyzerConfigurationEstimate}.
- * @public
- */
-export class CostAnalyzerResult<T extends object, A extends string> {
-    /** @internal */
-    constructor(
-        /** The workload analyzed. */
-        readonly workload: Required<CostAnalyzerWorkload<T, A>>,
+    export interface Workload<T extends object, A extends string> {
         /**
-         * Cost estimates for each configuration of the workload. See
-         * {@link CostAnalyzerConfigurationEstimate}.
+         * A function that executes cloud functions on
+         * `faastModule.functions.*`. The work function should return `void` if
+         * there are no custom workload attributes. Otherwise, it should return
+         * a {@link CostAnalyzer.WorkloadAttribute} object which maps
+         * user-defined attribute names to numerical values for the workload.
+         * For example, this might measure bandwidth or some other metric not
+         * tracked by faast.js, but are relevant for evaluating the
+         * cost-performance tradeoff of the configurations analyzed by the cost
+         * analyzer.
          */
-        readonly estimates: CostAnalyzerConfigurationEstimate<A>[]
-    ) {}
+        work: (faastModule: FaastModule<T>) => Promise<WorkloadAttribute<A> | void>;
+        /**
+         * Combine {@link CostAnalyzer.WorkloadAttribute} instances returned
+         * from multiple workload executions (caused by value of
+         * {@link CostAnalyzer.Workload.repetitions}). The default is a function
+         * that takes the average of each attribute.
+         */
+        summarize?: (summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>;
+        /**
+         * Format an attribute value for console output. This is displayed by
+         * the cost analyzer when all of the repetitions for a configuration
+         * have completed. The default returns
+         * `${attribute}:${value.toFixed(1)}`.
+         */
+        format?: (attr: A, value: number) => string;
+        /**
+         * Format an attribute value for CSV. The default returns
+         * `value.toFixed(1)`.
+         */
+        formatCSV?: (attr: A, value: number) => string;
+        /**
+         * If true, do not output live results to the console. Can be useful for
+         * running the cost analyzer as part of automated tests. Default: false.
+         */
+        silent?: boolean;
+        /**
+         * The number of repetitions to run the workload for each cost analyzer
+         * configuration. Higher repetitions help reduce the jitter in the
+         * results. Repetitions execute in the same FaastModule instance.
+         * Default: 10.
+         */
+        repetitions?: number;
+        /**
+         * The amount of concurrency to allow. Concurrency can arise from
+         * multiple repetitions of the same configuration, or concurrenct
+         * executions of different configurations. This concurrency limit
+         * throttles the total number of concurrent workload executions across
+         * both of these sources of concurrency. Default: 64.
+         */
+        concurrency?: number;
+    }
+
+    const workloadDefaults = {
+        summarize: summarizeMean,
+        format: defaultFormat,
+        formatCSV: defaultFormatCSV,
+        silent: false,
+        repetitions: 10,
+        concurrency: 64
+    };
+
+    function defaultFormat(attr: string, value: number) {
+        return `${attr}:${f1(value)}`;
+    }
+
+    function defaultFormatCSV(_: string, value: number) {
+        return f1(value);
+    }
 
     /**
-     * Comma-separated output of cost analyzer. One line per cost analyzer
-     * configuration.
-     * @remarks
-     * The columns are:
-     *
-     * - `memory`: The memory size allocated.
-     *
-     * - `cloud`: The cloud provider.
-     *
-     * - `mode`: See {@link CommonOptions.mode}.
-     *
-     * - `options`: A string summarizing other faast.js options applied to the
-     *   `workload`. See {@link CommonOptions}.
-     *
-     * - `completed`: Number of repetitions that successfully completed.
-     *
-     * - `errors`: Number of invocations that failed.
-     *
-     * - `retries`: Number of retries that were attempted.
-     *
-     * - `cost`: The average cost of executing the workload once.
-     *
-     * - `executionTime`: the aggregate time spent executing on the provider for
-     *   all cloud function invocations in the workload. This is averaged across
-     *   repetitions.
-     *
-     * - `executionTimeStdev`: The standard deviation of `executionTime`.
-     *
-     * - `billedTime`: the same as `exectionTime`, except rounded up to the next
-     *   100ms for each invocation. Usually very close to `executionTime`.
+     * An input to {@link CostAnalyzer.analyze}, specifying one
+     * configuration of faast.js to run against a workload. See
+     * {@link AwsOptions} and {@link GoogleOptions}.
+     * @public
      */
-    csv() {
-        const attributes = new Set<A>();
-        this.estimates.forEach(est =>
-            keys(est.extraMetrics).forEach(key => attributes.add(key))
-        );
-        const columns = [
-            "memory",
-            "cloud",
-            "mode",
-            "options",
-            "completed",
-            "errors",
-            "retries",
-            "cost",
-            "executionTime",
-            "executionTimeStdev",
-            "billedTime",
-            ...attributes
-        ];
-        let rv = columns.join(",") + "\n";
+    export type Configuration =
+        | {
+              provider: "aws";
+              options: AwsOptions;
+          }
+        | {
+              provider: "google";
+              options: GoogleOptions;
+          };
 
-        this.estimates.forEach(({ costSnapshot, extraMetrics }) => {
-            const { memorySize, mode, ...rest } = costSnapshot.options;
-            const options = `"${inspect(rest).replace('"', '""')}"`;
-            const {
-                completed,
-                errors,
-                retries,
-                executionTime,
-                estimatedBilledTime
-            } = costSnapshot.stats;
-            const cost = (costSnapshot.total() / this.workload.repetitions).toFixed(8);
-            const formatter = this.workload.formatCSV || defaultFormatCSV;
-
-            const metrics: { [attr in string]: string } = {};
-            for (const attr of attributes) {
-                metrics[attr] = formatter(attr, extraMetrics[attr]);
-            }
-            const row = {
-                memory: memorySize,
-                cloud: costSnapshot.provider,
-                mode: mode,
-                options: options,
-                completed,
-                errors,
-                retries,
-                cost: `$${cost}`,
-                executionTime: ps(executionTime.mean),
-                executionTimeStdev: ps(executionTime.stdev),
-                billedTime: ps(estimatedBilledTime.mean),
-                ...metrics
-            };
-
-            rv += keys(row)
-                .map(k => String(row[k]))
-                .join(",");
-            rv += "\n";
-        });
+    /**
+     * Default AWS cost analyzer configurations include all memory sizes for AWS
+     * Lambda.
+     * @remarks
+     * The default AWS cost analyzer configurations include every memory size
+     * from 128MB to 3008MB in 64MB increments. Each configuration has the
+     * following settings:
+     *
+     * ```typescript
+     * {
+     *     provider: "aws",
+     *     options: {
+     *         mode: "queue",
+     *         memorySize,
+     *         timeout: 300,
+     *         gc: false,
+     *         childProcess: true
+     *     }
+     * }
+     * ```
+     *
+     * Use `Array.map` to change or `Array.filter` to remove some of these
+     * configurations. For example:
+     *
+     * ```typescript
+     * const configsWithAtLeast1GB = awsConfigurations.filter(c => c.memorySize > 1024)
+     * const shorterTimeout = awsConfigurations.map(c => ({...c, timeout: 60 }));
+     * ```
+     * @public
+     */
+    export const awsConfigurations: Configuration[] = (() => {
+        const rv: Configuration[] = [];
+        for (let memorySize = 128; memorySize <= 3008; memorySize += 64) {
+            rv.push({
+                provider: "aws",
+                options: {
+                    mode: "queue",
+                    memorySize,
+                    timeout: 300,
+                    gc: false,
+                    childProcess: true
+                }
+            });
+        }
         return rv;
+    })();
+
+    /**
+     * Default Google Cloud Functions cost analyzer configurations include all
+     * available memory sizes.
+     * @remarks
+     * Each google cost analyzer configuration follows this template:
+     *
+     * ```typescript
+     * {
+     *     provider: "google",
+     *     options: {
+     *         mode: "https",
+     *         memorySize,
+     *         timeout: 300,
+     *         gc: false,
+     *         childProcess: true
+     *     }
+     * }
+     * ```
+     *
+     * where `memorySize` is in `[128, 256, 512, 1024, 2048]`.
+     * @public
+     */
+    export const googleConfigurations: Configuration[] = (() => {
+        const rv: Configuration[] = [];
+        for (let memorySize of [128, 256, 512, 1024, 2048]) {
+            rv.push({
+                provider: "google",
+                options: {
+                    mode: "https",
+                    memorySize,
+                    timeout: 300,
+                    gc: false,
+                    childProcess: true
+                }
+            });
+        }
+        return rv;
+    })();
+
+    const ps = (n: number) => (n / 1000).toFixed(3);
+
+    function summarizeMean<A extends string>(attributes: WorkloadAttribute<A>[]) {
+        const stats: { [attr: string]: Statistics } = {};
+        attributes.forEach(a =>
+            keys(a).forEach(attr => {
+                if (!(attr in stats)) {
+                    stats[attr] = new Statistics();
+                }
+                stats[attr].update(a[attr]);
+            })
+        );
+        const result = {} as any;
+        keys(stats).forEach(attr => {
+            result[attr] = stats[attr].mean;
+        });
+        return result;
+    }
+
+    /**
+     * A cost estimate result for a specific cost analyzer configuration.
+     * @public
+     */
+    export interface Estimate<A extends string> {
+        /**
+         * The cost snapshot for the cost analysis of the specific (workload,
+         * configuration) combination. See {@link CostSnapshot}.
+         */
+        costSnapshot: CostSnapshot;
+        /**
+         * The worload configuration that was analyzed. See
+         * {@link CostAnalyzer.Configuration}.
+         */
+        config: Configuration;
+        /**
+         * Additional workload metrics returned from the work function. See
+         * {@link CostAnalyzer.WorkloadAttribute}.
+         */
+        extraMetrics: WorkloadAttribute<A>;
+    }
+
+    async function estimate<T extends object, K extends string>(
+        mod: T,
+        fmodule: string,
+        workload: Required<Workload<T, K>>,
+        config: Configuration
+    ): Promise<Estimate<K>> {
+        const { provider, options } = config;
+        const faastModule = await faast(provider, mod, fmodule, options);
+        const { repetitions, concurrency: repetitionConcurrency } = workload;
+        const doWork = throttle({ concurrency: repetitionConcurrency }, workload.work);
+        const results: Promise<WorkloadAttribute<K> | void>[] = [];
+        for (let i = 0; i < repetitions; i++) {
+            results.push(doWork(faastModule).catch(_ => {}));
+        }
+        const rv = (await Promise.all(results)).filter(r => r) as WorkloadAttribute<K>[];
+        await faastModule.cleanup();
+        const costSnapshot = await faastModule.costSnapshot();
+        const extraMetrics = workload.summarize(rv);
+        return { costSnapshot, config, extraMetrics };
+    }
+
+    /**
+     * Estimate the cost of a workload using multiple configurations and
+     * providers.
+     * @remarks
+     * It can be deceptively difficult to set optimal parameters for AWS Lambda
+     * and similar services. On the surface there appears to be only one
+     * parameter: memory size. Choosing more memory also gives more CPU
+     * performance, but it's unclear how much. It's also unclear where single
+     * core performance stops getting better. The workload cost analyzer solves
+     * these problems by making it easy to run cost experiments.
+     * ```
+     *                                                      (AWS)
+     *                                                    ┌───────┐
+     *                                              ┌────▶│ 128MB │
+     *                                              │     └───────┘
+     *                                              │     ┌───────┐
+     *                      ┌─────────────────┐     ├────▶│ 256MB │
+     *  ┌──────────────┐    │                 │     │     └───────┘
+     *  │   workload   │───▶│                 │     │        ...
+     *  └──────────────┘    │                 │     │     ┌───────┐
+     *                      │  cost analyzer  │─────┼────▶│3008MB │
+     *  ┌──────────────┐    │                 │     │     └───────┘
+     *  │configurations│───▶│                 │     │
+     *  └──────────────┘    │                 │     │     (Google)
+     *                      └─────────────────┘     │     ┌───────┐
+     *                                              ├────▶│ 128MB │
+     *                                              │     └───────┘
+     *                                              │     ┌───────┐
+     *                                              └────▶│ 256MB │
+     *                                                    └───────┘
+     * ```
+     * `costAnalyzer` is the entry point. It automatically runs this workload
+     * against multiple configurations in parallel. Then it uses faast.js' cost
+     * snapshot mechanism to automatically determine the price of running the
+     * workload with each configuration.
+     *
+     * Example:
+     *
+     * ```typescript
+     * // functions.ts
+     * export function randomNumbers(n: number) {
+     *     let sum = 0;
+     *     for (let i = 0; i < n; i++) {
+     *         sum += Math.random();
+     *     }
+     *     return sum;
+     * }
+     *
+     * // cost-analyzer-example.ts
+     * import { writeFileSync } from "fs";
+     * import { costAnalyzer, FaastModule } from "faastjs";
+     * import * as mod from "./functions";
+     *
+     * async function work(faastModule: FaastModule<typeof mod>) {
+     *     await faastModule.functions.randomNumbers(100000000);
+     * }
+     *
+     * async function main() {
+     *     const results = await costAnalyzer(mod, "./functions", { work });
+     *     writeFileSync("cost.csv", results.csv());
+     * }
+     *
+     * main();
+     * ```
+     *
+     * Example output (this is printed to `console.log` unless the
+     * {@link CostAnalyzer.Workload.silent} is `true`):
+     * ```
+     *   ✔ aws 128MB queue 15.385s 0.274σ $0.00003921
+     *   ✔ aws 192MB queue 10.024s 0.230σ $0.00003576
+     *   ✔ aws 256MB queue 8.077s 0.204σ $0.00003779
+     *      ▲    ▲     ▲     ▲       ▲        ▲
+     *      │    │     │     │       │        │
+     *  provider │    mode   │     stdev     average
+     *           │           │   execution  estimated
+     *         memory        │     time       cost
+     *          size         │
+     *                 average cloud
+     *                 execution time
+     * ```
+     *
+     * The output lists the provider, memory size, ({@link CommonOptions.mode}),
+     * average time of a single execution of the workload, the standard
+     * deviation (in seconds) of the execution time, and average estimated cost
+     * for a single run of the workload.
+     *
+     * The "execution time" referenced here is not wall clock time, but rather
+     * execution time in the cloud function. The execution time does not include
+     * any time the workload spends waiting locally. If the workload invokes
+     * multiple cloud functions, their execution times will be summed even if
+     * they happen concurrently. This ensures the execution time and cost are
+     * aligned.
+     *
+     * @param mod - The module containing the remote cloud functions to analyze.
+     * @param fmodule - Path to the module `mod`. This can be either an absolute
+     * filename (e.g. from `require.resolve`) or a path omitting the `.js`
+     * extension as would be use with `require` or `import`.
+     * @param userWorkload - a {@link CostAnalyzer.Workload} object
+     * specifying the workload to run and additional parameters.
+     * @param configurations - an array specifying
+     * {@link CostAnalyzer.Configuration}s to run. Default:
+     * {@link CostAnalyzer.awsConfigurations}.
+     * @returns A promise for a {@link CostAnalyzer.Result}
+     * @public
+     */
+    export async function analyze<T extends object, A extends string>(
+        mod: T,
+        fmodule: string,
+        userWorkload: Workload<T, A>,
+        configurations: Configuration[] = awsConfigurations
+    ) {
+        const scheduleEstimate = throttle<
+            [T, string, Required<Workload<T, A>>, Configuration],
+            Estimate<A>
+        >(
+            {
+                concurrency: 8,
+                rate: 4,
+                burst: 1,
+                retry: 3
+            },
+            estimate
+        );
+
+        const { concurrency = workloadDefaults.concurrency } = userWorkload;
+        const workload = Object.assign({}, workloadDefaults, userWorkload, {
+            work: throttle({ concurrency }, userWorkload.work)
+        });
+
+        const promises = configurations.map(config =>
+            scheduleEstimate(mod, fmodule, workload, config)
+        );
+
+        const format = workload.format || defaultFormat;
+
+        const renderer = workload.silent ? "silent" : "default";
+
+        const list = new Listr(
+            promises.map((promise, i) => {
+                const { provider, options } = configurations[i];
+                const { memorySize, mode } = options;
+
+                return {
+                    title: `${provider} ${memorySize}MB ${mode}`,
+                    task: async (_: any, task: Listr.ListrTaskWrapper) => {
+                        const { costSnapshot, extraMetrics } = await promise;
+                        const total = (
+                            costSnapshot.total() / workload.repetitions
+                        ).toFixed(8);
+                        const { errors } = costSnapshot.stats;
+                        const { executionTime } = costSnapshot.stats;
+                        const message = `${ps(executionTime.mean)}s ${ps(
+                            executionTime.stdev
+                        )}σ $${total}`;
+                        const errMessage = errors > 0 ? ` (${errors} errors)` : "";
+                        const extra = keys(extraMetrics)
+                            .map(k => format(k, extraMetrics[k]))
+                            .join(" ");
+                        task.title = `${task.title} ${message}${errMessage} ${extra}`;
+                    }
+                };
+            }),
+            { concurrent: 8, nonTTYRenderer: renderer, renderer }
+        );
+
+        await list.run();
+        const results = await Promise.all(promises);
+        results.sort(
+            (a, b) =>
+                a.costSnapshot.options.memorySize! - b.costSnapshot.options.memorySize!
+        );
+        return new Result(workload, results);
+    }
+
+    /**
+     * Cost analyzer results for each workload and configuration.
+     * @remarks
+     * The `estimates` property has the cost estimates for each configuration.
+     * See {@link CostAnalyzer.Estimate}.
+     * @public
+     */
+    export class Result<T extends object, A extends string> {
+        /** @internal */
+        constructor(
+            /** The workload analyzed. */
+            readonly workload: Required<Workload<T, A>>,
+            /**
+             * Cost estimates for each configuration of the workload. See
+             * {@link CostAnalyzer.Estimate}.
+             */
+            readonly estimates: Estimate<A>[]
+        ) {}
+
+        /**
+         * Comma-separated output of cost analyzer. One line per cost analyzer
+         * configuration.
+         * @remarks
+         * The columns are:
+         *
+         * - `memory`: The memory size allocated.
+         *
+         * - `cloud`: The cloud provider.
+         *
+         * - `mode`: See {@link CommonOptions.mode}.
+         *
+         * - `options`: A string summarizing other faast.js options applied to the
+         *   `workload`. See {@link CommonOptions}.
+         *
+         * - `completed`: Number of repetitions that successfully completed.
+         *
+         * - `errors`: Number of invocations that failed.
+         *
+         * - `retries`: Number of retries that were attempted.
+         *
+         * - `cost`: The average cost of executing the workload once.
+         *
+         * - `executionTime`: the aggregate time spent executing on the provider for
+         *   all cloud function invocations in the workload. This is averaged across
+         *   repetitions.
+         *
+         * - `executionTimeStdev`: The standard deviation of `executionTime`.
+         *
+         * - `billedTime`: the same as `exectionTime`, except rounded up to the next
+         *   100ms for each invocation. Usually very close to `executionTime`.
+         */
+        csv() {
+            const attributes = new Set<A>();
+            this.estimates.forEach(est =>
+                keys(est.extraMetrics).forEach(key => attributes.add(key))
+            );
+            const columns = [
+                "memory",
+                "cloud",
+                "mode",
+                "options",
+                "completed",
+                "errors",
+                "retries",
+                "cost",
+                "executionTime",
+                "executionTimeStdev",
+                "billedTime",
+                ...attributes
+            ];
+            let rv = columns.join(",") + "\n";
+
+            this.estimates.forEach(({ costSnapshot, extraMetrics }) => {
+                const { memorySize, mode, ...rest } = costSnapshot.options;
+                const options = `"${inspect(rest).replace('"', '""')}"`;
+                const {
+                    completed,
+                    errors,
+                    retries,
+                    executionTime,
+                    estimatedBilledTime
+                } = costSnapshot.stats;
+                const cost = (costSnapshot.total() / this.workload.repetitions).toFixed(
+                    8
+                );
+                const formatter = this.workload.formatCSV || defaultFormatCSV;
+
+                const metrics: { [attr in string]: string } = {};
+                for (const attr of attributes) {
+                    metrics[attr] = formatter(attr, extraMetrics[attr]);
+                }
+                const row = {
+                    memory: memorySize,
+                    cloud: costSnapshot.provider,
+                    mode: mode,
+                    options: options,
+                    completed,
+                    errors,
+                    retries,
+                    cost: `$${cost}`,
+                    executionTime: ps(executionTime.mean),
+                    executionTimeStdev: ps(executionTime.stdev),
+                    billedTime: ps(estimatedBilledTime.mean),
+                    ...metrics
+                };
+
+                rv += keys(row)
+                    .map(k => String(row[k]))
+                    .join(",");
+                rv += "\n";
+            });
+            return rv;
+        }
     }
 }

@@ -7,7 +7,7 @@ Additional options to pass to AWS Lambda creation.
 <b>Signature:</b>
 
 ```typescript
-awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
+awsLambdaOptions?: Partial<aws.Lambda.CreateFunctionRequest>;
 ```
 
 ## Remarks
@@ -15,7 +15,7 @@ awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
 If you need specialized options, you can pass them to the AWS Lambda SDK directly. Note that if you override any settings set by faast.js, you may cause faast.js to not work:
 
 ```typescript
-  const request: aws.Lambda.Types.CreateFunctionRequest = {
+  const request: aws.Lambda.CreateFunctionRequest = {
       FunctionName,
       Role,
       Runtime: "nodejs8.10",

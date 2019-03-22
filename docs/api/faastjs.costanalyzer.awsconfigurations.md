@@ -1,13 +1,13 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [awsConfigurations](./faastjs.awsconfigurations.md)
+[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [awsConfigurations](./faastjs.costanalyzer.awsconfigurations.md)
 
-## awsConfigurations variable
+## CostAnalyzer.awsConfigurations variable
 
 Default AWS cost analyzer configurations include all memory sizes for AWS Lambda.
 
 <b>Signature:</b>
 
 ```typescript
-awsConfigurations: CostAnalyzerConfiguration[]
+awsConfigurations: Configuration[]
 ```
 
 ## Remarks

@@ -4,9 +4,6 @@
 
 ```ts
 
-// @public
-declare const awsConfigurations: CostAnalyzerConfiguration[];
-
 // Warning: (ae-forgotten-export) The symbol "AwsState" needs to be exported by the entry point index.d.ts
 // 
 // @public
@@ -14,7 +11,7 @@ declare type AwsFaastModule<M extends object = object> = FaastModuleProxy<M, Aws
 
 // @public
 interface AwsOptions extends CommonOptions {
-    awsLambdaOptions?: Partial<aws.Lambda.Types.CreateFunctionRequest>;
+    awsLambdaOptions?: Partial<aws.Lambda.CreateFunctionRequest>;
     // Warning: (ae-forgotten-export) The symbol "AwsGcWork" needs to be exported by the entry point index.d.ts
     // Warning: (ae-forgotten-export) The symbol "AwsServices" needs to be exported by the entry point index.d.ts
     // 
@@ -53,44 +50,43 @@ interface CommonOptions {
 }
 
 // @public
-declare function costAnalyzer<T extends object, A extends string>(mod: T, fmodule: string, userWorkload: CostAnalyzerWorkload<T, A>, configurations?: CostAnalyzerConfiguration[]): Promise<CostAnalyzerResult<T, A>>;
-
-// @public
-declare type CostAnalyzerConfiguration = {
-    provider: "aws";
-    options: AwsOptions;
-} | {
-    provider: "google";
-    options: GoogleOptions;
-};
-
-// @public
-interface CostAnalyzerConfigurationEstimate<A extends string> {
-    config: CostAnalyzerConfiguration;
-    costSnapshot: CostSnapshot;
-    extraMetrics: WorkloadAttribute<A>;
-}
-
-// @public
-declare class CostAnalyzerResult<T extends object, A extends string> {
-    // @internal (undocumented)
-    constructor(
-    workload: Required<CostAnalyzerWorkload<T, A>>, 
-    estimates: CostAnalyzerConfigurationEstimate<A>[]);
-    csv(): string;
-    readonly estimates: CostAnalyzerConfigurationEstimate<A>[];
-    readonly workload: Required<CostAnalyzerWorkload<T, A>>;
-}
-
-// @public
-interface CostAnalyzerWorkload<T extends object, A extends string> {
-    concurrency?: number;
-    format?: (attr: A, value: number) => string;
-    formatCSV?: (attr: A, value: number) => string;
-    repetitions?: number;
-    silent?: boolean;
-    summarize?: (summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>;
-    work: (faastModule: FaastModule<T>) => Promise<WorkloadAttribute<A> | void>;
+declare namespace CostAnalyzer {
+    function analyze<T extends object, A extends string>(mod: T, fmodule: string, userWorkload: Workload<T, A>, configurations?: Configuration[]): Promise<Result<T, A>>;
+    type Configuration = {
+        provider: "aws";
+        options: AwsOptions;
+    } | {
+        provider: "google";
+        options: GoogleOptions;
+    };
+    interface Estimate<A extends string> {
+        config: Configuration;
+        costSnapshot: CostSnapshot;
+        extraMetrics: WorkloadAttribute<A>;
+    }
+    const awsConfigurations: Configuration[];
+    const googleConfigurations: Configuration[];
+    class Result<T extends object, A extends string> {
+        // @internal (undocumented)
+        constructor(
+        workload: Required<Workload<T, A>>, 
+        estimates: Estimate<A>[]);
+        csv(): string;
+        readonly estimates: Estimate<A>[];
+        readonly workload: Required<Workload<T, A>>;
+    }
+    interface Workload<T extends object, A extends string> {
+        concurrency?: number;
+        format?: (attr: A, value: number) => string;
+        formatCSV?: (attr: A, value: number) => string;
+        repetitions?: number;
+        silent?: boolean;
+        summarize?: (summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>;
+        work: (faastModule: FaastModule<T>) => Promise<WorkloadAttribute<A> | void>;
+    }
+    type WorkloadAttribute<A extends string> = {
+        [attr in A]: number;
+    };
 }
 
 // @public
@@ -220,9 +216,6 @@ declare class FunctionStatsEvent {
     toString(): string;
 }
 
-// @public
-declare const googleConfigurations: CostAnalyzerConfiguration[];
-
 // Warning: (ae-forgotten-export) The symbol "GoogleState" needs to be exported by the entry point index.d.ts
 // 
 // @public
@@ -328,11 +321,6 @@ declare function throttle<A extends any[], R>({ concurrency, retry, rate, burst,
 
 // @public
 declare type Unpacked<T> = T extends Promise<infer D> ? D : T;
-
-// @public
-declare type WorkloadAttribute<A extends string> = {
-    [attr in A]: number;
-};
 
 
 // (No @packageDocumentation comment for this package)

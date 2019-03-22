@@ -1,5 +1,5 @@
 import { writeFileSync } from "fs";
-import { awsConfigurations, costAnalyzer, FaastModule } from "../index";
+import { CostAnalyzer, FaastModule } from "../index";
 import * as mod from "./functions";
 
 async function work(faastModule: FaastModule<typeof mod>) {
@@ -7,7 +7,12 @@ async function work(faastModule: FaastModule<typeof mod>) {
 }
 
 async function compareAws() {
-    const results = await costAnalyzer(mod, "./functions", { work }, awsConfigurations);
+    const results = await CostAnalyzer.analyze(
+        mod,
+        "./functions",
+        { work },
+        CostAnalyzer.awsConfigurations
+    );
 
     writeFileSync("cost.csv", results.csv());
 }

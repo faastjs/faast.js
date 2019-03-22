@@ -39,6 +39,7 @@ import {
 import Module = require("module");
 
 /**
+ * An array of all available provider.
  * @public
  */
 export const providers: Provider[] = ["aws", "google", "local"];
@@ -527,6 +528,7 @@ export interface FaastModule<M extends object> {
  */
 export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> {
     provider = this.impl.name;
+    /** {@inheritdoc FaastModule} */
     functions: Promisified<M>;
     /** @internal */
     private _stats = new FunctionStatsMap();
