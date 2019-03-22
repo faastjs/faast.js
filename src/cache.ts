@@ -122,7 +122,7 @@ export class PersistentCache {
 const days = 24 * 3600 * 1000;
 
 export const caches = {
-    awsPrices: new PersistentCache(".faast/aws/pricing", 1 * days),
-    googlePrices: new PersistentCache(".faast/google/pricing", 1 * days),
-    awsGc: new PersistentCache(".faast/aws/gc", 7 * days)
+    awsPrices: new PersistentCache(".faastjs/aws/pricing", 1 * days),
+    googlePrices: new PersistentCache(".faastjs/google/pricing", 1 * days),
+    awsGc: new PersistentCache(".faastjs/aws/gc", 7 * days)
 };
