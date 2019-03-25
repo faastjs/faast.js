@@ -19,10 +19,10 @@ export declare class FaastModuleProxy<M extends object, O, S> implements FaastMo
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [functions](./faastjs.faastmoduleproxy.functions.md) |  | `Promisified<M>` |  |
-|  [options](./faastjs.faastmoduleproxy.options.md) |  | `Required<CommonOptions>` |  |
-|  [provider](./faastjs.faastmoduleproxy.provider.md) |  | `Provider` |  |
-|  [state](./faastjs.faastmoduleproxy.state.md) |  | `S` |  |
+|  [functions](./faastjs.faastmoduleproxy.functions.md) |  | <code>Promisified&lt;M&gt;</code> |  |
+|  [options](./faastjs.faastmoduleproxy.options.md) |  | <code>Required&lt;CommonOptions&gt;</code> |  |
+|  [provider](./faastjs.faastmoduleproxy.provider.md) |  | <code>Provider</code> |  |
+|  [state](./faastjs.faastmoduleproxy.state.md) |  | <code>S</code> |  |
 
 ## Methods
 

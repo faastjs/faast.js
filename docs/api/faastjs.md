@@ -62,7 +62,7 @@ hide_title: true
 |  [AwsRegion](./faastjs.awsregion.md) | Valid AWS [regions](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html)<!-- -->. Not all of these regions have Lambda support. |
 |  [GoogleFaastModule](./faastjs.googlefaastmodule.md) | The return type of [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
 |  [LocalFaastModule](./faastjs.localfaastmodule.md) | The return type of [faastLocal()](./faastjs.faastlocal.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
-|  [Promisified](./faastjs.promisified.md) | `Promisified<M>` is the type of [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. |
+|  [Promisified](./faastjs.promisified.md) | <code>Promisified&lt;M&gt;</code> is the type of [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. |
 |  [PromisifiedFunction](./faastjs.promisifiedfunction.md) | The type of functions on [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. Used by [Promisified](./faastjs.promisified.md)<!-- -->. |
 |  [Provider](./faastjs.provider.md) | The type of all supported cloud providers. |
-|  [Unpacked](./faastjs.unpacked.md) | The type returned by a `Promise`<!-- -->. |
+|  [Unpacked](./faastjs.unpacked.md) | The type returned by a <code>Promise</code>. |

@@ -19,7 +19,7 @@ export declare class FaastError extends Error
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [logUrl](./faastjs.faasterror.logurl.md) |  | `string` | The log URL for the specific invocation that caused this error. |
+|  [logUrl](./faastjs.faasterror.logurl.md) |  | <code>string</code> | The log URL for the specific invocation that caused this error. |
 
 ## Remarks
 

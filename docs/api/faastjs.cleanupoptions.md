@@ -19,5 +19,5 @@ export interface CleanupOptions
 
 |  Property | Type | Description |
 |  --- | --- | --- |
-|  [deleteCaches](./faastjs.cleanupoptions.deletecaches.md) | `boolean` | If true, delete cached resources. Default: false. |
-|  [deleteResources](./faastjs.cleanupoptions.deleteresources.md) | `boolean` | If true, delete provider cloud resources. Default: true. |
+|  [deleteCaches](./faastjs.cleanupoptions.deletecaches.md) | <code>boolean</code> | If true, delete cached resources. Default: false. |
+|  [deleteResources](./faastjs.cleanupoptions.deleteresources.md) | <code>boolean</code> | If true, delete provider cloud resources. Default: true. |

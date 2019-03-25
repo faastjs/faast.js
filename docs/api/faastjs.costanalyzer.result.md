@@ -19,8 +19,8 @@ class Result<T extends object, A extends string>
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [estimates](./faastjs.costanalyzer.result.estimates.md) |  | `Estimate<A>[]` | Cost estimates for each configuration of the workload. See [CostAnalyzer.Estimate](./faastjs.costanalyzer.estimate.md)<!-- -->. |
-|  [workload](./faastjs.costanalyzer.result.workload.md) |  | `Required<Workload<T, A>>` | The workload analyzed. |
+|  [estimates](./faastjs.costanalyzer.result.estimates.md) |  | <code>Estimate&lt;A&gt;[]</code> | Cost estimates for each configuration of the workload. See [CostAnalyzer.Estimate](./faastjs.costanalyzer.estimate.md)<!-- -->. |
+|  [workload](./faastjs.costanalyzer.result.workload.md) |  | <code>Required&lt;Workload&lt;T, A&gt;&gt;</code> | The workload analyzed. |
 
 ## Methods
 

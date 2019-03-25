@@ -7,7 +7,7 @@ hide_title: true
 
 ## GoogleOptions.googleCloudFunctionOptions property
 
-Additional options to pass to Google Cloud Function creation.
+Additional options to pass to Google Cloud Function creation. See [projects.locations.functions](https://cloud.google.com/functions/docs/reference/rest/v1/projects.locations.functions#CloudFunction)<!-- -->.
 
 <b>Signature:</b>
 

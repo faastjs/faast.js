@@ -19,10 +19,10 @@ export declare class CostSnapshot
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [costMetrics](./faastjs.costsnapshot.costmetrics.md) |  | `CostMetric[]` | The cost metric components for this cost snapshot. See [CostMetric](./faastjs.costmetric.md)<!-- -->. |
-|  [options](./faastjs.costsnapshot.options.md) |  | `CommonOptions | AwsOptions | GoogleOptions` | The options used to initialize the faast.js module where this cost snapshot was generated. |
-|  [provider](./faastjs.costsnapshot.provider.md) |  | `string` |  |
-|  [stats](./faastjs.costsnapshot.stats.md) |  | `FunctionStats` | The function statistics that were used to compute prices. |
+|  [costMetrics](./faastjs.costsnapshot.costmetrics.md) |  | <code>CostMetric[]</code> | The cost metric components for this cost snapshot. See [CostMetric](./faastjs.costmetric.md)<!-- -->. |
+|  [options](./faastjs.costsnapshot.options.md) |  | <code>CommonOptions &#124; AwsOptions &#124; GoogleOptions</code> | The options used to initialize the faast.js module where this cost snapshot was generated. |
+|  [provider](./faastjs.costsnapshot.provider.md) |  | <code>string</code> |  |
+|  [stats](./faastjs.costsnapshot.stats.md) |  | <code>FunctionStats</code> | The function statistics that were used to compute prices. |
 
 ## Methods
 

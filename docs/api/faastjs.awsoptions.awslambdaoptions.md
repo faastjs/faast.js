@@ -7,7 +7,7 @@ hide_title: true
 
 ## AwsOptions.awsLambdaOptions property
 
-Additional options to pass to AWS Lambda creation.
+Additional options to pass to AWS Lambda creation. See [CreateFunction](https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html)<!-- -->.
 
 <b>Signature:</b>
 

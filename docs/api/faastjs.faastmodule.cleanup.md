@@ -19,7 +19,7 @@ cleanup(options?: CleanupOptions): Promise<void>;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  options | `CleanupOptions` | See [CleanupOptions](./faastjs.cleanupoptions.md)<!-- -->. |
+|  options | <code>CleanupOptions</code> | See [CleanupOptions](./faastjs.cleanupoptions.md)<!-- -->. |
 
 <b>Returns:</b>
 

@@ -18,8 +18,8 @@ on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  name | `"stats"` |  |
-|  listener | `(statsEvent: FunctionStatsEvent) => void` |  |
+|  name | <code>&quot;stats&quot;</code> |  |
+|  listener | <code>(statsEvent: FunctionStatsEvent) =&gt; void</code> |  |
 
 <b>Returns:</b>
 

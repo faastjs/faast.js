@@ -19,10 +19,10 @@ function analyze<T extends object, A extends string>(mod: T, fmodule: string, us
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  mod | `T` | The module containing the remote cloud functions to analyze. |
-|  fmodule | `string` | Path to the module `mod`<!-- -->. This can be either an absolute filename (e.g. from `require.resolve`<!-- -->) or a path omitting the `.js` extension as would be use with `require` or `import`<!-- -->. |
-|  userWorkload | `Workload<T, A>` | a [CostAnalyzer.Workload](./faastjs.costanalyzer.workload.md) object specifying the workload to run and additional parameters. |
-|  configurations | `Configuration[]` | an array specifying [CostAnalyzer.Configuration](./faastjs.costanalyzer.configuration.md)<!-- -->s to run. Default: [CostAnalyzer.awsConfigurations](./faastjs.costanalyzer.awsconfigurations.md)<!-- -->. |
+|  mod | <code>T</code> | The module containing the remote cloud functions to analyze. |
+|  fmodule | <code>string</code> | Path to the module <code>mod</code>. This can be either an absolute filename (e.g. from <code>require.resolve</code>) or a path omitting the <code>.js</code> extension as would be use with <code>require</code> or <code>import</code>. |
+|  userWorkload | <code>Workload&lt;T, A&gt;</code> | a [CostAnalyzer.Workload](./faastjs.costanalyzer.workload.md) object specifying the workload to run and additional parameters. |
+|  configurations | <code>Configuration[]</code> | an array specifying [CostAnalyzer.Configuration](./faastjs.costanalyzer.configuration.md)<!-- -->s to run. Default: [CostAnalyzer.awsConfigurations](./faastjs.costanalyzer.awsconfigurations.md)<!-- -->. |
 
 <b>Returns:</b>
 

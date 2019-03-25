@@ -17,7 +17,7 @@ find(name: string): CostMetric | undefined;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  name | `string` |  |
+|  name | <code>string</code> |  |
 
 <b>Returns:</b>
 

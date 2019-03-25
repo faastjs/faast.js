@@ -19,8 +19,8 @@ export declare class FunctionStatsEvent
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [fn](./faastjs.functionstatsevent.fn.md) |  | `string` |  |
-|  [stats](./faastjs.functionstatsevent.stats.md) |  | `FunctionStats` |  |
+|  [fn](./faastjs.functionstatsevent.fn.md) |  | <code>string</code> |  |
+|  [stats](./faastjs.functionstatsevent.stats.md) |  | <code>FunctionStats</code> |  |
 
 ## Methods
 

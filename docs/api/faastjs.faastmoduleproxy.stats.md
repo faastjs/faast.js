@@ -18,7 +18,7 @@ stats(functionName?: string): FunctionStats;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  functionName | `string` |  |
+|  functionName | <code>string</code> |  |
 
 <b>Returns:</b>
 

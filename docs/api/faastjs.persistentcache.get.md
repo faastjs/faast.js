@@ -19,7 +19,7 @@ get(key: string): Promise<void | Buffer>;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  key | `string` |  |
+|  key | <code>string</code> |  |
 
 <b>Returns:</b>
 

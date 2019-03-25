@@ -18,7 +18,7 @@ cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  userCleanupOptions | `CleanupOptions` |  |
+|  userCleanupOptions | <code>CleanupOptions</code> |  |
 
 <b>Returns:</b>
 

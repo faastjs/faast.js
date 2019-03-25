@@ -19,7 +19,7 @@ update(value: number | undefined): void;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  value | `number | undefined` |  |
+|  value | <code>number &#124; undefined</code> |  |
 
 <b>Returns:</b>
 
