@@ -6,6 +6,35 @@ hide_title: true
 
 ## faastjs package
 
+Faast.js transforms ordinary JavaScript modules into serverless cloud functions that can run on AWS Lambda and Google Cloud Functions.
+
+The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, which returns an object that implements the [FaastModule](./faastjs.faastmodule.md) interface. The most common options are [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Using faast.js requires writing two modules, one containing the functions to upload to the cloud, and the other that invokes faast.js and calls the resulting cloud functions:
+
+```typescript
+// functions.ts
+export function hello(name: string) {
+    return "hello " + name;
+}
+
+```
+
+```typescript
+// main.ts
+import { faast } from "faastjs";
+import * as funcs from "./functions";
+async function main() {
+    const faastModule = await faast("local", funcs, "./functions");
+    try {
+        const result = await faastModule.functions.hello("world!");
+        console.log(result);
+    } finally {
+        await faastModule.cleanup();
+    }
+}
+main();
+
+```
+
 ## Classes
 
 |  Class | Description |
@@ -13,7 +42,7 @@ hide_title: true
 |  [CostMetric](./faastjs.costmetric.md) | A line item in the cost estimate, including the resource usage metric measured and its pricing. |
 |  [CostSnapshot](./faastjs.costsnapshot.md) | A summary of the costs incurred by a faast.js module at a point in time. Output of [FaastModule.costSnapshot()](./faastjs.faastmodule.costsnapshot.md)<!-- -->. |
 |  [FaastError](./faastjs.faasterror.md) | Error type returned by cloud functions when they reject their promises with an instance of Error or any object. |
-|  [FaastModuleProxy](./faastjs.faastmoduleproxy.md) | Implementation of the faast.js runtime. |
+|  [FaastModuleProxy](./faastjs.faastmoduleproxy.md) | Implementation of [FaastModule](./faastjs.faastmodule.md)<!-- -->. |
 |  [FunctionStats](./faastjs.functionstats.md) | Summary statistics for function invocations. |
 |  [FunctionStatsEvent](./faastjs.functionstatsevent.md) | Summarize statistics about cloud function invocations. |
 |  [PersistentCache](./faastjs.persistentcache.md) | A simple persistent key-value store. Used to implement [Limits.cache](./faastjs.limits.cache.md) for [throttle()](./faastjs.throttle.md)<!-- -->. |
@@ -33,13 +62,13 @@ hide_title: true
 
 |  Interface | Description |
 |  --- | --- |
-|  [AwsOptions](./faastjs.awsoptions.md) | AWS-specific options. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. These options should be used with [faastAws()](./faastjs.faastaws.md)<!-- -->. |
+|  [AwsOptions](./faastjs.awsoptions.md) | AWS-specific options for [faastAws()](./faastjs.faastaws.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. |
 |  [CleanupOptions](./faastjs.cleanupoptions.md) | Options that apply to the [FaastModule.cleanup()](./faastjs.faastmodule.cleanup.md) method. |
 |  [CommonOptions](./faastjs.commonoptions.md) | Options common across all faast.js providers. Used as argument to [faast()](./faastjs.faast.md)<!-- -->. |
 |  [FaastModule](./faastjs.faastmodule.md) | The main interface for invoking, cleaning up, and managing faast.js cloud functions. |
-|  [GoogleOptions](./faastjs.googleoptions.md) | Google-specific options. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. To be used with [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->. |
-|  [Limits](./faastjs.limits.md) | Specify throttle limits. These limits shape the way throttle invokes the underlying function. |
-|  [LocalOptions](./faastjs.localoptions.md) | Local provider options. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. To be used with [faastLocal()](./faastjs.faastlocal.md)<!-- -->. |
+|  [GoogleOptions](./faastjs.googleoptions.md) | Google-specific options for [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. |
+|  [Limits](./faastjs.limits.md) | Specify [throttle()](./faastjs.throttle.md) limits. These limits shape the way throttle invokes the underlying function. |
+|  [LocalOptions](./faastjs.localoptions.md) | Local provider options for [faastLocal()](./faastjs.faastlocal.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. |
 
 ## Namespaces
 

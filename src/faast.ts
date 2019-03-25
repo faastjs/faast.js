@@ -514,7 +514,7 @@ export interface FaastModule<M extends object> {
 }
 
 /**
- * Implementation of the faast.js runtime.
+ * Implementation of {@link FaastModule}.
  * @remarks
  * `FaastModuleProxy` provides a unified developer experience for faast.js
  * modules on top of provider-specific runtime APIs. Most users will not create
@@ -949,6 +949,7 @@ export type LocalFaastModule<M extends object = object> = FaastModuleProxy<
  * @remarks
  * Example of usage:
  * ```typescript
+ * import { faast } from "faastjs";
  * import * as mod from "./path/to/module";
  * async function main() {
  *     const faastModule = await faast("aws", mod, "./path/to/module");

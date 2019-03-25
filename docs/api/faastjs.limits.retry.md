@@ -12,5 +12,5 @@ Retry if the throttled function returns a rejected promise. `retry` can be a num
 <b>Signature:</b>
 
 ```typescript
-retry?: RetryType;
+retry?: number | ((err: any, retries: number) => boolean);
 ```

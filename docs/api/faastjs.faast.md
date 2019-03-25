@@ -35,6 +35,7 @@ See [FaastModule](./faastjs.faastmodule.md)<!-- -->.
 Example of usage:
 
 ```typescript
+import { faast } from "faastjs";
 import * as mod from "./path/to/module";
 async function main() {
     const faastModule = await faast("aws", mod, "./path/to/module");

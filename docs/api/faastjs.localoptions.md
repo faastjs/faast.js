@@ -7,7 +7,7 @@ hide_title: true
 
 ## LocalOptions interface
 
-Local provider options. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. To be used with [faastLocal()](./faastjs.faastlocal.md)<!-- -->.
+Local provider options for [faastLocal()](./faastjs.faastlocal.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->.
 
 <b>Signature:</b>
 

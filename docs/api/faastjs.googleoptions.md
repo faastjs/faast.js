@@ -7,7 +7,7 @@ hide_title: true
 
 ## GoogleOptions interface
 
-Google-specific options. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. To be used with [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->.
+Google-specific options for [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->.
 
 <b>Signature:</b>
 

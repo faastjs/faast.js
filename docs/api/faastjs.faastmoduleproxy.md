@@ -7,7 +7,7 @@ hide_title: true
 
 ## FaastModuleProxy class
 
-Implementation of the faast.js runtime.
+Implementation of [FaastModule](./faastjs.faastmodule.md)<!-- -->.
 
 <b>Signature:</b>
 

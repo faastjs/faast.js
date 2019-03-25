@@ -7,7 +7,7 @@ hide_title: true
 
 ## AwsOptions interface
 
-AWS-specific options. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. These options should be used with [faastAws()](./faastjs.faastaws.md)<!-- -->.
+AWS-specific options for [faastAws()](./faastjs.faastaws.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->.
 
 <b>Signature:</b>
 

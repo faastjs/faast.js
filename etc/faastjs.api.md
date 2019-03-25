@@ -239,8 +239,7 @@ interface Limits {
     concurrency: number;
     memoize?: boolean;
     rate?: number;
-    // Warning: (ae-forgotten-export) The symbol "RetryType" needs to be exported by the entry point index.d.ts
-    retry?: RetryType;
+    retry?: number | ((err: any, retries: number) => boolean);
 }
 
 // Warning: (ae-forgotten-export) The symbol "LocalState" needs to be exported by the entry point index.d.ts
@@ -323,7 +322,5 @@ declare function throttle<A extends any[], R>({ concurrency, retry, rate, burst,
 // @public
 declare type Unpacked<T> = T extends Promise<infer D> ? D : T;
 
-
-// (No @packageDocumentation comment for this package)
 
 ```

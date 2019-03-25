@@ -49,7 +49,6 @@ function popFirst<T>(set: Set<T>): T | undefined {
     return firstElem;
 }
 
-/** @public */
 export type RetryType = number | ((err: any, retries: number) => boolean);
 
 export async function retry<T>(retryN: RetryType, fn: (retries: number) => Promise<T>) {
@@ -236,8 +235,8 @@ export class RateLimiter<T = void> {
 }
 
 /**
- * Specify throttle limits. These limits shape the way throttle invokes the
- * underlying function.
+ * Specify {@link throttle} limits. These limits shape the way throttle invokes
+ * the underlying function.
  * @public
  */
 export interface Limits {
@@ -272,7 +271,7 @@ export interface Limits {
      * will be the number of previous retry attempts (e.g. the first call will
      * have value 0). Default: 0 (no retry attempts).
      */
-    retry?: RetryType;
+    retry?: number | ((err: any, retries: number) => boolean);
     /**
      * If `memoize` is `true`, then every call to the throttled function will be
      * saved as an entry in a map from arguments to return value. If same
