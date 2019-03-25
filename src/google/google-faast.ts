@@ -57,7 +57,8 @@ export interface GoogleOptions extends CommonOptions {
      */
     region?: string;
     /**
-     * Additional options to pass to Google Cloud Function creation.
+     * Additional options to pass to Google Cloud Function creation. See
+     * {@link https://cloud.google.com/functions/docs/reference/rest/v1/projects.locations.functions#CloudFunction | projects.locations.functions}.
      * @remarks
      * If you need specialized options, you can pass them to the Google Cloud
      * Functions API directly. Note that if you override any settings set by

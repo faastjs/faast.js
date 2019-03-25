@@ -146,7 +146,8 @@ export interface AwsOptions extends CommonOptions {
      */
     RoleName?: string;
     /**
-     * Additional options to pass to AWS Lambda creation.
+     * Additional options to pass to AWS Lambda creation. See
+     * {@link https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html | CreateFunction}.
      * @remarks
      * If you need specialized options, you can pass them to the AWS Lambda SDK
      * directly. Note that if you override any settings set by faast.js, you may
