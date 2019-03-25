@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [estimatedBilledTime](./faastjs.functionstats.estimatedbilledtime.md)
+---
+id: faastjs.functionstats.estimatedbilledtime
+title: FunctionStats.estimatedBilledTime property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [estimatedBilledTime](./faastjs.functionstats.estimatedbilledtime.md)
 
 ## FunctionStats.estimatedBilledTime property
 

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostSnapshot](./faastjs.costsnapshot.md)
+---
+id: faastjs.costsnapshot
+title: CostSnapshot class
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostSnapshot](./faastjs.costsnapshot.md)
 
 ## CostSnapshot class
 
@@ -95,4 +100,3 @@ The Local provider has no extra metrics.
 Prices are retrieved dynamically from AWS and Google and cached locally. Cached prices expire after 24h. For each cost metric, faast.js uses the highest price tier to compute estimated pricing.
 
 Cost estimates do not take free tiers into account.
-

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Result](./faastjs.costanalyzer.result.md)
+---
+id: faastjs.costanalyzer.result
+title: CostAnalyzer.Result class
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Result](./faastjs.costanalyzer.result.md)
 
 ## CostAnalyzer.Result class
 
@@ -26,4 +31,3 @@ class Result<T extends object, A extends string>
 ## Remarks
 
 The `estimates` property has the cost estimates for each configuration. See [CostAnalyzer.Estimate](./faastjs.costanalyzer.estimate.md)<!-- -->.
-

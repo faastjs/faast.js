@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastError](./faastjs.faasterror.md)
+---
+id: faastjs.faasterror
+title: FaastError class
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FaastError](./faastjs.faasterror.md)
 
 ## FaastError class
 
@@ -23,4 +28,3 @@ When a faast.js cloud function throws an exception or rejects the promise it ret
 If available, a log URL for the specific invocation that caused the error is appended to the log message. This log URL is also available as the `logUrl` property. It will be surrounded by whilespace on both sides to ease parsing as a URL by IDEs.
 
 Stack traces and error names should be preserved from the cloud side.
-

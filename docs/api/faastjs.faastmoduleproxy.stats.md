@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastModuleProxy](./faastjs.faastmoduleproxy.md) &gt; [stats](./faastjs.faastmoduleproxy.stats.md)
+---
+id: faastjs.faastmoduleproxy.stats
+title: FaastModuleProxy.stats() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FaastModuleProxy](./faastjs.faastmoduleproxy.md) &gt; [stats](./faastjs.faastmoduleproxy.stats.md)
 
 ## FaastModuleProxy.stats() method
 
@@ -18,4 +23,3 @@ stats(functionName?: string): FunctionStats;
 <b>Returns:</b>
 
 `FunctionStats`
-

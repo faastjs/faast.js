@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostSnapshot](./faastjs.costsnapshot.md) &gt; [find](./faastjs.costsnapshot.find.md)
+---
+id: faastjs.costsnapshot.find
+title: CostSnapshot.find() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostSnapshot](./faastjs.costsnapshot.md) &gt; [find](./faastjs.costsnapshot.find.md)
 
 ## CostSnapshot.find() method
 
@@ -17,4 +22,3 @@ find(name: string): CostMetric | undefined;
 <b>Returns:</b>
 
 `CostMetric | undefined`
-

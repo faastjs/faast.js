@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Limits](./faastjs.limits.md) &gt; [concurrency](./faastjs.limits.concurrency.md)
+---
+id: faastjs.limits.concurrency
+title: Limits.concurrency property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [Limits](./faastjs.limits.md) &gt; [concurrency](./faastjs.limits.concurrency.md)
 
 ## Limits.concurrency property
 

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [childProcess](./faastjs.commonoptions.childprocess.md)
+---
+id: faastjs.commonoptions.childprocess
+title: CommonOptions.childProcess property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [childProcess](./faastjs.commonoptions.childprocess.md)
 
 ## CommonOptions.childProcess property
 
@@ -19,4 +24,3 @@ If a child process is not created, faast runs in the same node instance as the u
 - CPU metrics used for detecting invocations with high latency, which can be used for automatically retrying calls to reduce tail latency.
 
 The cost of creating a child process is mainly in the memory overhead of creating another node process.
-

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [AwsOptions](./faastjs.awsoptions.md) &gt; [RoleName](./faastjs.awsoptions.rolename.md)
+---
+id: faastjs.awsoptions.rolename
+title: AwsOptions.RoleName property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [AwsOptions](./faastjs.awsoptions.md) &gt; [RoleName](./faastjs.awsoptions.rolename.md)
 
 ## AwsOptions.RoleName property
 
@@ -55,4 +60,3 @@ You can [create a custom role](https://console.aws.amazon.com/iam/home#/roles) t
   }
 
 ```
-

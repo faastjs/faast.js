@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Statistics](./faastjs.statistics.md) &gt; [toString](./faastjs.statistics.tostring.md)
+---
+id: faastjs.statistics.tostring
+title: Statistics.toString() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [Statistics](./faastjs.statistics.md) &gt; [toString](./faastjs.statistics.tostring.md)
 
 ## Statistics.toString() method
 
@@ -12,4 +17,3 @@ toString(): string;
 <b>Returns:</b>
 
 `string`
-

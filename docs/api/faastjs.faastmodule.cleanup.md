@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [cleanup](./faastjs.faastmodule.cleanup.md)
+---
+id: faastjs.faastmodule.cleanup
+title: FaastModule.cleanup() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [cleanup](./faastjs.faastmodule.cleanup.md)
 
 ## FaastModule.cleanup() method
 
@@ -49,4 +54,3 @@ Note that `cleanup` leaves behind some provider-specific resources:
 - Google: Google Stackdriver automatically deletes log entries after 30 days.
 
 - Local: Logs are preserved in a temporary directory on local disk. Garbage collection in a future cloud function instance will delete logs older than 24h.
-

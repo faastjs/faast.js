@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Workload](./faastjs.costanalyzer.workload.md) &gt; [formatCSV](./faastjs.costanalyzer.workload.formatcsv.md)
+---
+id: faastjs.costanalyzer.workload.formatcsv
+title: CostAnalyzer.Workload.formatCSV property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Workload](./faastjs.costanalyzer.workload.md) &gt; [formatCSV](./faastjs.costanalyzer.workload.formatcsv.md)
 
 ## CostAnalyzer.Workload.formatCSV property
 

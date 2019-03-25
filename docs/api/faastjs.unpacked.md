@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Unpacked](./faastjs.unpacked.md)
+---
+id: faastjs.unpacked
+title: Unpacked type
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [Unpacked](./faastjs.unpacked.md)
 
 ## Unpacked type
 

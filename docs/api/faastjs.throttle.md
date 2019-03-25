@@ -1,8 +1,13 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [throttle](./faastjs.throttle.md)
+---
+id: faastjs.throttle
+title: throttle() function
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [throttle](./faastjs.throttle.md)
 
 ## throttle() function
 
-A decorator for rate limiting, concurrency limiting, retry, memoization, and on-disk caching.
+A decorator for rate limiting, concurrency limiting, retry, memoization, and on-disk caching. See [Limits](./faastjs.limits.md)<!-- -->.
 
 <b>Signature:</b>
 
@@ -67,4 +72,3 @@ const operation = throttle({ concurrency: 10, rate: 5 }, async (str: string) => 
 
 ```
 In addition to limiting concurrency and invocation rate, `throttle` also supports retrying failed invocations, memoizing calls, and on-disk caching. See [Limits](./faastjs.limits.md) for details.
-

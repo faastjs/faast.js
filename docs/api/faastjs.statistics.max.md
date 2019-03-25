@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Statistics](./faastjs.statistics.md) &gt; [max](./faastjs.statistics.max.md)
+---
+id: faastjs.statistics.max
+title: Statistics.max property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [Statistics](./faastjs.statistics.md) &gt; [max](./faastjs.statistics.max.md)
 
 ## Statistics.max property
 

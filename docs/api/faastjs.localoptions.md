@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [LocalOptions](./faastjs.localoptions.md)
+---
+id: faastjs.localoptions
+title: LocalOptions interface
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [LocalOptions](./faastjs.localoptions.md)
 
 ## LocalOptions interface
 

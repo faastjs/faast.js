@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [timeout](./faastjs.commonoptions.timeout.md)
+---
+id: faastjs.commonoptions.timeout
+title: CommonOptions.timeout property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [timeout](./faastjs.commonoptions.timeout.md)
 
 ## CommonOptions.timeout property
 
@@ -21,4 +26,3 @@ Each provider has a maximum time limit for how long invocations can run before b
 - local: unlimited
 
 Faast.js has a proactive timeout detection feature. It automatically attempts to detect when the time limit is about to be reached and proactively sends a timeout exception. Faast does this because not all providers reliably send timely feedback when timeouts occur, leaving developers to look through cloud logs. In general faast.js' timeout will be up to 200ms earlier than the timeout specified, in order to give time to allow faast.js to send a timeout message. Proactive timeout detection only works with [CommonOptions.childProcess](./faastjs.commonoptions.childprocess.md) set to `true` (the default).
-

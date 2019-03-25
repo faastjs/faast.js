@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md) &gt; [cost](./faastjs.costmetric.cost.md)
+---
+id: faastjs.costmetric.cost
+title: CostMetric.cost() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md) &gt; [cost](./faastjs.costmetric.cost.md)
 
 ## CostMetric.cost() method
 
@@ -12,4 +17,3 @@ cost(): number;
 <b>Returns:</b>
 
 `number`
-

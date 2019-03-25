@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md) &gt; [informationalOnly](./faastjs.costmetric.informationalonly.md)
+---
+id: faastjs.costmetric.informationalonly
+title: CostMetric.informationalOnly property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md) &gt; [informationalOnly](./faastjs.costmetric.informationalonly.md)
 
 ## CostMetric.informationalOnly property
 

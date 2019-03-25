@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [AwsOptions](./faastjs.awsoptions.md) &gt; [awsLambdaOptions](./faastjs.awsoptions.awslambdaoptions.md)
+---
+id: faastjs.awsoptions.awslambdaoptions
+title: AwsOptions.awsLambdaOptions property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [AwsOptions](./faastjs.awsoptions.md) &gt; [awsLambdaOptions](./faastjs.awsoptions.awslambdaoptions.md)
 
 ## AwsOptions.awsLambdaOptions property
 
@@ -30,4 +35,3 @@ If you need specialized options, you can pass them to the AWS Lambda SDK directl
 
 ```
 One use case for this option is to use [Lambda Layers](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html) with faast.js.
-

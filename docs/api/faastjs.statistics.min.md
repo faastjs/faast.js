@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Statistics](./faastjs.statistics.md) &gt; [min](./faastjs.statistics.min.md)
+---
+id: faastjs.statistics.min
+title: Statistics.min property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [Statistics](./faastjs.statistics.md) &gt; [min](./faastjs.statistics.min.md)
 
 ## Statistics.min property
 

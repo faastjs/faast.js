@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)
+---
+id: faastjs.costanalyzer.workloadattribute
+title: CostAnalyzer.WorkloadAttribute type
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)
 
 ## CostAnalyzer.WorkloadAttribute type
 

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastModuleProxy](./faastjs.faastmoduleproxy.md) &gt; [logUrl](./faastjs.faastmoduleproxy.logurl.md)
+---
+id: faastjs.faastmoduleproxy.logurl
+title: FaastModuleProxy.logUrl() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FaastModuleProxy](./faastjs.faastmoduleproxy.md) &gt; [logUrl](./faastjs.faastmoduleproxy.logurl.md)
 
 ## FaastModuleProxy.logUrl() method
 
@@ -11,4 +16,3 @@ logUrl(): string;
 <b>Returns:</b>
 
 `string`
-

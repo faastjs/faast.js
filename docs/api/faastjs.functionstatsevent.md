@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStatsEvent](./faastjs.functionstatsevent.md)
+---
+id: faastjs.functionstatsevent
+title: FunctionStatsEvent class
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStatsEvent](./faastjs.functionstatsevent.md)
 
 ## FunctionStatsEvent class
 
@@ -22,4 +27,3 @@ export declare class FunctionStatsEvent
 |  Method | Modifiers | Description |
 |  --- | --- | --- |
 |  [toString()](./faastjs.functionstatsevent.tostring.md) |  | Returns a string summarizing the statistics event. |
-

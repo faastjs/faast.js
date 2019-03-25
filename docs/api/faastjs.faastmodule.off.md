@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [off](./faastjs.faastmodule.off.md)
+---
+id: faastjs.faastmodule.off
+title: FaastModule.off() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [off](./faastjs.faastmodule.off.md)
 
 ## FaastModule.off() method
 
@@ -24,4 +29,3 @@ off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
 ## Remarks
 
 Stops the callback listener from receiving future function statistics events. Calling [FaastModule.cleanup()](./faastjs.faastmodule.cleanup.md) also turns off statistics events.
-

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md) &gt; [comment](./faastjs.costmetric.comment.md)
+---
+id: faastjs.costmetric.comment
+title: CostMetric.comment property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md) &gt; [comment](./faastjs.costmetric.comment.md)
 
 ## CostMetric.comment property
 

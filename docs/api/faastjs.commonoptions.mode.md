@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [mode](./faastjs.commonoptions.mode.md)
+---
+id: faastjs.commonoptions.mode
+title: CommonOptions.mode property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [mode](./faastjs.commonoptions.mode.md)
 
 ## CommonOptions.mode property
 
@@ -22,5 +27,6 @@ The defaults are:
 
 - local: The local provider ignores the mode setting and always uses an internal asynchronous queue to schedule calls.
 
-Note that no matter which mode is selected, faast.js always uses queue to send results back. This queue is required because there are intermediate data that faast.js needs for bookeeping and performance monitoring.
+Size limits are affected by the choice of mode. On AWS the limit is 256kb for arguments and return values in `"queue"` mode, and 6MB for `"https"` mode. For Google the limit is 10MB regardless of mode. In Local mode messages are sent via node's IPC and are subject to OS IPC limits.
 
+Note that no matter which mode is selected, faast.js always creates a queue for sending back intermediate results for bookeeping and performance monitoring.

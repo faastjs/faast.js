@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [maxRetries](./faastjs.commonoptions.maxretries.md)
+---
+id: faastjs.commonoptions.maxretries
+title: CommonOptions.maxRetries property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [maxRetries](./faastjs.commonoptions.maxretries.md)
 
 ## CommonOptions.maxRetries property
 
@@ -13,4 +18,3 @@ maxRetries?: number;
 ## Remarks
 
 Retries are automatically attempted for transient infrastructure-level failures such as rate limits or netowrk failures. User-level exceptions are not retried automatically. In addition to retries performed by faast, some providers automatically attempt retries. These are not controllable by faast. But as a result, your function may be retried many more times than this setting suggests.
-

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Result](./faastjs.costanalyzer.result.md) &gt; [csv](./faastjs.costanalyzer.result.csv.md)
+---
+id: faastjs.costanalyzer.result.csv
+title: CostAnalyzer.Result.csv() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Result](./faastjs.costanalyzer.result.md) &gt; [csv](./faastjs.costanalyzer.result.csv.md)
 
 ## CostAnalyzer.Result.csv() method
 
@@ -38,4 +43,3 @@ The columns are:
 - `executionTimeStdev`<!-- -->: The standard deviation of `executionTime`<!-- -->.
 
 - `billedTime`<!-- -->: the same as `exectionTime`<!-- -->, except rounded up to the next 100ms for each invocation. Usually very close to `executionTime`<!-- -->.
-

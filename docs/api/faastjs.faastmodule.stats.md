@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [stats](./faastjs.faastmodule.stats.md)
+---
+id: faastjs.faastmodule.stats
+title: FaastModule.stats() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [stats](./faastjs.faastmodule.stats.md)
 
 ## FaastModule.stats() method
 
@@ -21,4 +26,3 @@ stats(functionName?: string): FunctionStats;
 `FunctionStats`
 
 an snapshot of [FunctionStats](./faastjs.functionstats.md) at a point in time.
-

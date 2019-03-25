@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Limits](./faastjs.limits.md) &gt; [burst](./faastjs.limits.burst.md)
+---
+id: faastjs.limits.burst
+title: Limits.burst property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [Limits](./faastjs.limits.md) &gt; [burst](./faastjs.limits.burst.md)
 
 ## Limits.burst property
 

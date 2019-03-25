@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Promisified](./faastjs.promisified.md)
+---
+id: faastjs.promisified
+title: Promisified type
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [Promisified](./faastjs.promisified.md)
 
 ## Promisified type
 
@@ -15,4 +20,3 @@ export declare type Promisified<M> = {
 ## Remarks
 
 `Promisified<M>` maps an imported module's functions to promise-returning versions of those functions (see [PromisifiedFunction](./faastjs.promisifiedfunction.md)<!-- -->). Non-function exports of the module are omitted.
-

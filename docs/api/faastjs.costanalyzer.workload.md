@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Workload](./faastjs.costanalyzer.workload.md)
+---
+id: faastjs.costanalyzer.workload
+title: CostAnalyzer.Workload interface
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Workload](./faastjs.costanalyzer.workload.md)
 
 ## CostAnalyzer.Workload interface
 
@@ -23,4 +28,3 @@ interface Workload<T extends object, A extends string>
 |  [silent](./faastjs.costanalyzer.workload.silent.md) | `boolean` | If true, do not output live results to the console. Can be useful for running the cost analyzer as part of automated tests. Default: false. |
 |  [summarize](./faastjs.costanalyzer.workload.summarize.md) | `(summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>` | Combine [CostAnalyzer.WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md) instances returned from multiple workload executions (caused by value of [CostAnalyzer.Workload.repetitions](./faastjs.costanalyzer.workload.repetitions.md)<!-- -->). The default is a function that takes the average of each attribute. |
 |  [work](./faastjs.costanalyzer.workload.work.md) | `(faastModule: FaastModule<T>) => Promise<WorkloadAttribute<A> | void>` | A function that executes cloud functions on `faastModule.functions.*`<!-- -->. The work function should return `void` if there are no custom workload attributes. Otherwise, it should return a [CostAnalyzer.WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md) object which maps user-defined attribute names to numerical values for the workload. For example, this might measure bandwidth or some other metric not tracked by faast.js, but are relevant for evaluating the cost-performance tradeoff of the configurations analyzed by the cost analyzer. |
-

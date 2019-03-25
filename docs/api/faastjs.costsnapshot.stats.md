@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostSnapshot](./faastjs.costsnapshot.md) &gt; [stats](./faastjs.costsnapshot.stats.md)
+---
+id: faastjs.costsnapshot.stats
+title: CostSnapshot.stats property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostSnapshot](./faastjs.costsnapshot.md) &gt; [stats](./faastjs.costsnapshot.stats.md)
 
 ## CostSnapshot.stats property
 

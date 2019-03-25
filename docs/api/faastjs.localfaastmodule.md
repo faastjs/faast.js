@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [LocalFaastModule](./faastjs.localfaastmodule.md)
+---
+id: faastjs.localfaastmodule
+title: LocalFaastModule type
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [LocalFaastModule](./faastjs.localfaastmodule.md)
 
 ## LocalFaastModule type
 

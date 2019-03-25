@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [provider](./faastjs.faastmodule.provider.md)
+---
+id: faastjs.faastmodule.provider
+title: FaastModule.provider property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [provider](./faastjs.faastmodule.provider.md)
 
 ## FaastModule.provider property
 

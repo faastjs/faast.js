@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastModuleProxy](./faastjs.faastmoduleproxy.md) &gt; [cleanup](./faastjs.faastmoduleproxy.cleanup.md)
+---
+id: faastjs.faastmoduleproxy.cleanup
+title: FaastModuleProxy.cleanup() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FaastModuleProxy](./faastjs.faastmoduleproxy.md) &gt; [cleanup](./faastjs.faastmoduleproxy.cleanup.md)
 
 ## FaastModuleProxy.cleanup() method
 
@@ -18,4 +23,3 @@ cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
 <b>Returns:</b>
 
 `Promise<void>`
-

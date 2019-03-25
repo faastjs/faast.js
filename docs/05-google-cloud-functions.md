@@ -1,3 +1,8 @@
+---
+id: google-cloud
+title: Google Cloud
+---
+
 # Running faast.js on Google Cloud Functions
 
 ## Options

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [addZipFile](./faastjs.commonoptions.addzipfile.md)
+---
+id: faastjs.commonoptions.addzipfile
+title: CommonOptions.addZipFile property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [addZipFile](./faastjs.commonoptions.addzipfile.md)
 
 ## CommonOptions.addZipFile property
 
@@ -17,4 +22,3 @@ Each file is unzipped on the remote side under the current working directory. Zi
 (1) The directory containing the script that imports the `faast` module. Specifically, the value of `__dirname` from that script.
 
 (2) The current working directory of the executing process.
-

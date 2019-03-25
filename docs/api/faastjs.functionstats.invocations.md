@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [invocations](./faastjs.functionstats.invocations.md)
+---
+id: faastjs.functionstats.invocations
+title: FunctionStats.invocations property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [invocations](./faastjs.functionstats.invocations.md)
 
 ## FunctionStats.invocations property
 

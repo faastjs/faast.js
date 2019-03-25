@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Workload](./faastjs.costanalyzer.workload.md) &gt; [work](./faastjs.costanalyzer.workload.work.md)
+---
+id: faastjs.costanalyzer.workload.work
+title: CostAnalyzer.Workload.work property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Workload](./faastjs.costanalyzer.workload.md) &gt; [work](./faastjs.costanalyzer.workload.work.md)
 
 ## CostAnalyzer.Workload.work property
 

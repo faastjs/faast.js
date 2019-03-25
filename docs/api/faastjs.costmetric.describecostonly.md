@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md) &gt; [describeCostOnly](./faastjs.costmetric.describecostonly.md)
+---
+id: faastjs.costmetric.describecostonly
+title: CostMetric.describeCostOnly() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md) &gt; [describeCostOnly](./faastjs.costmetric.describecostonly.md)
 
 ## CostMetric.describeCostOnly() method
 
@@ -12,4 +17,3 @@ describeCostOnly(): string;
 <b>Returns:</b>
 
 `string`
-

@@ -1,3 +1,8 @@
+---
+id: introduction
+title: Introduction
+---
+
 # Faast
 
 The `faast` function is the main interface:

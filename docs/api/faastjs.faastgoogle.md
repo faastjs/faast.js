@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [faastGoogle](./faastjs.faastgoogle.md)
+---
+id: faastjs.faastgoogle
+title: faastGoogle() function
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [faastGoogle](./faastjs.faastgoogle.md)
 
 ## faastGoogle() function
 
@@ -23,4 +28,3 @@ export declare function faastGoogle<M extends object>(fmodule: M, modulePath: st
 `Promise<GoogleFaastModule<M>>`
 
 a Promise for [GoogleFaastModule](./faastjs.googlefaastmodule.md)<!-- -->.
-

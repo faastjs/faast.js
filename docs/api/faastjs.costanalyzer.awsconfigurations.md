@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [awsConfigurations](./faastjs.costanalyzer.awsconfigurations.md)
+---
+id: faastjs.costanalyzer.awsconfigurations
+title: CostAnalyzer.awsConfigurations variable
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [awsConfigurations](./faastjs.costanalyzer.awsconfigurations.md)
 
 ## CostAnalyzer.awsConfigurations variable
 
@@ -34,4 +39,3 @@ const configsWithAtLeast1GB = awsConfigurations.filter(c => c.memorySize > 1024)
 const shorterTimeout = awsConfigurations.map(c => ({...c, timeout: 60 }));
 
 ```
-

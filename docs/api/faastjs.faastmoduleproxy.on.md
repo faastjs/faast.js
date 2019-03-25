@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastModuleProxy](./faastjs.faastmoduleproxy.md) &gt; [on](./faastjs.faastmoduleproxy.on.md)
+---
+id: faastjs.faastmoduleproxy.on
+title: FaastModuleProxy.on() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FaastModuleProxy](./faastjs.faastmoduleproxy.md) &gt; [on](./faastjs.faastmoduleproxy.on.md)
 
 ## FaastModuleProxy.on() method
 
@@ -19,4 +24,3 @@ on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
 <b>Returns:</b>
 
 `void`
-

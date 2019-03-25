@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [addDirectory](./faastjs.commonoptions.adddirectory.md)
+---
+id: faastjs.commonoptions.adddirectory
+title: CommonOptions.addDirectory property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [addDirectory](./faastjs.commonoptions.adddirectory.md)
 
 ## CommonOptions.addDirectory property
 
@@ -17,4 +22,3 @@ Each directory is recursively traversed. On the remote side, the directories wil
 (1) The directory containing the script that imports the `faast` module. Specifically, the value of `__dirname` from that script.
 
 (2) The current working directory of the executing process.
-

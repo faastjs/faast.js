@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostSnapshot](./faastjs.costsnapshot.md) &gt; [total](./faastjs.costsnapshot.total.md)
+---
+id: faastjs.costsnapshot.total
+title: CostSnapshot.total() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostSnapshot](./faastjs.costsnapshot.md) &gt; [total](./faastjs.costsnapshot.total.md)
 
 ## CostSnapshot.total() method
 
@@ -12,4 +17,3 @@ total(): number;
 <b>Returns:</b>
 
 `number`
-

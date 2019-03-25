@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Limits](./faastjs.limits.md) &gt; [cache](./faastjs.limits.cache.md)
+---
+id: faastjs.limits.cache
+title: Limits.cache property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [Limits](./faastjs.limits.md) &gt; [cache](./faastjs.limits.cache.md)
 
 ## Limits.cache property
 

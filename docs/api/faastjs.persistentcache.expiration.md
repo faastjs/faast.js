@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [PersistentCache](./faastjs.persistentcache.md) &gt; [expiration](./faastjs.persistentcache.expiration.md)
+---
+id: faastjs.persistentcache.expiration
+title: PersistentCache.expiration property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [PersistentCache](./faastjs.persistentcache.md) &gt; [expiration](./faastjs.persistentcache.expiration.md)
 
 ## PersistentCache.expiration property
 

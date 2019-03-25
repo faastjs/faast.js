@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CleanupOptions](./faastjs.cleanupoptions.md)
+---
+id: faastjs.cleanupoptions
+title: CleanupOptions interface
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CleanupOptions](./faastjs.cleanupoptions.md)
 
 ## CleanupOptions interface
 
@@ -16,4 +21,3 @@ export interface CleanupOptions
 |  --- | --- | --- |
 |  [deleteCaches](./faastjs.cleanupoptions.deletecaches.md) | `boolean` | If true, delete cached resources. Default: false. |
 |  [deleteResources](./faastjs.cleanupoptions.deleteresources.md) | `boolean` | If true, delete provider cloud resources. Default: true. |
-

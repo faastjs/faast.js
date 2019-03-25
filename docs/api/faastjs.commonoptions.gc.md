@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [gc](./faastjs.commonoptions.gc.md)
+---
+id: faastjs.commonoptions.gc
+title: CommonOptions.gc property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [gc](./faastjs.commonoptions.gc.md)
 
 ## CommonOptions.gc property
 
@@ -21,4 +26,3 @@ It is generally recommended to leave garbage collection on, otherwise garbage re
 One use case for turning off garbage collection is when many invocations of faast are occurring in separate processes. In this case it can make sense to leave gc on in only one process. Note that if faast is invoked multiple times within one process, faast will automatically only run gc once every hour.
 
 Also see [CommonOptions.retentionInDays](./faastjs.commonoptions.retentionindays.md)<!-- -->.
-

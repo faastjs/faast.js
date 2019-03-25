@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [AwsOptions](./faastjs.awsoptions.md) &gt; [region](./faastjs.awsoptions.region.md)
+---
+id: faastjs.awsoptions.region
+title: AwsOptions.region property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [AwsOptions](./faastjs.awsoptions.md) &gt; [region](./faastjs.awsoptions.region.md)
 
 ## AwsOptions.region property
 

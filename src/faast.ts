@@ -960,7 +960,8 @@ export type LocalFaastModule<M extends object = object> = FaastModuleProxy<
  * }
  * main();
  * ```
- * @param provider - One of "aws" | "google" | "local". See {@link Provider}.
+ * @param provider - One of `"aws"`, `"google"`, or `"local"`. See
+ * {@link Provider}.
  * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
  * `require` also works but loses type information.
  * @param modulePath - The path to the module, as it would be specified to

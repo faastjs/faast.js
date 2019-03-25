@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Workload](./faastjs.costanalyzer.workload.md) &gt; [repetitions](./faastjs.costanalyzer.workload.repetitions.md)
+---
+id: faastjs.costanalyzer.workload.repetitions
+title: CostAnalyzer.Workload.repetitions property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Workload](./faastjs.costanalyzer.workload.md) &gt; [repetitions](./faastjs.costanalyzer.workload.repetitions.md)
 
 ## CostAnalyzer.Workload.repetitions property
 

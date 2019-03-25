@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [errors](./faastjs.functionstats.errors.md)
+---
+id: faastjs.functionstats.errors
+title: FunctionStats.errors property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [errors](./faastjs.functionstats.errors.md)
 
 ## FunctionStats.errors property
 

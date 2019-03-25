@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [faastLocal](./faastjs.faastlocal.md)
+---
+id: faastjs.faastlocal
+title: faastLocal() function
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [faastLocal](./faastjs.faastlocal.md)
 
 ## faastLocal() function
 
@@ -23,4 +28,3 @@ export declare function faastLocal<M extends object>(fmodule: M, modulePath: str
 `Promise<LocalFaastModule<M>>`
 
 a Promise for [LocalFaastModule](./faastjs.localfaastmodule.md)<!-- -->.
-

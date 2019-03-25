@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [googleConfigurations](./faastjs.costanalyzer.googleconfigurations.md)
+---
+id: faastjs.costanalyzer.googleconfigurations
+title: CostAnalyzer.googleConfigurations variable
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [googleConfigurations](./faastjs.costanalyzer.googleconfigurations.md)
 
 ## CostAnalyzer.googleConfigurations variable
 
@@ -28,4 +33,3 @@ Each google cost analyzer configuration follows this template:
 
 ```
 where `memorySize` is in `[128, 256, 512, 1024, 2048]`<!-- -->.
-

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [AwsRegion](./faastjs.awsregion.md)
+---
+id: faastjs.awsregion
+title: AwsRegion type
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [AwsRegion](./faastjs.awsregion.md)
 
 ## AwsRegion type
 

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Estimate](./faastjs.costanalyzer.estimate.md) &gt; [costSnapshot](./faastjs.costanalyzer.estimate.costsnapshot.md)
+---
+id: faastjs.costanalyzer.estimate.costsnapshot
+title: CostAnalyzer.Estimate.costSnapshot property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Estimate](./faastjs.costanalyzer.estimate.md) &gt; [costSnapshot](./faastjs.costanalyzer.estimate.costsnapshot.md)
 
 ## CostAnalyzer.Estimate.costSnapshot property
 

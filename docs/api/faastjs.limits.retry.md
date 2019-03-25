@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Limits](./faastjs.limits.md) &gt; [retry](./faastjs.limits.retry.md)
+---
+id: faastjs.limits.retry
+title: Limits.retry property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [Limits](./faastjs.limits.md) &gt; [retry](./faastjs.limits.retry.md)
 
 ## Limits.retry property
 
@@ -7,5 +12,5 @@ Retry if the throttled function returns a rejected promise. `retry` can be a num
 <b>Signature:</b>
 
 ```typescript
-retry?: number | ((err: any, retries: number) => boolean);
+retry?: RetryType;
 ```

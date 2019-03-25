@@ -239,7 +239,8 @@ interface Limits {
     concurrency: number;
     memoize?: boolean;
     rate?: number;
-    retry?: number | ((err: any, retries: number) => boolean);
+    // Warning: (ae-forgotten-export) The symbol "RetryType" needs to be exported by the entry point index.d.ts
+    retry?: RetryType;
 }
 
 // Warning: (ae-forgotten-export) The symbol "LocalState" needs to be exported by the entry point index.d.ts

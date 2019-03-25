@@ -1,3 +1,8 @@
+---
+id: limitations
+title: Limitations
+---
+
 # faast.js limitations
 
 ## Size limits on arguments and return values
@@ -19,3 +24,7 @@ Note that these limits are for payloads encoded as JSON.
 Limits for Google Cloud Functions are published [here](https://cloud.google.com/functions/quotas). As of March 2019 the limits are:
 
 - queue or https mode: 10MB
+
+### Local limits
+
+In local mode, faast.js uses node's [`process.send()`](https://nodejs.org/api/process.html#process_process_send_message_sendhandle_options_callback) to send messages to worker processes. The IPC limits are OS-specific.

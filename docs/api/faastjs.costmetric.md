@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md)
+---
+id: faastjs.costmetric
+title: CostMetric class
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md)
 
 ## CostMetric class
 
@@ -29,4 +34,3 @@ export declare class CostMetric
 |  [cost()](./faastjs.costmetric.cost.md) |  | The cost contribution of this cost metric. Equal to [CostMetric.pricing](./faastjs.costmetric.pricing.md) \* [CostMetric.measured](./faastjs.costmetric.measured.md)<!-- -->. |
 |  [describeCostOnly()](./faastjs.costmetric.describecostonly.md) |  | Return a string with the cost estimate for this metric, omitting comments. |
 |  [toString()](./faastjs.costmetric.tostring.md) |  | Describe this cost metric, including comments. |
-

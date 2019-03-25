@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md) &gt; [unitPlural](./faastjs.costmetric.unitplural.md)
+---
+id: faastjs.costmetric.unitplural
+title: CostMetric.unitPlural property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md) &gt; [unitPlural](./faastjs.costmetric.unitplural.md)
 
 ## CostMetric.unitPlural property
 

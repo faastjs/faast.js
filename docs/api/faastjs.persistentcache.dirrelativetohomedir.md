@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [PersistentCache](./faastjs.persistentcache.md) &gt; [dirRelativeToHomeDir](./faastjs.persistentcache.dirrelativetohomedir.md)
+---
+id: faastjs.persistentcache.dirrelativetohomedir
+title: PersistentCache.dirRelativeToHomeDir property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [PersistentCache](./faastjs.persistentcache.md) &gt; [dirRelativeToHomeDir](./faastjs.persistentcache.dirrelativetohomedir.md)
 
 ## PersistentCache.dirRelativeToHomeDir property
 

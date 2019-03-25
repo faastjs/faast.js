@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Provider](./faastjs.provider.md)
+---
+id: faastjs.provider
+title: Provider type
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [Provider](./faastjs.provider.md)
 
 ## Provider type
 

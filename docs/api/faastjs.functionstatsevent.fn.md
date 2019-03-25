@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStatsEvent](./faastjs.functionstatsevent.md) &gt; [fn](./faastjs.functionstatsevent.fn.md)
+---
+id: faastjs.functionstatsevent.fn
+title: FunctionStatsEvent.fn property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStatsEvent](./faastjs.functionstatsevent.md) &gt; [fn](./faastjs.functionstatsevent.fn.md)
 
 ## FunctionStatsEvent.fn property
 

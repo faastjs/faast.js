@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md) &gt; [unit](./faastjs.costmetric.unit.md)
+---
+id: faastjs.costmetric.unit
+title: CostMetric.unit property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md) &gt; [unit](./faastjs.costmetric.unit.md)
 
 ## CostMetric.unit property
 

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [returnLatency](./faastjs.functionstats.returnlatency.md)
+---
+id: faastjs.functionstats.returnlatency
+title: FunctionStats.returnLatency property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [returnLatency](./faastjs.functionstats.returnlatency.md)
 
 ## FunctionStats.returnLatency property
 

@@ -49,7 +49,8 @@ function popFirst<T>(set: Set<T>): T | undefined {
     return firstElem;
 }
 
-type RetryType = number | ((err: any, retries: number) => boolean);
+/** @public */
+export type RetryType = number | ((err: any, retries: number) => boolean);
 
 export async function retry<T>(retryN: RetryType, fn: (retries: number) => Promise<T>) {
     const retryTest =
@@ -271,7 +272,7 @@ export interface Limits {
      * will be the number of previous retry attempts (e.g. the first call will
      * have value 0). Default: 0 (no retry attempts).
      */
-    retry?: number | ((err: any, retries: number) => boolean);
+    retry?: RetryType;
     /**
      * If `memoize` is `true`, then every call to the throttled function will be
      * saved as an entry in a map from arguments to return value. If same
@@ -340,7 +341,7 @@ export function cacheFn<A extends any[], R>(
 
 /**
  * A decorator for rate limiting, concurrency limiting, retry, memoization, and
- * on-disk caching.
+ * on-disk caching. See {@link Limits}.
  * @remarks
  * When programming against cloud services, databases, and other resources, it
  * is often necessary to control the rate of request issuance to avoid

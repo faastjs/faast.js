@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Workload](./faastjs.costanalyzer.workload.md) &gt; [concurrency](./faastjs.costanalyzer.workload.concurrency.md)
+---
+id: faastjs.costanalyzer.workload.concurrency
+title: CostAnalyzer.Workload.concurrency property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Workload](./faastjs.costanalyzer.workload.md) &gt; [concurrency](./faastjs.costanalyzer.workload.concurrency.md)
 
 ## CostAnalyzer.Workload.concurrency property
 

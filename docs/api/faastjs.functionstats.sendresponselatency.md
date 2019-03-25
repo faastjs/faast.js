@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [sendResponseLatency](./faastjs.functionstats.sendresponselatency.md)
+---
+id: faastjs.functionstats.sendresponselatency
+title: FunctionStats.sendResponseLatency property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [sendResponseLatency](./faastjs.functionstats.sendresponselatency.md)
 
 ## FunctionStats.sendResponseLatency property
 

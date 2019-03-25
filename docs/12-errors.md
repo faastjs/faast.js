@@ -1,3 +1,8 @@
+---
+id: errors
+title: Commonly seen errors
+---
+
 # Errors seen while developing
 
 A catalogue of common testsuite failure error messages and their root causes.

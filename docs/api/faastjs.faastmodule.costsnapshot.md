@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [costSnapshot](./faastjs.faastmodule.costsnapshot.md)
+---
+id: faastjs.faastmodule.costsnapshot
+title: FaastModule.costSnapshot() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [costSnapshot](./faastjs.faastmodule.costsnapshot.md)
 
 ## FaastModule.costSnapshot() method
 
@@ -32,4 +37,3 @@ try {
 }
 
 ```
-

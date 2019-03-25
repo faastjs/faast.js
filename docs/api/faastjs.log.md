@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [log](./faastjs.log.md)
+---
+id: faastjs.log
+title: log variable
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [log](./faastjs.log.md)
 
 ## log variable
 
@@ -53,4 +58,3 @@ Each log outputs specific information:
 `provider` - Verbose logging of each interaction between faast.js runtime and the provider-specific implementation.
 
 `awssdk` - Verbose logging of AWS SDK. This can be useful for identifying which API calls are failing, retrying, or encountering rate limits.
-

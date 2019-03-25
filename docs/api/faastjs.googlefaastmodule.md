@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [GoogleFaastModule](./faastjs.googlefaastmodule.md)
+---
+id: faastjs.googlefaastmodule
+title: GoogleFaastModule type
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [GoogleFaastModule](./faastjs.googlefaastmodule.md)
 
 ## GoogleFaastModule type
 

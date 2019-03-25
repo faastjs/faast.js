@@ -148,22 +148,27 @@ export interface CommonOptions {
      *
      * The defaults are:
      *
-     * - aws: `"auto"` is the same as `"queue"`. In https mode, the AWS SDK
-     *   api is used to invoke functions. In queue mode, an AWS SNS topic is
-     *   created and triggers invocations. The AWS API Gateway service is never
-     *   used by faast, as it incurs a higher cost and is not needed to trigger
+     * - aws: `"auto"` is the same as `"queue"`. In https mode, the AWS SDK api
+     *   is used to invoke functions. In queue mode, an AWS SNS topic is created
+     *   and triggers invocations. The AWS API Gateway service is never used by
+     *   faast, as it incurs a higher cost and is not needed to trigger
      *   invocations.
      *
-     * - google: `"auto"` is `"https"`. In https mode, a PUT request is made
-     *   to invoke the cloud function. In queue mode, a PubSub topic is created
-     *   to invoke functions.
+     * - google: `"auto"` is `"https"`. In https mode, a PUT request is made to
+     *   invoke the cloud function. In queue mode, a PubSub topic is created to
+     *   invoke functions.
      *
-     * - local: The local provider ignores the mode setting and always uses
-     *   an internal asynchronous queue to schedule calls.
+     * - local: The local provider ignores the mode setting and always uses an
+     *   internal asynchronous queue to schedule calls.
      *
-     * Note that no matter which mode is selected, faast.js always uses queue to
-     * send results back. This queue is required because there are intermediate
-     * data that faast.js needs for bookeeping and performance monitoring.
+     * Size limits are affected by the choice of mode. On AWS the limit is 256kb
+     * for arguments and return values in `"queue"` mode, and 6MB for `"https"`
+     * mode. For Google the limit is 10MB regardless of mode. In Local mode
+     * messages are sent via node's IPC and are subject to OS IPC limits.
+     *
+     * Note that no matter which mode is selected, faast.js always creates a
+     * queue for sending back intermediate results for bookeeping and
+     * performance monitoring.
      */
     mode?: "https" | "queue" | "auto";
     /**

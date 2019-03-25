@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [localStartLatency](./faastjs.functionstats.localstartlatency.md)
+---
+id: faastjs.functionstats.localstartlatency
+title: FunctionStats.localStartLatency property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [localStartLatency](./faastjs.functionstats.localstartlatency.md)
 
 ## FunctionStats.localStartLatency property
 

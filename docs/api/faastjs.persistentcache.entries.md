@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [PersistentCache](./faastjs.persistentcache.md) &gt; [entries](./faastjs.persistentcache.entries.md)
+---
+id: faastjs.persistentcache.entries
+title: PersistentCache.entries() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [PersistentCache](./faastjs.persistentcache.md) &gt; [entries](./faastjs.persistentcache.entries.md)
 
 ## PersistentCache.entries() method
 
@@ -12,4 +17,3 @@ entries(): Promise<string[]>;
 <b>Returns:</b>
 
 `Promise<string[]>`
-

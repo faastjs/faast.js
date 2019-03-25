@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [executionTime](./faastjs.functionstats.executiontime.md)
+---
+id: faastjs.functionstats.executiontime
+title: FunctionStats.executionTime property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [executionTime](./faastjs.functionstats.executiontime.md)
 
 ## FunctionStats.executionTime property
 

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Estimate](./faastjs.costanalyzer.estimate.md) &gt; [config](./faastjs.costanalyzer.estimate.config.md)
+---
+id: faastjs.costanalyzer.estimate.config
+title: CostAnalyzer.Estimate.config property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Estimate](./faastjs.costanalyzer.estimate.md) &gt; [config](./faastjs.costanalyzer.estimate.config.md)
 
 ## CostAnalyzer.Estimate.config property
 

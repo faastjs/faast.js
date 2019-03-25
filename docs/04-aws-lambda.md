@@ -1,3 +1,8 @@
+---
+id: aws-lambda
+title: AWS
+---
+
 # Running faast.js on AWS Lambda
 
 ## Options

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostSnapshot](./faastjs.costsnapshot.md) &gt; [csv](./faastjs.costsnapshot.csv.md)
+---
+id: faastjs.costsnapshot.csv
+title: CostSnapshot.csv() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostSnapshot](./faastjs.costsnapshot.md) &gt; [csv](./faastjs.costsnapshot.csv.md)
 
 ## CostSnapshot.csv() method
 
@@ -29,4 +34,3 @@ sns,request,0.00000050,5,0.00000250,9.5% ,"https://aws.amazon.com/sns/pricing"
 logIngestion,GB,0.50000000,0,0,0.0% ,"https://aws.amazon.com/cloudwatch/pricing/ - Log ingestion costs not currently included."
 
 ```
-

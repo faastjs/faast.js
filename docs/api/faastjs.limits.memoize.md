@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Limits](./faastjs.limits.md) &gt; [memoize](./faastjs.limits.memoize.md)
+---
+id: faastjs.limits.memoize
+title: Limits.memoize property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [Limits](./faastjs.limits.md) &gt; [memoize](./faastjs.limits.memoize.md)
 
 ## Limits.memoize property
 

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [PersistentCache](./faastjs.persistentcache.md) &gt; [clear](./faastjs.persistentcache.clear.md)
+---
+id: faastjs.persistentcache.clear
+title: PersistentCache.clear() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [PersistentCache](./faastjs.persistentcache.md) &gt; [clear](./faastjs.persistentcache.clear.md)
 
 ## PersistentCache.clear() method
 
@@ -21,4 +26,3 @@ clear({ leaveEmptyDir }?: {
 <b>Returns:</b>
 
 `Promise<void>`
-

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [functions](./faastjs.faastmodule.functions.md)
+---
+id: faastjs.faastmodule.functions
+title: FaastModule.functions property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [functions](./faastjs.faastmodule.functions.md)
 
 ## FaastModule.functions property
 
@@ -33,4 +38,3 @@ Arguments and return values have size limitations that vary by provider and mode
 - Local: limited only by available memory and the limits of [childprocess.send](https://nodejs.org/api/child_process.html#child_process_subprocess_send_message_sendhandle_options_callback)<!-- -->.
 
 Note that payloads may be base64 encoded for some providers and therefore different in size than the original payload. Also, some bookkeeping data are passed along with arguments and contribute to the size limit.
-

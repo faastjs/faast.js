@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [packageJson](./faastjs.commonoptions.packagejson.md)
+---
+id: faastjs.commonoptions.packagejson
+title: CommonOptions.packageJson property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [packageJson](./faastjs.commonoptions.packagejson.md)
 
 ## CommonOptions.packageJson property
 
@@ -29,4 +34,3 @@ For AWS, if [CommonOptions.useDependencyCaching](./faastjs.commonoptions.usedepe
 The path specified by `packageJson` is searched for in the same manner as [CommonOptions.addZipFile](./faastjs.commonoptions.addzipfile.md)<!-- -->.
 
 The `FAAST_PACKAGE_DIR` environment variable can be useful for debugging `packageJson` issues.
-

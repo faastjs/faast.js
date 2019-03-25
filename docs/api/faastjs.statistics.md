@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Statistics](./faastjs.statistics.md)
+---
+id: faastjs.statistics
+title: Statistics class
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [Statistics](./faastjs.statistics.md)
 
 ## Statistics class
 
@@ -28,4 +33,3 @@ export declare class Statistics
 |  --- | --- | --- |
 |  [toString()](./faastjs.statistics.tostring.md) |  | Print the mean of the observations seen, with the precision specified in the constructor. |
 |  [update(value)](./faastjs.statistics.update.md) |  | Update statistics with a new value in the sequence. |
-

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStatsEvent](./faastjs.functionstatsevent.md) &gt; [toString](./faastjs.functionstatsevent.tostring.md)
+---
+id: faastjs.functionstatsevent.tostring
+title: FunctionStatsEvent.toString() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStatsEvent](./faastjs.functionstatsevent.md) &gt; [toString](./faastjs.functionstatsevent.tostring.md)
 
 ## FunctionStatsEvent.toString() method
 
@@ -16,4 +21,3 @@ toString(): string;
 ## Remarks
 
 The string includes number of completed calls, errors, and retries, and the mean execution time for the calls that completed within the last time interval (1s).
-

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md)
+---
+id: faastjs.costanalyzer
+title: CostAnalyzer namespace
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md)
 
 ## CostAnalyzer namespace
 
@@ -42,4 +47,3 @@ export declare namespace CostAnalyzer
 |  --- | --- |
 |  [Configuration](./faastjs.costanalyzer.configuration.md) | An input to [CostAnalyzer.analyze()](./faastjs.costanalyzer.analyze.md)<!-- -->, specifying one configuration of faast.js to run against a workload. See [AwsOptions](./faastjs.awsoptions.md) and [GoogleOptions](./faastjs.googleoptions.md)<!-- -->. |
 |  [WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md) | User-defined custom metrics for a workload. These are automatically summarized in the output; see [CostAnalyzer.Workload](./faastjs.costanalyzer.workload.md)<!-- -->. |
-

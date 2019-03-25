@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [toString](./faastjs.functionstats.tostring.md)
+---
+id: faastjs.functionstats.tostring
+title: FunctionStats.toString() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [toString](./faastjs.functionstats.tostring.md)
 
 ## FunctionStats.toString() method
 
@@ -12,4 +17,3 @@ toString(): string;
 `string`
 
 a string showing the value of completed, retries, errors, and mean execution time. This string excludes invocations by default because it is often fixed.
-

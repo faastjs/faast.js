@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [retentionInDays](./faastjs.commonoptions.retentionindays.md)
+---
+id: faastjs.commonoptions.retentionindays
+title: CommonOptions.retentionInDays property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [retentionInDays](./faastjs.commonoptions.retentionindays.md)
 
 ## CommonOptions.retentionInDays property
 
@@ -25,4 +30,3 @@ On Google, logs are retained according to Google's default expiration policy (30
 Note that if `retentionInDays` is set to 0, garbage collection will remove all resources, even ones that may be in use by other running faast instances. Not recommended.
 
 See [CommonOptions.gc](./faastjs.commonoptions.gc.md)<!-- -->.
-

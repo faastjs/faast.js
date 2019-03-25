@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [webpackOptions](./faastjs.commonoptions.webpackoptions.md)
+---
+id: faastjs.commonoptions.webpackoptions
+title: CommonOptions.webpackOptions property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [webpackOptions](./faastjs.commonoptions.webpackoptions.md)
 
 ## CommonOptions.webpackOptions property
 
@@ -38,4 +43,3 @@ Default:
 - other providers: `{}`
 
 The `FAAST_PACKAGE_DIR` environment variable can be useful for debugging webpack issues.
-

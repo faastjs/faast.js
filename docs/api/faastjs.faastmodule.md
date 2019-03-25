@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md)
+---
+id: faastjs.faastmodule
+title: FaastModule interface
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md)
 
 ## FaastModule interface
 
@@ -27,4 +32,3 @@ export interface FaastModule<M extends object>
 |  [off(name, listener)](./faastjs.faastmodule.off.md) | Deregister a callback for statistics events. |
 |  [on(name, listener)](./faastjs.faastmodule.on.md) | Register a callback for statistics events. |
 |  [stats(functionName)](./faastjs.faastmodule.stats.md) | Statistics for a specific function or the entire faast.js module. |
-

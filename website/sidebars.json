@@ -1,0 +1,17 @@
+{
+    "docs": {
+        "Getting Started": [
+            "introduction",
+            "faast-functions",
+            "cost-estimates",
+            "aws-lambda",
+            "google-cloud",
+            "local",
+            "throttle",
+            "architecture",
+            "limitations",
+            "faq"
+        ],
+        "Other": ["contributing", "errors"]
+    }
+}

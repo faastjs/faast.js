@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastModuleProxy](./faastjs.faastmoduleproxy.md) &gt; [options](./faastjs.faastmoduleproxy.options.md)
+---
+id: faastjs.faastmoduleproxy.options
+title: FaastModuleProxy.options property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FaastModuleProxy](./faastjs.faastmoduleproxy.md) &gt; [options](./faastjs.faastmoduleproxy.options.md)
 
 ## FaastModuleProxy.options property
 

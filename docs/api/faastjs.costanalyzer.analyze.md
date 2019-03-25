@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [analyze](./faastjs.costanalyzer.analyze.md)
+---
+id: faastjs.costanalyzer.analyze
+title: CostAnalyzer.analyze() function
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [analyze](./faastjs.costanalyzer.analyze.md)
 
 ## CostAnalyzer.analyze() function
 
@@ -101,4 +106,3 @@ Example output (this is printed to `console.log` unless the [CostAnalyzer.Worklo
 The output lists the provider, memory size, ([CommonOptions.mode](./faastjs.commonoptions.mode.md)<!-- -->), average time of a single execution of the workload, the standard deviation (in seconds) of the execution time, and average estimated cost for a single run of the workload.
 
 The "execution time" referenced here is not wall clock time, but rather execution time in the cloud function. The execution time does not include any time the workload spends waiting locally. If the workload invokes multiple cloud functions, their execution times will be summed even if they happen concurrently. This ensures the execution time and cost are aligned.
-

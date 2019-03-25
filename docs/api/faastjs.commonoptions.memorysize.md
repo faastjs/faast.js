@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [memorySize](./faastjs.commonoptions.memorysize.md)
+---
+id: faastjs.commonoptions.memorysize
+title: CommonOptions.memorySize property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md) &gt; [memorySize](./faastjs.commonoptions.memorysize.md)
 
 ## CommonOptions.memorySize property
 
@@ -19,4 +24,3 @@ Each provider has different settings for memory size, and performance varies dep
 - google: 1024MB
 
 - local: 512MB
-

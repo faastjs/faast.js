@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md) &gt; [measured](./faastjs.costmetric.measured.md)
+---
+id: faastjs.costmetric.measured
+title: CostMetric.measured property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostMetric](./faastjs.costmetric.md) &gt; [measured](./faastjs.costmetric.measured.md)
 
 ## CostMetric.measured property
 

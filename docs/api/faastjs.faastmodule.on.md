@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [on](./faastjs.faastmodule.on.md)
+---
+id: faastjs.faastmodule.on
+title: FaastModule.on() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FaastModule](./faastjs.faastmodule.md) &gt; [on](./faastjs.faastmodule.on.md)
 
 ## FaastModule.on() method
 
@@ -29,4 +34,3 @@ The callback is invoked once for each cloud function that was invoked within the
 faastModule.on("stats", console.log);
 
 ```
-

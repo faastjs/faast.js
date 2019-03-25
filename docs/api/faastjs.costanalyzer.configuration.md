@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Configuration](./faastjs.costanalyzer.configuration.md)
+---
+id: faastjs.costanalyzer.configuration
+title: CostAnalyzer.Configuration type
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostAnalyzer](./faastjs.costanalyzer.md) &gt; [Configuration](./faastjs.costanalyzer.configuration.md)
 
 ## CostAnalyzer.Configuration type
 

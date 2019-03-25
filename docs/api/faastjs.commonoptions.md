@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md)
+---
+id: faastjs.commonoptions
+title: CommonOptions interface
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CommonOptions](./faastjs.commonoptions.md)
 
 ## CommonOptions interface
 
@@ -31,4 +36,3 @@ export interface CommonOptions
 ## Remarks
 
 There are also more specific options for each provider. See [AwsOptions](./faastjs.awsoptions.md)<!-- -->, [GoogleOptions](./faastjs.googleoptions.md)<!-- -->, and [LocalOptions](./faastjs.localoptions.md)<!-- -->.
-

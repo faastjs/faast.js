@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [AwsFaastModule](./faastjs.awsfaastmodule.md)
+---
+id: faastjs.awsfaastmodule
+title: AwsFaastModule type
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [AwsFaastModule](./faastjs.awsfaastmodule.md)
 
 ## AwsFaastModule type
 

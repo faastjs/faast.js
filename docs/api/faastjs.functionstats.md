@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md)
+---
+id: faastjs.functionstats
+title: FunctionStats class
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md)
 
 ## FunctionStats class
 
@@ -64,4 +69,3 @@ export declare class FunctionStats
 
 ```
 `localStartLatency` and `executionTime` are measured on one machine and are free of clock skew. `remoteStartLatency` and `returnLatency` are measured as time differences between machines and are subject to much more uncertainty, and effects like clock skew.
-

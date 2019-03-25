@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [remoteStartLatency](./faastjs.functionstats.remotestartlatency.md)
+---
+id: faastjs.functionstats.remotestartlatency
+title: FunctionStats.remoteStartLatency property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [remoteStartLatency](./faastjs.functionstats.remotestartlatency.md)
 
 ## FunctionStats.remoteStartLatency property
 

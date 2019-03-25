@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [GoogleOptions](./faastjs.googleoptions.md) &gt; [region](./faastjs.googleoptions.region.md)
+---
+id: faastjs.googleoptions.region
+title: GoogleOptions.region property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [GoogleOptions](./faastjs.googleoptions.md) &gt; [region](./faastjs.googleoptions.region.md)
 
 ## GoogleOptions.region property
 

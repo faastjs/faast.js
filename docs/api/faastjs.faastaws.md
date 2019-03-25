@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [faastAws](./faastjs.faastaws.md)
+---
+id: faastjs.faastaws
+title: faastAws() function
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [faastAws](./faastjs.faastaws.md)
 
 ## faastAws() function
 
@@ -23,4 +28,3 @@ export declare function faastAws<M extends object>(fmodule: M, modulePath: strin
 `Promise<AwsFaastModule<M>>`
 
 a Promise for [AwsFaastModule](./faastjs.awsfaastmodule.md)<!-- -->.
-

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [PersistentCache](./faastjs.persistentcache.md) &gt; [get](./faastjs.persistentcache.get.md)
+---
+id: faastjs.persistentcache.get
+title: PersistentCache.get() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [PersistentCache](./faastjs.persistentcache.md) &gt; [get](./faastjs.persistentcache.get.md)
 
 ## PersistentCache.get() method
 
@@ -19,4 +24,3 @@ get(key: string): Promise<void | Buffer>;
 <b>Returns:</b>
 
 `Promise<void | Buffer>`
-

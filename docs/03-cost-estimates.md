@@ -1,3 +1,8 @@
+---
+id: cost-estimates
+title: Cost Estimates
+---
+
 # Cost Estimates
 
 ## Getting cost estimates

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [Limits](./faastjs.limits.md) &gt; [rate](./faastjs.limits.rate.md)
+---
+id: faastjs.limits.rate
+title: Limits.rate property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [Limits](./faastjs.limits.md) &gt; [rate](./faastjs.limits.rate.md)
 
 ## Limits.rate property
 

@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [CostSnapshot](./faastjs.costsnapshot.md) &gt; [toString](./faastjs.costsnapshot.tostring.md)
+---
+id: faastjs.costsnapshot.tostring
+title: CostSnapshot.toString() method
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [CostSnapshot](./faastjs.costsnapshot.md) &gt; [toString](./faastjs.costsnapshot.tostring.md)
 
 ## CostSnapshot.toString() method
 
@@ -12,4 +17,3 @@ toString(): string;
 <b>Returns:</b>
 
 `string`
-

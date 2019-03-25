@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [completed](./faastjs.functionstats.completed.md)
+---
+id: faastjs.functionstats.completed
+title: FunctionStats.completed property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [completed](./faastjs.functionstats.completed.md)
 
 ## FunctionStats.completed property
 

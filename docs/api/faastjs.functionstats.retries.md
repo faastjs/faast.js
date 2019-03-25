@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [retries](./faastjs.functionstats.retries.md)
+---
+id: faastjs.functionstats.retries
+title: FunctionStats.retries property
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [FunctionStats](./faastjs.functionstats.md) &gt; [retries](./faastjs.functionstats.retries.md)
 
 ## FunctionStats.retries property
 

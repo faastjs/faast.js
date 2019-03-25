@@ -1,4 +1,8 @@
-[Home](./index) &gt; [faastjs](./faastjs.md)
+---
+id: faastjs
+title: faastjs package
+hide_title: true
+---
 
 ## faastjs package
 
@@ -23,7 +27,7 @@
 |  [faastAws(fmodule, modulePath, options)](./faastjs.faastaws.md) | The main entry point for faast with AWS provider. |
 |  [faastGoogle(fmodule, modulePath, options)](./faastjs.faastgoogle.md) | The main entry point for faast with Google provider. |
 |  [faastLocal(fmodule, modulePath, options)](./faastjs.faastlocal.md) | The main entry point for faast with Local provider. |
-|  [throttle({ concurrency, retry, rate, burst, memoize, cache }, fn)](./faastjs.throttle.md) | A decorator for rate limiting, concurrency limiting, retry, memoization, and on-disk caching. |
+|  [throttle({ concurrency, retry, rate, burst, memoize, cache }, fn)](./faastjs.throttle.md) | A decorator for rate limiting, concurrency limiting, retry, memoization, and on-disk caching. See [Limits](./faastjs.limits.md)<!-- -->. |
 
 ## Interfaces
 
@@ -62,4 +66,3 @@
 |  [PromisifiedFunction](./faastjs.promisifiedfunction.md) | The type of functions on [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. Used by [Promisified](./faastjs.promisified.md)<!-- -->. |
 |  [Provider](./faastjs.provider.md) | The type of all supported cloud providers. |
 |  [Unpacked](./faastjs.unpacked.md) | The type returned by a `Promise`<!-- -->. |
-

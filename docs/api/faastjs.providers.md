@@ -1,4 +1,9 @@
-[Home](./index) &gt; [faastjs](./faastjs.md) &gt; [providers](./faastjs.providers.md)
+---
+id: faastjs.providers
+title: providers variable
+hide_title: true
+---
+[faastjs](./faastjs.md) &gt; [providers](./faastjs.providers.md)
 
 ## providers variable
 
