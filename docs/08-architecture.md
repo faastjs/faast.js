@@ -1,6 +1,4 @@
 ---
 id: architecture
-title: Architecture
+title: faast.js architecture
 ---
-
-# faast.js architecture

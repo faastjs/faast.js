@@ -2,12 +2,12 @@
     "docs": {
         "Getting Started": [
             "introduction",
-            "faast-functions",
+            "workflow",
             "cost-estimates",
             "aws-lambda",
             "google-cloud",
             "local",
-            "throttle",
+            "throttling-scaling",
             "architecture",
             "limitations",
             "faq"

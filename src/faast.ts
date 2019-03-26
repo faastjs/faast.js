@@ -946,6 +946,15 @@ export type LocalFaastModule<M extends object = object> = FaastModuleProxy<
 
 /**
  * The main entry point for faast with any provider and only common options.
+ * @param provider - One of `"aws"`, `"google"`, or `"local"`. See
+ * {@link Provider}.
+ * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
+ * `require` also works but loses type information.
+ * @param modulePath - The path to the module, as it would be specified to
+ * `import` or `require`. It should be the same as `"BBB"` from importing
+ * fmodule.
+ * @param options - See {@link CommonOptions}.
+ * @returns See {@link FaastModule}.
  * @remarks
  * Example of usage:
  * ```typescript
@@ -961,15 +970,6 @@ export type LocalFaastModule<M extends object = object> = FaastModuleProxy<
  * }
  * main();
  * ```
- * @param provider - One of `"aws"`, `"google"`, or `"local"`. See
- * {@link Provider}.
- * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
- * `require` also works but loses type information.
- * @param modulePath - The path to the module, as it would be specified to
- * `import` or `require`. It should be the same as `"BBB"` from importing
- * fmodule.
- * @param options - See {@link CommonOptions}.
- * @returns See {@link FaastModule}.
  * @public
  */
 export async function faast<M extends object>(

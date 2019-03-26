@@ -8,14 +8,14 @@
       "introduction": {
         "title": "Introduction"
       },
-      "faast-functions": {
-        "title": "Writing faast.js functions"
+      "workflow": {
+        "title": "Development Workflow"
       },
       "cost-estimates": {
         "title": "Cost Estimates"
       },
       "aws-lambda": {
-        "title": "AWS"
+        "title": "Running faast.js on AWS Lambda"
       },
       "google-cloud": {
         "title": "Google Cloud"
@@ -23,11 +23,11 @@
       "local": {
         "title": "Local provider"
       },
-      "throttle": {
-        "title": "Throttling techniques"
+      "throttling-scaling": {
+        "title": "Throttling and Scaling faast.js"
       },
-      "architecture": {
-        "title": "Architecture"
+      "08-architecture": {
+        "title": "08-architecture"
       },
       "limitations": {
         "title": "Limitations"

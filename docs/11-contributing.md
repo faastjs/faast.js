@@ -5,6 +5,14 @@ title: Contributing
 
 # Contributing to faast.js
 
+Tooling:
+
+- [AVA](https://github.com/avajs/ava) - test runner.
+
+- [Docusaurus](https://docusaurus.io/) - documentation and website.
+
+- [API-extractor](https://api-extractor.com/) - API documentation generator and more.
+
 ## Building
 
 ```
@@ -12,10 +20,9 @@ $ npm install
 $ npm run build
 ```
 
-### All "fast" live cloud tests
+## Running the Testsuite
 
-First follow the instructions in the README to setup accounts on cloud
-providers.
+First follow the instructions in the README to setup accounts on cloud providers.
 
 ```
 $ npm run test
@@ -28,13 +35,25 @@ $ npm run test > out
 $ cat out
 ```
 
-## Local Testing
+### Only run AWS and local tests
+
+```
+npm run test-aws
+```
+
+### Only run Google and local tests
+
+```
+npm run test-google
+```
+
+### Local Testing (no network required)
 
 ```
 $ npm run test-local
 ```
 
-## Testsuite
+## Testsuite Design
 
 ### Why AVA and not Jest, Mocha, etc?
 

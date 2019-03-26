@@ -3,7 +3,17 @@ id: limitations
 title: Limitations
 ---
 
-# faast.js limitations
+## Arguments and return values must be serializable
+
+Cloudified function arguments must be serializable with [`JSON.stringify`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify). Faast.js will print a warning if it detects a case where `JSON.stringify` will result in a loss of information passed to the function. This may cause unexpected behavior when the code in the lambda function executes. For example, the following are not supported as cloud function arguments:
+
+- Promise arguments (however Promise return values are supported)
+- `Date` arguments or return values
+- Functions passed as arguments or return values
+- Class instances
+- ... and more. The MDN documentation contains more details about specific cases.
+
+Faast.js tries its best to detect these cases, but 100% detection is not guaranteed.
 
 ## Size limits on arguments and return values
 
