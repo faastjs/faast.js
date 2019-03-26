@@ -146,7 +146,7 @@ Transform this into a faast.js module:
 import { faast } from "faast";
 import * as funcs from "./functions";
 
-async function main() {
+(async () => {
  const faastModule = await faast("aws", funcs, "./functions");
  try {
   const remote = faastModule.functions;
@@ -154,9 +154,7 @@ async function main() {
  } finally {
   await faastModule.cleanup();
  }
-}
-
-main();
+})();
 ```
 
 ### Terminology
@@ -183,7 +181,7 @@ There is also a [cleanup](./api/faastjs.faastmodule.cleanup.md) function which c
 import { faast } from "faastjs";
 import * as funcs from "./functions";
 
-async function main() {
+(async () => {
  const faastModule = await faast("aws", funcs, "./functions");
  try {
   const remote = faastModule.functions;
@@ -191,9 +189,7 @@ async function main() {
  } finally {
   await faastModule.cleanup();
  }
-}
-
-main();
+})();
 ```
 
 ### Handling errors
