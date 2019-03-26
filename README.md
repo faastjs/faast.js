@@ -43,7 +43,7 @@ import * as funcs from "./functions";
 })();
 ```
 
-Make 1000 calls concurrently if you like...
+Make 1000 concurrent calls if you like:
 
 ```typescript
 const promises: string[] = [];
@@ -53,12 +53,14 @@ for (let i = 0; i < 1000; i++) {
 await Promise.all(promises);
 ```
 
-...and instantly see how much it costs:
+Hold on! How much did that cost???
 
 ```typescript
 const cost = await m.costSnapshot();
 console.log(cost);
 ```
+
+Relax. It's just half a penny:
 
 ```
 functionCallDuration  $0.00002813/second          102.0 seconds    $0.00286876    68.2%  [1]
