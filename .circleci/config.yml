@@ -8,11 +8,8 @@ jobs:
         docker:
             - image: circleci/node:10
         working_directory: ~/repo
-
         steps:
             - checkout
-
-            # Download and cache dependencies
             - restore_cache:
                   keys:
                       - v1-dependencies-{{ checksum "package.json" }}
@@ -20,27 +17,38 @@ jobs:
                       - v1-dependencies-
 
             - run: npm install
-
             - save_cache:
                   paths:
                       - node_modules
                   key: v1-dependencies-{{ checksum "package.json" }}
-
             - run: npm run build
+            - save_cache:
+                  key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
+                  paths:
+                      - ~/repo
     test-local:
         docker:
             - image: circleci/node:10
         steps:
+            - restore_cache:
+                  keys:
+                      - v1-repo-{{ .Environment.CIRCLE_SHA1 }}
             - run: npm run test-local
     test-aws:
         docker:
             - image: circleci/node:10
         steps:
+            - restore_cache:
+                  keys:
+                      - v1-repo-{{ .Environment.CIRCLE_SHA1 }}
             - run: npm run test-aws-remote
     test-google:
         docker:
             - image: circleci/node:10
         steps:
+            - restore_cache:
+                  keys:
+                      - v1-repo-{{ .Environment.CIRCLE_SHA1 }}
             - run: npm run set-gcp-key
             - run: npm run test-google-remote
 workflows:
