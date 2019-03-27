@@ -15,7 +15,7 @@ $ npm install faastjs
 
 ## Local Provider
 
-Using the `"local"` provider allows you to test faast.js on your local machine. Each invocation starts a new process, up to the [concurrency limit](./api/faastjs.commonoptions.concurrency.md). Processes are reused for subsequent calls just as they are in a real cloud function, allows you to test caching strategies.
+Using the `"local"` provider allows you to test faast.js on your local machine. Each invocation starts a new process, up to the [concurrency limit](./api/faastjs.commonoptions.concurrency.md). Processes are reused for subsequent calls just as they are in a real cloud function, allowing you to test caching strategies.
 
 ### AWS
 
