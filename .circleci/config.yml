@@ -45,15 +45,15 @@ jobs:
             - run: npm run test-google-remote
 workflows:
     version: 2
-    build_and_test: build
+    build_and_test:
         jobs:
             - build
             - test-local:
-                requires:
-                    - build
+                  requires:
+                      - build
             - test-aws:
-                requires:
-                    - test-local
+                  requires:
+                      - test-local
             - test-google:
-                requires:
-                    - test-local
+                  requires:
+                      - test-local
