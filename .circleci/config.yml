@@ -27,6 +27,7 @@ jobs:
                   key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
                   paths:
                       - ~/repo
+
     test-aws:
         docker:
             - image: circleci/node:10
@@ -36,6 +37,7 @@ jobs:
                   keys:
                       - v1-repo-{{ .Environment.CIRCLE_SHA1 }}
             - run: npm run test-aws-remote
+
     test-google:
         docker:
             - image: circleci/node:10
@@ -56,4 +58,4 @@ workflows:
                       - build
             - test-google:
                   requires:
-                      - build
+                      - test-aws
