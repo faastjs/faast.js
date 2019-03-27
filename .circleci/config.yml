@@ -29,6 +29,7 @@ jobs:
     test-local:
         docker:
             - image: circleci/node:10
+        working_directory: ~/repo
         steps:
             - restore_cache:
                   keys:
@@ -37,6 +38,7 @@ jobs:
     test-aws:
         docker:
             - image: circleci/node:10
+        working_directory: ~/repo
         steps:
             - restore_cache:
                   keys:
@@ -45,6 +47,7 @@ jobs:
     test-google:
         docker:
             - image: circleci/node:10
+        working_directory: ~/repo
         steps:
             - restore_cache:
                   keys:
