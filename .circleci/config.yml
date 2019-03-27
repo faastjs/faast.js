@@ -22,19 +22,11 @@ jobs:
                       - node_modules
                   key: v1-dependencies-{{ checksum "package.json" }}
             - run: npm run build
+            - run: npm run test-local
             - save_cache:
                   key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
                   paths:
                       - ~/repo
-    test-local:
-        docker:
-            - image: circleci/node:10
-        working_directory: ~/repo
-        steps:
-            - restore_cache:
-                  keys:
-                      - v1-repo-{{ .Environment.CIRCLE_SHA1 }}
-            - run: npm run test-local
     test-aws:
         docker:
             - image: circleci/node:10
@@ -59,12 +51,9 @@ workflows:
     build_and_test:
         jobs:
             - build
-            - test-local:
-                  requires:
-                      - build
             - test-aws:
                   requires:
-                      - test-local
+                      - build
             - test-google:
                   requires:
-                      - test-local
+                      - build
