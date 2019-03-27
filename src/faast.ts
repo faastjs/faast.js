@@ -336,7 +336,7 @@ class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
 
 /**
  * The main interface for invoking, cleaning up, and managing faast.js cloud
- * functions.
+ * functions. Returned by {@link faast}.
  * @public
  */
 export interface FaastModule<M extends object> {
@@ -997,7 +997,7 @@ export async function faast<M extends object>(
  * @param modulePath - The path to the module, as it would be specified to
  * `import` or `require`. It should be the same as `"BBB"` from importing
  * fmodule.
- * @param awsOptions - Most common options are in {@link CommonOptions}.
+ * @param options - Most common options are in {@link CommonOptions}.
  * Additional AWS-specific options are in {@link AwsOptions}.
  * @returns a Promise for {@link AwsFaastModule}.
  * @public
@@ -1022,7 +1022,7 @@ export function faastAws<M extends object>(
  * @param modulePath - The path to the module, as it would be specified to
  * `import` or `require`. It should be the same as `"BBB"` from importing
  * fmodule.
- * @param googleOptions - Most common options are in {@link CommonOptions}.
+ * @param options - Most common options are in {@link CommonOptions}.
  * Additional Google-specific options are in {@link GoogleOptions}.
  * @returns a Promise for {@link GoogleFaastModule}.
  * @public
@@ -1047,7 +1047,7 @@ export function faastGoogle<M extends object>(
  * @param modulePath - The path to the module, as it would be specified to
  * `import` or `require`. It should be the same as `"BBB"` from importing
  * fmodule.
- * @param localOptions - Most common options are in {@link CommonOptions}.
+ * @param options - Most common options are in {@link CommonOptions}.
  * Additional Local-specific options are in {@link LocalOptions}.
  * @returns a Promise for {@link LocalFaastModule}.
  * @public

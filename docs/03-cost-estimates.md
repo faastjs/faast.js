@@ -37,6 +37,14 @@ logIngestion          $0.50000000/GB                  0 GB         $0           
 
 Learn more about [cost snapshots](./api/faastjs.costsnapshot.md).
 
+## CSV output
+
+Get the cost estimate out as CSV string, which can be read into a spreadsheet for further analysis:
+
+```typescript
+costSnapshot.csv();
+```
+
 ## Cost analyzer
 
 How much memory should you allocate to your function? More memory means a higher price per unit time, but also faster CPU. Cost analyzer helps answer this question by running your workload against multiple configurations, such as differing memory sizes:
@@ -64,14 +72,22 @@ Here's a chart showing the execution time and cost of generating 100M random num
 
 ![cost-analyzer-result-aws](./diagrams/cost-analyzer-graph-aws.png "cost analyzer results for AWS")
 
-## Cost estimate components
-
-xxx
-
-## CSV output
-
-xxx
-
 ## Limitations
 
-xxx
+Cost estimates are estimates. They do not capture all costs, and you should not rely solely on faast.js cost estimates. Known limitations include:
+
+- The estimates do not take into account the cost of services consumed inside your code. For example, if you make non-free API calls from within your faast module, these costs are not captured because faast.js does not know about them.
+
+- The estimates do not take into account log ingestion costs.
+
+- The estimates do not take into account free tiers.
+
+- The estimates assume worst-case tier pricing; if your cloud usage is extensive you may qualify for lower priced tiers (however AWS Lambda and Google Cloud Functions currently do not have tiered pricing, and usually account for most of the cost of faast.js workloads).
+
+- Ongoing storage costs such as S3 storage are not counted because they are ongoing and not ephemeral.
+
+On the other hand, there are many situations where you won't incur extra costs (or can even exclude some costs assumed by faast.js):
+
+- S3 data transfer from within the same region as your Lambda functions are free.
+
+- If you run faast.js from an EC2 server within the same region as your Lambda functions, you can disregard the outbound data transfer costs.

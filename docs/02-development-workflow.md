@@ -9,9 +9,9 @@ There's a natural way to use faast.js to maximize developer productivity:
 
 2. Write tests for your module and use all the great debugging tools you're used to, like [node inspector](https://nodejs.org/en/docs/guides/debugging-getting-started/), Chrome DevTools, and Visual Studio Code.
 
-3. Use the `"local"` provider to test your function as a faast.js module. In this mode your invocations execute in local processes. Debug any issues using standard debugging tools you know and love. Make sure your functions are [idempotent][] by invoking them multiple times concurrently with the same arguments.
+3. Use the `"local"` provider to test your function as a faast.js module. In this mode your invocations execute in local processes. Debug any issues using standard debugging tools you know and love. Make sure your functions are idempotent by invoking them multiple times concurrently with the same arguments.
 
-4. Switch from `"local"` to `"aws"` or `"google"` but limit [concurrency](./api/faastjs.commonoptions.concurrency.md) to a low amount, between 1-10. Use [logUrl](./api/faastjs.faastmodule.logurl.md) to review cloud logs of your code executing. The [DEBUG](./01-introduction#DEBUG_environment_variable) environment variable can be useful to see verbose output as well.
+4. Switch from `"local"` to `"aws"` or `"google"` but limit [concurrency](./api/faastjs.commonoptions.concurrency.md) to a low amount, between 1-10. Use [logUrl](./api/faastjs.faastmodule.logurl.md) to review cloud logs of your code executing. The [DEBUG](#debug-environment-variable) environment variable can be useful to see verbose output as well.
 
 5. Next, run a sample of your workload through [cost analyzer](./api/faastjs.costanalyzer.md) to find a good cost-performance tradeoff for the choice of memory size. A good default choice for CPU or S3-bandwidth bound workloads is between 1728MV-2048MB on AWS.
 
