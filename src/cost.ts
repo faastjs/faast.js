@@ -410,7 +410,7 @@ export namespace CostAnalyzer {
      * {
      *     provider: "aws",
      *     options: {
-     *         mode: "queue",
+     *         mode: "https",
      *         memorySize,
      *         timeout: 300,
      *         gc: false,
@@ -434,7 +434,7 @@ export namespace CostAnalyzer {
             rv.push({
                 provider: "aws",
                 options: {
-                    mode: "queue",
+                    mode: "https",
                     memorySize,
                     timeout: 300,
                     gc: false,

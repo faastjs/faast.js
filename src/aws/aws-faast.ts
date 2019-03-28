@@ -525,7 +525,7 @@ export const initialize = throttle(
             );
 
             const { mode } = options;
-            if (mode === "queue" || mode === "auto") {
+            if (mode === "queue") {
                 await createRequestQueueImpl(state, FunctionName, lambda.FunctionArn!);
             }
             await pricingPromise;
@@ -548,12 +548,12 @@ async function invoke(
 ): Promise<ResponseMessage | void> {
     const { metrics, services, resources, options } = state;
     switch (options.mode) {
+        case "auto":
         case "https":
             const { lambda } = services;
             const { FunctionName } = resources;
             return invokeHttps(lambda, FunctionName, call, metrics, cancel);
         case "queue":
-        case "auto":
             const { sns } = services;
             const { RequestTopicArn } = resources;
             await publishInvocationMessage(sns, RequestTopicArn!, call, metrics);

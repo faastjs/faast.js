@@ -148,7 +148,7 @@ export interface CommonOptions {
      *
      * The defaults are:
      *
-     * - aws: `"auto"` is the same as `"queue"`. In https mode, the AWS SDK api
+     * - aws: `"auto"` is `"https"`. In https mode, the AWS SDK api
      *   is used to invoke functions. In queue mode, an AWS SNS topic is created
      *   and triggers invocations. The AWS API Gateway service is never used by
      *   faast, as it incurs a higher cost and is not needed to trigger

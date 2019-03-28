@@ -23,7 +23,7 @@ The default AWS cost analyzer configurations include every memory size from 128M
 {
     provider: "aws",
     options: {
-        mode: "queue",
+        mode: "https",
         memorySize,
         timeout: 300,
         gc: false,

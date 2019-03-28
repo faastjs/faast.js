@@ -21,7 +21,7 @@ Modes specify how invocations are triggered. In https mode, the functions are in
 
 The defaults are:
 
-- aws: `"auto"` is the same as `"queue"`<!-- -->. In https mode, the AWS SDK api is used to invoke functions. In queue mode, an AWS SNS topic is created and triggers invocations. The AWS API Gateway service is never used by faast, as it incurs a higher cost and is not needed to trigger invocations.
+- aws: `"auto"` is `"https"`<!-- -->. In https mode, the AWS SDK api is used to invoke functions. In queue mode, an AWS SNS topic is created and triggers invocations. The AWS API Gateway service is never used by faast, as it incurs a higher cost and is not needed to trigger invocations.
 
 - google: `"auto"` is `"https"`<!-- -->. In https mode, a PUT request is made to invoke the cloud function. In queue mode, a PubSub topic is created to invoke functions.
 
