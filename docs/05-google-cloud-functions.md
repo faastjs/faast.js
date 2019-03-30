@@ -14,6 +14,7 @@ Using faast.js with Google Cloud requires creating an account, project, and a se
 - Create a google [service account](https://console.cloud.google.com/iam-admin/serviceaccounts)
 - Assign Owner permissions for the service account
 - Enable [Cloud functions API](https://console.cloud.google.com/functions)
+- Enable [Cloud Billing API](https://console.developers.google.com/apis/api/cloudbilling.googleapis.com/overview)
 
 That's it. Now you should be able to run faast.js with Google Cloud Functions.
 
@@ -45,7 +46,7 @@ To view logs, see [`logUrl`](./api/faastjs.faastmodule.logurl.md).
 
 Log ingestion is not included in faast.js cost estimates.
 
-## Dependencies and Packaging
+## Package Dependencies
 
 Google Cloud Functions has native support for `package.json` and faast.js uses this when you specify the [`packageJson`](./api/faastjs.commonoptions.packagejson.md) option.
 
@@ -65,6 +66,9 @@ There are two [modes of invocation](./api/faastjs.commonoptions.mode.md) for Goo
 | maximum argument size     | 10MB       | 10MB          |
 | maximum return value size | 10MB       | 10MB          |
 | max invocations / sec     | ~500/sec   | up to 300/sec |
+| reports OOM errors        | yes        | no            |
+
+In queue mode, Google Cloud Functions cannot report back out of memory errors as a promise rejection. Instead, the promise returned by a local proxy will never be resolved or rejected if the remote cloud function runs out of memory.
 
 Note that Google Cloud Functions tends to ramp up slowly, and you may not see maximum invocation rates until one or more minutes.
 

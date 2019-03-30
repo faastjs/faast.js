@@ -40,8 +40,15 @@ for (const provider of providers) {
         configurations = configs.filter(t => t.childProcess === true);
     }
     for (const config of configurations) {
+        // Cancellation tests must be run serially because the point is to
+        // detect async operations started by faast.js that are not completed
+        // before cleanup returns.
         test.serial(
-            title(provider, `cleanup waits for all child processes to exit`, config),
+            title(
+                provider,
+                `cleanup waits for all async operations to complete before returning`,
+                config
+            ),
             testCancellation,
             provider,
             config

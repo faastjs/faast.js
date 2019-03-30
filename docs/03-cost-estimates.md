@@ -82,7 +82,7 @@ Cost estimates are estimates. They do not capture all costs, and you should not 
 
 - The estimates do not take into account free tiers.
 
-- The estimates assume worst-case tier pricing; if your cloud usage is extensive you may qualify for lower priced tiers (however AWS Lambda and Google Cloud Functions currently do not have tiered pricing, and usually account for most of the cost of faast.js workloads).
+- The estimates assume worst-case tier pricing. If your cloud usage is extensive you may qualify for lower priced tiers (however AWS Lambda and Google Cloud Functions currently do not have tiered pricing, and usually account for most of the cost of faast.js workloads).
 
 - Ongoing storage costs such as S3 storage are not counted because they are ongoing and not ephemeral.
 

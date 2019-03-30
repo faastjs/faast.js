@@ -88,6 +88,8 @@ faast("aws", m, "./module", {
 });
 ```
 
+Read more about [package dependencies on AWS](./04-aws-lambda#package-dependencies) and [package dependencies on Google Cloud](./05-google-cloud-functions#package-dependencies).
+
 Check out even more options in [CommonOptions](./api/faastjs.commonoptions.md) and cloud-specific options in [AwsOptions](./api/faastjs.awsoptions.md), [GoogleOptions](./api/faastjs.googleoptions.md), and [LocalOptions](./api/faastjs.localoptions.md).
 
 ## Cleaning up stray resources
@@ -140,13 +142,13 @@ import * as funcs from "./functions";
 
 **faast.js module**, also known as **faast module**: A wrapper around an ordinary JavaScript/TypeScript module that transforms exported ordinary functions into cloud functions. A faast.js module corresponds to a single AWS Lambda or Google Cloud Function that multiplexes requests to all of the functions exported by the module.
 
-**Cloud function**: A function within a faast.js module instantiated on a provider. The term "cloud function" refers to the remote function on the cloud provider, not the local proxy.
+**Cloud function** or **remote function**: A function within a faast.js module instantiated on a provider.
 
-**Proxy**: A local function that sends requests to the remote cloud function.
+**Proxy function** or **local function**: The local function that forwards invocations to the remote cloud function. Proxy functions are accessed via `faastModule.functions.*`.
 
 ### Functions must be idempotent
 
-Functions you invoke with faast.js must be idempotent. That is, it should be possible to execute them more than once (including concurrently!) and still get the same result without causing any undesirable side effects. This is because faast.js or the cloud provider might invoke your function more than once, usually to retry transient errors that are inherent in large scale distributed systems. Faast.js may also issue redundant requests to try to reduce [tail latency][https://blog.acolyer.org/2015/01/15/the-tail-at-scale/].
+Functions you invoke with faast.js must be idempotent. That is, it should be possible to execute them more than once (including concurrently!) and still get the same result without causing any undesirable side effects. This is because faast.js or the cloud provider might invoke your function more than once, usually to retry transient errors that are inherent in large scale distributed systems. Faast.js may also issue redundant requests that are still executing to try to reduce [tail latency][https://blog.acolyer.org/2015/01/15/the-tail-at-scale/].
 
 ## Ephemeral Infrastructure
 

@@ -48,7 +48,7 @@ To view logs, see [`logUrl`](./api/faastjs.faastmodule.logurl.md).
 
 Log ingestion is not included in faast.js cost estimates.
 
-## Dependencies and Packaging
+## Package Dependencies
 
 By default, AWS does not provide a package dependency solution. Faast.js adds dependency bundling automatically using two different methods: webpack bundling and remote npm install.
 

@@ -4,6 +4,7 @@
 
 Faast.js dynamically transforms JavaScript modules into scalable serverless functions.
 
+- **Frictionless:** Faast.js takes care of packaging your code, setting up IAM roles, and other infrastructure complexity. Run your code on a thousand cores in seconds. All you need is an AWS or GCP account.
 - **Scalable:** Use serverless functions to scale your batch jobs up to thousands of cores.
 - **Cost-effective:** Understand and optimize your workload costs in real time. Pay only for compute time actually used.
 - **Ephemeral:** No clusters or services to manage. Faast.js creates the infrastructure it uses on the fly and cleans up when it's done.
