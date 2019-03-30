@@ -1,9 +1,9 @@
 ---
 id: faq
-title: FAQ
+hide_title: true
 ---
 
-# faast.js FAQ
+# FAQ
 
 **If faast.js creates a new Lambda and other stuff every time it runs, won't I run into AWS limits?**
 

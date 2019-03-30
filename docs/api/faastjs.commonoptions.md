@@ -29,6 +29,7 @@ export interface CommonOptions
 |  [mode](./faastjs.commonoptions.mode.md) | <code>&quot;https&quot; &#124; &quot;queue&quot; &#124; &quot;auto&quot;</code> | Specify invocation mode. Default: <code>&quot;auto&quot;</code>. |
 |  [packageJson](./faastjs.commonoptions.packagejson.md) | <code>string &#124; object</code> | Specify a package.json file to include with the code package. |
 |  [retentionInDays](./faastjs.commonoptions.retentionindays.md) | <code>number</code> | Specify how many days to wait before reclaiming cloud garbage. Default: 1. |
+|  [speculativeRetryThreshold](./faastjs.commonoptions.speculativeretrythreshold.md) | <code>number</code> | <b><i>(BETA)</i></b> Reduce tail latency by retrying invocations that take substantially longer than other invocations of the same function. Default: 3. |
 |  [timeout](./faastjs.commonoptions.timeout.md) | <code>number</code> | Execution time limit for each invocation, in seconds. Default: 60. |
 |  [useDependencyCaching](./faastjs.commonoptions.usedependencycaching.md) | <code>boolean</code> | Cache installed dependencies from [CommonOptions.packageJson](./faastjs.commonoptions.packagejson.md)<!-- -->. Only applies to AWS. Default: true. |
 |  [webpackOptions](./faastjs.commonoptions.webpackoptions.md) | <code>webpack.Configuration</code> | Extra webpack options to use to bundle the code package. |

@@ -6,40 +6,40 @@
     "tagline": "Serverless batch computing made simple",
     "docs": {
       "introduction": {
-        "title": "Introduction"
+        "title": "introduction"
       },
       "workflow": {
-        "title": "Development Workflow"
+        "title": "workflow"
       },
       "cost-estimates": {
-        "title": "Cost Estimates"
+        "title": "cost-estimates"
       },
       "aws-lambda": {
-        "title": "Running faast.js on AWS Lambda"
+        "title": "aws-lambda"
       },
       "google-cloud": {
-        "title": "Google Cloud"
+        "title": "google-cloud"
       },
       "local": {
-        "title": "Local provider"
+        "title": "local"
       },
       "throttling-scaling": {
-        "title": "Throttling and Scaling faast.js"
+        "title": "throttling-scaling"
       },
-      "08-architecture": {
-        "title": "08-architecture"
+      "architecture": {
+        "title": "architecture"
       },
       "limitations": {
-        "title": "Limitations"
+        "title": "limitations"
       },
       "faq": {
-        "title": "FAQ"
+        "title": "faq"
       },
       "contributing": {
-        "title": "Contributing"
+        "title": "contributing"
       },
       "errors": {
-        "title": "Commonly seen errors"
+        "title": "errors"
       },
       "api/faastjs.awsfaastmodule": {
         "title": "AwsFaastModule type"
@@ -100,6 +100,9 @@
       },
       "api/faastjs.commonoptions.retentionindays": {
         "title": "CommonOptions.retentionInDays property"
+      },
+      "api/faastjs.commonoptions.speculativeretrythreshold": {
+        "title": "CommonOptions.speculativeRetryThreshold property"
       },
       "api/faastjs.commonoptions.timeout": {
         "title": "CommonOptions.timeout property"

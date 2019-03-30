@@ -283,7 +283,7 @@ export interface CommonOptions {
      * of all prior executions of the same function.
      *
      * This feature is experimental.
-     * @alpha
+     * @beta
      */
     speculativeRetryThreshold?: number;
     /**

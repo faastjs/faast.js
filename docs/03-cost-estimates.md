@@ -1,9 +1,9 @@
 ---
 id: cost-estimates
-title: Cost Estimates
+hide_title: true
 ---
 
-## Cost estimates
+# Cost estimates
 
 Get a cost estimate for your workload:
 

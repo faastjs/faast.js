@@ -42,7 +42,7 @@ interface CommonOptions {
     mode?: "https" | "queue" | "auto";
     packageJson?: string | object;
     retentionInDays?: number;
-    // @alpha
+    // @beta
     speculativeRetryThreshold?: number;
     timeout?: number;
     useDependencyCaching?: boolean;

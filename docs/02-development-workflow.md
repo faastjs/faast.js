@@ -1,7 +1,9 @@
 ---
 id: workflow
-title: Development Workflow
+hide_title: true
 ---
+
+# Development Workflow
 
 There's a natural way to use faast.js to maximize developer productivity:
 

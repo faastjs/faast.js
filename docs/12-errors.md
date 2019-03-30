@@ -1,13 +1,13 @@
 ---
 id: errors
-title: Commonly seen errors
+hide_title: true
 ---
 
 # Errors seen while developing
 
-A catalogue of common testsuite failure error messages and their root causes.
+A catalogue of common error messages and their root causes. Some of these errors are specific to the faast.js testsuite, but other errors may be encountered by users.
 
-## Failure in AWS basic calls with packageJson
+## [testsuite] Failure in AWS basic calls with packageJson
 
 Error message:
 
@@ -34,7 +34,7 @@ Starvation is not fun, is it?
 
 The resolution was to set the `concurrency` to `Infinity`, but set the rate low enough to avoid triggering the rate limit. A finite but higher concurrency level would avoid this issue in almost all practical circumstances, but it is not clear we need an actual limit as long as the rate of lambda creation requests is slow enough.
 
-## Testsuite timeout
+## [testsuite] Testsuite timeout
 
 A testsuite timeout looks like this:
 
@@ -68,7 +68,7 @@ Step #2: ◌ cost › remote aws cost analyzer
 Step #2: ◌ cost › remote google cost analyzer
 ```
 
-## unit-package google package test error
+## [testsuite] unit-package google package test error
 
 Error message:
 
@@ -97,7 +97,7 @@ google-https-package
 
 This can be caused by having the wrong test/fixtures/package.json. In particular, `googleapis` should be a dependency because adding it makes webpack skip googleapis and leaves it as an external, so the package size is much smaller.
 
-## Unhandled rejection error
+## [testsuite] Unhandled rejection error
 
 This was a mysterious one:
 
@@ -141,19 +141,11 @@ function addSnsInvokePermissionsToFunction(
 }
 ```
 
-The function issued a request but did not return the promise, which meant that
-the function initialization promise (which includes the return value of this
-promise) returned before the addPermission request was complete. In the test
-case above, there is no execution and a faast function is created and then
-cleaned up immediately. The lambda function is therefore deleted before the
-addPermission can succeed. It was difficult to debug because the stack trace
-only went up to a node timer, not the originating call here.
+The function issued a request but did not return the promise, which meant that the function initialization promise (which includes the return value of this promise) returned before the addPermission request was complete. In the test case above, there is no execution and a faast function is created and then cleaned up immediately. The lambda function is therefore deleted before the addPermission can succeed. It was difficult to debug because the stack trace only went up to a node timer, not the originating call here.
 
-Ultimately it was found through code review. It could probably be found by
-adding a promise return type to this function or by type checking that `await`
-doesn't happen on non-promises.
+Ultimately it was found through code review. It could probably be found by adding a promise return type to this function or by type checking that `await` doesn't happen on non-promises.
 
-## Layer version difference in aws package test
+## [testsuite] Layer version difference in aws package test
 
 Error message:
 
@@ -177,21 +169,13 @@ Error message:
     }
 ```
 
-This was caused by a bug in the packer where it destructively modified the
-`packageJson` value. A secondary bug was using a `packageJson` that was the same
-used in other tests. The fixed code generates a unique `packageJson`
-specifically for this test, with a unique uuid as part of the name to ensure it
-never collides with another test. Also ensure that `packageJson` is readonly in
-the packer.
+This was caused by a bug in the packer where it destructively modified the `packageJson` value. A secondary bug was using a `packageJson` that was the same used in other tests. The fixed code generates a unique `packageJson` specifically for this test, with a unique uuid as part of the name to ensure it never collides with another test. Also ensure that `packageJson` is readonly in the packer.
 
-The fix was also wrong in using Object.create() to create a new object with the
-original `packageJson` as a prototype. This resulted in JSON.stringify not
-working on it... the fix was to use `Object.assign`.
+The fix was also wrong in using Object.create() to create a new object with the original `packageJson` as a prototype. This resulted in JSON.stringify not working on it... the fix was to use `Object.assign`.
 
-## Layer test interference
+## [testsuite] Layer test interference
 
-Tests need to be designed to be independent for execution with Ava, and this can
-be tricky in some cases.
+Tests need to be designed to be independent for execution with Ava, and this can be tricky in some cases.
 
 The following error occurred:
 
@@ -231,17 +215,9 @@ AWS garbage collection test failure: Could not find deletion record for layer { 
  LicenseInfo: null }
 ```
 
-The root cause was that the aws-gc lambda layers test was incorrectly looking at
-_all_ layer resources to determine if they had been caught by the garbage
-collector. But this is incorrect; the principle of the test is to check that the
-resources created _only_ by the prior faast call in the test has its resources
-recorded as garbage collected. By enumerating all cloud resources, we detected
-layers created during the parallel execution of the other tests, which has some
-tests which delete layers on their own, which are created _after_ garbage
-collection is done. This causes the test to fail, claiming gc was missing a
-resource.
+The root cause was that the aws-gc lambda layers test was incorrectly looking at _all_ layer resources to determine if they had been caught by the garbage collector. But this is incorrect; the principle of the test is to check that the resources created _only_ by the prior faast call in the test has its resources recorded as garbage collected. By enumerating all cloud resources, we detected layers created during the parallel execution of the other tests, which has some tests which delete layers on their own, which are created _after_ garbage collection is done. This causes the test to fail, claiming gc was missing a resource.
 
-## Nonexistent queue warning
+## [testsuite] Nonexistent queue warning
 
 This occurs sometimes when running the cost-analyzer-aws example:
 
