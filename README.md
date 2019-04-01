@@ -82,4 +82,4 @@ Check out our [documentation](./docs/01-introduction.md) or detailed [API](./doc
 
 ## Contributing
 
-See [contributing](./docs/11-contributing)
+See [contributing](./docs/11-contributing.md)

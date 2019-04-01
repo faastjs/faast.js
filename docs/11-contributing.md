@@ -5,7 +5,29 @@ hide_title: true
 
 # Contributing to faast.js
 
+Thanks for your interest in contributing to faast.js! The information on this page will tell you how you can contribute and provides setup instructions for a development environment.
+
+## Let's talk
+
+Sign up for our [Slack channel](https://join.slack.com/t/faastjs/shared_invite/enQtNTk0NTczMzI4NzQxLTA2MWU1NDA1ZjBkOTc3MTNkOGMzMDY0OWU1NGQ5MzM2NDY1YTJiZmNmODk4NzI0OWI1MzZhZDdiOTIzODNkOGY).
+
+Or if you're already signed up, [log in](https://faastjs.slack.com).
+
+Also check out the [`faast.js` tag on StackOverflow](https://stackoverflow.com/questions/tagged/faast.js)
+
+## How you can contribute
+
+There are a many ways to contribute to faast.js:
+
+- File an issue on GitHub for an issue you're having using faast.js. Please check for duplicates when filing.
+
+- Fix an open issue.
+
+- Contribute a pull request with new functionality. Before doing this, please open a new issue to discuss the feature so we can align on what / when / how before you put in a ton of work.
+
 ## Tooling
+
+Included in `package.json`:
 
 - [AVA](https://github.com/avajs/ava) - test runner.
 
@@ -13,9 +35,11 @@ hide_title: true
 
 - [API-extractor](https://api-extractor.com/) - API documentation generator and more.
 
+External tools that may be useful:
+
 - [draw.io](https://draw.io) - diagram creator for SVGs.
 
-- [monodraw](https://monodraw.helftone.com/) - ascii diagrams.
+- [monodraw](https://monodraw.helftone.com/) - ascii diagram creator.
 
 ## Building
 
