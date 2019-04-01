@@ -1,11 +1,12 @@
 ---
 id: local
+title: Local provider
 hide_title: true
 ---
 
 # Running faast.js locally
 
-Local mode allows you to run faast.js functions without a cloud provider account or network connectivity.
+The local provider allows you to run faast.js functions without a cloud provider account or network connectivity. The primary goal is to provide an easy way to debug faast modules as if they were running in the cloud. Therefore serialization checks and queueing and other activities not strictly necessary for local execution are still performed, to ensure more similarity to faast.js use with a cloud provider.
 
 Each invocation in local mode starts a new process, up to the [concurrency limit](./api/faastjs.commonoptions.concurrency.md). Processes are reused for subsequent calls just as they are in a real cloud function, allowing you to test caching strategies.
 
@@ -21,7 +22,9 @@ The [`faastLocal`](./api/faastjs.faastlocal.md) function allows you to specify m
 
 ## Logs
 
-Logs are written to disk in a temporary directory. To view logs, see [`logUrl`](./api/faastjs.faastmodule.logurl.md).
+To view logs, see [`logUrl`](./api/faastjs.faastmodule.logurl.md).
+
+The local provider writes logs to disk in a temporary directory. The result of `logUrl` will be a `file://` URL pointing to this directory.
 
 ## Dependencies and Packaging
 

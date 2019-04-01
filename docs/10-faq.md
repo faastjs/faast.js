@@ -1,5 +1,6 @@
 ---
 id: faq
+title: FAQ
 hide_title: true
 ---
 

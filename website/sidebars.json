@@ -7,7 +7,7 @@
             "aws-lambda",
             "google-cloud",
             "local",
-            "throttling-scaling",
+            "scaling-throttling",
             "architecture",
             "limitations",
             "faq"

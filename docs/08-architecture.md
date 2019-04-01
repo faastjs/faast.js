@@ -1,5 +1,6 @@
 ---
 id: architecture
+title: Architecture
 hide_title: true
 ---
 

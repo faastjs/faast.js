@@ -11,11 +11,11 @@
 // List of projects/orgs using your project for the users page.
 const users = [
     {
-        caption: "User1",
+        caption: "FOSSA",
         // You will need to prepend the image path with your baseUrl
         // if it is not '/', like: '/test-site/img/faastjs.svg'.
-        image: "/img/faastjs.svg",
-        infoLink: "https://www.facebook.com",
+        image: "https://fossa.com/images/logo.svg",
+        infoLink: "https://www.fossa.com",
         pinned: true
     }
 ];
@@ -40,7 +40,7 @@ const siteConfig = {
     headerLinks: [
         { doc: "introduction", label: "Docs" },
         { doc: "api/faastjs", label: "API" },
-        { page: "help", label: "Help" },
+        { page: "community", label: "Community" },
         { blog: true, label: "Blog" }
     ],
 
@@ -55,7 +55,7 @@ const siteConfig = {
     /* Colors for website */
     colors: {
         primaryColor: "#2196F3",
-        secondaryColor: "#bc1a8c"
+        secondaryColor: "#42b0f4"
     },
 
     /* Custom fonts for website */
@@ -73,7 +73,7 @@ const siteConfig = {
   */
 
     // This copyright info is used in /core/Footer.js and blog RSS/Atom feeds.
-    copyright: `Copyright © ${new Date().getFullYear()} Your Name or Your Company Name`,
+    copyright: `Copyright © ${new Date().getFullYear()} Andy Chou`,
 
     highlight: {
         // Highlight.js theme to use for syntax highlighting in code blocks.
@@ -90,7 +90,7 @@ const siteConfig = {
 
     // Open Graph and Twitter card images.
     ogImage: "img/faastjs.png",
-    twitterImage: "img/faastjs.png"
+    twitterImage: "img/faastjs.png",
 
     // Show documentation's last contributor's name.
     // enableUpdateBy: true,
@@ -100,7 +100,7 @@ const siteConfig = {
 
     // You may provide arbitrary config keys to be used as needed by your
     // template. For example, if you need your repo's URL...
-    //   repoUrl: 'https://github.com/facebook/test-site',
+    repoUrl: "https://github.com/GiantSquidBaby/faast.js"
 };
 
 module.exports = siteConfig;

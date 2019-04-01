@@ -1,5 +1,6 @@
 ---
 id: errors
+title: Errors
 hide_title: true
 ---
 

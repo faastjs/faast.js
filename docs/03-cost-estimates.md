@@ -1,5 +1,6 @@
 ---
 id: cost-estimates
+title: Cost Estimates
 hide_title: true
 ---
 

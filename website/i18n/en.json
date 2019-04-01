@@ -6,40 +6,40 @@
     "tagline": "Serverless batch computing made simple",
     "docs": {
       "introduction": {
-        "title": "introduction"
+        "title": "Introduction"
       },
       "workflow": {
-        "title": "workflow"
+        "title": "Development Workflow"
       },
       "cost-estimates": {
-        "title": "cost-estimates"
+        "title": "Cost Estimates"
       },
       "aws-lambda": {
-        "title": "aws-lambda"
+        "title": "AWS provider"
       },
       "google-cloud": {
-        "title": "google-cloud"
+        "title": "Google Cloud provider"
       },
       "local": {
-        "title": "local"
+        "title": "Local provider"
       },
-      "throttling-scaling": {
-        "title": "throttling-scaling"
+      "scaling-throttling": {
+        "title": "Scaling and Throttling"
       },
       "architecture": {
-        "title": "architecture"
+        "title": "Architecture"
       },
       "limitations": {
-        "title": "limitations"
+        "title": "Limitations"
       },
       "faq": {
-        "title": "faq"
+        "title": "FAQ"
       },
       "contributing": {
-        "title": "contributing"
+        "title": "Contributing"
       },
       "errors": {
-        "title": "errors"
+        "title": "Errors"
       },
       "api/faastjs.awsfaastmodule": {
         "title": "AwsFaastModule type"
@@ -486,7 +486,7 @@
     "links": {
       "Docs": "Docs",
       "API": "API",
-      "Help": "Help",
+      "Community": "Community",
       "Blog": "Blog"
     },
     "categories": {

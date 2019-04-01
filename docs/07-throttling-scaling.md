@@ -1,5 +1,6 @@
 ---
-id: throttling-scaling
+id: scaling-throttling
+title: Scaling and Throttling
 hide_title: true
 ---
 

@@ -1,5 +1,6 @@
 ---
 id: aws-lambda
+title: AWS provider
 hide_title: true
 ---
 
@@ -11,7 +12,7 @@ To use faast.js with AWS, you need to create an account and credentials for an I
 
 - If you haven't already, set up the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html):
   ```
-  pip install awscli --upgrade --user
+  $ pip install awscli --upgrade --user
   ```
 - Create an IAM user in the AWS console.
 - Setup an access key ID and secret access key for the IAM user.
@@ -20,11 +21,11 @@ To use faast.js with AWS, you need to create an account and credentials for an I
 
 That's it. Now you should be able to run faast.js with AWS Lambda.
 
-## Using [`faastAws`](./api/faastjs.faastaws.md)
+## Using `faastAws`
 
-Using the [`faast`](./api/faastjs.faast.md) function works well with AWS, but the [`faastAws`](./api/faastjs.faastaws.md) function allows you to specify more specific [`AwsOptions`](./api/faastjs.awsoptions.md).
+The [`faastAws`](./api/faastjs.faastaws.md) function allows you to specify more specific [`AwsOptions`](./api/faastjs.awsoptions.md) than the more generic [`faast`](./api/faastjs.faast.md) function.
 
-The most likely reason to use `faastAws` is to specify the region:
+A common reason to use `faastAws` is to specify the region:
 
 ```typescript
 faastAws(m, "/path", { region: "us-east-1" });
@@ -42,9 +43,9 @@ All faast.js AWS resources can be removed using the [faastjs cleanup command](./
 
 ## Logs
 
-AWS requires a new Cloudwatch log group to be created for each lambda function. So you're likely to see many log groups created when using faast.js. These log groups have their log streams expire automatically after 24h, and empty log groups are removed by garbage collection the next time faast.js garbage collection runs.
-
 To view logs, see [`logUrl`](./api/faastjs.faastmodule.logurl.md).
+
+AWS requires a new Cloudwatch log group to be created for each lambda function. So you're likely to see many log groups created when using faast.js. These log groups have their log streams expire automatically after 24h, and empty log groups are removed by garbage collection the next time faast.js garbage collection runs.
 
 Log ingestion is not included in faast.js cost estimates.
 
@@ -56,7 +57,7 @@ Webpack bundling happens by default. When you specify a module to the `faast` or
 
 There are a few drawbacks with the default webpack approach. The first drawback is that the code bundle needs to be uploaded every time you invoke `faast` because it creates fresh infrastructure each time it initializes. If the bundle is large, this can take a substantial amount of time. Worse, AWS limits code package sizes using direct upload to 50MB. The second drawback is that native dependencies are not supported in this way because webpack cannot bundle them.
 
-To solve these issues, faast.js has the [`packageJson`](./api/faastjs.commonoptions.packageJson.md) option. Dependencies that are not specified in `packageJson` will still be bundled as usual by webpack. For dependencies that _are_ specified in `packageJson`, faast.js will install the dependencies using a separately created Lambda function and save them in a cached Lambda Layer. In this way, native dependencies can be used. Using this method also increases the total code size maximum to 250MB (unzipped).
+To solve these issues, faast.js has the [`packageJson`](./api/faastjs.commonoptions.packagejson.md) option. Dependencies that are not specified in `packageJson` will still be bundled as usual by webpack. For dependencies that _are_ specified in `packageJson`, faast.js will install the dependencies using a separately created Lambda function and save them in a cached Lambda Layer. In this way, native dependencies can be used. Using this method also increases the total code size maximum to 250MB (unzipped).
 
 A good way to setup dependencies is therefore the following:
 

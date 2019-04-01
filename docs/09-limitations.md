@@ -1,5 +1,6 @@
 ---
 id: limitations
+title: Limitations
 hide_title: true
 ---
 

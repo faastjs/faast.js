@@ -1,5 +1,6 @@
 ---
 id: google-cloud
+title: Google Cloud provider
 hide_title: true
 ---
 
@@ -40,9 +41,9 @@ All faast.js Google Cloud resources can be removed using the [faastjs cleanup co
 
 ## Logs
 
-Logs go to Stackdriver logging and are retained for 30 days. Log expiration is handled by Google Cloud and faast.js' garbage collector has no effect on Google Cloud logs.
-
 To view logs, see [`logUrl`](./api/faastjs.faastmodule.logurl.md).
+
+Logs go to Stackdriver logging and are retained for 30 days. Log expiration is handled by Google Cloud and faast.js' garbage collector has no effect on Google Cloud logs.
 
 Log ingestion is not included in faast.js cost estimates.
 

@@ -1,5 +1,6 @@
 ---
 id: contributing
+title: Contributing
 hide_title: true
 ---
 

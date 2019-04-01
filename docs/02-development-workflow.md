@@ -1,5 +1,6 @@
 ---
 id: workflow
+title: Development Workflow
 hide_title: true
 ---
 
