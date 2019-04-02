@@ -12,7 +12,8 @@ class Footer extends React.Component {
         const baseUrl = this.props.config.baseUrl;
         const docsUrl = this.props.config.docsUrl;
         const docsPart = `${docsUrl ? `${docsUrl}/` : ""}`;
-        const langPart = `${language ? `${language}/` : ""}`;
+        //const langPart = `${language ? `${language}/` : ""}`;
+        const langPart = "";
         return `${baseUrl}${docsPart}${langPart}${doc}`;
     }
 
@@ -45,6 +46,9 @@ class Footer extends React.Component {
                         </a>
                         <a href={this.docUrl("api/faastjs", this.props.language)}>
                             API Reference
+                        </a>
+                        <a href={this.docUrl("contributing", this.props.language)}>
+                            Contributing
                         </a>
                         <a href={this.docUrl("guide", this.props.language)}>Guide</a>
                     </div>

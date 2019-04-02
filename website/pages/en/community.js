@@ -21,10 +21,9 @@ function Community(props) {
 
     const supportLinks = [
         {
-            title: "Browse Docs",
-            content: `Read our [documentation](${docUrl(
-                "introduction"
-            )}),<br>or jump straight into the [API.](${docUrl("api/faastjs")})`
+            title: "Github",
+            content:
+                "View faast.js on [GitHub](https://github.com/GiantSquidBaby/faast.js)."
         },
         {
             title: "Slack",

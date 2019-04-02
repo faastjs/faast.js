@@ -95,20 +95,21 @@ class Index extends React.Component {
 
         const FeatureCallout = () => (
             <div
-                className="productShowcaseSection paddingBottom"
-                style={{ textAlign: "center" }}
+                className="productShowcaseSection paddingBottom paddingTop"
+                style={{ textAlign: "center", background: "#011627", padding: "10%" }}
             >
-                <h2>Feature Callout</h2>
-                <MarkdownBlock>These are features of this project</MarkdownBlock>
+                <image src={`${baseUrl}img/zero.svg`} width="30%" />
+                <h2>Zero Ops</h2>
+                <h3 style={{ color: "white" }}>Nothing to manage.</h3>
             </div>
         );
 
-        const TryOut = () => (
-            <Block id="try">
+        const Example = () => (
+            <Block id="example">
                 {[
                     {
-                        content: "Talk about trying this out",
-                        image: `${baseUrl}img/faastjs.svg`,
+                        content: `Create serverless functions without any cruft. Leave no trace of infrastructure behind. Your code gains superpowers with faast.js`,
+                        image: `${baseUrl}img/example-1.png`,
                         imageAlign: "left",
                         title: "Try it Out"
                     }
@@ -143,23 +144,61 @@ class Index extends React.Component {
             </Block>
         );
 
-        const Features = () => (
-            <Block layout="fourColumn">
-                {[
-                    {
-                        content: "This is the content of my feature",
-                        image: `${baseUrl}img/faastjs.svg`,
-                        imageAlign: "top",
-                        title: "Feature One"
-                    },
-                    {
-                        content: "The content of my second feature",
-                        image: `${baseUrl}img/faastjs.svg`,
-                        imageAlign: "top",
-                        title: "Feature Two"
-                    }
-                ]}
-            </Block>
+        const Features = props => (
+            <div>
+                <Container padding={["top"]} id={props.id}>
+                    <GridBlock
+                        layout="threeColumn"
+                        align="center"
+                        contents={[
+                            {
+                                image: `${baseUrl}img/scale.svg`,
+                                imageAlign: "top",
+                                title: "Autoscale",
+                                content:
+                                    "Leverage the scale of AWS and Google Cloud to scale to a thousand cores and beyond."
+                            },
+                            {
+                                image: `${baseUrl}img/cloud-plug.svg`,
+                                imageAlign: "top",
+                                title: "Choose your cloud",
+                                content: "Power faast.js with the cloud of your choice."
+                            },
+                            {
+                                image: `${baseUrl}img/cost.svg`,
+                                imageAlign: "top",
+                                title: "Instant Cost Estimates",
+                                content:
+                                    "Analyze and optimize cloud costs for batch workloads."
+                            }
+                        ]}
+                    />
+                </Container>
+                <Container
+                    padding={["top", "bottom"]}
+                    id={props.id}
+                    background={props.background}
+                >
+                    <GridBlock
+                        layout="twoColumn"
+                        align="center"
+                        contents={[
+                            {
+                                image: `${baseUrl}img/pack.svg`,
+                                imageAlign: "top",
+                                title: "Bundles code for you.",
+                                content: "Leave the code packaging to us."
+                            },
+                            {
+                                image: `${baseUrl}img/cleanup.svg`,
+                                imageAlign: "top",
+                                title: "Leave the cleanup to us.",
+                                content: "Cleans up after itself."
+                            }
+                        ]}
+                    />
+                </Container>
+            </div>
         );
 
         const Showcase = () => {
@@ -198,7 +237,7 @@ class Index extends React.Component {
                     <Features />
                     <FeatureCallout />
                     <LearnHow />
-                    <TryOut />
+                    <Example />
                     <Description />
                     <Showcase />
                 </div>

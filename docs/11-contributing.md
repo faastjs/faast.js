@@ -10,9 +10,7 @@ Thanks for your interest in contributing to faast.js! The information on this pa
 
 ## Let's talk
 
-Sign up for our [Slack channel](https://join.slack.com/t/faastjs/shared_invite/enQtNTk0NTczMzI4NzQxLTA2MWU1NDA1ZjBkOTc3MTNkOGMzMDY0OWU1NGQ5MzM2NDY1YTJiZmNmODk4NzI0OWI1MzZhZDdiOTIzODNkOGY).
-
-Or if you're already signed up, [log in](https://faastjs.slack.com).
+Sign up for our [Slack channel](https://join.slack.com/t/faastjs/shared_invite/enQtNTk0NTczMzI4NzQxLTA2MWU1NDA1ZjBkOTc3MTNkOGMzMDY0OWU1NGQ5MzM2NDY1YTJiZmNmODk4NzI0OWI1MzZhZDdiOTIzODNkOGY). If you're already signed up, [log in](https://faastjs.slack.com).
 
 Also check out the [`faast.js` tag on StackOverflow](https://stackoverflow.com/questions/tagged/faast.js)
 

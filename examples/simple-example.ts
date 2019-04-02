@@ -1,14 +1,10 @@
 import { faast } from "../index";
 import * as funcs from "./functions";
 
-async function main() {
-    const faastModule = await faast("aws", funcs, "./functions");
-    try {
-        const remote = faastModule.functions;
-        console.log(await remote.hello("world"));
-    } finally {
-        await faastModule.cleanup();
-    }
-}
+(async () => {
+    const m = await faast("aws", funcs, "./functions");
+    const result = await m.functions.hello("world");
+    await m.cleanup();
 
-main();
+    console.log(result);
+})();

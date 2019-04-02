@@ -20,6 +20,8 @@ const users = [
     }
 ];
 
+const repoUrl = "https://github.com/GiantSquidBaby/faast.js";
+
 const siteConfig = {
     title: "faast.js", // Title for your website.
     tagline: "Serverless batch computing made simple",
@@ -41,6 +43,7 @@ const siteConfig = {
         { doc: "introduction", label: "Docs" },
         { doc: "api/faastjs", label: "API" },
         { page: "community", label: "Community" },
+        { href: repoUrl, label: "GitHub" },
         { blog: true, label: "Blog" }
     ],
 
@@ -100,7 +103,7 @@ const siteConfig = {
 
     // You may provide arbitrary config keys to be used as needed by your
     // template. For example, if you need your repo's URL...
-    repoUrl: "https://github.com/GiantSquidBaby/faast.js"
+    repoUrl
 };
 
 module.exports = siteConfig;
