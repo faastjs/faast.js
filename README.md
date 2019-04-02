@@ -1,6 +1,8 @@
-[![CircleCI](https://circleci.com/gh/GiantSquidBaby/faast.js.svg?style=shield&circle-token=c97f196a78c7173d6ca4e5fc9f09c2cba4ab0647)](https://circleci.com/gh/GiantSquidBaby/faast.js) [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Facchou%2Ffaast.js.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Facchou%2Ffaast.js?ref=badge_shield)
+[![CircleCI](https://circleci.com/gh/GiantSquidBaby/faast.js.svg?style=shield&circle-token=c97f196a78c7173d6ca4e5fc9f09c2cba4ab0647)](https://circleci.com/gh/GiantSquidBaby/faast.js)
 
 # Faast.js
+
+[![faastjs](./website/static/faastjs.svg)]
 
 Faast.js dynamically transforms JavaScript modules into scalable serverless functions.
 
