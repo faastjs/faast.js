@@ -1,8 +1,6 @@
 [![CircleCI](https://circleci.com/gh/GiantSquidBaby/faast.js.svg?style=shield&circle-token=c97f196a78c7173d6ca4e5fc9f09c2cba4ab0647)](https://circleci.com/gh/GiantSquidBaby/faast.js)
 
-# Faast.js
-
-[![faastjs](./website/static/faastjs.svg)]
+# [![faastjs](./website/static/img/faastjs-small.svg)](https://faastjs.org) faast.js
 
 Faast.js dynamically transforms JavaScript modules into scalable serverless functions.
 
