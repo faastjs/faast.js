@@ -8,6 +8,14 @@ h3 {
     color: #eee;
 }
 
+#example p {
+    text-align: left;
+}
+
+.imageAlignSide .blockImage {
+    display: block;
+}
+
 @media only screen and (min-device-width: 360px) and (max-device-width: 736px) {
 }
 

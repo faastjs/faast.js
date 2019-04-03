@@ -6,7 +6,6 @@
  */
 
 const React = require("react");
-
 const CompLibrary = require("../../core/CompLibrary.js");
 
 const MarkdownBlock = CompLibrary.MarkdownBlock; /* Used to read markdown */
@@ -210,7 +209,6 @@ class Index extends React.Component {
                     <Features />
                     <FeatureCallout />
                     <Example />
-                    <Showcase />
                 </div>
             </div>
         );
