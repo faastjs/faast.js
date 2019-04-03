@@ -4,6 +4,10 @@
     color: #000;
 }
 
+h3 {
+    color: #eee;
+}
+
 @media only screen and (min-device-width: 360px) and (max-device-width: 736px) {
 }
 

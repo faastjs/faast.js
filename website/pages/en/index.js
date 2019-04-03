@@ -64,9 +64,8 @@ class HomeSplash extends React.Component {
                 <div className="inner">
                     <ProjectTitle siteConfig={siteConfig} />
                     <PromoSection>
-                        <Button href="#try">Try It Out</Button>
-                        <Button href={docUrl("doc1.html")}>Example Link</Button>
-                        <Button href={docUrl("doc2.html")}>Example Link 2</Button>
+                        <Button href="#example">See an Example</Button>
+                        <Button href={docUrl("introduction")}>Read Docs</Button>
                     </PromoSection>
                 </div>
             </SplashContainer>
@@ -98,9 +97,9 @@ class Index extends React.Component {
                 className="productShowcaseSection paddingBottom paddingTop"
                 style={{ textAlign: "center", background: "#011627", padding: "10%" }}
             >
-                <image src={`${baseUrl}img/zero.svg`} width="30%" />
+                <image src={`${baseUrl}img/zero.svg`} width="25%" />
                 <h2>Zero Ops</h2>
-                <h3 style={{ color: "white" }}>Nothing to manage.</h3>
+                <h3>No permanent infrastructure to manage.</h3>
             </div>
         );
 
@@ -109,36 +108,10 @@ class Index extends React.Component {
                 {[
                     {
                         content: `Create serverless functions without any cruft. Leave no trace of infrastructure behind. Your code gains superpowers with faast.js`,
+                        align: "left",
                         image: `${baseUrl}img/example-1.png`,
                         imageAlign: "left",
-                        title: "Try it Out"
-                    }
-                ]}
-            </Block>
-        );
-
-        const Description = () => (
-            <Block background="dark">
-                {[
-                    {
-                        content:
-                            "This is another description of how this project is useful",
-                        image: `${baseUrl}img/faastjs.svg`,
-                        imageAlign: "right",
-                        title: "Description"
-                    }
-                ]}
-            </Block>
-        );
-
-        const LearnHow = () => (
-            <Block background="light">
-                {[
-                    {
-                        content: "Talk about learning how to use this",
-                        image: `${baseUrl}img/faastjs.svg`,
-                        imageAlign: "right",
-                        title: "Learn How"
+                        title: "More dev, less ops."
                     }
                 ]}
             </Block>
@@ -186,13 +159,13 @@ class Index extends React.Component {
                             {
                                 image: `${baseUrl}img/pack.svg`,
                                 imageAlign: "top",
-                                title: "Bundles code for you.",
-                                content: "Leave the code packaging to us."
+                                title: "Transparent bundling",
+                                content: "There's no separate deploy step to forget."
                             },
                             {
                                 image: `${baseUrl}img/cleanup.svg`,
                                 imageAlign: "top",
-                                title: "Leave the cleanup to us.",
+                                title: "Leave the cleanup to us",
                                 content: "Cleans up after itself."
                             }
                         ]}
@@ -236,9 +209,7 @@ class Index extends React.Component {
                 <div className="mainContainer">
                     <Features />
                     <FeatureCallout />
-                    <LearnHow />
                     <Example />
-                    <Description />
                     <Showcase />
                 </div>
             </div>
