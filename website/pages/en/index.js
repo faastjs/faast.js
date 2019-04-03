@@ -23,13 +23,19 @@ class HomeSplash extends React.Component {
         const SplashContainer = props => (
             <div className="homeContainer">
                 <div className="homeSplashFade">
-                    <div className="wrapper homeWrapper">{props.children}</div>
+                    <div className="wrapper heroWrapper">{props.children}</div>
                 </div>
             </div>
         );
 
         const Logo = props => (
-            <div className="projectLogo">
+            <div className="faastLogo">
+                <img src={props.img_src} alt="Project Logo" />
+            </div>
+        );
+
+        const LogoRotated = props => (
+            <div className="faastLogoRotated">
                 <img src={props.img_src} alt="Project Logo" />
             </div>
         );
@@ -92,11 +98,8 @@ class Index extends React.Component {
         );
 
         const FeatureCallout = () => (
-            <div
-                className="productShowcaseSection paddingBottom paddingTop"
-                style={{ textAlign: "center", background: "#011627", padding: "10%" }}
-            >
-                <image src={`${baseUrl}img/zero.svg`} width="25%" />
+            <div className="productShowcaseSection">
+                <image id="zero" src={`${baseUrl}img/zero.svg`} width="25%" />
                 <h2>Zero Ops</h2>
                 <h3>No permanent infrastructure to manage.</h3>
             </div>
@@ -116,62 +119,60 @@ class Index extends React.Component {
             </Block>
         );
 
-        const Features = props => (
-            <div>
-                <Container padding={["top"]} id={props.id}>
-                    <GridBlock
-                        layout="threeColumn"
-                        align="center"
-                        contents={[
-                            {
-                                image: `${baseUrl}img/scale.svg`,
-                                imageAlign: "top",
-                                title: "Autoscale",
-                                content:
-                                    "Leverage the scale of AWS and Google Cloud to scale to a thousand cores and beyond."
-                            },
-                            {
-                                image: `${baseUrl}img/cloud-plug.svg`,
-                                imageAlign: "top",
-                                title: "Choose your cloud",
-                                content: "Power faast.js with the cloud of your choice."
-                            },
-                            {
-                                image: `${baseUrl}img/cost.svg`,
-                                imageAlign: "top",
-                                title: "Instant Cost Estimates",
-                                content:
-                                    "Analyze and optimize cloud costs for batch workloads."
-                            }
-                        ]}
-                    />
-                </Container>
-                <Container
-                    padding={["top", "bottom"]}
-                    id={props.id}
-                    background={props.background}
-                >
-                    <GridBlock
-                        layout="twoColumn"
-                        align="center"
-                        contents={[
-                            {
-                                image: `${baseUrl}img/pack.svg`,
-                                imageAlign: "top",
-                                title: "Transparent bundling",
-                                content: "There's no separate deploy step to forget."
-                            },
-                            {
-                                image: `${baseUrl}img/cleanup.svg`,
-                                imageAlign: "top",
-                                title: "Leave the cleanup to us",
-                                content: "Cleans up after itself."
-                            }
-                        ]}
-                    />
-                </Container>
-            </div>
-        );
+        const Features = props => [
+            <Container padding={["top"]} id={props.id}>
+                <GridBlock
+                    layout="threeColumn"
+                    align="center"
+                    contents={[
+                        {
+                            image: `${baseUrl}img/scale.svg`,
+                            imageAlign: "top",
+                            title: "Autoscale",
+                            content:
+                                "Leverage the scale of AWS and Google Cloud to scale to a thousand cores and beyond."
+                        },
+                        {
+                            image: `${baseUrl}img/cloud-plug.svg`,
+                            imageAlign: "top",
+                            title: "Choose your cloud",
+                            content: "Power faast.js with the cloud of your choice."
+                        },
+                        {
+                            image: `${baseUrl}img/cost.svg`,
+                            imageAlign: "top",
+                            title: "Instant Cost Estimates",
+                            content:
+                                "Analyze and optimize cloud costs for batch workloads."
+                        }
+                    ]}
+                />
+            </Container>,
+            <Container
+                padding={["top", "bottom"]}
+                id={props.id}
+                background={props.background}
+            >
+                <GridBlock
+                    layout="twoColumn"
+                    align="center"
+                    contents={[
+                        {
+                            image: `${baseUrl}img/pack.svg`,
+                            imageAlign: "top",
+                            title: "Transparent bundling",
+                            content: "There's no separate deploy step to forget."
+                        },
+                        {
+                            image: `${baseUrl}img/cleanup.svg`,
+                            imageAlign: "top",
+                            title: "Leave the cleanup to us",
+                            content: "Cleans up after itself."
+                        }
+                    ]}
+                />
+            </Container>
+        ];
 
         const Showcase = () => {
             if ((siteConfig.users || []).length === 0) {
