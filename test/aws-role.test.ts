@@ -4,6 +4,7 @@ import * as uuidv4 from "uuid/v4";
 import { faastAws } from "../index";
 import { deleteRole } from "../src/aws/aws-faast";
 import * as funcs from "./fixtures/functions";
+import { sleep } from "../src/shared";
 
 /**
  * The policies tested here should match those in the documentation at
@@ -61,6 +62,8 @@ test("remote aws custom role", async t => {
 
         PolicyArn = executionPolicy.Policy!.Arn!;
         await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
+
+        await sleep(30 * 1000);
 
         faastModule = await faastAws(funcs, "./fixtures/functions", {
             RoleName,
