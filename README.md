@@ -23,39 +23,43 @@ $ npm install faastjs
 
 Export your cloud functions in a module, and invoke faast.js on that module:
 
+<!-- prettier-ignore -->
 ```typescript
 // functions.ts
 export function hello(name: string) {
- return "hello " + name;
+    return "hello " + name;
 }
 ```
 
+<!-- prettier-ignore -->
 ```typescript
 // main.ts
 import { faast } from "faastjs";
 import * as funcs from "./functions";
 
 (async () => {
- const m = await faast("aws", funcs, "./functions");
- const { hello } = m.functions;
- const result = await hello("world!");
- console.log(result);
- await m.cleanup();
+    const m = await faast("aws", funcs, "./functions");
+    const { hello } = m.functions;
+    const result = await hello("world!");
+    console.log(result);
+    await m.cleanup();
 })();
 ```
 
 Make 1000 concurrent calls if you like:
 
+<!-- prettier-ignore -->
 ```typescript
 const promises: string[] = [];
 for (let i = 0; i < 1000; i++) {
- promises.push(hello(`world ${i}!`));
+    promises.push(hello(`world ${i}!`));
 }
 await Promise.all(promises);
 ```
 
 Hold on! How much did that cost???
 
+<!-- prettier-ignore -->
 ```typescript
 const cost = await m.costSnapshot();
 console.log(cost);
