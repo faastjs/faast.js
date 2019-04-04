@@ -37,7 +37,7 @@ The `faast` function transforms ordinary modules into faast.js modules. This mea
 
 ```typescript
 // example.ts
-import { faast } from "../index";
+import { faast } from "faastjs";
 import * as funcs from "./functions";
 
 (async () => {
@@ -62,7 +62,7 @@ Functions need to be [idempotent](https://stackoverflow.com/questions/1077412/wh
 It's easy to start many concurrent calls; just use standard asynchronous programming techniques. Here's an example that invokes 1000 calls in parallel and waits for completion with `Promise.all`:
 
 ```typescript
-import { faast } from "../index";
+import { faast } from "faastjs";
 import * as funcs from "./functions";
 
 (async () => {
