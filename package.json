@@ -76,5 +76,8 @@
         "files": [
             "build/test/*.test.js"
         ]
+    },
+    "prettier": {
+        "tabWidth": 4
     }
 }

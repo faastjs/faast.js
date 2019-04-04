@@ -18,27 +18,27 @@ Also check out the [`faast.js` tag on StackOverflow](https://stackoverflow.com/q
 
 There are a many ways to contribute to faast.js:
 
-- File an issue on GitHub for an issue you're having using faast.js. Please check for duplicates when filing.
+-   File an issue on GitHub for an issue you're having using faast.js. Please check for duplicates when filing.
 
-- Fix an open issue.
+-   Fix an open issue.
 
-- Contribute a pull request with new functionality. Before doing this, please open a new issue to discuss the feature so we can align on what / when / how before you put in a ton of work.
+-   Contribute a pull request with new functionality. Before doing this, please open a new issue to discuss the feature so we can align on what / when / how before you put in a ton of work.
 
 ## Tooling
 
 Included in `package.json`:
 
-- [AVA](https://github.com/avajs/ava) - test runner.
+-   [AVA](https://github.com/avajs/ava) - test runner.
 
-- [Docusaurus](https://docusaurus.io/) - documentation and website.
+-   [Docusaurus](https://docusaurus.io/) - documentation and website.
 
-- [API-extractor](https://api-extractor.com/) - API documentation generator and more.
+-   [API-extractor](https://api-extractor.com/) - API documentation generator and more.
 
 External tools that may be useful:
 
-- [draw.io](https://draw.io) - diagram creator for SVGs.
+-   [draw.io](https://draw.io) - diagram creator for SVGs.
 
-- [monodraw](https://monodraw.helftone.com/) - ascii diagram creator.
+-   [monodraw](https://monodraw.helftone.com/) - ascii diagram creator.
 
 ## Building
 
@@ -172,23 +172,23 @@ $ npx ava -m='*aws*garbage*'
 
 The benefit of AVA is that you have more control over test concurrency. The drawback is that tests need to be written so they don't interfere with each other. This takes some effort and diligence, but basically it boils down to the following:
 
-- Most tests should be written as macros. See [basic.test.ts](../test/basic.test.ts) for an example.
+-   Most tests should be written as macros. See [basic.test.ts](../test/basic.test.ts) for an example.
 
-- Each test should create its own faast instance and properly clean it up in a `finally` clause.
+-   Each test should create its own faast instance and properly clean it up in a `finally` clause.
 
-- Don't share resources between tests. This includes global or shared variables, objects, files, etc.
+-   Don't share resources between tests. This includes global or shared variables, objects, files, etc.
 
-- Each test should have a unique test title that is descriptive enough to make filtering easy.
+-   Each test should have a unique test title that is descriptive enough to make filtering easy.
 
-- Don't ignore intermittent test failures. They may indicate a race condition.
+-   Don't ignore intermittent test failures. They may indicate a race condition.
 
 ### Test titles
 
 Test titles are important. Please following the following rules to ensure the CI tests continue to work as expected:
 
-- Test titles that require network access should begin with `` `remote ${provider}` ``
+-   Test titles that require network access should begin with `` `remote ${provider}` ``
 
-- Use the `title()` utility function to help ensure you have the right prefix for test titles.
+-   Use the `title()` utility function to help ensure you have the right prefix for test titles.
 
 ## Continuous integration with CircleCI
 
@@ -205,9 +205,9 @@ The AWS environment variables are as documented for [AWS CLI](https://docs.aws.a
 
 The Google environment variables are different because Google requires pointing to a file on disk in the environment variable. To get around this, the run script `npm run set-gcp-key` will copy the contents of the `GOOGLE_KEY_VALUE` environment variable into the file `gcp-key.json` in the current working directory. Then, you can set `GOOGLE_APPLICATION_CREDENTIALS` to `gcp-key.json` for Google authentication to work. In summary:
 
-- Set `GOOGLE_KEY_VALUE` to the contents of your Google service account key, which should be a JSON file.
+-   Set `GOOGLE_KEY_VALUE` to the contents of your Google service account key, which should be a JSON file.
 
-- Set `GOOGLE_APPLICATION_CREDENTIALS` to `gcp-key.json`
+-   Set `GOOGLE_APPLICATION_CREDENTIALS` to `gcp-key.json`
 
 ## Adding a new cloud provider
 

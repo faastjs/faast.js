@@ -41,12 +41,12 @@ $ DEBUG=faast:* node example.js
 
 These options are available:
 
-- `faast:*` - Turn on all logging.
-- `faast:info` - Basic verbose logging. Disabled by default.
-- `faast:warning` - Output warnings to console.warn. Enabled by default.
-- `faast:gc` - Print debugging information related to garbage collection. Disabled by default.
-- `faast:leaks` - Print debugging information when a memory is potentially detected within the faast.js module. Enabled by default. See XXX.
-- `faast:calls` - Print debugging information about each call to a cloud function. Disabled by default.
-- `faast:webpack` - Print debugging information about webpack, used to pack up cloud function code. Disabled by default.
-- `faast:provider` - Print debugging information about each interaction with cloud-provider specific code from the higher-level faast.js abstraction. Useful for debugging issues with specific cloud providers. Disabled by default.
-- `faast:awssdk` - Only available for AWS, this enables aws-sdk's verbose logging output. Disabled by default.
+-   `faast:*` - Turn on all logging.
+-   `faast:info` - Basic verbose logging. Disabled by default.
+-   `faast:warning` - Output warnings to console.warn. Enabled by default.
+-   `faast:gc` - Print debugging information related to garbage collection. Disabled by default.
+-   `faast:leaks` - Print debugging information when a memory is potentially detected within the faast.js module. Enabled by default. See XXX.
+-   `faast:calls` - Print debugging information about each call to a cloud function. Disabled by default.
+-   `faast:webpack` - Print debugging information about webpack, used to pack up cloud function code. Disabled by default.
+-   `faast:provider` - Print debugging information about each interaction with cloud-provider specific code from the higher-level faast.js abstraction. Useful for debugging issues with specific cloud providers. Disabled by default.
+-   `faast:awssdk` - Only available for AWS, this enables aws-sdk's verbose logging output. Disabled by default.

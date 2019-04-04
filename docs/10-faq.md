@@ -30,6 +30,6 @@ Yes, faast.js dynamically looks up prices from AWS and Google in order to produc
 
 Faast.js always uses the worst-case pricing tier to produce cost estimates. This is often not as inaccurate as it seems:
 
-- Usually the lambda function call duration dominates the cost of faast.js workloads, and there are no usage-based tiers for this cost metric (memory-based tiers are taken into account by faast.js). It is not unusual for this metric to be 90%+ of the cost.
+-   Usually the lambda function call duration dominates the cost of faast.js workloads, and there are no usage-based tiers for this cost metric (memory-based tiers are taken into account by faast.js). It is not unusual for this metric to be 90%+ of the cost.
 
-- Often it is only _relative_ pricing that matters, e.g. when selecting a memory size it is not the absolute pricing that matters but the relative cost of choosing one memory size versus another.
+-   Often it is only _relative_ pricing that matters, e.g. when selecting a memory size it is not the absolute pricing that matters but the relative cost of choosing one memory size versus another.

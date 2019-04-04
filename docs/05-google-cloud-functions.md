@@ -10,12 +10,12 @@ hide_title: true
 
 Using faast.js with Google Cloud requires creating an account, project, and a service account for the project.
 
-- Setup [authentication on GCP](https://cloud.google.com/docs/authentication/getting-started).
-- Create a project
-- Create a google [service account](https://console.cloud.google.com/iam-admin/serviceaccounts)
-- Assign Owner permissions for the service account
-- Enable [Cloud functions API](https://console.cloud.google.com/functions)
-- Enable [Cloud Billing API](https://console.developers.google.com/apis/api/cloudbilling.googleapis.com/overview)
+-   Setup [authentication on GCP](https://cloud.google.com/docs/authentication/getting-started).
+-   Create a project
+-   Create a google [service account](https://console.cloud.google.com/iam-admin/serviceaccounts)
+-   Assign Owner permissions for the service account
+-   Enable [Cloud functions API](https://console.cloud.google.com/functions)
+-   Enable [Cloud Billing API](https://console.developers.google.com/apis/api/cloudbilling.googleapis.com/overview)
 
 That's it. Now you should be able to run faast.js with Google Cloud Functions.
 
@@ -53,9 +53,9 @@ Google Cloud Functions has native support for `package.json` and faast.js uses t
 
 Note these best practices:
 
-- If you don't need native dependencies, then it is preferable to let faast.js invoke webpack for you to bundle your code instead of specifying `packageJson`.
+-   If you don't need native dependencies, then it is preferable to let faast.js invoke webpack for you to bundle your code instead of specifying `packageJson`.
 
-- If you do need `packageJson`, the dependencies specified in it should be a subset of those in your project's `package.json` and have the same version constraints.
+-   If you do need `packageJson`, the dependencies specified in it should be a subset of those in your project's `package.json` and have the same version constraints.
 
 ## Queue vs Https mode
 

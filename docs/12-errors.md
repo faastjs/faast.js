@@ -129,20 +129,20 @@ The root cause turned out to be this function:
 
 ```typescript
 function addSnsInvokePermissionsToFunction(
- FunctionName: string,
- RequestTopicArn: string,
- lambda: aws.Lambda
+    FunctionName: string,
+    RequestTopicArn: string,
+    lambda: aws.Lambda
 ) {
- // Missing "return" on the following line
- lambda
-  .addPermission({
-   FunctionName,
-   Action: "lambda:InvokeFunction",
-   Principal: "sns.amazonaws.com",
-   StatementId: `${FunctionName}-Invoke`,
-   SourceArn: RequestTopicArn
-  })
-  .promise();
+    // Missing "return" on the following line
+    lambda
+        .addPermission({
+            FunctionName,
+            Action: "lambda:InvokeFunction",
+            Principal: "sns.amazonaws.com",
+            StatementId: `${FunctionName}-Invoke`,
+            SourceArn: RequestTopicArn
+        })
+        .promise();
 }
 ```
 

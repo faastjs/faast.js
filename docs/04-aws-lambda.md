@@ -10,14 +10,14 @@ hide_title: true
 
 To use faast.js with AWS, you need to create an account and credentials for an IAM user. To setup credentials for [AWS](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html):
 
-- If you haven't already, set up the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html):
-  ```
-  $ pip install awscli --upgrade --user
-  ```
-- Create an IAM user in the AWS console.
-- Setup an access key ID and secret access key for the IAM user.
-- Add these credentials to your local machine with aws cli (`aws configure`).
-- Ensure AWS user has AdministratorAccess role and Administrator group.
+-   If you haven't already, set up the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html):
+    ```
+    $ pip install awscli --upgrade --user
+    ```
+-   Create an IAM user in the AWS console.
+-   Setup an access key ID and secret access key for the IAM user.
+-   Add these credentials to your local machine with aws cli (`aws configure`).
+-   Ensure AWS user has AdministratorAccess role and Administrator group.
 
 That's it. Now you should be able to run faast.js with AWS Lambda.
 
@@ -61,11 +61,11 @@ To solve these issues, faast.js has the [`packageJson`](./api/faastjs.commonopti
 
 A good way to setup dependencies is therefore the following:
 
-- If you don't need native dependencies and your code size does not exceed 50MB, you don't need to specify dependencies explicitly and you don't need to use the `packageJson` option.
+-   If you don't need native dependencies and your code size does not exceed 50MB, you don't need to specify dependencies explicitly and you don't need to use the `packageJson` option.
 
-- If you do need `packageJson`, then ensure that the dependencies specified in it are a subset of the dependencies in your project's `package.json` file. The dependencies should also have the same version constraints. The reason this is necessary is because the code you write locally is typed against the locally installed package, but the remote code will use the version specified in `packageJson`. The goal of this rule is to ensure that these versions are identical.
+-   If you do need `packageJson`, then ensure that the dependencies specified in it are a subset of the dependencies in your project's `package.json` file. The dependencies should also have the same version constraints. The reason this is necessary is because the code you write locally is typed against the locally installed package, but the remote code will use the version specified in `packageJson`. The goal of this rule is to ensure that these versions are identical.
 
-- It is possible to specify your project's `package.json` file as the `packageJson` option. The main drawback of this is that there may be a large number of dependencies in the project not needed for the remote faast functions, and the dependencies may be too large in aggregate.
+-   It is possible to specify your project's `package.json` file as the `packageJson` option. The main drawback of this is that there may be a large number of dependencies in the project not needed for the remote faast functions, and the dependencies may be too large in aggregate.
 
 To inspect what the bundled code package looks like, see [`FAAST_PACKAGE_DIR`](./02-development-workflow#understanding-code-bundles-with-faast_package_dir).
 

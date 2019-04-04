@@ -22,9 +22,9 @@ There has been written about [tail latency](https://ai.google/research/pubs/pub4
 
 There are other simple ways of mitigating tail latency:
 
-- Proceed with partial results once the number of successful requests exceeds some threshold, such as 99%.
+-   Proceed with partial results once the number of successful requests exceeds some threshold, such as 99%.
 
-- Retry invocations that are not completed by a certain timeout.
+-   Retry invocations that are not completed by a certain timeout.
 
 ## Throttling
 

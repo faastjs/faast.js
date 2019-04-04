@@ -29,7 +29,7 @@ Cloud functions can be written as ordinary TypeScript or JavaScript modules:
 ```typescript
 // functions.ts
 export function hello(name: string) {
- return "hello " + name + "!";
+    return "hello " + name + "!";
 }
 ```
 
@@ -61,9 +61,9 @@ Modify the amount of memory allocated to the function, timeout, and maximum conc
 
 ```typescript
 faast("aws", m, "./module", {
- memorySize: 1024,
- timeout: 60,
- concurrency: 250
+    memorySize: 1024,
+    timeout: 60,
+    concurrency: 250
 });
 ```
 
@@ -71,8 +71,8 @@ Add a local directory or zipfile (which will be unzipped on the remote side) to 
 
 ```typescript
 faast("aws", m, "./module", {
- addDirectory: "path/to/directory",
- addZipFile: "path/to/file.zip"
+    addDirectory: "path/to/directory",
+    addZipFile: "path/to/file.zip"
 });
 ```
 
@@ -80,12 +80,12 @@ In most use cases you won't need to specify dependencies explicitly because faas
 
 ```typescript
 faast("aws", m, "./module", {
- // Can alternatively specify a file path for packageJson
- packageJson: {
-  dependencies: {
-   tslib: "^1.9.1"
-  }
- }
+    // Can alternatively specify a file path for packageJson
+    packageJson: {
+        dependencies: {
+            tslib: "^1.9.1"
+        }
+    }
 });
 ```
 
@@ -116,7 +116,7 @@ For example:
 ```typescript
 // functions.ts
 export function add(a: number, b: number) {
- return a + b;
+    return a + b;
 }
 ```
 
@@ -127,13 +127,13 @@ import { faast } from "faast";
 import * as funcs from "./functions";
 
 (async () => {
- const faastModule = await faast("aws", funcs, "./functions");
- try {
-  const remote = faastModule.functions;
-  console.log(await remote.add(23, 19));
- } finally {
-  await faastModule.cleanup();
- }
+    const faastModule = await faast("aws", funcs, "./functions");
+    try {
+        const remote = faastModule.functions;
+        console.log(await remote.add(23, 19));
+    } finally {
+        await faastModule.cleanup();
+    }
 })();
 ```
 
@@ -164,13 +164,13 @@ import { faast } from "faastjs";
 import * as funcs from "./functions";
 
 (async () => {
- const faastModule = await faast("aws", funcs, "./functions");
- try {
-  const remote = faastModule.functions;
-  console.log(await remote.hello("world"));
- } finally {
-  await faastModule.cleanup();
- }
+    const faastModule = await faast("aws", funcs, "./functions");
+    try {
+        const remote = faastModule.functions;
+        console.log(await remote.hello("world"));
+    } finally {
+        await faastModule.cleanup();
+    }
 })();
 ```
 
@@ -222,14 +222,14 @@ Faast.js contains a command line tool but unlike other platforms, it should be s
 
 Usage:
 
-```
+```bash
 $ npx faastjs cleanup aws
 $ npx faastjs cleanup google
 ```
 
 Example output:
 
-```
+```text
 Region: us-west-2
 SNS subscriptions
   arn:aws:sns:us-west-2:343675226624:faast-8e126ec5-1105-46da-b81e-03c50a55ff20-Requests:3fa4b55c-4661-4858-ace5-6fcb8b9a07ed
@@ -256,8 +256,8 @@ Cloudwatch log groups
 
 By default, the cleanup command will print out resource names, but not delete anything. To actually delete resources, add the `-x` option:
 
-```
-npx faastjs cleanup aws -x
+```bash
+$ npx faastjs cleanup aws -x
 ```
 
 This will prompt to confirm.
