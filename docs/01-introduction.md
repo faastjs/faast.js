@@ -10,7 +10,7 @@ hide_title: true
 
 Faast.js requires node version 8+.
 
-```bash
+```shell
 $ npm install faastjs
 ```
 
@@ -97,13 +97,13 @@ Check out even more options in [CommonOptions](./api/faastjs.commonoptions.md) a
 
 If you don't want to wait for 24h for garbage collection to clean up faast.js created cloud resources, you can use the command line tool `faastjs` to manually remove all vestiges of faast.js from your account:
 
-```
+```shell
 $ npx faastjs cleanup aws
 ```
 
 By default the utility runs in dry-run mode, only printing the actions it will perform. To actually execute the cleanup, specify the `-x` option:
 
-```
+```shell
 $ npx faastjs cleanup aws -x
 ```
 
@@ -222,7 +222,7 @@ Faast.js contains a command line tool but unlike other platforms, it should be s
 
 Usage:
 
-```bash
+```shell
 $ npx faastjs cleanup aws
 $ npx faastjs cleanup google
 ```
@@ -256,7 +256,7 @@ Cloudwatch log groups
 
 By default, the cleanup command will print out resource names, but not delete anything. To actually delete resources, add the `-x` option:
 
-```bash
+```shell
 $ npx faastjs cleanup aws -x
 ```
 

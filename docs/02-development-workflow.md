@@ -34,7 +34,7 @@ Note that if `packageJson` is specified, AWS Lambda Layers are not in the code b
 
 Turn on verbose logging by setting the `DEBUG` environment variable. For example:
 
-```bash
+```shell
 $ DEBUG=faast:info node example.js
 $ DEBUG=faast:* node example.js
 ```
