@@ -106,6 +106,7 @@ class Index extends React.Component {
                         content: `Create serverless functions without any cruft. Leave no trace of infrastructure behind. Your code gains superpowers with faast.js`,
                         align: "left",
                         image: `${baseUrl}img/example-1.png`,
+                        imageLink: `/docs/introduction#scaling-up`,
                         imageAlign: "left",
                         title: "More dev, less ops."
                     }

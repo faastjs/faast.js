@@ -33,19 +33,55 @@ export function hello(name: string) {
 }
 ```
 
-The `faast` function to create faast.js modules:
+The `faast` function transforms ordinary modules into faast.js modules. This means the `functions` property will contain proxies for all of the functions from the original module, modified to return a `Promise`:
 
 ```typescript
 // example.ts
-import { faast } from "faastjs";
+import { faast } from "../index";
 import * as funcs from "./functions";
-...
-const faastModule = await faast("aws", funcs, "./functions");
-const remote = faastModule.functions;
-console.log(await remote.hello("world"));
+
+(async () => {
+    // funcs.hello: string => string
+    const m = await faast("aws", funcs, "./functions");
+    try {
+        // m.functions.hello: string => Promise<string>
+        const result = await m.functions.hello("world");
+        console.log(result);
+    } finally {
+        await m.cleanup();
+    }
+})();
 ```
 
-Functions need to be [idempotent][] because they might be invoked multiple times, either by Faast.js or by the cloud provider (or both).
+With TypeScript you get autocomplete on `functions` and type checking on arguments and return values.
+
+Functions need to be [idempotent](https://stackoverflow.com/questions/1077412/what-is-an-idempotent-operation) because they might be invoked multiple times, either by Faast.js or by the cloud provider (or both).
+
+## Scaling up
+
+It's easy to start many concurrent calls; just use standard asynchronous programming techniques. Here's an example that invokes 1000 calls in parallel and waits for completion with `Promise.all`:
+
+```typescript
+import { faast } from "../index";
+import * as funcs from "./functions";
+
+(async () => {
+    const m = await faast("aws", funcs, "./functions", {
+        memorySize: 256,
+        timeout: 30,
+        concurrency: 1000
+    });
+    const promises = [];
+    // Invoke m.functions.hello() 1000 times in parallel.
+    for (let i = 0; i < 1000; i++) {
+        promises.push(m.functions.hello("world " + i));
+    }
+    // Wait for all 1000 calls to complete.
+    const results = await Promise.all(promises);
+    await m.cleanup();
+    console.log(results);
+})();
+```
 
 ## Options
 
@@ -93,50 +129,6 @@ Read more about [package dependencies on AWS](./04-aws-lambda#package-dependenci
 
 Check out even more options in [CommonOptions](./api/faastjs.commonoptions.md) and cloud-specific options in [AwsOptions](./api/faastjs.awsoptions.md), [GoogleOptions](./api/faastjs.googleoptions.md), and [LocalOptions](./api/faastjs.localoptions.md).
 
-## Cleaning up stray resources
-
-If you don't want to wait for 24h for garbage collection to clean up faast.js created cloud resources, you can use the command line tool `faastjs` to manually remove all vestiges of faast.js from your account:
-
-```shell
-$ npx faastjs cleanup aws
-```
-
-By default the utility runs in dry-run mode, only printing the actions it will perform. To actually execute the cleanup, specify the `-x` option:
-
-```shell
-$ npx faastjs cleanup aws -x
-```
-
-## Calling Cloud Functions
-
-The `functions` property on `FaastModule` contains the same functions as `module`, except they return promises.
-
-For example:
-
-```typescript
-// functions.ts
-export function add(a: number, b: number) {
-    return a + b;
-}
-```
-
-Transform this into a faast.js module:
-
-```typescript
-import { faast } from "faast";
-import * as funcs from "./functions";
-
-(async () => {
-    const faastModule = await faast("aws", funcs, "./functions");
-    try {
-        const remote = faastModule.functions;
-        console.log(await remote.add(23, 19));
-    } finally {
-        await faastModule.cleanup();
-    }
-})();
-```
-
 ### Terminology
 
 **Provider**: A Functions as a Service (FaaS) provider, such as AWS Lambda or Google Cloud Functions. Faast.js also has a "local" provider which uses child processes to simulate a FaaS service without cloud usage.
@@ -149,7 +141,7 @@ import * as funcs from "./functions";
 
 ### Functions must be idempotent
 
-Functions you invoke with faast.js must be idempotent. That is, it should be possible to execute them more than once (including concurrently!) and still get the same result without causing any undesirable side effects. This is because faast.js or the cloud provider might invoke your function more than once, usually to retry transient errors that are inherent in large scale distributed systems. Faast.js may also issue redundant requests that are still executing to try to reduce [tail latency][https://blog.acolyer.org/2015/01/15/the-tail-at-scale/].
+Functions you invoke with faast.js must be idempotent. That is, it should be possible to execute them more than once (including concurrently) and still get the same result without causing any undesirable side effects. This is because faast.js or the cloud provider might invoke your function more than once, usually to retry transient errors that are inherent in large scale distributed systems. Faast.js may also issue redundant requests that are still executing to try to reduce [tail latency][https://blog.acolyer.org/2015/01/15/the-tail-at-scale/].
 
 ## Ephemeral Infrastructure
 
@@ -212,18 +204,15 @@ When errors are thrown by faast.js functions, log URLs may be appended to the er
 
 Faast.js will create some local cache files in `~/.faast`, with a subdirectory for each provider used. The [`faastjs cleanup`](../README#Cleaning_up_stray_resources) command will delete these files for you. Or, you can clear the local cache by deleting `~/.faast` manually. No configuration is stored there, only caching files.
 
-[idempotent]: https://stackoverflow.com/questions/1077412/what-is-an-idempotent-operation
-
-## Command line tool
-
-Faast.js contains a command line tool but unlike other platforms, it should be seldomly used. Its main purpose currently is to clean up infrastructure if you want to remove all traces of faast.js from your account.
-
 ### Cleanup command
 
 Usage:
 
 ```shell
 $ npx faastjs cleanup aws
+```
+
+```shell
 $ npx faastjs cleanup google
 ```
 
