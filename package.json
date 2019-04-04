@@ -25,7 +25,7 @@
         "tslint": "npx tslint -p tsconfig.json"
     },
     "author": "Andy Chou",
-    "license": "ISC",
+    "license": "Apache-2.0",
     "bin": {
         "faastjs": "./build/src/cli.js"
     },
