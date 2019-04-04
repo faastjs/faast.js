@@ -23,7 +23,7 @@ function Community(props) {
         {
             title: "Github",
             content:
-                "View faast.js on [GitHub](https://github.com/GiantSquidBaby/faast.js)."
+                "View faast.js on [GitHub](https://github.com/faastjs/faast.js)."
         },
         {
             title: "Slack",
