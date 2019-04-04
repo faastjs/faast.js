@@ -34,12 +34,6 @@ class HomeSplash extends React.Component {
             </div>
         );
 
-        const LogoRotated = props => (
-            <div className="faastLogoRotated">
-                <img src={props.img_src} alt="Project Logo" />
-            </div>
-        );
-
         const ProjectTitle = () => (
             <h2 className="projectTitle">
                 {siteConfig.title}
@@ -69,8 +63,8 @@ class HomeSplash extends React.Component {
                 <div className="inner">
                     <ProjectTitle siteConfig={siteConfig} />
                     <PromoSection>
-                        <Button href="#example">See an Example</Button>
-                        <Button href={docUrl("introduction")}>Read Docs</Button>
+                        <Button href="#example">Example</Button>
+                        <Button href={docUrl("introduction")}>Docs</Button>
                     </PromoSection>
                 </div>
             </SplashContainer>
@@ -101,7 +95,7 @@ class Index extends React.Component {
             <div className="productShowcaseSection">
                 <image id="zero" src={`${baseUrl}img/zero.svg`} width="25%" />
                 <h2>Zero Ops</h2>
-                <h3>No permanent infrastructure to manage.</h3>
+                <h3>No infrastructure to manage.</h3>
             </div>
         );
 
@@ -136,7 +130,8 @@ class Index extends React.Component {
                             image: `${baseUrl}img/cloud-plug.svg`,
                             imageAlign: "top",
                             title: "Choose your cloud",
-                            content: "Power faast.js with the cloud of your choice."
+                            content:
+                                "Power faast.js with AWS or Google Cloud, or on local compute."
                         },
                         {
                             image: `${baseUrl}img/cost.svg`,
@@ -161,7 +156,8 @@ class Index extends React.Component {
                             image: `${baseUrl}img/pack.svg`,
                             imageAlign: "top",
                             title: "Transparent bundling",
-                            content: "There's no separate deploy step to forget."
+                            content:
+                                "There's no separate deploy step to forget."
                         },
                         {
                             image: `${baseUrl}img/cleanup.svg`,
@@ -183,11 +179,16 @@ class Index extends React.Component {
                 .filter(user => user.pinned)
                 .map(user => (
                     <a href={user.infoLink} key={user.infoLink}>
-                        <img src={user.image} alt={user.caption} title={user.caption} />
+                        <img
+                            src={user.image}
+                            alt={user.caption}
+                            title={user.caption}
+                        />
                     </a>
                 ));
 
-            const pageUrl = page => baseUrl + (language ? `${language}/` : "") + page;
+            const pageUrl = page =>
+                baseUrl + (language ? `${language}/` : "") + page;
 
             return (
                 <div className="productShowcaseSection paddingBottom">
