@@ -102,7 +102,7 @@ for (const name of providers) {
     for (const config of configs) {
         let size = 130 * kb;
         if (name === "google" && !config.packageJson) {
-            size = 700 * kb;
+            size = 750 * kb;
         }
         test(testPacker, name, packers[name], config, size);
     }
