@@ -449,6 +449,8 @@ export const CleanupOptionDefaults: Required<CleanupOptions> = {
  * time differences between machines and are subject to much more uncertainty,
  * and effects like clock skew.
  *
+ * All times are in milliseconds.
+ *
  * @public
  */
 export class FunctionStats {
@@ -468,9 +470,10 @@ export class FunctionStats {
      */
     remoteStartLatency = new Statistics();
     /**
-     * Statistics for how long a function executes.  This is measured as wall
-     * clock time, and does not include the time taken to send the response to
-     * the response queue.
+     * Statistics for function execution time in milliseconds.  This is measured
+     * as wall clock time inside the cloud function, and does not include the
+     * time taken to send the response to the response queue. Note that most
+     * cloud providers round up to the next 100ms for pricing.
      */
     executionTime = new Statistics();
     /**
