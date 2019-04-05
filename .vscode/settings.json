@@ -1,11 +1,5 @@
 {
     "typescript.tsdk": "node_modules/typescript/lib",
-    "terminal.integrated.env.osx": {
-        "DEBUG": "faast:info,faast:stats"
-    },
-    "terminal.integrated.env.windows": {
-        "DEBUG": "faast:info,faast:stats"
-    },
     "debug.node.autoAttach": "on",
     "search.exclude": {
         "**/markdown": true
