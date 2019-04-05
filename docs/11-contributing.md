@@ -117,8 +117,9 @@ Faast.js uses [docusaurus](https://docusaurus.io/) to generate a static website 
 
 Docusaurus has a built-in server:
 
-```
+```shell
 $ cd website
+$ npm install
 $ npm start
 ```
 
