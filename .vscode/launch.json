@@ -15,7 +15,7 @@
             "type": "node",
             "request": "launch",
             "name": "Map buckets",
-            "program": "${workspaceFolder}/build/examples/map-buckets.js",
+            "program": "${workspaceFolder}/dist/examples/map-buckets.js",
             "outFiles": ["${workspaceFolder}/**/*.js"]
         }
     ]

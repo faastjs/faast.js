@@ -1,6 +1,6 @@
-import { writeFile } from "fs-extra";
-import { join } from "path";
-import { cwd } from "process";
+const { writeFile } = require("fs-extra");
+const { join } = require("path");
+const { cwd } = require("process");
 
 // This code is only used for running builds on CircleCI. It saves Google Cloud
 // credentials to disk to enable testing the Google Cloud APIs.

@@ -330,7 +330,7 @@ export interface CommonOptions {
      *       libraryTarget: "commonjs2"
      *   },
      *   target: "node",
-     *   resolveLoader: { modules: [__dirname, `${__dirname}/build}`] },
+     *   resolveLoader: { modules: [__dirname, `${__dirname}/dist}`] },
      *   ...webpackOptions
      * };
      * ```

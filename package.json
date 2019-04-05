@@ -2,8 +2,8 @@
     "name": "faastjs",
     "version": "0.0.2",
     "description": "Serverless without the cruft.",
-    "main": "build/index.js",
-    "types": "build/decls/index.d.ts",
+    "main": "dist/index.js",
+    "types": "dist/decls/index.d.ts",
     "repository": {
         "type": "git",
         "url": "https://github.com/faastjs/faast.js"
@@ -11,23 +11,23 @@
     "scripts": {
         "build": "npm run clean && npx tsc && npm run doc",
         "watch": "npm run clean && npx tsc --watch",
-        "doc": "node build/src/doc.js",
-        "set-gcp-key": "node build/src/google/google-save-key.js",
-        "test": "ava build/test/*.test.js",
+        "doc": "node build/make-docs.js",
+        "set-gcp-key": "node build/google-save-key.js",
+        "test": "ava dist/test/*.test.js",
         "test-local": "ava --concurrency=4 -m='!remote*'",
         "test-aws": "ava --concurrency=8 --timeout=2m -m='!remote*' -m='*aws*'",
         "test-google": "ava --concurrency=4 --timeout=4m -m='!remote*' -m='*google*'",
         "test-aws-remote": "ava --concurrency=8 --timeout=2m -m='remote*aws*'",
         "test-google-remote": "ava --concurrency=4 --timeout=4m -m='remote*google*'",
         "test-debug": "DEBUG=faast:provider,faast:info ava --fail-fast --serial",
-        "cleanup-cloud": "node build/src/cli.js cleanup aws -x -f && node ./build/src/cli.js cleanup google -x -f",
-        "clean": "rm -rf build",
+        "cleanup-cloud": "node dist/src/cli.js cleanup aws -x -f && node ./dist/src/cli.js cleanup google -x -f",
+        "clean": "rm -rf dist",
         "tslint": "npx tslint -p tsconfig.json"
     },
     "author": "Andy Chou",
     "license": "Apache-2.0",
     "bin": {
-        "faastjs": "./build/src/cli.js"
+        "faastjs": "./dist/src/cli.js"
     },
     "engines": {
         "node": ">=8.0"
@@ -77,7 +77,7 @@
     },
     "ava": {
         "files": [
-            "build/test/*.test.js"
+            "dist/test/*.test.js"
         ]
     },
     "prettier": {

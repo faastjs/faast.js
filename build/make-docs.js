@@ -1,7 +1,7 @@
-import { readdir, createReadStream, writeFile } from "fs-extra";
-import { createInterface } from "readline";
-import { join, parse } from "path";
-import { exec } from "child_process";
+const { readdir, createReadStream, writeFile } = require("fs-extra");
+const { createInterface } = require("readline");
+const { join, parse } = require("path");
+const { exec } = require("child_process");
 
 // This script is not part of faast.js, but rather a tool to rewrite some parts
 // of the generated docs from api-generator and api-documenter so they work with
@@ -10,7 +10,7 @@ import { exec } from "child_process";
 async function main() {
     await new Promise((resolve, reject) =>
         exec(
-            "api-extractor run --local && api-documenter markdown -i build -o docs/api",
+            "api-extractor run --local && api-documenter markdown -i dist -o docs/api",
             (err, stdout, stderr) => {
                 console.log(stdout);
                 console.error(stderr);
@@ -34,7 +34,7 @@ async function main() {
 
             const docPath = join(dir, docFile);
             const input = createReadStream(docPath);
-            const output: string[] = [];
+            const output = [];
             const lines = createInterface({
                 input,
                 crlfDelay: Infinity

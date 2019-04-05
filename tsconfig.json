@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "outDir": "build",
+        "outDir": "dist",
         "rootDir": ".",
         "module": "commonjs",
         "target": "es2017",
@@ -9,7 +9,7 @@
         "inlineSourceMap": true,
         "inlineSources": true,
         "declaration": true,
-        "declarationDir": "build/decls",
+        "declarationDir": "dist/decls",
         "moduleResolution": "node",
         "forceConsistentCasingInFileNames": true,
         "noImplicitReturns": true,
@@ -26,5 +26,5 @@
         "skipLibCheck": true
     },
     "include": ["index.ts", "src", "examples", "types", "test"],
-    "exclude": ["node_modules", "build", "etc"]
+    "exclude": ["node_modules", "dist", "etc"]
 }

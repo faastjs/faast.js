@@ -47,7 +47,7 @@ $ npm install
 $ npm run build
 ```
 
-The output is placed in `build/`.
+The output is placed in `dist/`.
 
 Running in watch mode can be useful for compiling on the fly as changes are made:
 

@@ -6,13 +6,13 @@
     },
     "apiJsonFile": {
         "enabled": true,
-        "outputFolder": "./build"
+        "outputFolder": "./dist"
     },
     "project": {
-        "entryPointSourceFile": "build/decls/index.d.ts"
+        "entryPointSourceFile": "dist/decls/index.d.ts"
     },
     "dtsRollup": {
         "enabled": false,
-        "publishFolder": "./build"
+        "publishFolder": "./dist"
     }
 }
