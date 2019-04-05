@@ -8,7 +8,7 @@ import {
     Funnel,
     Pump,
     RateLimiter,
-    retry,
+    retryOp,
     throttle
 } from "../src/throttle";
 import { timer, Timing } from "./fixtures/functions";
@@ -192,9 +192,9 @@ test("funnel.all() ignores errors and waits for other requests to finish", async
     t.is(result[1], "done");
 });
 
-test("funnel retry() retries failures", async t => {
+test("retryOp() retries failures", async t => {
     let attempts = 0;
-    await retry(2, async () => {
+    await retryOp(2, async () => {
         attempts++;
         throw new Error();
     }).catch(_ => {});

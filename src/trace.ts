@@ -34,14 +34,14 @@ export function trace(obj: object): Trace | void {
         // console.log(`trace: object not found: ${util.inspect(obj)}`);
         return;
     }
-    let trace = `== Tracing leaked object ${res.asyncId} ==`;
+    let asyncTrace = `== Tracing leaked object ${res.asyncId} ==`;
     while (res) {
         const { stack, ...rest } = res;
-        trace += `${inspect(rest)}\n${stack}`;
+        asyncTrace += `${inspect(rest)}\n${stack}`;
         res = asyncObjects.get(res.triggerId);
     }
-    console.log(trace);
-    return { obj, trace };
+    console.log(asyncTrace);
+    return { obj, trace: asyncTrace };
 }
 
 export function printAsyncStack() {

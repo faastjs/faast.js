@@ -206,8 +206,10 @@ export class CostSnapshot {
     /** @internal */
     constructor(
         readonly provider: string,
-        /** The options used to initialize the faast.js module where this cost
-         * snapshot was generated. */
+        /**
+         * The options used to initialize the faast.js module where this cost
+         * snapshot was generated.
+         */
         readonly options: CommonOptions | AwsOptions | GoogleOptions,
         stats: FunctionStats,
         costMetrics: CostMetric[] = []
@@ -469,7 +471,7 @@ export namespace CostAnalyzer {
      */
     export const googleConfigurations: Configuration[] = (() => {
         const rv: Configuration[] = [];
-        for (let memorySize of [128, 256, 512, 1024, 2048]) {
+        for (const memorySize of [128, 256, 512, 1024, 2048]) {
             rv.push({
                 provider: "google",
                 options: {
@@ -549,6 +551,17 @@ export namespace CostAnalyzer {
     /**
      * Estimate the cost of a workload using multiple configurations and
      * providers.
+     * @param mod - The module containing the remote cloud functions to analyze.
+     * @param fmodule - Path to the module `mod`. This can be either an absolute
+     * filename (e.g. from `require.resolve`) or a path omitting the `.js`
+     * extension as would be use with `require` or `import`.
+     * @param userWorkload - a {@link CostAnalyzer.Workload} object
+     * specifying the workload to run and additional parameters.
+     * @param configurations - an array specifying
+     * {@link CostAnalyzer.Configuration}s to run. Default:
+     * {@link CostAnalyzer.awsConfigurations}.
+     * @returns A promise for a {@link CostAnalyzer.Result}
+     * @public
      * @remarks
      * It can be deceptively difficult to set optimal parameters for AWS Lambda
      * and similar services. On the surface there appears to be only one
@@ -638,18 +651,6 @@ export namespace CostAnalyzer {
      * multiple cloud functions, their execution times will be summed even if
      * they happen concurrently. This ensures the execution time and cost are
      * aligned.
-     *
-     * @param mod - The module containing the remote cloud functions to analyze.
-     * @param fmodule - Path to the module `mod`. This can be either an absolute
-     * filename (e.g. from `require.resolve`) or a path omitting the `.js`
-     * extension as would be use with `require` or `import`.
-     * @param userWorkload - a {@link CostAnalyzer.Workload} object
-     * specifying the workload to run and additional parameters.
-     * @param configurations - an array specifying
-     * {@link CostAnalyzer.Configuration}s to run. Default:
-     * {@link CostAnalyzer.awsConfigurations}.
-     * @returns A promise for a {@link CostAnalyzer.Result}
-     * @public
      */
     export async function analyze<T extends object, A extends string>(
         mod: T,
@@ -671,9 +672,11 @@ export namespace CostAnalyzer {
         );
 
         const { concurrency = workloadDefaults.concurrency } = userWorkload;
-        const workload = Object.assign({}, workloadDefaults, userWorkload, {
+        const workload = {
+            ...workloadDefaults,
+            ...userWorkload,
             work: throttle({ concurrency }, userWorkload.work)
-        });
+        };
 
         const promises = configurations.map(config =>
             scheduleEstimate(mod, fmodule, workload, config)
@@ -814,8 +817,8 @@ export namespace CostAnalyzer {
                 const row = {
                     memory: memorySize,
                     cloud: costSnapshot.provider,
-                    mode: mode,
-                    options: options,
+                    mode,
+                    options,
                     completed,
                     errors,
                     retries,

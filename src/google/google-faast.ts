@@ -32,7 +32,7 @@ import {
     sleep,
     uuidv4Pattern
 } from "../shared";
-import { retry, throttle } from "../throttle";
+import { retryOp, throttle } from "../throttle";
 import { Mutable } from "../types";
 import { WrapperOptions } from "../wrapper";
 import { publishPubSub, receiveMessages } from "./google-queue";
@@ -346,7 +346,7 @@ export async function initialize(
     log.info(`Request body: %O`, requestBody);
     try {
         log.info(`create function ${requestBody.name}`);
-        await retry(1, () =>
+        await retryOp(1, () =>
             waitFor(
                 cloudFunctions,
                 cloudFunctions.projects.locations.functions.create({
@@ -550,7 +550,7 @@ let garbageCollectorRunning = false;
 async function collectGarbage(
     gcWorker: typeof gcWorkerDefault,
     services: GoogleServices,
-    project: string,
+    proj: string,
     retentionInDays: number
 ) {
     if (gcWorker === gcWorkerDefault) {
@@ -571,7 +571,10 @@ async function collectGarbage(
                 rate: 5,
                 burst: 2
             },
-            async (services: GoogleServices, fn: CloudFunctions.Schema$CloudFunction) => {
+            async (
+                gServices: GoogleServices,
+                fn: CloudFunctions.Schema$CloudFunction
+            ) => {
                 const { region, name, project } = parseFunctionName(fn.name!)!;
 
                 const resources: GoogleResources = {
@@ -581,7 +584,7 @@ async function collectGarbage(
                     responseQueueTopic: getResponseQueueTopic(project, name),
                     responseSubscription: getResponseSubscription(project, name)
                 };
-                await gcWorker(resources, services);
+                await gcWorker(resources, gServices);
             }
         );
 
@@ -589,7 +592,7 @@ async function collectGarbage(
         do {
             const funcListResponse = await cloudFunctions.projects.locations.functions.list(
                 {
-                    parent: `projects/${project}/locations/-`,
+                    parent: `projects/${proj}/locations/-`,
                     pageToken
                 }
             );
@@ -638,21 +641,21 @@ function validateGoogleLabels(labels: { [key: string]: string } | undefined) {
     if (!labels) {
         return;
     }
-    const keys = Object.keys(labels);
-    if (keys.length > 64) {
+    const objkeys = Object.keys(labels);
+    if (objkeys.length > 64) {
         throw new Error("Cannot exceeded 64 labels");
     }
-    if (keys.find(key => typeof key !== "string" || typeof labels[key] !== "string")) {
+    if (objkeys.find(key => typeof key !== "string" || typeof labels[key] !== "string")) {
         throw new Error(`Label keys and values must be strings`);
     }
-    if (keys.find(key => key.length > 63 || labels[key].length > 63)) {
+    if (objkeys.find(key => key.length > 63 || labels[key].length > 63)) {
         throw new Error(`Label keys and values cannot exceed 63 characters`);
     }
-    if (keys.find(key => key.length === 0)) {
+    if (objkeys.find(key => key.length === 0)) {
         throw new Error(`Label keys must have length > 0`);
     }
     const pattern = /^[a-z0-9_-]*$/;
-    if (keys.find(key => !key.match(pattern) || !labels[key].match(pattern))) {
+    if (objkeys.find(key => !key.match(pattern) || !labels[key].match(pattern))) {
         throw new Error(
             `Label keys and values can contain only lowercase letters, numeric characters, underscores, and dashes.`
         );
@@ -689,13 +692,13 @@ export async function googlePacker(
 
 const getGooglePrice = throttle(
     { concurrency: 1, rate: 3, retry: 3, memoize: true, cache: caches.googlePrices },
-    async function(
+    async (
         cloudBilling: CloudBilling.Cloudbilling,
         region: string,
         serviceName: string,
         description: string,
         conversionFactor: number
-    ) {
+    ) => {
         try {
             const skusResponse = await cloudBilling.services.skus.list({
                 parent: serviceName

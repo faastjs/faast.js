@@ -51,7 +51,7 @@ function popFirst<T>(set: Set<T>): T | undefined {
 
 export type RetryType = number | ((err: any, retries: number) => boolean);
 
-export async function retry<T>(retryN: RetryType, fn: (retries: number) => Promise<T>) {
+export async function retryOp<T>(retryN: RetryType, fn: (retries: number) => Promise<T>) {
     const retryTest =
         typeof retryN === "function" ? retryN : (_: any, i: number) => i < retryN;
     for (let i = 0; true; i++) {
@@ -80,7 +80,7 @@ export class Funnel<T = void> {
         cancel?: () => string | undefined
     ) {
         const retryTest = shouldRetry || this.shouldRetry || 0;
-        const retryWorker = () => retry(retryTest, worker);
+        const retryWorker = () => retryOp(retryTest, worker);
         const future = new DeferredWorker(retryWorker, cancel);
         this.pendingQueue.add(future);
         setImmediate(() => this.doWork());
@@ -395,7 +395,7 @@ export function cacheFn<A extends any[], R>(
  * const operation = throttle({ concurrency: 10, rate: 5 }, async (str: string) => {
  *     return string;
  * });
- *```
+ * ```
  *
  * In addition to limiting concurrency and invocation rate, `throttle` also
  * supports retrying failed invocations, memoizing calls, and on-disk caching.

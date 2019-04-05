@@ -105,9 +105,9 @@ async function initialize(
     await mkdirp(tempDir);
     const logDir = join(tempDir, "logs");
     await mkdir(logDir);
-    const logUrl = `file://${logDir}`;
+    const url = `file://${logDir}`;
 
-    log.info(`logURL: ${logUrl}`);
+    log.info(`logURL: ${url}`);
 
     const { childProcess, memorySize, timeout } = options;
 
@@ -165,7 +165,7 @@ async function initialize(
         getWrapper,
         logStreams,
         tempDir,
-        logUrl,
+        logUrl: url,
         gcPromise,
         queue: new AsyncQueue(),
         options
@@ -222,7 +222,7 @@ async function invoke(
 }
 
 async function poll(state: LocalState, cancel: Promise<void>): Promise<PollResult> {
-    let message = await Promise.race([state.queue.dequeue(), cancel]);
+    const message = await Promise.race([state.queue.dequeue(), cancel]);
     if (!message) {
         return { Messages: [] };
     }

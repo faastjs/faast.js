@@ -27,7 +27,7 @@ interface CleanupOptions {
 async function deleteResources(
     name: string,
     matchingResources: string[],
-    remove: (arg: string) => Promise<any>,
+    doRemove: (arg: string) => Promise<any>,
     { concurrency = 10, rate = 5, burst = 5 } = {}
 ) {
     if (matchingResources.length > 0) {
@@ -45,7 +45,7 @@ async function deleteResources(
                 retry: 3
             },
             async arg => {
-                await remove(arg);
+                await doRemove(arg);
                 done++;
             }
         );
@@ -101,7 +101,7 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
         getList: () => aws.Request<T, aws.AWSError>,
         extractList: (arg: T) => U[] | undefined,
         extractElement: (arg: U) => string | undefined,
-        remove: (arg: string) => Promise<any>
+        doRemove: (arg: string) => Promise<any>
     ) {
         const allResources = await listAWSResource(
             pattern,
@@ -111,7 +111,7 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
         );
         nResources += allResources.length;
         if (execute) {
-            await deleteResources(name, allResources, remove, {
+            await deleteResources(name, allResources, doRemove, {
                 concurrency: 10,
                 rate: 5,
                 burst: 5
@@ -265,7 +265,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
         getList: (pageToken?: string) => GaxiosPromise<T>,
         extractList: (arg: T) => U[] | undefined,
         extractElement: (arg: U) => string | undefined,
-        remove: (arg: string) => Promise<any>
+        doRemove: (arg: string) => Promise<any>
     ) {
         const allResources = await listGoogleResource(
             pattern,
@@ -275,7 +275,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
         );
         nResources += allResources.length;
         if (execute) {
-            await deleteResources(name, allResources, remove, {
+            await deleteResources(name, allResources, doRemove, {
                 concurrency: 20,
                 rate: 20,
                 burst: 20

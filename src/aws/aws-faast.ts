@@ -1,20 +1,21 @@
 import * as aws from "aws-sdk";
 import { createHash } from "crypto";
+import { ensureDir, readFile, writeFile } from "fs-extra";
+import { join } from "path";
 import { caches } from "../cache";
-import { CostSnapshot, CostMetric } from "../cost";
+import { CostMetric, CostSnapshot } from "../cost";
 import { faastAws } from "../faast";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
-import { readFile, ensureDir, writeFile } from "fs-extra";
 import {
-    ProviderImpl,
+    CleanupOptions,
+    commonDefaults,
+    CommonOptions,
     FunctionStats,
     Invocation,
     PollResult,
+    ProviderImpl,
     ResponseMessage,
-    CommonOptions,
-    commonDefaults,
-    CleanupOptions,
     UUID
 } from "../provider";
 import {
@@ -24,8 +25,10 @@ import {
     hasExpired,
     uuidv4Pattern
 } from "../shared";
-import { throttle, retry } from "../throttle";
+import { retryOp, throttle } from "../throttle";
+import { FunctionReturn, WrapperOptions } from "../wrapper";
 import * as awsNpm from "./aws-npm";
+import { AwsLayerInfo } from "./aws-npm";
 import {
     createSNSTopic,
     createSQSQueue,
@@ -35,9 +38,6 @@ import {
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
-import { FunctionReturn, WrapperOptions } from "../wrapper";
-import { AwsLayerInfo } from "./aws-npm";
-import { join } from "path";
 
 const defaultGcWorker = throttle(
     { concurrency: 5, rate: 5, burst: 2 },
@@ -441,7 +441,7 @@ export const initialize = throttle(
             };
             log.info(`createFunctionRequest: %O`, request);
             try {
-                const func = await retry(4, () =>
+                const func = await retryOp(4, () =>
                     lambda.createFunction(request).promise()
                 );
                 log.info(
@@ -517,7 +517,7 @@ export const initialize = throttle(
             if (layer) {
                 state.resources.layer = layer;
             }
-            const lambda = await createFunctionRequest(
+            const lambdaFn = await createFunctionRequest(
                 codeBundle,
                 roleArn,
                 responseQueueArn,
@@ -526,7 +526,7 @@ export const initialize = throttle(
 
             const { mode } = options;
             if (mode === "queue") {
-                await createRequestQueueImpl(state, FunctionName, lambda.FunctionArn!);
+                await createRequestQueueImpl(state, FunctionName, lambdaFn.FunctionArn!);
             }
             await pricingPromise;
             log.info(`Lambda function initialization complete.`);
@@ -588,11 +588,10 @@ async function invokeHttps(
         Payload: message.body,
         LogType: "None"
     };
-    let awsRequest = lambda.invoke(request);
+    const awsRequest = lambda.invoke(request);
     const rawResponse = await Promise.race([awsRequest.promise(), cancel]);
     if (!rawResponse) {
         log.info(`cancelling lambda invoke`);
-
         awsRequest.abort();
         return;
     }
@@ -1255,7 +1254,7 @@ export const AwsImpl: ProviderImpl<AwsOptions, AwsState> = {
     initialize,
     defaults,
     cleanup,
-    costSnapshot: costSnapshot,
+    costSnapshot,
     logUrl,
     invoke,
     poll,

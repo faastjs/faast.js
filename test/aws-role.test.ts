@@ -13,7 +13,7 @@ import { sleep } from "../src/shared";
 test("remote aws custom role", async t => {
     t.plan(1);
     const iam = new aws.IAM();
-    let uuid = uuidv4();
+    const uuid = uuidv4();
     const RoleName = `faast-test-custom-role-${uuid}`;
     let faastModule;
     let PolicyArn;

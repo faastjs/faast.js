@@ -33,8 +33,8 @@ export async function packer(
     userOptions: CommonOptions,
     userWrapperOptions: WrapperOptions
 ): Promise<PackerResult> {
-    const options = Object.assign(commonDefaults, userOptions);
-    const wrapperOptions = Object.assign(WrapperOptionDefaults, userWrapperOptions);
+    const options = { ...commonDefaults, ...userOptions };
+    const wrapperOptions = { ...WrapperOptionDefaults, ...userWrapperOptions };
     let { webpackOptions, packageJson, addDirectory, addZipFile } = options;
 
     log.info(`Running webpack`);
@@ -61,8 +61,10 @@ export async function packer(
     async function addPackageJson(packageJsonFile: string | object) {
         const parsedPackageJson =
             typeof packageJsonFile === "string"
-                ? JSON.parse((await readFile(await resolve(packageJsonFile))).toString())
-                : Object.assign({}, packageJsonFile);
+                ? JSON.parse(
+                      (await readFile(await resolvePath(packageJsonFile))).toString()
+                  )
+                : { ...packageJsonFile };
         parsedPackageJson.main = "index.js";
         mfs.writeFileSync(
             "/package.json",
@@ -71,11 +73,11 @@ export async function packer(
         return Object.keys(parsedPackageJson.dependencies || {});
     }
 
-    async function resolve(pathName: string) {
+    async function resolvePath(pathName: string) {
         if (path.isAbsolute(pathName)) {
             return pathName;
         }
-        let relativeDir = path.join(parentDir, pathName);
+        const relativeDir = path.join(parentDir, pathName);
         if (await pathExists(relativeDir)) {
             return relativeDir;
         } else if (await pathExists(pathName)) {
@@ -86,13 +88,13 @@ export async function packer(
 
     async function processAddDirectories(archive: Archiver, directories: string[]) {
         for (const dir of directories) {
-            archive.directory(await resolve(dir), false);
+            archive.directory(await resolvePath(dir), false);
         }
     }
 
     async function processAddZips(archive: Archiver, zipFiles: string[]) {
         for (const zipFile of zipFiles) {
-            await processZip(await resolve(zipFile), (filename, contents) => {
+            await processZip(await resolvePath(zipFile), (filename, contents) => {
                 archive.append(contents, { name: filename });
             });
         }

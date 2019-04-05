@@ -19,6 +19,8 @@
         "no-string-literal": false,
         "no-empty-interface": false,
         "member-ordering": false,
-        "no-reference": false
+        "no-reference": false,
+        "no-namespace": false,
+        "no-duplicate-imports": false
     }
 }

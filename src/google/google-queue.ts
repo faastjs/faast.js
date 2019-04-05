@@ -51,7 +51,7 @@ export async function receiveMessages(
     const Messages = response.data.receivedMessages || [];
     if (Messages.length > 0) {
         pubsub.projects.subscriptions.acknowledge({
-            subscription: subscription,
+            subscription,
             requestBody: {
                 ackIds: Messages.map(m => m.ackId || "").filter(m => m !== "")
             }
