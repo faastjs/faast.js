@@ -29,7 +29,7 @@ const workload = (Bucket: string, filter: FilterFn) => async (
     const results = await Promise.all(promises);
     const elapsed = Date.now() - start;
     let bytes = 0;
-    let bandwidth = new Statistics();
+    const bandwidth = new Statistics();
     for (const result of results) {
         if (!result) {
             continue;

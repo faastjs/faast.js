@@ -1,6 +1,5 @@
 import { EventEmitter } from "events";
-import * as path from "path";
-import { dirname } from "path";
+import { dirname, isAbsolute } from "path";
 import * as util from "util";
 import * as uuidv4 from "uuid/v4";
 import { _parentModule } from "../index";
@@ -145,7 +144,7 @@ export type Promisified<M> = {
 type ResponsifiedFunction<A extends any[], R> = (...args: A) => Promise<Response<R>>;
 
 function resolveModule(fmodule: string) {
-    if (path.isAbsolute(fmodule)) {
+    if (isAbsolute(fmodule)) {
         return fmodule;
     }
     if (!_parentModule) {
@@ -236,7 +235,7 @@ function processResponse<R>(
             ...rv,
             localStartLatency,
             remoteStartLatency,
-            executionTime: executionTime,
+            executionTime,
             sendResponseLatency,
             returnLatency
         };
@@ -274,7 +273,7 @@ async function createFaastModuleProxy<M extends object, O extends CommonOptions,
     try {
         const resolvedModule = resolveModule(modulePath);
         const functionId = uuidv4() as UUID;
-        const options = Object.assign({}, impl.defaults, userOptions);
+        const options = { ...impl.defaults, ...userOptions };
         log.provider(`options ${inspectProvider(options)}`);
         return new FaastModuleProxy(
             impl,
@@ -578,7 +577,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
     /** {@inheritdoc FaastModule.cleanup} */
     async cleanup(userCleanupOptions: CleanupOptions = {}) {
         try {
-            const options = Object.assign({}, CleanupOptionDefaults, userCleanupOptions);
+            const options = { ...CleanupOptionDefaults, ...userCleanupOptions };
             this._stats.clear();
             this._memoryLeakDetector.clear();
             this._funnel.clear();
@@ -712,8 +711,9 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                         if (message) {
                             log.provider(`invoke returned ${inspectProvider(message)}`);
                             let returned = message.body;
-                            if (typeof returned === "string")
+                            if (typeof returned === "string") {
                                 returned = JSON.parse(returned) as FunctionReturn;
+                            }
                             const response: FunctionReturnWithMetrics = {
                                 ...returned,
                                 callId,
@@ -844,12 +844,13 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                         callRequest.reject(new Error(m.message));
                     }
                     break;
-                case "functionstarted":
+                case "functionstarted": {
                     const deferred = callResultsPending.get(m.callId);
                     if (deferred) {
                         deferred!.executing = true;
                     }
                     break;
+                }
                 case "response":
                     try {
                         const { body, timestamp } = m;

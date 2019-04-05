@@ -18,6 +18,7 @@
         "array-type": false,
         "no-string-literal": false,
         "no-empty-interface": false,
-        "member-ordering": false
+        "member-ordering": false,
+        "no-reference": false
     }
 }

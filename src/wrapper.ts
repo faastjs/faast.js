@@ -1,3 +1,5 @@
+/// <reference path="../types/proctor.d.ts" />
+
 import * as childProcess from "child_process";
 import * as process from "process";
 import * as proctor from "process-doctor";
@@ -117,7 +119,7 @@ export class Wrapper {
     protected monitoringTimer?: NodeJS.Timer;
 
     constructor(fModule: ModuleType, options: WrapperOptions = {}) {
-        this.options = Object.assign({}, WrapperOptionDefaults, options);
+        this.options = { ...WrapperOptionDefaults, ...options };
         this.log = this.options.wrapperLog;
         this.verbose = this.options.wrapperVerbose;
         this.funcs = fModule;
