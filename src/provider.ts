@@ -525,7 +525,7 @@ export class FunctionStats {
     toString() {
         return `completed: ${this.completed}, retries: ${this.retries}, errors: ${
             this.errors
-        }, executionTime: ${this.executionTime}ms`;
+        }, executionTime.mean: ${this.executionTime.mean}ms`;
     }
     /** @internal */
     clone(): FunctionStats {
