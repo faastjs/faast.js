@@ -12,7 +12,7 @@
         "entryPointSourceFile": "build/decls/index.d.ts"
     },
     "dtsRollup": {
-        "enabled": true,
+        "enabled": false,
         "publishFolder": "./build"
     }
 }
