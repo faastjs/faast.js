@@ -7,6 +7,7 @@ hide_title: true
 
 ## FaastModuleProxy.cleanup() method
 
+Stop the faast.js runtime for this cloud function and clean up ephemeral cloud resources.
 
 <b>Signature:</b>
 
@@ -23,3 +24,33 @@ cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
 <b>Returns:</b>
 
 `Promise<void>`
+
+a Promise that resolves when the `FaastModule` runtime stops and ephemeral resources have been deleted.
+
+## Remarks
+
+It is best practice to always call `cleanup` when done with a cloud function. A typical way to ensure this in normal execution is to use the `finally` construct:
+
+```typescript
+const faastModule = await faast("aws", m, "./path/to/module");
+try {
+    // Call faastModule.functions.*
+} finally {
+    // Note the `await`
+    await faastModule.cleanup();
+}
+
+```
+After the cleanup promise resolves, the cloud function instance can no longer invoke new calls on [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. However, other methods on [FaastModule](./faastjs.faastmodule.md) are safe to call, such as [FaastModule.costSnapshot()](./faastjs.faastmodule.costsnapshot.md)<!-- -->.
+
+Cleanup also stops statistics events (See [FaastModule.off()](./faastjs.faastmodule.off.md)<!-- -->).
+
+By default, cleanup will delete all ephemeral cloud resources but leave behind cached resources for use by future cloud functions. Deleted resources typically include cloud functions, queues, and queue subscriptions. Logs are not deleted by cleanup.
+
+Note that `cleanup` leaves behind some provider-specific resources:
+
+- AWS: Cloudwatch logs are preserved until the garbage collector in a future cloud function instance deletes them. The default log expiration time is 24h (or the value of [CommonOptions.retentionInDays](./faastjs.commonoptions.retentionindays.md)<!-- -->). In addition, the AWS Lambda IAM role is not deleted by cleanup. This role is shared across cloud function instances. Lambda layers are also not cleaned up immediately on AWS when [CommonOptions.packageJson](./faastjs.commonoptions.packagejson.md) is used and [CommonOptions.useDependencyCaching](./faastjs.commonoptions.usedependencycaching.md) is true. Cached layers are cleaned up by garbage collection. Also see [CleanupOptions.deleteCaches](./faastjs.cleanupoptions.deletecaches.md)<!-- -->.
+
+- Google: Google Stackdriver automatically deletes log entries after 30 days.
+
+- Local: Logs are preserved in a temporary directory on local disk. Garbage collection in a future cloud function instance will delete logs older than 24h.

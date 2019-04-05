@@ -7,6 +7,7 @@ hide_title: true
 
 ## FaastModuleProxy.on() method
 
+Register a callback for statistics events.
 
 <b>Signature:</b>
 
@@ -24,3 +25,12 @@ on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
 <b>Returns:</b>
 
 `void`
+
+## Remarks
+
+The callback is invoked once for each cloud function that was invoked within the last 1s interval, with a [FunctionStatsEvent](./faastjs.functionstatsevent.md) summarizing the statistics for each function. Typical usage:
+
+```typescript
+faastModule.on("stats", console.log);
+
+```

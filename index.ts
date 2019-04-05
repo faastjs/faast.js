@@ -1,3 +1,5 @@
+/// <reference path="./types/proctor.d.ts" />
+
 /**
  * Faast.js transforms ordinary JavaScript modules into serverless cloud
  * functions that can run on AWS Lambda and Google Cloud Functions.

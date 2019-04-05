@@ -1,4 +1,4 @@
-import debug from "debug";
+import * as debug from "debug";
 import { inspect } from "util";
 
 /**

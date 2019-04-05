@@ -4,13 +4,25 @@
 
 ```ts
 
+import * as aws from 'aws-sdk';
+import * as childProcess from 'child_process';
+import { cloudbilling_v1 } from 'googleapis';
+import { cloudfunctions_v1 } from 'googleapis';
+import * as debug from 'debug';
+import { GoogleApis } from 'googleapis';
+import * as proctor from 'process-doctor';
+import { pubsub_v1 } from 'googleapis';
+import { Readable } from 'stream';
+import * as webpack from 'webpack';
+import { Writable } from 'stream';
+
 // Warning: (ae-forgotten-export) The symbol "AwsState" needs to be exported by the entry point index.d.ts
 // 
 // @public
-declare type AwsFaastModule<M extends object = object> = FaastModuleProxy<M, AwsOptions, AwsState>;
+export type AwsFaastModule<M extends object = object> = FaastModuleProxy<M, AwsOptions, AwsState>;
 
 // @public
-interface AwsOptions extends CommonOptions {
+export interface AwsOptions extends CommonOptions {
     awsLambdaOptions?: Partial<aws.Lambda.CreateFunctionRequest>;
     // Warning: (ae-forgotten-export) The symbol "AwsGcWork" needs to be exported by the entry point index.d.ts
     // Warning: (ae-forgotten-export) The symbol "AwsServices" needs to be exported by the entry point index.d.ts
@@ -22,16 +34,16 @@ interface AwsOptions extends CommonOptions {
 }
 
 // @public
-declare type AwsRegion = "us-east-1" | "us-east-2" | "us-west-1" | "us-west-2" | "ca-central-1" | "eu-central-1" | "eu-west-1" | "eu-west-2" | "eu-west-3" | "ap-northeast-1" | "ap-northeast-2" | "ap-northeast-3" | "ap-southeast-1" | "ap-southeast-2" | "ap-south-1" | "sa-east-1";
+export type AwsRegion = "us-east-1" | "us-east-2" | "us-west-1" | "us-west-2" | "ca-central-1" | "eu-central-1" | "eu-west-1" | "eu-west-2" | "eu-west-3" | "ap-northeast-1" | "ap-northeast-2" | "ap-northeast-3" | "ap-southeast-1" | "ap-southeast-2" | "ap-south-1" | "sa-east-1";
 
 // @public
-interface CleanupOptions {
+export interface CleanupOptions {
     deleteCaches?: boolean;
     deleteResources?: boolean;
 }
 
 // @public
-interface CommonOptions {
+export interface CommonOptions {
     addDirectory?: string | string[];
     addZipFile?: string | string[];
     childProcess?: boolean;
@@ -50,24 +62,24 @@ interface CommonOptions {
 }
 
 // @public
-declare namespace CostAnalyzer {
-    function analyze<T extends object, A extends string>(mod: T, fmodule: string, userWorkload: Workload<T, A>, configurations?: Configuration[]): Promise<Result<T, A>>;
-    type Configuration = {
+export namespace CostAnalyzer {
+    export function analyze<T extends object, A extends string>(mod: T, fmodule: string, userWorkload: Workload<T, A>, configurations?: Configuration[]): Promise<Result<T, A>>;
+    export type Configuration = {
         provider: "aws";
         options: AwsOptions;
     } | {
         provider: "google";
         options: GoogleOptions;
     };
-    interface Estimate<A extends string> {
+    export interface Estimate<A extends string> {
         config: Configuration;
         costSnapshot: CostSnapshot;
         extraMetrics: WorkloadAttribute<A>;
     }
     const awsConfigurations: Configuration[];
     const googleConfigurations: Configuration[];
-    class Result<T extends object, A extends string> {
-        // @internal (undocumented)
+    export class Result<T extends object, A extends string> {
+        // @internal
         constructor(
         workload: Required<Workload<T, A>>, 
         estimates: Estimate<A>[]);
@@ -75,7 +87,7 @@ declare namespace CostAnalyzer {
         readonly estimates: Estimate<A>[];
         readonly workload: Required<Workload<T, A>>;
     }
-    interface Workload<T extends object, A extends string> {
+    export interface Workload<T extends object, A extends string> {
         concurrency?: number;
         format?: (attr: A, value: number) => string;
         formatCSV?: (attr: A, value: number) => string;
@@ -84,17 +96,17 @@ declare namespace CostAnalyzer {
         summarize?: (summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>;
         work: (faastModule: FaastModule<T>) => Promise<WorkloadAttribute<A> | void>;
     }
-    type WorkloadAttribute<A extends string> = {
+    export type WorkloadAttribute<A extends string> = {
         [attr in A]: number;
     };
 }
 
 // @public
-declare class CostMetric {
+export class CostMetric {
     // Warning: (ae-forgotten-export) The symbol "PropertiesExcept" needs to be exported by the entry point index.d.ts
     // Warning: (ae-forgotten-export) The symbol "AnyFunction" needs to be exported by the entry point index.d.ts
     // 
-    // @internal (undocumented)
+    // @internal
     constructor(arg: PropertiesExcept<CostMetric, AnyFunction>);
     readonly comment?: string;
     cost(): number;
@@ -109,8 +121,8 @@ declare class CostMetric {
 }
 
 // @public
-declare class CostSnapshot {
-    // @internal (undocumented)
+export class CostSnapshot {
+    // @internal
     constructor(provider: string, 
     options: CommonOptions | AwsOptions | GoogleOptions, stats: FunctionStats, costMetrics?: CostMetric[]);
     readonly costMetrics: CostMetric[];
@@ -128,27 +140,27 @@ declare class CostSnapshot {
 }
 
 // @public
-declare function faast<M extends object>(provider: Provider, fmodule: M, modulePath: string, options?: CommonOptions): Promise<FaastModule<M>>;
+export function faast<M extends object>(provider: Provider, fmodule: M, modulePath: string, options?: CommonOptions): Promise<FaastModule<M>>;
 
 // @public
-declare function faastAws<M extends object>(fmodule: M, modulePath: string, options?: AwsOptions): Promise<AwsFaastModule<M>>;
+export function faastAws<M extends object>(fmodule: M, modulePath: string, options?: AwsOptions): Promise<AwsFaastModule<M>>;
 
 // @public
-declare class FaastError extends Error {
-    // @internal (undocumented)
+export class FaastError extends Error {
+    // @internal
     constructor(errObj: any, logUrl?: string);
     [key: string]: any;
     logUrl?: string;
 }
 
 // @public
-declare function faastGoogle<M extends object>(fmodule: M, modulePath: string, options?: GoogleOptions): Promise<GoogleFaastModule<M>>;
+export function faastGoogle<M extends object>(fmodule: M, modulePath: string, options?: GoogleOptions): Promise<GoogleFaastModule<M>>;
 
 // @public
-declare function faastLocal<M extends object>(fmodule: M, modulePath: string, options?: LocalOptions): Promise<LocalFaastModule<M>>;
+export function faastLocal<M extends object>(fmodule: M, modulePath: string, options?: LocalOptions): Promise<LocalFaastModule<M>>;
 
 // @public
-interface FaastModule<M extends object> {
+export interface FaastModule<M extends object> {
     cleanup(options?: CleanupOptions): Promise<void>;
     costSnapshot(): Promise<CostSnapshot>;
     functions: Promisified<M>;
@@ -160,22 +172,16 @@ interface FaastModule<M extends object> {
 }
 
 // @public
-declare class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> {
+export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> {
     // Warning: (ae-forgotten-export) The symbol "ProviderImpl" needs to be exported by the entry point index.d.ts
     // 
     // @internal
     constructor(impl: ProviderImpl<O, S>, state: S, fmodule: M, modulePath: string, options: Required<CommonOptions>);
-    // (undocumented)
     cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
-    // (undocumented)
     costSnapshot(): Promise<CostSnapshot>;
-    // (undocumented)
     functions: Promisified<M>;
-    // (undocumented)
     logUrl(): string;
-    // (undocumented)
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
-    // (undocumented)
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
     // (undocumented)
     readonly options: Required<CommonOptions>;
@@ -183,12 +189,11 @@ declare class FaastModuleProxy<M extends object, O, S> implements FaastModule<M>
     provider: Provider;
     // (undocumented)
     readonly state: S;
-    // (undocumented)
     stats(functionName?: string): FunctionStats;
     }
 
 // @public
-declare class FunctionStats {
+export class FunctionStats {
     // @internal (undocumented)
     clone(): FunctionStats;
     completed: number;
@@ -206,8 +211,7 @@ declare class FunctionStats {
 }
 
 // @public
-declare class FunctionStatsEvent {
-    // (undocumented)
+export class FunctionStatsEvent {
     constructor(fn: string, stats: FunctionStats);
     // (undocumented)
     readonly fn: string;
@@ -219,10 +223,10 @@ declare class FunctionStatsEvent {
 // Warning: (ae-forgotten-export) The symbol "GoogleState" needs to be exported by the entry point index.d.ts
 // 
 // @public
-declare type GoogleFaastModule<M extends object = object> = FaastModuleProxy<M, GoogleOptions, GoogleState>;
+export type GoogleFaastModule<M extends object = object> = FaastModuleProxy<M, GoogleOptions, GoogleState>;
 
 // @public
-interface GoogleOptions extends CommonOptions {
+export interface GoogleOptions extends CommonOptions {
     // Warning: (ae-forgotten-export) The symbol "GoogleResources" needs to be exported by the entry point index.d.ts
     // Warning: (ae-forgotten-export) The symbol "GoogleServices" needs to be exported by the entry point index.d.ts
     // 
@@ -233,7 +237,7 @@ interface GoogleOptions extends CommonOptions {
 }
 
 // @public
-interface Limits {
+export interface Limits {
     burst?: number;
     cache?: PersistentCache;
     concurrency: number;
@@ -245,31 +249,31 @@ interface Limits {
 // Warning: (ae-forgotten-export) The symbol "LocalState" needs to be exported by the entry point index.d.ts
 // 
 // @public
-declare type LocalFaastModule<M extends object = object> = FaastModuleProxy<M, LocalOptions, LocalState>;
+export type LocalFaastModule<M extends object = object> = FaastModuleProxy<M, LocalOptions, LocalState>;
 
 // @public
-interface LocalOptions extends CommonOptions {
+export interface LocalOptions extends CommonOptions {
     // @internal (undocumented)
     gcWorker?: (tempdir: string) => Promise<void>;
 }
 
 // @public
-declare const log: {
-    info: default.Debugger;
-    warn: default.Debugger;
-    gc: default.Debugger;
-    leaks: default.Debugger;
-    calls: default.Debugger;
-    webpack: default.Debugger;
-    provider: default.Debugger;
-    awssdk: default.Debugger;
+export const log: {
+    info: debug.Debugger;
+    warn: debug.Debugger;
+    gc: debug.Debugger;
+    leaks: debug.Debugger;
+    calls: debug.Debugger;
+    webpack: debug.Debugger;
+    provider: debug.Debugger;
+    awssdk: debug.Debugger;
 };
 
 // @internal (undocumented)
-declare const _parentModule: NodeModule | null;
+export const _parentModule: NodeModule | null;
 
 // @public
-declare class PersistentCache {
+export class PersistentCache {
     constructor(
     dirRelativeToHomeDir: string, 
     expiration?: number);
@@ -286,21 +290,21 @@ declare class PersistentCache {
 }
 
 // @public
-declare type Promisified<M> = {
+export type Promisified<M> = {
     [K in keyof M]: M[K] extends (...args: infer A) => infer R ? PromisifiedFunction<A, R> : never;
 };
 
 // @public
-declare type PromisifiedFunction<A extends any[], R> = (...args: A) => Promise<Unpacked<R>>;
+export type PromisifiedFunction<A extends any[], R> = (...args: A) => Promise<Unpacked<R>>;
 
 // @public
-declare type Provider = "aws" | "google" | "local";
+export type Provider = "aws" | "google" | "local";
 
 // @public
-declare const providers: Provider[];
+export const providers: Provider[];
 
 // @public
-declare class Statistics {
+export class Statistics {
     constructor(printFixedPrecision?: number);
     // @internal (undocumented)
     clone(): Statistics & this;
@@ -317,10 +321,10 @@ declare class Statistics {
 }
 
 // @public
-declare function throttle<A extends any[], R>({ concurrency, retry, rate, burst, memoize, cache }: Limits, fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;
+export function throttle<A extends any[], R>({ concurrency, retry, rate, burst, memoize, cache }: Limits, fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;
 
 // @public
-declare type Unpacked<T> = T extends Promise<infer D> ? D : T;
+export type Unpacked<T> = T extends Promise<infer D> ? D : T;
 
 
 ```

@@ -29,6 +29,9 @@
     "bin": {
         "faastjs": "./build/src/cli.js"
     },
+    "engines": {
+        "node": ">=8.0"
+    },
     "dependencies": {
         "archiver": "^3.0.0",
         "aws-sdk": "^2.423.0",
@@ -47,8 +50,8 @@
         "yauzl": "^2.10.0"
     },
     "devDependencies": {
-        "@microsoft/api-documenter": "^7.0.35",
-        "@microsoft/api-extractor": "^7.0.28",
+        "@microsoft/api-documenter": "^7.0.46",
+        "@microsoft/api-extractor": "^7.0.36",
         "@types/archiver": "^2.1.1",
         "@types/aws-lambda": "^8.10.23",
         "@types/debug": "^4.1.2",
@@ -69,7 +72,7 @@
         "papaparse": "^4.6.3",
         "tslint": "^5.14.0",
         "tslint-config-prettier": "^1.18.0",
-        "typescript": "^3.3.3333",
+        "typescript": "^3.4.1",
         "webpack-cli": "^3.3.0"
     },
     "ava": {
@@ -78,6 +81,7 @@
         ]
     },
     "prettier": {
+        "printWidth": 90,
         "tabWidth": 4
     }
 }

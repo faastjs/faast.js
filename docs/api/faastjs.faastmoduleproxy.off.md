@@ -7,6 +7,7 @@ hide_title: true
 
 ## FaastModuleProxy.off() method
 
+Deregister a callback for statistics events.
 
 <b>Signature:</b>
 
@@ -24,3 +25,7 @@ off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
 <b>Returns:</b>
 
 `void`
+
+## Remarks
+
+Stops the callback listener from receiving future function statistics events. Calling [FaastModule.cleanup()](./faastjs.faastmodule.cleanup.md) also turns off statistics events.

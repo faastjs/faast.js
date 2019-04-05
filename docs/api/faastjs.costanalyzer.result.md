@@ -31,3 +31,5 @@ class Result<T extends object, A extends string>
 ## Remarks
 
 The `estimates` property has the cost estimates for each configuration. See [CostAnalyzer.Estimate](./faastjs.costanalyzer.estimate.md)<!-- -->.
+
+The constructor for this class is marked as internal. Third-party code should not call the constructor directly or create subclasses that extend the `Result` class.

@@ -528,7 +528,7 @@ export interface FaastModule<M extends object> {
  */
 export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> {
     provider = this.impl.name;
-    /** {@inheritdoc FaastModule} */
+    /** {@inheritdoc FaastModule.functions} */
     functions: Promisified<M>;
     /** @internal */
     private _stats = new FunctionStatsMap();
@@ -575,7 +575,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
         this._collectorPump.start();
     }
 
-    /** {@inheritdoc FaastModule} */
+    /** {@inheritdoc FaastModule.cleanup} */
     async cleanup(userCleanupOptions: CleanupOptions = {}) {
         try {
             const options = Object.assign({}, CleanupOptionDefaults, userCleanupOptions);
@@ -598,7 +598,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
         }
     }
 
-    /** {@inheritdoc FaastModule} */
+    /** {@inheritdoc FaastModule.logUrl} */
     logUrl() {
         const rv = this.impl.logUrl(this.state);
         log.provider(`logUrl ${rv}`);
@@ -620,7 +620,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
         this._statsTimer = undefined;
     }
 
-    /** {@inheritdoc FaastModule} */
+    /** {@inheritdoc FaastModule.on} */
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void) {
         if (!this._statsTimer) {
             this.startStats();
@@ -628,7 +628,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
         this._emitter.on(name, listener);
     }
 
-    /** {@inheritdoc FaastModule} */
+    /** {@inheritdoc FaastModule.off} */
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void) {
         this._emitter.off(name, listener);
         if (this._emitter.listenerCount(name) === 0) {
@@ -789,7 +789,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
         return wrappedFunc as any;
     }
 
-    /** {@inheritdoc FaastModule} */
+    /** {@inheritdoc FaastModule.costSnapshot} */
     async costSnapshot() {
         const estimate = await this.impl.costSnapshot(this.state, this._stats.aggregate);
         log.provider(`costSnapshot returned ${inspectProvider(estimate)}`);
@@ -811,7 +811,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
         return estimate;
     }
 
-    /** {@inheritdoc FaastModule} */
+    /** {@inheritdoc FaastModule.stats} */
     stats(functionName?: string) {
         if (functionName) {
             return this._stats.fAggregate.getOrCreate(functionName).clone();

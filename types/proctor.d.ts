@@ -9,7 +9,7 @@ declare module "process-doctor" {
         pstime: number; // CPU % of stime
     }
 
-    function lookup(pid: number, callback: (err: Error, result: Result) => void);
+    function lookup(pid: number, callback: (err: Error, result: Result) => void): void;
 
     const CLK_TCK: number;
 }

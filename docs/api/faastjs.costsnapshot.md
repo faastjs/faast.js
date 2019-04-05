@@ -100,3 +100,5 @@ The Local provider has no extra metrics.
 Prices are retrieved dynamically from AWS and Google and cached locally. Cached prices expire after 24h. For each cost metric, faast.js uses the highest price tier to compute estimated pricing.
 
 Cost estimates do not take free tiers into account.
+
+The constructor for this class is marked as internal. Third-party code should not call the constructor directly or create subclasses that extend the `CostSnapshot` class.
