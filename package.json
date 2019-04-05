@@ -3,11 +3,11 @@
     "version": "0.0.2",
     "description": "Serverless without the cruft.",
     "main": "build/index.js",
+    "types": "build/decls/index.d.ts",
     "repository": {
         "type": "git",
-        "url": "https://github.com/acchou/faast.js"
+        "url": "https://github.com/faastjs/faast.js"
     },
-    "typings": "build/index.d.ts",
     "scripts": {
         "build": "npm run clean && npx tsc && npm run doc",
         "watch": "npm run clean && npx tsc --watch",
