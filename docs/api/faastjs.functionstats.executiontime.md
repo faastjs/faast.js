@@ -7,7 +7,7 @@ hide_title: true
 
 ## FunctionStats.executionTime property
 
-Statistics for how long a function executes. This is measured as wall clock time, and does not include the time taken to send the response to the response queue.
+Statistics for function execution time in milliseconds. This is measured as wall clock time inside the cloud function, and does not include the time taken to send the response to the response queue. Note that most cloud providers round up to the next 100ms for pricing.
 
 <b>Signature:</b>
 
