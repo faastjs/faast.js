@@ -33,3 +33,13 @@ Faast.js always uses the worst-case pricing tier to produce cost estimates. This
 -   Usually the lambda function call duration dominates the cost of faast.js workloads, and there are no usage-based tiers for this cost metric (memory-based tiers are taken into account by faast.js). It is not unusual for this metric to be 90%+ of the cost.
 
 -   Often it is only _relative_ pricing that matters, e.g. when selecting a memory size it is not the absolute pricing that matters but the relative cost of choosing one memory size versus another.
+
+**Can I send `Buffer`s as arguments or return values from cloud functions?**
+
+Yes. Turn the `Buffer` into JSON with `buf.toJSON()`, which can be sent as an argument or return value to your cloud function. Then on the other side do:
+
+```typescript
+const buf = Buffer.from(rv.data);
+```
+
+Then `buf` will be the original `Buffer`.
