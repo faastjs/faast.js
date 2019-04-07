@@ -4,7 +4,7 @@ import { faast, FaastModule } from "../index";
 import { AwsOptions } from "./aws/aws-faast";
 import { GoogleOptions } from "./google/google-faast";
 import { FunctionStats, CommonOptions } from "./provider";
-import { f1, keys, Statistics, sum } from "./shared";
+import { f1, keysOf, Statistics, sum } from "./shared";
 import { throttle } from "./throttle";
 import { PropertiesExcept, AnyFunction } from "./types";
 
@@ -491,7 +491,7 @@ export namespace CostAnalyzer {
     function summarizeMean<A extends string>(attributes: WorkloadAttribute<A>[]) {
         const stats: { [attr: string]: Statistics } = {};
         attributes.forEach(a =>
-            keys(a).forEach(attr => {
+            keysOf(a).forEach(attr => {
                 if (!(attr in stats)) {
                     stats[attr] = new Statistics();
                 }
@@ -499,7 +499,7 @@ export namespace CostAnalyzer {
             })
         );
         const result = {} as any;
-        keys(stats).forEach(attr => {
+        keysOf(stats).forEach(attr => {
             result[attr] = stats[attr].mean;
         });
         return result;
@@ -704,7 +704,7 @@ export namespace CostAnalyzer {
                             executionTime.stdev
                         )}σ $${total}`;
                         const errMessage = errors > 0 ? ` (${errors} errors)` : "";
-                        const extra = keys(extraMetrics)
+                        const extra = keysOf(extraMetrics)
                             .map(k => format(k, extraMetrics[k]))
                             .join(" ");
                         task.title = `${task.title} ${message}${errMessage} ${extra}`;
@@ -777,7 +777,7 @@ export namespace CostAnalyzer {
         csv() {
             const attributes = new Set<A>();
             this.estimates.forEach(est =>
-                keys(est.extraMetrics).forEach(key => attributes.add(key))
+                keysOf(est.extraMetrics).forEach(key => attributes.add(key))
             );
             const columns = [
                 "memory",
@@ -829,7 +829,7 @@ export namespace CostAnalyzer {
                     ...metrics
                 };
 
-                rv += keys(row)
+                rv += keysOf(row)
                     .map(k => String(row[k]))
                     .join(",");
                 rv += "\n";

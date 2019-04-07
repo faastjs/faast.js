@@ -2,7 +2,7 @@
 
 require("source-map-support").install();
 
-import * as aws from "aws-sdk";
+import { Request as AWSRequest, AWSError } from "aws-sdk";
 import * as commander from "commander";
 import { readdir, remove } from "fs-extra";
 import { GaxiosPromise, GaxiosResponse } from "gaxios";
@@ -13,7 +13,7 @@ import * as path from "path";
 import * as awsFaast from "./aws/aws-faast";
 import { caches, PersistentCache } from "./cache";
 import * as googleFaast from "./google/google-faast";
-import { keys, uuidv4Pattern } from "./shared";
+import { keysOf, uuidv4Pattern } from "./shared";
 import { throttle } from "./throttle";
 
 const warn = console.warn;
@@ -68,11 +68,13 @@ async function deleteResources(
 async function cleanupAWS({ region, execute }: CleanupOptions) {
     let nResources = 0;
     const output = (msg: string) => !execute && log(msg);
-    const { cloudwatch, iam, lambda, sns, sqs } = await awsFaast.createAwsApis(region!);
+    const { cloudwatch, iam, lambda, sns, sqs, s3 } = await awsFaast.createAwsApis(
+        region!
+    );
 
     function listAWSResource<T, U>(
         pattern: RegExp,
-        getList: () => aws.Request<T, aws.AWSError>,
+        getList: () => AWSRequest<T, AWSError>,
         extractList: (arg: T) => U[] | undefined,
         extractElement: (arg: U) => string | undefined
     ) {
@@ -98,7 +100,7 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
     async function deleteAWSResource<T, U>(
         name: string,
         pattern: RegExp,
-        getList: () => aws.Request<T, aws.AWSError>,
+        getList: () => AWSRequest<T, AWSError>,
         extractList: (arg: T) => U[] | undefined,
         extractElement: (arg: U) => string | undefined,
         doRemove: (arg: string) => Promise<any>
@@ -147,6 +149,23 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
         page => page.QueueUrls,
         queueUrl => queueUrl,
         QueueUrl => sqs.deleteQueue({ QueueUrl }).promise()
+    );
+
+    output(`S3 buckets`);
+    await deleteAWSResource(
+        "S3 bucket(s)",
+        new RegExp(`/faast-${uuidv4Pattern}`),
+        () => s3.listBuckets(),
+        page => page.Buckets,
+        Bucket => Bucket.Name,
+        async Bucket => {
+            const objects = await s3
+                .listObjectsV2({ Bucket, Prefix: "faast-" })
+                .promise();
+            const keys = (objects.Contents || []).map(entry => ({ Key: entry.Key! }));
+            await s3.deleteObjects({ Bucket, Delete: { Objects: keys } }).promise();
+            await s3.deleteBucket({ Bucket }).promise();
+        }
     );
 
     output(`Lambda functions`);
@@ -202,7 +221,7 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
         }
     }
 
-    for (const cache of keys(caches)) {
+    for (const cache of keysOf(caches)) {
         await cleanupCacheDir(await caches[cache]);
     }
 

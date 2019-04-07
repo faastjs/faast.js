@@ -28,7 +28,7 @@ import {
     assertNever,
     computeHttpResponseBytes,
     hasExpired,
-    keys,
+    keysOf,
     sleep,
     uuidv4Pattern
 } from "../shared";
@@ -815,7 +815,7 @@ async function costSnapshot(
 ): Promise<CostSnapshot> {
     const costs = new CostSnapshot("google", state.options, stats);
     const { memorySize = defaults.memorySize } = state.options;
-    const provisionableSizes = keys(gcfProvisonableMemoryTable)
+    const provisionableSizes = keysOf(gcfProvisonableMemoryTable)
         .map(n => Number(n))
         .sort((a, b) => a - b);
     const provisionedMb = provisionableSizes.find(size => memorySize <= size);

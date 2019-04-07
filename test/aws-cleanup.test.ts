@@ -4,7 +4,7 @@ import { faastAws, AwsFaastModule } from "../index";
 import { checkResourcesCleanedUp, quietly } from "./fixtures/util";
 
 export async function getAWSResources(mod: AwsFaastModule) {
-    const { lambda, sns, sqs } = mod.state.services;
+    const { lambda, sns, sqs, s3 } = mod.state.services;
     const {
         FunctionName,
         RoleName,
@@ -15,6 +15,7 @@ export async function getAWSResources(mod: AwsFaastModule) {
         ResponseQueueArn,
         logGroupName,
         layer,
+        Bucket,
         ...rest
     } = mod.state.resources;
 
@@ -46,6 +47,8 @@ export async function getAWSResources(mod: AwsFaastModule) {
         sns.listSubscriptionsByTopic({ TopicArn: RequestTopicArn! }).promise()
     );
 
+    const s3Result = Bucket && (await quietly(s3.listObjectsV2({ Bucket }).promise()));
+
     if (
         logGroupName ||
         RoleName ||
@@ -61,7 +64,8 @@ export async function getAWSResources(mod: AwsFaastModule) {
         snsResult,
         sqsResult,
         subscriptionResult,
-        layerResult
+        layerResult,
+        s3Result
     };
 }
 test("remote aws cleanup removes ephemeral resources", async t => {

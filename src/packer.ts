@@ -7,7 +7,7 @@ import * as yauzl from "yauzl";
 import { LoaderOptions } from "./loader";
 import { log } from "./log";
 import { commonDefaults, CommonOptions } from "./provider";
-import { keys, streamToBuffer } from "./shared";
+import { keysOf, streamToBuffer } from "./shared";
 import { TrampolineFactory, WrapperOptionDefaults, WrapperOptions } from "./wrapper";
 
 type ZipFile = yauzl.ZipFile;
@@ -20,7 +20,7 @@ export interface PackerResult {
 }
 
 function getUrlEncodedQueryParameters(options: LoaderOptions) {
-    return keys(options)
+    return keysOf(options)
         .filter(key => options[key])
         .map(key => `${key}=${encodeURIComponent(JSON.stringify(options[key]))}`)
         .join(`&`);

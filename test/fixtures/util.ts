@@ -2,9 +2,9 @@ import { ExecutionContext } from "ava";
 import * as lolex from "lolex";
 import { inspect } from "util";
 import { CommonOptions, log, Provider } from "../../index";
-import { keys } from "../../src/shared";
+import { keysOf } from "../../src/shared";
 import { Timing } from "./functions";
-export { keys };
+export { keysOf };
 
 export const measureConcurrency = (timings: Timing[]) =>
     timings
@@ -40,7 +40,7 @@ export function checkResourcesCleanedUp<T extends object>(
     t: ExecutionContext,
     resources: T
 ) {
-    for (const key of keys(resources)) {
+    for (const key of keysOf(resources)) {
         t.is(resources[key], undefined);
     }
 }
@@ -51,7 +51,7 @@ export interface RecordedCall<A extends any[], R> {
 }
 
 export interface RecordedFunction<A extends any[], R> {
-    (...any: A): R;
+    (...args: A): R;
     recordings: Array<RecordedCall<A, R>>;
 }
 
@@ -69,7 +69,7 @@ export function record<A extends any[], R>(fn: (...args: A) => R) {
 }
 
 export function contains<T extends U, U extends object>(container: T, obj: U) {
-    for (const key of keys(obj)) {
+    for (const key of keysOf(obj)) {
         if (!(key in container) || container[key] !== obj[key]) {
             return false;
         }

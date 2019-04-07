@@ -1,6 +1,6 @@
 import test, { ExecutionContext } from "ava";
 import { faastGoogle, GoogleFaastModule, log } from "../index";
-import { checkResourcesCleanedUp, keys, quietly } from "./fixtures/util";
+import { checkResourcesCleanedUp, keysOf, quietly } from "./fixtures/util";
 
 export async function getGoogleResources(mod: GoogleFaastModule) {
     const { cloudFunctions, pubsub } = mod.state.services;
@@ -45,8 +45,8 @@ export async function getGoogleResources(mod: GoogleFaastModule) {
 }
 
 export function checkResourcesExist<T extends object>(t: ExecutionContext, resources: T) {
-    t.true(keys(resources).length === 4);
-    for (const key of keys(resources)) {
+    t.true(keysOf(resources).length === 4);
+    for (const key of keysOf(resources)) {
         t.truthy(resources[key]);
     }
 }

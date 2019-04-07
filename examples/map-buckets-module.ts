@@ -1,11 +1,11 @@
-import * as aws from "aws-sdk";
+import { S3 } from "aws-sdk";
 import * as tar from "tar-stream";
 import { Readable } from "stream";
 import { escape } from "querystring";
 import { createHash } from "crypto";
 import * as process from "process";
 
-const s3 = new aws.S3({ region: "us-west-2" });
+const s3 = new S3({ region: "us-west-2" });
 
 function streamToBuffer(strm: Readable): Promise<Buffer> {
     return new Promise((resolve, reject) => {

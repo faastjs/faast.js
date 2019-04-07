@@ -1,5 +1,5 @@
 import { Context, SNSEvent } from "aws-lambda";
-import * as aws from "aws-sdk";
+import { SQS } from "aws-sdk";
 import { env } from "process";
 import {
     CallingContext,
@@ -12,7 +12,7 @@ import { sendResponseQueueMessage } from "./aws-queue";
 import { getExecutionLogUrl } from "./aws-shared";
 import { ResponseMessage, Invocation } from "../provider";
 
-const sqs = new aws.SQS({ apiVersion: "2012-11-05" });
+const sqs = new SQS({ apiVersion: "2012-11-05" });
 
 export const filename = module.filename;
 

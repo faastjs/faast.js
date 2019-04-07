@@ -1,5 +1,5 @@
 import test from "ava";
-import * as aws from "aws-sdk";
+import { IAM } from "aws-sdk";
 import * as uuidv4 from "uuid/v4";
 import { faastAws } from "../index";
 import { deleteRole } from "../src/aws/aws-faast";
@@ -12,7 +12,7 @@ import { sleep } from "../src/shared";
  */
 test("remote aws custom role", async t => {
     t.plan(1);
-    const iam = new aws.IAM();
+    const iam = new IAM();
     const uuid = uuidv4();
     const RoleName = `faast-test-custom-role-${uuid}`;
     let faastModule;

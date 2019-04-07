@@ -1,6 +1,6 @@
 import * as webpack from "webpack";
 import { CostSnapshot } from "./cost";
-import { Statistics, keys } from "./shared";
+import { Statistics, keysOf } from "./shared";
 import { CpuMeasurement, FunctionReturn } from "./wrapper";
 
 export const CALLID_ATTR = "__faast_callid__";
@@ -530,7 +530,7 @@ export class FunctionStats {
     /** @internal */
     clone(): FunctionStats {
         const rv = Object.assign(Object.create(Object.getPrototypeOf(this)), this);
-        for (const key of keys(rv)) {
+        for (const key of keysOf(rv)) {
             if (typeof rv[key] !== "number") {
                 rv[key] = rv[key].clone();
             }

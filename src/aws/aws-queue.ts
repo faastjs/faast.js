@@ -1,5 +1,5 @@
 import { SNSEvent } from "aws-lambda";
-import * as aws from "aws-sdk";
+import { SQS, SNS } from "aws-sdk";
 import { log } from "../log";
 import {
     CALLID_ATTR,
@@ -17,12 +17,12 @@ import { FunctionCall } from "../wrapper";
 import { AwsMetrics } from "./aws-faast";
 import { serializeReturn } from "../serialize";
 
-function sqsMessageAttribute(message: aws.SQS.Message, attr: string) {
+function sqsMessageAttribute(message: SQS.Message, attr: string) {
     const a = message.MessageAttributes;
     return a && a[attr] && a[attr].StringValue;
 }
 
-export async function createSNSTopic(sns: aws.SNS, Name: string) {
+export async function createSNSTopic(sns: SNS, Name: string) {
     const topic = await sns.createTopic({ Name }).promise();
     return topic.TopicArn!;
 }
@@ -33,8 +33,8 @@ function countRequests(bytes: number) {
 
 function convertMapToAwsMessageAttributes(
     attributes?: Attributes
-): aws.SNS.MessageAttributeMap {
-    const attr: aws.SNS.MessageAttributeMap = {};
+): SNS.MessageAttributeMap {
+    const attr: SNS.MessageAttributeMap = {};
     attributes &&
         Object.keys(attributes).forEach(
             key => (attr[key] = { DataType: "String", StringValue: attributes[key] })
@@ -43,7 +43,7 @@ function convertMapToAwsMessageAttributes(
 }
 
 async function publishSQS(
-    sqs: aws.SQS,
+    sqs: SQS,
     QueueUrl: string,
     MessageBody: string,
     attr?: Attributes
@@ -57,7 +57,7 @@ async function publishSQS(
 }
 
 export function sendResponseQueueMessage(
-    sqs: aws.SQS,
+    sqs: SQS,
     QueueUrl: string,
     message: Exclude<Message, DeadLetterMessage>
 ) {
@@ -84,7 +84,7 @@ export function sendResponseQueueMessage(
 }
 
 export function publishInvocationMessage(
-    sns: aws.SNS,
+    sns: SNS,
     TopicArn: string,
     message: Invocation,
     metrics: AwsMetrics
@@ -98,8 +98,8 @@ export function publishInvocationMessage(
         .promise();
 }
 
-export async function createSQSQueue(QueueName: string, VTimeout: number, sqs: aws.SQS) {
-    const createQueueRequest: aws.SQS.CreateQueueRequest = {
+export async function createSQSQueue(QueueName: string, VTimeout: number, sqs: SQS) {
+    const createQueueRequest: SQS.CreateQueueRequest = {
         QueueName,
         Attributes: {
             VisibilityTimeout: `${VTimeout}`
@@ -122,7 +122,7 @@ export function processAwsErrorMessage(message: string) {
 }
 
 export async function receiveMessages(
-    sqs: aws.SQS,
+    sqs: SQS,
     ResponseQueueUrl: string,
     metrics: AwsMetrics,
     cancel: Promise<void>
@@ -167,7 +167,7 @@ export async function receiveMessages(
     };
 }
 
-function processIncomingQueueMessage(m: aws.SQS.Message): ReceivableMessage | void {
+function processIncomingQueueMessage(m: SQS.Message): ReceivableMessage | void {
     // Check for dead letter messages first.
     // https://docs.aws.amazon.com/lambda/latest/dg/dlq.html
     const errorMessage = sqsMessageAttribute(m, "ErrorMessage");

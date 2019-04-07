@@ -1,4 +1,16 @@
-import * as aws from "aws-sdk";
+import {
+    AWSError,
+    CloudWatchLogs,
+    config as awsconfig,
+    IAM,
+    Lambda,
+    Pricing,
+    Request,
+    SNS,
+    SQS,
+    STS,
+    S3
+} from "aws-sdk";
 import { createHash } from "crypto";
 import { ensureDir, readFile, writeFile } from "fs-extra";
 import { join } from "path";
@@ -171,7 +183,7 @@ export interface AwsOptions extends CommonOptions {
      * {@link https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html | Lambda Layers}
      * with faast.js.
      */
-    awsLambdaOptions?: Partial<aws.Lambda.CreateFunctionRequest>;
+    awsLambdaOptions?: Partial<Lambda.CreateFunctionRequest>;
     /** @internal */
     _gcWorker?: (work: AwsGcWork, services: AwsServices) => Promise<void>;
 }
@@ -210,16 +222,18 @@ export interface AwsResources {
     SNSLambdaSubscriptionArn?: string;
     logGroupName: string;
     layer?: AwsLayerInfo;
+    Bucket?: string;
 }
 
 export interface AwsServices {
-    readonly lambda: aws.Lambda;
-    readonly cloudwatch: aws.CloudWatchLogs;
-    readonly iam: aws.IAM;
-    readonly sqs: aws.SQS;
-    readonly sns: aws.SNS;
-    readonly pricing: aws.Pricing;
-    readonly sts: aws.STS;
+    readonly lambda: Lambda;
+    readonly cloudwatch: CloudWatchLogs;
+    readonly iam: IAM;
+    readonly sqs: SQS;
+    readonly sns: SNS;
+    readonly pricing: Pricing;
+    readonly sts: STS;
+    readonly s3: S3;
 }
 
 /**
@@ -249,11 +263,11 @@ export type AwsGcWork =
           layerVersion: number;
       };
 
-export function carefully<U>(arg: aws.Request<U, aws.AWSError>) {
+export function carefully<U>(arg: Request<U, AWSError>) {
     return arg.promise().catch(err => log.warn(err));
 }
 
-export async function quietly<U>(arg: aws.Request<U, aws.AWSError>) {
+export async function quietly<U>(arg: Request<U, AWSError>) {
     try {
         return await arg.promise();
     } catch (err) {
@@ -274,15 +288,16 @@ export const createAwsApis = throttle(
     { concurrency: 1, memoize: true },
     async (region: string) => {
         const logger = log.awssdk.enabled ? { log: log.awssdk } : undefined;
-        aws.config.update({ correctClockSkew: true, maxRetries: 6, logger });
+        awsconfig.update({ correctClockSkew: true, maxRetries: 6, logger });
         const services = {
-            iam: new aws.IAM({ apiVersion: "2010-05-08", region }),
-            lambda: new aws.Lambda({ apiVersion: "2015-03-31", region }),
-            cloudwatch: new aws.CloudWatchLogs({ apiVersion: "2014-03-28", region }),
-            sqs: new aws.SQS({ apiVersion: "2012-11-05", region }),
-            sns: new aws.SNS({ apiVersion: "2010-03-31", region }),
-            pricing: new aws.Pricing({ region: "us-east-1" }),
-            sts: new aws.STS({ apiVersion: "2011-06-15", region })
+            iam: new IAM({ apiVersion: "2010-05-08", region }),
+            lambda: new Lambda({ apiVersion: "2015-03-31", region }),
+            cloudwatch: new CloudWatchLogs({ apiVersion: "2014-03-28", region }),
+            sqs: new SQS({ apiVersion: "2012-11-05", region }),
+            sns: new SNS({ apiVersion: "2010-03-31", region }),
+            pricing: new Pricing({ region: "us-east-1" }),
+            sts: new STS({ apiVersion: "2011-06-15", region }),
+            s3: new S3({ apiVersion: "2006-03-01", region })
         };
         return services;
     }
@@ -311,7 +326,7 @@ const ensureRole = throttle(
                 }
             ]
         });
-        const roleParams: aws.IAM.CreateRoleRequest = {
+        const roleParams: IAM.CreateRoleRequest = {
             AssumeRolePolicyDocument,
             RoleName,
             Description: "role for lambda functions created by faast",
@@ -336,7 +351,7 @@ const ensureRole = throttle(
 );
 
 export async function createLayer(
-    lambda: aws.Lambda,
+    lambda: Lambda,
     packageJson: string | object | undefined,
     useDependencyCaching: boolean,
     FunctionName: string
@@ -382,7 +397,8 @@ export async function createLayer(
         try {
             const installArgs: awsNpm.NpmInstallArgs = {
                 packageJsonContents,
-                LayerName
+                LayerName,
+                FunctionName
             };
             const { installLog, layerInfo } = await faastModule.functions.npmInstall(
                 installArgs
@@ -417,7 +433,7 @@ export const initialize = throttle(
         const { packageJson, useDependencyCaching } = options;
 
         async function createFunctionRequest(
-            Code: aws.Lambda.FunctionCode,
+            Code: Lambda.FunctionCode,
             Role: string,
             responseQueueArn: string,
             layerInfo?: AwsLayerInfo
@@ -426,7 +442,7 @@ export const initialize = throttle(
             if (layerInfo) {
                 Layers.push(layerInfo.LayerVersionArn);
             }
-            const request: aws.Lambda.CreateFunctionRequest = {
+            const request: Lambda.CreateFunctionRequest = {
                 FunctionName,
                 Role,
                 Runtime: "nodejs8.10",
@@ -577,13 +593,13 @@ function responseQueueId(state: AwsState): string | undefined {
 }
 
 async function invokeHttps(
-    lambda: aws.Lambda,
+    lambda: Lambda,
     FunctionName: string,
     message: Invocation,
     metrics: AwsMetrics,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
-    const request: aws.Lambda.InvocationRequest = {
+    const request: Lambda.InvocationRequest = {
         FunctionName,
         Payload: message.body,
         LogType: "None"
@@ -623,7 +639,7 @@ async function invokeHttps(
     };
 }
 
-export async function deleteRole(RoleName: string, iam: aws.IAM) {
+export async function deleteRole(RoleName: string, iam: IAM) {
     const policies = await carefully(iam.listAttachedRolePolicies({ RoleName }));
     const AttachedPolicies = (policies && policies.AttachedPolicies) || [];
     await Promise.all(
@@ -657,11 +673,12 @@ async function deleteResources(
         SNSLambdaSubscriptionArn,
         logGroupName,
         layer,
+        Bucket,
         ...rest
     } = resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
 
-    const { lambda, sqs, sns, iam } = services;
+    const { lambda, sqs, sns, iam, s3, cloudwatch } = services;
     if (SNSLambdaSubscriptionArn) {
         if (
             await quietly(sns.unsubscribe({ SubscriptionArn: SNSLambdaSubscriptionArn }))
@@ -700,16 +717,25 @@ async function deleteResources(
         }
     }
     if (logGroupName) {
-        if (await quietly(services.cloudwatch.deleteLogGroup({ logGroupName }))) {
-            output(`Deleted log group ${logGroupName}`);
+        if (await quietly(cloudwatch.deleteLogGroup({ logGroupName }))) {
+            output(`Deleted log group: ${logGroupName}`);
+        }
+    }
+    if (Bucket) {
+        const objects = await quietly(s3.listObjectsV2({ Bucket, Prefix: "faast-" }));
+        if (objects) {
+            const keys = (objects.Contents || []).map(elem => ({ Key: elem.Key! }));
+            if (await quietly(s3.deleteObjects({ Bucket, Delete: { Objects: keys } }))) {
+                output(`Deleted s3 objects: ${keys.length} objects in bucket ${Bucket}`);
+            }
+        }
+        if (await quietly(s3.deleteBucket({ Bucket }))) {
+            output(`Deleted s3 bucket: ${Bucket}`);
         }
     }
 }
 
-async function addLogRetentionPolicy(
-    FunctionName: string,
-    cloudwatch: aws.CloudWatchLogs
-) {
+async function addLogRetentionPolicy(FunctionName: string, cloudwatch: CloudWatchLogs) {
     const logGroupName = getLogGroupName(FunctionName);
     const response = quietly(
         cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 })
@@ -755,7 +781,7 @@ let lastGc: number | undefined;
 
 function forEachPage<R>(
     description: string,
-    request: aws.Request<R, aws.AWSError>,
+    request: Request<R, AWSError>,
     process: (page: R) => Promise<void>
 ) {
     const throttlePaging = throttle({ concurrency: 1, rate: 1 }, async () => {});
@@ -876,7 +902,7 @@ export async function collectGarbage(
     await Promise.all(promises);
 }
 
-export async function getAccountId(sts: aws.STS) {
+export async function getAccountId(sts: STS) {
     const response = await sts.getCallerIdentity().promise();
     const { Account, Arn, UserId } = response;
     log.info(`Account ID: %O`, { Account, Arn, UserId });
@@ -884,7 +910,7 @@ export async function getAccountId(sts: aws.STS) {
 }
 
 function garbageCollectLogGroups(
-    logGroups: aws.CloudWatchLogs.LogGroup[],
+    logGroups: CloudWatchLogs.LogGroup[],
     retentionInDays: number,
     region: AwsRegion,
     accountId: string,
@@ -924,7 +950,8 @@ function deleteGarbageFunctions(
             RoleName: "",
             RequestTopicArn: getSNSTopicArn(region, accountId, FunctionName),
             ResponseQueueUrl: getResponseQueueUrl(region, accountId, FunctionName),
-            logGroupName: getLogGroupName(FunctionName)
+            logGroupName: getLogGroupName(FunctionName),
+            Bucket: FunctionName
         };
         scheduleWork({ type: "DeleteResources", resources });
     });
@@ -1031,7 +1058,7 @@ export async function createResponseQueueImpl(state: AwsState, FunctionName: str
 function addSnsInvokePermissionsToFunction(
     FunctionName: string,
     RequestTopicArn: string,
-    lambda: aws.Lambda
+    lambda: Lambda
 ) {
     return lambda
         .addPermission({
@@ -1089,11 +1116,7 @@ const locations = {
 
 export const awsPrice = throttle(
     { concurrency: 6, rate: 5, memoize: true, cache: caches.awsPrices },
-    async (
-        pricing: aws.Pricing,
-        ServiceCode: string,
-        filter: { [key: string]: string }
-    ) => {
+    async (pricing: Pricing, ServiceCode: string, filter: { [key: string]: string }) => {
         try {
             function first(obj: any) {
                 return obj[Object.keys(obj)[0]];
@@ -1140,7 +1163,7 @@ export const awsPrice = throttle(
 );
 
 export const requestAwsPrices = async (
-    pricing: aws.Pricing,
+    pricing: Pricing,
     region: AwsRegion
 ): Promise<AwsPrices> => {
     const location = locations[region];

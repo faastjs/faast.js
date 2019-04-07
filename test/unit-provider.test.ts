@@ -1,6 +1,6 @@
 import { FunctionStats } from "../index";
 import test from "ava";
-import { keys } from "../src/shared";
+import { keysOf } from "../src/shared";
 
 test(`FunctionStats clone`, t => {
     const stats = new FunctionStats();
@@ -18,7 +18,7 @@ test(`FunctionStats clone`, t => {
 
     const cloned = stats.clone();
     t.deepEqual(cloned, stats);
-    for (const key of keys(cloned)) {
+    for (const key of keysOf(cloned)) {
         if (typeof cloned[key] !== "number") {
             t.true(cloned[key] !== stats[key]);
         }

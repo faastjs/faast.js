@@ -1,5 +1,5 @@
 import * as archiver from "archiver";
-import { Lambda } from "aws-sdk";
+import { Lambda, S3 } from "aws-sdk";
 import * as sys from "child_process";
 import { writeFile, ensureDir } from "fs-extra";
 import { tmpdir } from "os";
@@ -21,6 +21,7 @@ const lambda = new Lambda({ apiVersion: "2015-03-31" });
 export interface NpmInstallArgs {
     packageJsonContents: string;
     LayerName: string;
+    FunctionName: string;
 }
 
 export interface AwsLayerInfo {
@@ -36,7 +37,8 @@ export interface NpmInstallReturn {
 
 export async function npmInstall({
     LayerName,
-    packageJsonContents
+    packageJsonContents,
+    FunctionName
 }: NpmInstallArgs): Promise<NpmInstallReturn> {
     console.log(
         `*** This faast invocation is an internal lambda call used when the packageJson option is specified to createFunction(). ***`
@@ -74,24 +76,48 @@ export async function npmInstall({
     cacheArchive.directory(path.dirname(buildDir), false).finalize();
 
     const ZipFile = await streamToBuffer(cacheArchive);
+    let Content: Lambda.LayerVersionContentInput;
+    const s3 = new S3();
+    const Bucket = FunctionName;
+    if (ZipFile.length > 50 * 2 ** 20) {
+        // Try to use S3 to allow for a larger limit
+        await s3
+            .createBucket({ Bucket })
+            .promise()
+            .catch(_ => {});
+        await s3.upload({ Bucket, Key: LayerName, Body: ZipFile }).promise();
+        Content = { S3Bucket: Bucket, S3Key: LayerName };
+    } else {
+        Content = { ZipFile };
+    }
     console.log(`Creating lambda layer: ${LayerName}, zip file size: ${ZipFile.length}`);
-    const publishResponse = await lambda
-        .publishLayerVersion({
-            LayerName,
-            Description: `faast packageJson layer with LayerName ${LayerName}`,
-            Content: { ZipFile },
-            CompatibleRuntimes: ["nodejs"]
-        })
-        .promise();
-    const { Version } = publishResponse;
-    console.log(`Created lambda layer: ${LayerName}:${Version}`);
-    console.log(`DONE`);
-    return {
-        installLog,
-        layerInfo: {
-            LayerName,
-            LayerVersionArn: publishResponse.LayerVersionArn!,
-            Version: publishResponse.Version!
+    try {
+        const publishResponse = await lambda
+            .publishLayerVersion({
+                LayerName,
+                Description: `faast packageJson layer with LayerName ${LayerName}`,
+                Content,
+                CompatibleRuntimes: ["nodejs"]
+            })
+            .promise();
+        const { Version } = publishResponse;
+        console.log(`Created lambda layer: ${LayerName}:${Version}`);
+        console.log(`DONE`);
+        return {
+            installLog,
+            layerInfo: {
+                LayerName,
+                LayerVersionArn: publishResponse.LayerVersionArn!,
+                Version: publishResponse.Version!
+            }
+        };
+    } finally {
+        if (Content.S3Bucket) {
+            await s3
+                .deleteObject({ Bucket, Key: LayerName })
+                .promise()
+                .catch(_ => {});
+            await s3.deleteBucket({ Bucket }).promise();
         }
-    };
+    }
 }
