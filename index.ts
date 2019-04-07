@@ -51,7 +51,7 @@ export {
     PromisifiedFunction,
     providers
 } from "./src/faast";
-export { GoogleOptions } from "./src/google/google-faast";
+export { GoogleOptions, GoogleRegion } from "./src/google/google-faast";
 export { LocalOptions } from "./src/local/local-faast";
 export { log } from "./src/log";
 export { CleanupOptions, CommonOptions, FunctionStats, Provider } from "./src/provider";

@@ -4,15 +4,22 @@
 
 ```ts
 
-import * as aws from 'aws-sdk';
 import * as childProcess from 'child_process';
 import { cloudbilling_v1 } from 'googleapis';
 import { cloudfunctions_v1 } from 'googleapis';
+import { CloudWatchLogs } from 'aws-sdk';
 import * as debug from 'debug';
 import { GoogleApis } from 'googleapis';
+import { IAM } from 'aws-sdk';
+import { Lambda } from 'aws-sdk';
+import { Pricing } from 'aws-sdk';
 import * as proctor from 'process-doctor';
 import { pubsub_v1 } from 'googleapis';
 import { Readable } from 'stream';
+import { S3 } from 'aws-sdk';
+import { SNS } from 'aws-sdk';
+import { SQS } from 'aws-sdk';
+import { STS } from 'aws-sdk';
 import * as webpack from 'webpack';
 import { Writable } from 'stream';
 
@@ -23,7 +30,7 @@ export type AwsFaastModule<M extends object = object> = FaastModuleProxy<M, AwsO
 
 // @public
 export interface AwsOptions extends CommonOptions {
-    awsLambdaOptions?: Partial<aws.Lambda.CreateFunctionRequest>;
+    awsLambdaOptions?: Partial<Lambda.CreateFunctionRequest>;
     // Warning: (ae-forgotten-export) The symbol "AwsGcWork" needs to be exported by the entry point index.d.ts
     // Warning: (ae-forgotten-export) The symbol "AwsServices" needs to be exported by the entry point index.d.ts
     // 
@@ -233,8 +240,11 @@ export interface GoogleOptions extends CommonOptions {
     // @internal (undocumented)
     _gcWorker?: (resources: GoogleResources, services: GoogleServices) => Promise<void>;
     googleCloudFunctionOptions?: cloudfunctions_v1.Schema$CloudFunction;
-    region?: string;
+    region?: GoogleRegion;
 }
+
+// @public
+export type GoogleRegion = "asia-east1" | "asia-east2" | "asia-northeast1" | "asia-south1" | "asia-southeast1" | "australia-southeast1" | "europe-north1" | "europe-west1" | "europe-west2" | "europe-west3" | "europe-west4" | "europe-west6" | "northamerica-northeast1" | "southamerica-east1" | "us-central1" | "us-east1" | "us-east4" | "us-west1" | "us-west2";
 
 // @public
 export interface Limits {

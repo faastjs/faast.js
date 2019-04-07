@@ -12,5 +12,5 @@ The region to create resources in. Garbage collection is also limited to this re
 <b>Signature:</b>
 
 ```typescript
-region?: string;
+region?: GoogleRegion;
 ```

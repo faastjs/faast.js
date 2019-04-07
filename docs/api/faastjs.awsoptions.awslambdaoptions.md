@@ -12,7 +12,7 @@ Additional options to pass to AWS Lambda creation. See [CreateFunction](https://
 <b>Signature:</b>
 
 ```typescript
-awsLambdaOptions?: Partial<aws.Lambda.CreateFunctionRequest>;
+awsLambdaOptions?: Partial<Lambda.CreateFunctionRequest>;
 ```
 
 ## Remarks

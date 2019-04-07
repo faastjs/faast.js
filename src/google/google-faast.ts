@@ -1,6 +1,6 @@
 import { AbortController } from "abort-controller";
 import * as sys from "child_process";
-import { Gaxios, GaxiosError, GaxiosOptions, GaxiosPromise } from "gaxios";
+import { Gaxios, GaxiosOptions, GaxiosPromise } from "gaxios";
 import {
     cloudbilling_v1,
     cloudfunctions_v1,
@@ -10,17 +10,17 @@ import {
 } from "googleapis";
 import * as util from "util";
 import { caches } from "../cache";
-import { CostSnapshot, CostMetric } from "../cost";
+import { CostMetric, CostSnapshot } from "../cost";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import {
     CleanupOptions,
-    ProviderImpl,
     commonDefaults,
     CommonOptions,
     FunctionStats,
     Invocation,
     PollResult,
+    ProviderImpl,
     ResponseMessage,
     UUID
 } from "../provider";
@@ -46,6 +46,35 @@ import CloudBilling = cloudbilling_v1;
 const gaxios = new Gaxios();
 
 /**
+ * Valid Google Cloud
+ * {@link https://cloud.google.com/compute/docs/regions-zones/ | regions}.
+ * Only some of these [regions have Cloud Functions](https://cloud.google.com/functions/docs/locations).
+ * @public
+ */
+export type GoogleRegion =
+    | "asia-east1"
+    | "asia-east2"
+    | "asia-northeast1"
+    | "asia-south1"
+    | "asia-southeast1"
+    | "australia-southeast1"
+    | "europe-north1"
+    | "europe-west1"
+    | "europe-west2"
+    | "europe-west3"
+    | "europe-west4"
+    | "europe-west6"
+    | "northamerica-northeast1"
+    | "southamerica-east1"
+    | "us-central1"
+    | "us-east1"
+    | "us-east4"
+    | "us-west1"
+    | "us-west2";
+
+const GoogleCloudFunctionsMemorySizes = [128, 256, 512, 1024, 2048];
+
+/**
  * Google-specific options for {@link faastGoogle}. Extends
  * {@link CommonOptions}.
  * @public
@@ -55,7 +84,7 @@ export interface GoogleOptions extends CommonOptions {
      * The region to create resources in. Garbage collection is also limited to
      * this region. Default: `"us-central1"`.
      */
-    region?: string;
+    region?: GoogleRegion;
     /**
      * Additional options to pass to Google Cloud Function creation. See
      * {@link https://cloud.google.com/functions/docs/reference/rest/v1/projects.locations.functions#CloudFunction | projects.locations.functions}.
@@ -323,6 +352,9 @@ export async function initialize(
 
     const sourceUploadUrl = await createCodeBundle();
     const { memorySize, googleCloudFunctionOptions } = options;
+    if (!GoogleCloudFunctionsMemorySizes.find(size => size === memorySize)) {
+        log.warn(`Invalid memorySize ${memorySize} for Google Cloud Functions`);
+    }
     const requestBody: CloudFunctions.Schema$CloudFunction = {
         name: trampoline,
         entryPoint: "trampoline",

@@ -8,6 +8,33 @@ hide_title: true
 
 A catalogue of common error messages and their root causes. Some of these errors are specific to the faast.js testsuite, but other errors may be encountered by users.
 
+## Error instantiating faast.js with Google Cloud
+
+This error message can occur if the create function parameters are incorrect:
+
+```text
+  faast:warning createFunction error: Error: The request has errors
+  faast:warning     at Gaxios.<anonymous> (/Users/achou/Code/faast.js/node_modules/gaxios/build/src/gaxios.js:72:27)
+  faast:warning     at Generator.next (<anonymous>)
+  faast:warning     at fulfilled (/Users/achou/Code/faast.js/node_modules/gaxios/build/src/gaxios.js:16:58)
+  faast:warning     at processTicksAndRejections (internal/process/next_tick.js:81:5) +0ms
+  faast:warning faast: createFunction error: Error: The request has errors +441ms
+(node:62580) UnhandledPromiseRejectionWarning: Error: The request has errors
+    at Gaxios.<anonymous> (/Users/achou/Code/faast.js/node_modules/gaxios/build/src/gaxios.js:72:27)
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/achou/Code/faast.js/node_modules/gaxios/build/src/gaxios.js:16:58)
+    at processTicksAndRejections (internal/process/next_tick.js:81:5)
+(node:62580) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). (rejection id: 1)
+(node:62580) [DEP0018] DeprecationWarning: Unhandled promise rejections are deprecated. In the future, promise rejections that are not handled will terminate the Node.js process with a non-zero exit code.
+```
+
+Some common reasons for this include:
+
+-   Specifying an incorrect google cloud region
+-   Specifying a memory size that google cloud functions does not support.
+
+Unfortunately google cloud's error message is vague about the cause.
+
 ## Error importing puppeteer
 
 The following error occurs when trying to use puppeteer:
