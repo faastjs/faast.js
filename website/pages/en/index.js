@@ -51,7 +51,12 @@ class HomeSplash extends React.Component {
 
         const Button = props => (
             <div className="pluginWrapper buttonWrapper">
-                <a className="button" href={props.href} target={props.target}>
+                <a
+                    className="button"
+                    href={props.href}
+                    target={props.target}
+                    rel={props.rel}
+                >
                     {props.children}
                 </a>
             </div>
@@ -63,8 +68,15 @@ class HomeSplash extends React.Component {
                 <div className="inner">
                     <ProjectTitle siteConfig={siteConfig} />
                     <PromoSection>
-                        <Button href="#example">Example</Button>
+                        <Button href="#example">About</Button>
                         <Button href={docUrl("introduction")}>Docs</Button>
+                        <Button
+                            href="https://github.com/faastjs/examples"
+                            target="_blank"
+                            rel="noreferrer noopener"
+                        >
+                            Examples
+                        </Button>
                     </PromoSection>
                 </div>
             </SplashContainer>
@@ -103,12 +115,13 @@ class Index extends React.Component {
             <Block id="example">
                 {[
                     {
-                        content: `Create serverless functions without any cruft. Leave no trace of infrastructure behind. Your code gains superpowers with faast.js`,
+                        title: "Invoke cloud functions like regular functions.",
+                        content: `*Lambdas*. They're supposed to be functions. But creating and using lambda functions involves a lot of incidental complexity. Suddenly you're knee deep in command line tools, configuration files, web consoles,  and execution roles. Didn't we get into this to *just run some code?*
+                        <p>That's because lambdas aren't like functions in some important ways. Functions summon the resources they need automatically, do their job, and then go away when they're done. They're fast, simple, and powerful. But often overlooked is that functions don't leave behind any operational infrastructure to worry about. Faast.js brings much of the operational simplicity of ordinary functions to cloud functions.`,
                         align: "left",
                         image: `${baseUrl}img/example-1.png`,
                         imageLink: `/docs/introduction#scaling-up`,
-                        imageAlign: "left",
-                        title: "More dev, less ops."
+                        imageAlign: "left"
                     }
                 ]}
             </Block>
@@ -157,8 +170,7 @@ class Index extends React.Component {
                             image: `${baseUrl}img/pack.svg`,
                             imageAlign: "top",
                             title: "Transparent bundling",
-                            content:
-                                "There's no separate deploy step to forget."
+                            content: "There's no separate deploy step to forget."
                         },
                         {
                             image: `${baseUrl}img/cleanup.svg`,
@@ -180,16 +192,11 @@ class Index extends React.Component {
                 .filter(user => user.pinned)
                 .map(user => (
                     <a href={user.infoLink} key={user.infoLink}>
-                        <img
-                            src={user.image}
-                            alt={user.caption}
-                            title={user.caption}
-                        />
+                        <img src={user.image} alt={user.caption} title={user.caption} />
                     </a>
                 ));
 
-            const pageUrl = page =>
-                baseUrl + (language ? `${language}/` : "") + page;
+            const pageUrl = page => baseUrl + (language ? `${language}/` : "") + page;
 
             return (
                 <div className="productShowcaseSection paddingBottom">
@@ -209,9 +216,9 @@ class Index extends React.Component {
             <div>
                 <HomeSplash siteConfig={siteConfig} language={language} />
                 <div className="mainContainer">
+                    <Example />
                     <Features />
                     <FeatureCallout />
-                    <Example />
                 </div>
             </div>
         );

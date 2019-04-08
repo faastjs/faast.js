@@ -16,11 +16,11 @@ $ npm install faastjs
 
 ## Setting up cloud providers
 
-Using the local provider allows you to test faast.js on your local machine. See [local provider instructions](./06-local.md).
+Using the local provider allows you to test faast.js on your local machine. There is no setup, just use `"local"` as the name of the provider.
 
 AWS is recommended for optimal faast.js performance. See [AWS setup instructions](./04-aws-lambda#setup).
 
-Google Cloud is also fully supported. See [Google Cloud setup instructions](./05-google-cloud-functions#setup).
+Google Cloud is also supported. See [Google Cloud setup instructions](./05-google-cloud-functions#setup).
 
 ## Usage
 
@@ -41,7 +41,6 @@ import { faast } from "faastjs";
 import * as funcs from "./functions";
 
 (async () => {
-    // funcs.hello: string => string
     const m = await faast("aws", funcs, "./functions");
     try {
         // m.functions.hello: string => Promise<string>
@@ -200,11 +199,9 @@ Faast.js ensures logs will expire; on AWS the log group expiration is set to 1 d
 
 When errors are thrown by faast.js functions, log URLs may be appended to the error message. Whenever possible, these URLs incorporate cloud-specific filtering parameters to focus the log output to just the failed execution.
 
-## Local caching in ~/.faast
+## faastjs command line tool
 
-Faast.js will create some local cache files in `~/.faast`, with a subdirectory for each provider used. The [`faastjs cleanup`](../README#Cleaning_up_stray_resources) command will delete these files for you. Or, you can clear the local cache by deleting `~/.faast` manually. No configuration is stored there, only caching files.
-
-### Cleanup command
+Garbage collection should take care of stray faast.js resources automatically. But if you really want to remove all traces of faast.js from your account, we also have a command line script.
 
 Usage:
 
@@ -250,3 +247,7 @@ $ npx faastjs cleanup aws -x
 ```
 
 This will prompt to confirm.
+
+### Local caching
+
+Faast.js creates some local cache files in `~/.faast`, with a subdirectory for each provider used. The `faastjs cleanup` command will delete these files for you.

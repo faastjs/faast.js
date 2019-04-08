@@ -377,6 +377,9 @@
       "api/faastjs.googleoptions.region": {
         "title": "GoogleOptions.region property"
       },
+      "api/faastjs.googleregion": {
+        "title": "GoogleRegion type"
+      },
       "api/faastjs.limits.burst": {
         "title": "Limits.burst property"
       },

@@ -50,7 +50,13 @@ class Footer extends React.Component {
                         <a href={this.docUrl("contributing", this.props.language)}>
                             Contributing
                         </a>
-                        <a href={this.docUrl("guide", this.props.language)}>Guide</a>
+                        <a
+                            href="https://github.com/faastjs/examples"
+                            target="_blank"
+                            rel="noreferrer noopener"
+                        >
+                            Examples
+                        </a>
                     </div>
                     <div>
                         <h5>Community</h5>
