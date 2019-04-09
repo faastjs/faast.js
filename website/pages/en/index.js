@@ -90,7 +90,7 @@ class Index extends React.Component {
         const { baseUrl } = siteConfig;
 
         const Block = props => (
-            <div class="feature">
+            <div className="feature">
                 <Container
                     padding={props.padding || ["top"]}
                     id={props.id}
@@ -172,7 +172,7 @@ class Index extends React.Component {
                 {[
                     {
                         image: `${baseUrl}img/zero.svg`,
-                        imageAlign: "left",
+                        imageAlign: "right",
                         title: "Zero Ops",
                         content:
                             "Faast.js creates serverless function infrastructure on demand. Infrastructure only exists as long as it's needed, and a garbage collector ensures nothing gets left behind. Faast.js infrastructure is *ephemeral*. <br><br>No managing servers.<br>No managing containers.<br>No managing infrastructure.<br><br>That's Zero Ops."

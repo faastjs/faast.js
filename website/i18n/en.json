@@ -14,7 +14,7 @@
       "cost-estimates": {
         "title": "Cost Estimates"
       },
-      "aws-lambda": {
+      "aws": {
         "title": "AWS provider"
       },
       "google-cloud": {
