@@ -1,18 +1,19 @@
 {
-    "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/api-extractor.schema.json",
-    "compiler": {
-        "configType": "tsconfig",
-        "rootFolder": "."
-    },
-    "apiJsonFile": {
+    "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
+
+    "mainEntryPointFile": "dist/decls/index.d.ts",
+
+    "apiReport": {
         "enabled": true,
-        "outputFolder": "./dist"
+        "reportFolder": "etc"
     },
-    "project": {
-        "entryPointSourceFile": "dist/decls/index.d.ts"
+
+    "docModel": {
+        "enabled": true,
+        "apiJsonFilePath": "dist/faastjs.api.json"
     },
+
     "dtsRollup": {
-        "enabled": false,
-        "publishFolder": "./dist"
+        "enabled": false
     }
 }

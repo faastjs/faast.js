@@ -27,9 +27,7 @@ export async function throughput(
         await sleep(duration);
         await pump.drain();
         const cost = await lambda.costSnapshot();
-        console.log(`Stats: ${lambda.stats}`);
-        console.log(`Counters: ${lambda.counters}`);
-
+        console.log(`Stats: ${lambda.stats()}`);
         console.log(`Cost:`);
         console.log(`${cost}`);
         console.log(
@@ -78,9 +76,7 @@ export async function rampUp(
             samplePoints += m.samples;
         });
 
-        console.log(`Stats:\n${lambda.stats}`);
-        console.log(`Counters:\n${lambda.counters}`);
-
+        console.log(`Stats:\n${lambda.stats()}`);
         console.log(`inside: ${insidePoints}, samples: ${samplePoints}`);
         t.is(samplePoints, nParallelFunctions * nSamplesPerFunction);
         const estimatedPI = (insidePoints / samplePoints) * 4;
