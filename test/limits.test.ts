@@ -9,7 +9,7 @@ async function testTimeout(
     provider: Provider,
     options: CommonOptions
 ) {
-    let lambda = await faast(provider, funcs, "./fixtures/functions", {
+    const lambda = await faast(provider, funcs, "./fixtures/functions", {
         ...options,
         timeout: 5,
         maxRetries: 0,
@@ -23,7 +23,7 @@ async function testTimeout(
 }
 
 async function limitOk(t: ExecutionContext, provider: Provider, options: CommonOptions) {
-    let lambda = await faast(provider, funcs, "./fixtures/functions", {
+    const lambda = await faast(provider, funcs, "./fixtures/functions", {
         ...options,
         timeout: 200,
         memorySize: 512,
@@ -45,7 +45,7 @@ async function limitFail(
     provider: Provider,
     options: CommonOptions
 ) {
-    let lambda = await faast(provider, funcs, "./fixtures/functions", {
+    const lambda = await faast(provider, funcs, "./fixtures/functions", {
         ...options,
         timeout: 200,
         memorySize: 512,
@@ -75,7 +75,7 @@ for (const [provider, config] of configurations) {
     if (provider === "google" && config.mode === "queue") {
         // Google in queue mode cannot detect OOM errors.
     } else {
-        test(title(provider, `out of memory ${opts}`), limitFail, provider, config);
+        test(title(provider, `out of memory`, config), limitFail, provider, config);
     }
-    test(title(provider, `timeout ${opts}`), testTimeout, provider, config);
+    test(title(provider, `timeout`, config), testTimeout, provider, config);
 }

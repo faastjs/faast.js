@@ -1,15 +1,13 @@
 import test, { ExecutionContext } from "ava";
-import { CommonOptions, faast, Provider } from "../index";
+import { CommonOptions, faast, Provider, providers } from "../index";
 import * as funcs from "../test/fixtures/functions";
 import { sleep, title } from "../test/fixtures/util";
 import { Pump } from "../src/throttle";
 
-export async function throughput(
-    t: ExecutionContext,
+async function throughput(
+    _: ExecutionContext,
     provider: Provider,
-    duration: number,
-    concurrency: number = 500,
-    options?: CommonOptions
+    options: CommonOptions & { duration: number }
 ) {
     const lambda = await faast(provider, funcs, "../test/fixtures/functions", {
         gc: false,
@@ -20,42 +18,28 @@ export async function throughput(
     try {
         let completed = 0;
         const nSamplesPerFunction = 100000000;
-        const pump = new Pump(concurrency, () =>
-            lambda.functions.monteCarloPI(nSamplesPerFunction).then(_ => completed++)
+        const pump = new Pump(options.concurrency!, () =>
+            lambda.functions.monteCarloPI(nSamplesPerFunction).then(() => completed++)
         );
         pump.start();
-        await sleep(duration);
+        await sleep(options.duration);
         await pump.drain();
         const cost = await lambda.costSnapshot();
         console.log(`Stats: ${lambda.stats()}`);
         console.log(`Cost:`);
         console.log(`${cost}`);
         console.log(
-            `Completed ${completed} calls in ${duration / (60 * 1000)} minute(s)`
+            `Completed ${completed} calls in ${options.duration / (60 * 1000)} minute(s)`
         );
     } finally {
         await lambda.cleanup();
     }
 }
 
-throughput.title = (
-    _: string,
-    provider: Provider,
-    duration: number,
-    concurrency: number,
-    opts: CommonOptions
-) => title(provider, `sustained load test`, { ...opts, concurrency, duration });
-
-export async function rampUp(
-    t: ExecutionContext,
-    provider: Provider,
-    concurrency: number,
-    options?: CommonOptions
-) {
+async function rampUp(t: ExecutionContext, provider: Provider, options: CommonOptions) {
     const lambda = await faast(provider, funcs, "../test/fixtures/functions", {
         gc: false,
-        ...options,
-        concurrency
+        ...options
     });
     lambda.on("stats", s => console.log(s.toString()));
 
@@ -89,26 +73,31 @@ export async function rampUp(
     }
 }
 
-rampUp.title = (
-    _: string,
-    provider: Provider,
-    concurrency: number,
-    opts?: CommonOptions
-) =>
-    title(provider, `Monte Carlo estimate of PI using 1B samples`, {
-        ...opts,
-        concurrency
-    });
+const rampUpConfigurations = [
+    { memorySize: 1024, mode: "https", concurrency: 500 },
+    { memorySize: 1024, mode: "queue", concurrency: 500 }
+];
 
-test.serial(rampUp, "aws", 500, { memorySize: 1024, mode: "https" });
-test.serial(rampUp, "aws", 500, { memorySize: 1024, mode: "queue" });
+for (const provider of providers) {
+    for (const config of rampUpConfigurations) {
+        test.serial(title(provider, "ramp up", config), rampUp, provider, config);
+    }
+}
 
-test.serial(throughput, "aws", 180 * 1000, 500, { memorySize: 1728, mode: "https" });
-test.serial(throughput, "aws", 180 * 1000, 500, { memorySize: 1728, mode: "queue" });
+const throughputConfigurations = [
+    { memorySize: 2048, mode: "https", concurrency: 500, duration: 180 * 1000 },
+    { memorySize: 2048, mode: "queue", concurrency: 500, duration: 180 * 1000 }
+];
 
-test.serial(rampUp, "google", 200, { mode: "https", memorySize: 1024 });
-test.serial(rampUp, "google", 500, { mode: "queue", memorySize: 1024 });
+for (const provider of providers) {
+    for (const config of throughputConfigurations) {
+        test.serial(
+            title(provider, "throughput load test", config),
+            throughput,
+            provider,
+            config
+        );
+    }
+}
 
-test.serial(throughput, "google", 180 * 1000, 500, { memorySize: 2048, mode: "https" });
-test.serial(throughput, "google", 180 * 1000, 500, { memorySize: 2048, mode: "queue" });
 test.serial(throughput, "local", 60 * 1000, 16, { memorySize: 64 });
