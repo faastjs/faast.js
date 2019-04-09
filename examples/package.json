@@ -1,9 +1,13 @@
 {
-    "license": "ISC",
+    "license": "Apache-2.0",
+    "scripts": {
+        "build": "tsc",
+        "watch": "tsc -w",
+        "clean": "rm -rf dist"
+    },
     "dependencies": {
         "aws-sdk": "^2.243.1",
-        "tar-stream": "^1.6.2",
-        "faastjs": "../"
+        "tar-stream": "^1.6.2"
     },
     "devDependencies": {
         "@types/tar-stream": "^1.6.0"

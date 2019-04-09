@@ -8,8 +8,6 @@
         // "sourceMap": true,
         "inlineSourceMap": true,
         "inlineSources": true,
-        "declaration": true,
-        "declarationDir": "dist/decls",
         "moduleResolution": "node",
         "forceConsistentCasingInFileNames": true,
         "noImplicitReturns": true,
@@ -25,5 +23,5 @@
         "allowSyntheticDefaultImports": true,
         "skipLibCheck": true
     },
-    "exclude": ["node_modules", "dist", "etc", "temp", "examples"]
+    "exclude": ["node_modules"]
 }
