@@ -90,38 +90,92 @@ class Index extends React.Component {
         const { baseUrl } = siteConfig;
 
         const Block = props => (
-            <Container
-                padding={["bottom", "top"]}
-                id={props.id}
-                background={props.background}
-            >
-                <GridBlock
-                    align="center"
-                    contents={props.children}
-                    layout={props.layout}
-                />
-            </Container>
-        );
-
-        const FeatureCallout = () => (
-            <div className="productShowcaseSection">
-                <image id="zero" src={`${baseUrl}img/zero.svg`} width="25%" />
-                <h2>Zero Ops</h2>
-                <h3>No infrastructure to manage.</h3>
+            <div class="feature">
+                <Container
+                    padding={props.padding || ["top"]}
+                    id={props.id}
+                    background={props.background}
+                >
+                    <GridBlock
+                        align="center"
+                        contents={props.children}
+                        layout={props.layout}
+                    />
+                </Container>
             </div>
         );
+
+        // *Lambdas*. They're supposed to be functions. But creating and using lambda functions involves a lot of incidental complexity. Suddenly you're knee deep in command line tools, configuration files, web consoles,  and execution roles. Didn't we get into this to *just run some code?*
+
+        // <p>Faast.js functions summon the resources they need automatically, do their job, and then go away when they're done. Faast.js doesn't leave behind any operational infrastructure to worry about.
 
         const Example = () => (
             <Block id="example">
                 {[
                     {
-                        title: "Invoke cloud functions like regular functions.",
-                        content: `*Lambdas*. They're supposed to be functions. But creating and using lambda functions involves a lot of incidental complexity. Suddenly you're knee deep in command line tools, configuration files, web consoles,  and execution roles. Didn't we get into this to *just run some code?*
-                        <p>That's because lambdas aren't like functions in some important ways. Functions summon the resources they need automatically, do their job, and then go away when they're done. They're fast, simple, and powerful. But often overlooked is that functions don't leave behind any operational infrastructure to worry about. Faast.js brings much of the operational simplicity of ordinary functions to cloud functions.`,
-                        align: "left",
-                        image: `${baseUrl}img/example-1.png`,
+                        title: "Invoke serverless functions like regular functions.",
+                        content: `Serverless functions are powerful and scalable, but their architecture is geared towards event-driven systems. Faast.js simplifies serverless deployment and invocation for batch applications by abstracting function deployment and invocation.`,
+                        image: `${baseUrl}img/basic.png`,
+                        imageLink: `/docs/introduction#usage`,
+                        imageAlign: "right"
+                    }
+                ]}
+            </Block>
+        );
+
+        const ScaleUp = () => (
+            <Block id="scaleup">
+                {[
+                    {
+                        title: "Unleash a thousand cores.",
+                        content: `Go from zero to a thousand cores in seconds. Scale back down to zero just as quickly. Faast.js delivers the brute force power of the cloud with the convenience and familiarity of asynchronous function calls.`,
+                        image: `${baseUrl}img/invoke-1000.png`,
                         imageLink: `/docs/introduction#scaling-up`,
-                        imageAlign: "left"
+                        imageAlign: "right"
+                    }
+                ]}
+            </Block>
+        );
+
+        const Dependencies = () => (
+            <Block id="dependencies">
+                {[
+                    {
+                        title: "Automatic Dependency Bundling",
+                        content:
+                            "Serverless functions are inconvenient to package and deploy. Iterating quickly is difficult when you have to manually install dependencies and create zip files. Faast.js uses webpack to automatically bundle dependencies, so most packages can be used with no extra steps. And native dependencies are also supported through a built-in build system that creates Lambda Layers for you.",
+                        image: `${baseUrl}img/packageJson.png`,
+                        imageLink: `/docs/introduction#package-dependencies`,
+                        imageAlign: "right"
+                    }
+                ]}
+            </Block>
+        );
+
+        const Cost = () => (
+            <Block id="cost">
+                {[
+                    {
+                        title: "Analyze costs in real time",
+                        content:
+                            "Understand costs in real time with cost snapshots. Go even further and analyze the cost of entire workloads against multiple serverless configurations.",
+                        image: `${baseUrl}img/cost.png`,
+                        imageLink: `/docs/cost-estimates`,
+                        imageAlign: "right"
+                    }
+                ]}
+            </Block>
+        );
+
+        const ZeroOps = () => (
+            <Block id="zeroops" padding={["top", "bottom"]}>
+                {[
+                    {
+                        image: `${baseUrl}img/zero.svg`,
+                        imageAlign: "left",
+                        title: "Zero Ops",
+                        content:
+                            "Faast.js creates serverless function infrastructure on demand. Infrastructure only exists as long as it's needed, and a garbage collector ensures nothing gets left behind. Faast.js infrastructure is *ephemeral*. <br><br>No managing servers.<br>No managing containers.<br>No managing infrastructure.<br><br>That's Zero Ops."
                     }
                 ]}
             </Block>
@@ -129,6 +183,7 @@ class Index extends React.Component {
 
         const Features = props => [
             <Container padding={["top"]} id={props.id}>
+                <h2>All the development features you'd expect.</h2>
                 <GridBlock
                     layout="threeColumn"
                     align="center"
@@ -217,8 +272,10 @@ class Index extends React.Component {
                 <HomeSplash siteConfig={siteConfig} language={language} />
                 <div className="mainContainer">
                     <Example />
+                    <ScaleUp />
+                    <Dependencies />
                     <Features />
-                    <FeatureCallout />
+                    <ZeroOps />
                 </div>
             </div>
         );

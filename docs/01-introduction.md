@@ -18,9 +18,9 @@ $ npm install faastjs
 
 Using the local provider allows you to test faast.js on your local machine. There is no setup, just use `"local"` as the name of the provider.
 
-AWS is recommended for optimal faast.js performance. See [AWS setup instructions](./04-aws-lambda#setup).
+AWS is recommended for optimal faast.js performance. See [AWS setup instructions](./04-aws#setup).
 
-Google Cloud is also supported. See [Google Cloud setup instructions](./05-google-cloud-functions#setup).
+Google Cloud is also supported. See [Google Cloud setup instructions](./05-google-cloud#setup).
 
 ## Usage
 
@@ -65,11 +65,7 @@ import { faast } from "faastjs";
 import * as funcs from "./functions";
 
 (async () => {
-    const m = await faast("aws", funcs, "./functions", {
-        memorySize: 256,
-        timeout: 30,
-        concurrency: 1000
-    });
+    const m = await faast("aws", funcs, "./functions");
     const promises = [];
     // Invoke m.functions.hello() 1000 times in parallel.
     for (let i = 0; i < 1000; i++) {
@@ -87,15 +83,15 @@ import * as funcs from "./functions";
 Try out different providers:
 
 ```typescript
-faast("aws", ...)
-faast("google", ...)
-faast("local", ...)
+await faast("aws", ...)
+await faast("google", ...)
+await faast("local", ...)
 ```
 
 Modify the amount of memory allocated to the function, timeout, and maximum concurrency:
 
 ```typescript
-faast("aws", m, "./module", {
+await faast("aws", funcs, "./functions", {
     memorySize: 1024,
     timeout: 60,
     concurrency: 250
@@ -105,30 +101,32 @@ faast("aws", m, "./module", {
 Add a local directory or zipfile (which will be unzipped on the remote side) to the code package:
 
 ```typescript
-faast("aws", m, "./module", {
+await faast("aws", funcs, "./functions", {
     addDirectory: "path/to/directory",
     addZipFile: "path/to/file.zip"
 });
 ```
 
+### Package Dependencies
+
 In most use cases you won't need to specify dependencies explicitly because faast.js uses webpack to automatically bundle dependencies for you. But if your bundle exceeds 50MB or has native dependencies, you'll need to specify [`packageJson`](./api/faastjs.commonoptions.packagejson.md). Faast.js even installs and caches dependencies in a Lambda Layer for you on AWS!
 
 ```typescript
-faast("aws", m, "./module", {
-    // Can alternatively specify a file path for packageJson
+await faast("aws", funcs, "./functions", {
+    // packageJson can be an object or a file path
     packageJson: {
         dependencies: {
-            tslib: "^1.9.1"
+            sharp: "latest"
         }
     }
 });
 ```
 
-Read more about [package dependencies on AWS](./04-aws-lambda#package-dependencies) and [package dependencies on Google Cloud](./05-google-cloud-functions#package-dependencies).
+Read more about [package dependencies on AWS](./04-aws#package-dependencies) and [package dependencies on Google Cloud](./05-google-cloud#package-dependencies).
 
 Check out even more options in [CommonOptions](./api/faastjs.commonoptions.md) and cloud-specific options in [AwsOptions](./api/faastjs.awsoptions.md), [GoogleOptions](./api/faastjs.googleoptions.md), and [LocalOptions](./api/faastjs.localoptions.md).
 
-### Terminology
+## Terminology
 
 **Provider**: A Functions as a Service (FaaS) provider, such as AWS Lambda or Google Cloud Functions. Faast.js also has a "local" provider which uses child processes to simulate a FaaS service without cloud usage.
 
@@ -138,7 +136,7 @@ Check out even more options in [CommonOptions](./api/faastjs.commonoptions.md) a
 
 **Proxy function** or **local function**: The local function that forwards invocations to the remote cloud function. Proxy functions are accessed via `faastModule.functions.*`.
 
-### Functions must be idempotent
+## Functions must be idempotent
 
 Functions you invoke with faast.js must be idempotent. That is, it should be possible to execute them more than once (including concurrently) and still get the same result without causing any undesirable side effects. This is because faast.js or the cloud provider might invoke your function more than once, usually to retry transient errors that are inherent in large scale distributed systems. Faast.js may also issue redundant requests that are still executing to try to reduce [tail latency][https://blog.acolyer.org/2015/01/15/the-tail-at-scale/].
 

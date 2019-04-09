@@ -1,5 +1,5 @@
 import * as commander from "commander";
-import { FaastError, faast, Statistics } from "../index";
+import { FaastError, faast, Statistics } from "faastjs";
 import * as m from "./map-buckets-module";
 import { listAllObjects, f1, GB } from "./util";
 

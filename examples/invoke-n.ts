@@ -1,4 +1,4 @@
-import { faast } from "../index";
+import { faast } from "faastjs";
 import * as m from "./functions";
 
 async function main(n: number) {

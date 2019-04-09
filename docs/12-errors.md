@@ -93,7 +93,7 @@ Solution: use `packageJson` for package dependencies with native components.
 
 ## Cloud Billing API has not been used in project `<N>` before or it is disabled.
 
-Google requires enabling the Cloud Billing API before use. See [Google setup instructions](./05-google-cloud-functions#setup).
+Google requires enabling the Cloud Billing API before use. See [Google setup instructions](./05-google-cloud#setup).
 
 ## [testsuite] Failure in AWS basic calls with packageJson
 

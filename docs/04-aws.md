@@ -1,5 +1,5 @@
 ---
-id: aws-lambda
+id: aws
 title: AWS provider
 hide_title: true
 ---

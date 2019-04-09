@@ -1,5 +1,5 @@
 import * as commander from "commander";
-import { CostAnalyzer, Statistics, FaastModule } from "../index";
+import { CostAnalyzer, Statistics, FaastModule } from "faastjs";
 import * as m from "./map-buckets-module";
 import { listAllObjects, f1, GB, f2 } from "./util";
 import { writeFile as fsWriteFile } from "fs";

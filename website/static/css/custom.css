@@ -13,12 +13,20 @@ code.hljs {
     font-family: "Source Code Pro", monospace;
 }
 
-#example p {
+.feature p {
     text-align: left;
+}
+
+#cost image {
+    width: 200px;
 }
 
 .imageAlignSide .blockImage {
     display: block;
+}
+
+.blockImage > img {
+    width: 70%;
 }
 
 .homeContainer {

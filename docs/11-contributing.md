@@ -26,6 +26,10 @@ There are a many ways to contribute to faast.js:
 
 ## Tooling
 
+Prerequisites:
+
+-   [Node](https://nodejs.org) version 8+. Versions of node from OS package managers are often out of date; it is preferable to install directly from nodejs.org or use a node version manager. Consider [n](https://github.com/tj/n), which can be easily installed with [n-install](https://github.com/mklement0/n-install).
+
 Included in `package.json`:
 
 -   [AVA](https://github.com/avajs/ava) - test runner.
@@ -42,7 +46,15 @@ External tools that may be useful:
 
 ## Building
 
+```shell
+$ node -v
 ```
+
+Ensure you're using Node version 8+. To install node, see [tooling](#tooling).
+
+Then build:
+
+```shell
 $ npm install
 $ npm run build
 ```
@@ -51,13 +63,13 @@ The output is placed in `dist/`.
 
 Running in watch mode can be useful for compiling on the fly as changes are made:
 
-```
+```shell
 $ npm run watch
 ```
 
 ## Running the Testsuite
 
-First follow the instructions in the README to setup accounts on cloud providers.
+First follow the instructions to setup accounts on [AWS](./04-aws#setup) and [Google Cloud](./05-google-cloud#setup).
 
 ```
 $ npm run test

@@ -2,7 +2,8 @@
     "license": "ISC",
     "dependencies": {
         "aws-sdk": "^2.243.1",
-        "tar-stream": "^1.6.2"
+        "tar-stream": "^1.6.2",
+        "faastjs": "../"
     },
     "devDependencies": {
         "@types/tar-stream": "^1.6.0"
