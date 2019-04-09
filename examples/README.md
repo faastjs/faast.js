@@ -24,6 +24,8 @@ $ npm link faastjs
 $ npm run build
 ```
 
+Note that `npm link faastjs` must be done every time after `npm install` is performed.
+
 ## Running
 
 Run specific examples:
