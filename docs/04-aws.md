@@ -11,7 +11,7 @@ hide_title: true
 To use faast.js with AWS, you need to create an account and credentials for an IAM user. To setup credentials for [AWS](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html):
 
 -   If you haven't already, set up the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html):
-    ```
+    ```shell
     $ pip install awscli --upgrade --user
     ```
 -   Create an IAM user in the AWS console.
@@ -35,7 +35,7 @@ faastAws(m, "/path", { region: "us-east-1" });
 
 The following diagram shows the AWS resources that faast.js creates:
 
-![faastjs-architecture-aws](./diagrams/faastjs-architecture-aws.svg "faast.js architecture for aws")
+![faastjs-architecture-aws](./assets/faastjs-architecture-aws.svg "faast.js architecture for aws")
 
 In the `cleanup` function the SNS topic, SQS queue, and Lambda function are deleted. Lambda Layers are retained for 24 hours, then removed by the next faast.js instance that runs garbage collection. The Lambda Role remains permanently.
 

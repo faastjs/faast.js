@@ -10,7 +10,7 @@ The core of faast.js is the [`FaastModuleProxy`](./api/faastjs.faastmoduleproxy.
 
 The Provider API is the interface between `FaastModuleProxy` and provider-specific implementations:
 
-![faastjs-architecture](./diagrams/faastjs-architecture.svg "faast.js architecture")
+![faastjs-architecture](./assets/faastjs-architecture.svg "faast.js architecture")
 
 Each provider implements the interface in [provider.ts](../src/provider.ts).
 

@@ -33,7 +33,7 @@ faastGoogle(m, "/path", { region: "us-east1" });
 
 The following diagram shows the Google Cloud resources that faast.js creates:
 
-![faastjs-architecture-google](./diagrams/faastjs-architecture-google.svg "faast.js architecture for google")
+![faastjs-architecture-google](./assets/faastjs-architecture-google.svg "faast.js architecture for google")
 
 In the `cleanup` function the Request queue, Response queue, and Cloud Function are deleted. Logs are retained according to Google's log retention policy.
 

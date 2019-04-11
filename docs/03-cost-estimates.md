@@ -71,7 +71,7 @@ Cost analyzer output:
 
 Here's a chart showing the execution time and cost of generating 100M random numbers at every memory size on AWS Lambda. The conclusion? You should probably pick a memory size around 1728MB-2048MB to get the most performance at a low cost if your workload is CPU bound. But your results may vary depending on the particulars of your workload. Do your own experiments to verify against your workload.
 
-![cost-analyzer-result-aws](./diagrams/cost-analyzer-graph-aws.png "cost analyzer results for AWS")
+![cost-analyzer-result-aws](./assets/cost-analyzer-graph-aws.png "cost analyzer results for AWS")
 
 ## Limitations
 
