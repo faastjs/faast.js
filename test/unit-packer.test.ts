@@ -70,7 +70,11 @@ testPacker.title = (_title = "", provider, _packer, options) =>
     `packer ${provider}-${options.name}`;
 
 async function addedFile(t: ExecutionContext, root: string) {
-    t.true(await pathExists(join(root, "file.txt")));
+    t.true(await pathExists(join(root, "file.txt")), "ensure added files are copied");
+    const { mode } = await stat(join(root, "script"));
+    const { mode: origMode } = await stat("test/fixtures/dir/script");
+    t.is(mode, origMode, "file modes are preserved");
+    t.is(mode & 0o700, 0o700, "executable mode is preserved in added files");
 }
 
 const configs: PackageConfiguration[] = [
