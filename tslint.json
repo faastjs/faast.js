@@ -21,6 +21,7 @@
         "member-ordering": false,
         "no-reference": false,
         "no-namespace": false,
-        "no-duplicate-imports": false
+        "no-duplicate-imports": false,
+        "no-bitwise": false
     }
 }

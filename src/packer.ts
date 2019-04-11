@@ -1,5 +1,5 @@
 import { Archiver } from "archiver";
-import { createWriteStream, mkdirp, pathExists, readFile } from "fs-extra";
+import { createWriteStream, mkdirp, pathExists, readFile, statSync } from "fs-extra";
 import * as path from "path";
 import { Readable } from "stream";
 import * as webpack from "webpack";
@@ -197,7 +197,7 @@ export async function packer(
  */
 export async function processZip(
     archive: NodeJS.ReadableStream | string,
-    processEntry: (filename: string, contents: Readable) => void
+    processEntry: (filename: string, contents: Readable, mode: number) => void
 ) {
     let zip: ZipFile;
     if (typeof archive === "string") {
@@ -230,7 +230,11 @@ export async function processZip(
                         throw err;
                     }
                     readStream!.on("end", () => zip.readEntry());
-                    processEntry(entry.fileName, readStream!);
+                    processEntry(
+                        entry.fileName,
+                        readStream!,
+                        entry.externalFileAttributes >>> 16
+                    );
                 });
             }
         });
@@ -241,15 +245,13 @@ export async function processZip(
 export async function unzipInDir(dir: string, archive: NodeJS.ReadableStream) {
     await mkdirp(dir);
     let total = 0;
-    await processZip(archive, async (filename, contents) => {
+    await processZip(archive, async (filename, contents, mode) => {
         const destinationFilename = path.join(dir, filename);
         const { dir: outputDir } = path.parse(destinationFilename);
         if (!(await pathExists(outputDir))) {
             await mkdirp(outputDir);
         }
-        const stream = createWriteStream(destinationFilename, {
-            mode: 0o700
-        });
+        const stream = createWriteStream(destinationFilename, { mode });
         contents.on("data", chunk => (total += chunk.length));
         contents.pipe(stream);
     });
