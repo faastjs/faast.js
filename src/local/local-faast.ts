@@ -148,8 +148,7 @@ async function initialize(
     const packerResult = await localPacker(serverModule, parentDir, options, {});
 
     await unzipInDir(tempDir, packerResult.archive);
-    const packageJsonFile = join(tempDir, "package.json");
-    if (await pathExists(packageJsonFile)) {
+    if (options.packageJson) {
         log.info(`Running 'npm install'`);
 
         await exec("npm install --no-package-lock", { cwd: tempDir }).then(x => {
