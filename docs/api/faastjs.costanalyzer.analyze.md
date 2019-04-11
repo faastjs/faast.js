@@ -36,7 +36,7 @@ A promise for a [CostAnalyzer.Result](./faastjs.costanalyzer.result.md)
 
 It can be deceptively difficult to set optimal parameters for AWS Lambda and similar services. On the surface there appears to be only one parameter: memory size. Choosing more memory also gives more CPU performance, but it's unclear how much. It's also unclear where single core performance stops getting better. The workload cost analyzer solves these problems by making it easy to run cost experiments.
 
-```
+```text
                                                      (AWS)
                                                    ┌───────┐
                                              ┌────▶│ 128MB │
@@ -91,7 +91,7 @@ main();
 ```
 Example output (this is printed to `console.log` unless the [CostAnalyzer.Workload.silent](./faastjs.costanalyzer.workload.silent.md) is `true`<!-- -->):
 
-```
+```text
   ✔ aws 128MB queue 15.385s 0.274σ $0.00003921
   ✔ aws 192MB queue 10.024s 0.230σ $0.00003576
   ✔ aws 256MB queue 8.077s 0.204σ $0.00003779

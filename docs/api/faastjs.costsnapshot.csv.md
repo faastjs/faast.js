@@ -26,7 +26,7 @@ The format is "metric,unit,pricing,measured,cost,percentage,comment".
 
 Example output:
 
-```
+```text
 metric,unit,pricing,measured,cost,percentage,comment
 functionCallDuration,second,0.00002813,0.60000000,0.00001688,64.1% ,"https://aws.amazon.com/lambda/pricing (rate = 0.00001667/(GB*second) * 1.6875 GB = 0.00002813/second)"
 functionCallRequests,request,0.00000020,5,0.00000100,3.8% ,"https://aws.amazon.com/lambda/pricing"

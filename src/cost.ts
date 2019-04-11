@@ -118,7 +118,7 @@ export class CostMetric {
  * ```
  *
  * AWS example output:
- * ```
+ * ```text
  * Cost estimate:
  * functionCallDuration  $0.00002813/second            0.6 second     $0.00001688    68.4%  [1]
  * sqs                   $0.00000040/request             9 requests   $0.00000360    14.6%  [2]
@@ -254,7 +254,7 @@ export class CostSnapshot {
      * The format is "metric,unit,pricing,measured,cost,percentage,comment".
      *
      * Example output:
-     * ```
+     * ```text
      * metric,unit,pricing,measured,cost,percentage,comment
      * functionCallDuration,second,0.00002813,0.60000000,0.00001688,64.1% ,"https://aws.amazon.com/lambda/pricing (rate = 0.00001667/(GB*second) * 1.6875 GB = 0.00002813/second)"
      * functionCallRequests,request,0.00000020,5,0.00000100,3.8% ,"https://aws.amazon.com/lambda/pricing"
@@ -569,7 +569,7 @@ export namespace CostAnalyzer {
      * performance, but it's unclear how much. It's also unclear where single
      * core performance stops getting better. The workload cost analyzer solves
      * these problems by making it easy to run cost experiments.
-     * ```
+     * ```text
      *                                                      (AWS)
      *                                                    ┌───────┐
      *                                              ┌────▶│ 128MB │
@@ -626,7 +626,7 @@ export namespace CostAnalyzer {
      *
      * Example output (this is printed to `console.log` unless the
      * {@link CostAnalyzer.Workload.silent} is `true`):
-     * ```
+     * ```text
      *   ✔ aws 128MB queue 15.385s 0.274σ $0.00003921
      *   ✔ aws 192MB queue 10.024s 0.230σ $0.00003576
      *   ✔ aws 256MB queue 8.077s 0.204σ $0.00003779

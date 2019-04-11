@@ -58,7 +58,7 @@ try {
 ```
 AWS example output:
 
-```
+```text
 Cost estimate:
 functionCallDuration  $0.00002813/second            0.6 second     $0.00001688    68.4%  [1]
 sqs                   $0.00000040/request             9 requests   $0.00000360    14.6%  [2]
