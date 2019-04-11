@@ -127,7 +127,7 @@ class Index extends React.Component {
             <Block id="scaleup">
                 {[
                     {
-                        title: "Unleash a thousand cores.",
+                        title: "Scale up. Scale down.",
                         content: `Go from zero to a thousand cores in seconds. Scale back down to zero just as quickly. Faast.js delivers the brute force power of the cloud with the convenience and familiarity of asynchronous function calls.`,
                         image: `${baseUrl}img/invoke-1000.png`,
                         imageLink: `/docs/introduction#scaling-up`,
@@ -156,9 +156,9 @@ class Index extends React.Component {
             <Block id="cost">
                 {[
                     {
-                        title: "Analyze costs in real time",
+                        title: "Estimate costs in real time.",
                         content:
-                            'Cost snapshots estimate the cost of your serverless function invocations in real time. Use the Cost Analyzer to answer questions like "How much memory should I allocate to my serverless function?" and "Is it worth paying more for faster processing?" The Cost Analyzer helps you by estimating the cost of workloads against multiple serverless configurations in parallel.',
+                            "Cost snapshots estimate the cost of your serverless function invocations in real time. For deeper analysis, use the Cost Analyzer to estimate the cost of workloads against multiple serverless configurations in parallel. Finally get an answer ",
                         image: `${baseUrl}img/cost-estimate.png`,
                         imageLink: `/docs/cost-estimates`,
                         imageAlign: "right"
@@ -168,7 +168,7 @@ class Index extends React.Component {
         );
 
         const ZeroOps = () => (
-            <Block id="zeroops" padding={["top", "bottom"]}>
+            <Block id="zeroops" padding={["top"]}>
                 {[
                     {
                         image: `${baseUrl}img/zero.svg`,
@@ -182,45 +182,58 @@ class Index extends React.Component {
         );
 
         const Features = props => [
-            <Container padding={["top"]} id={props.id}>
-                <h2>The development features you'd expect.</h2>
+            <Container padding={["top"]} id="features">
+                <h1>The development features you'd expect.</h1>
                 <GridBlock
                     layout="threeColumn"
                     align="center"
                     contents={[
                         {
-                            image: `${baseUrl}img/scale.svg`,
+                            image: `${baseUrl}img/lightning.svg`,
                             imageAlign: "top",
-                            title: "Autoscale",
+                            title: "Get started fast",
                             content:
-                                "Leverage the scale of AWS and Google Cloud to scale to a thousand cores and beyond."
+                                "No setup steps required.<br>Works from a bare cloud account."
                         },
                         {
                             image: `${baseUrl}img/cloud-plug.svg`,
                             imageAlign: "top",
-                            title: "Supports AWS & Google Cloud"
+                            title: "Multi-cloud",
+                            content: "AWS and Google Cloud support built-in."
+                        },
+                        {
+                            image: `${baseUrl}img/logs.svg`,
+                            imageAlign: "top",
+                            title: "Logging",
+                            content: "Precise links to filtered cloud logs."
                         }
                     ]}
                 />
             </Container>,
-            <Container
-                padding={["top", "bottom"]}
-                id={props.id}
-                background={props.background}
-            >
+            <Container padding={["top", "bottom"]} background={props.background}>
                 <GridBlock
-                    layout="twoColumn"
+                    layout="threeColumn"
                     align="center"
                     contents={[
                         {
                             image: `${baseUrl}img/ts.png`,
                             imageAlign: "top",
-                            title: "Type Safety"
+                            title: "Type Safe",
+                            content:
+                                "First class support for TypeScript. <br>Retain type safety across cloud function calls."
+                        },
+                        {
+                            image: `${baseUrl}img/bug.svg`,
+                            imageAlign: "top",
+                            title: "Debugging",
+                            content:
+                                "Switch to local mode to use standard debugging tools."
                         },
                         {
                             image: `${baseUrl}img/tested.svg`,
                             imageAlign: "top",
-                            title: "Thoroughly tested"
+                            title: "Tested",
+                            content: "Comprehensive testsuite and examples."
                         }
                     ]}
                 />
