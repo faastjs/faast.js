@@ -83,7 +83,7 @@ const configs: PackageConfiguration[] = [
     { name: "https-package", mode: "https", packageJson: "test/fixtures/package.json" },
     { name: "queue-package", mode: "queue", packageJson: "test/fixtures/package.json" },
     { name: "addDirectory", addDirectory: "test/fixtures/dir", check: addedFile },
-    { name: "addZipFile", addZipFile: "test/fixtures/file.txt.zip", check: addedFile },
+    { name: "addZipFile", addZipFile: "test/fixtures/dir.zip", check: addedFile },
     {
         name: "addDirectory-rel",
         addDirectory: "../../test/fixtures/dir",
@@ -91,7 +91,7 @@ const configs: PackageConfiguration[] = [
     },
     {
         name: "addZipFile-rel",
-        addZipFile: "../../test/fixtures/file.txt.zip",
+        addZipFile: "../../test/fixtures/dir.zip",
         check: addedFile
     }
 ];

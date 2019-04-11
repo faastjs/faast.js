@@ -94,8 +94,8 @@ export async function packer(
 
     async function processAddZips(archive: Archiver, zipFiles: string[]) {
         for (const zipFile of zipFiles) {
-            await processZip(await resolvePath(zipFile), (filename, contents) => {
-                archive.append(contents, { name: filename });
+            await processZip(await resolvePath(zipFile), (filename, contents, mode) => {
+                archive.append(contents, { name: filename, mode });
             });
         }
     }
