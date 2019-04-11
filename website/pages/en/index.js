@@ -141,7 +141,7 @@ class Index extends React.Component {
             <Block id="dependencies">
                 {[
                     {
-                        title: "Automatic Dependency Bundling",
+                        title: "Automatic Dependency Bundling.",
                         content:
                             "Serverless functions are inconvenient to package and deploy. Iterating quickly is difficult when you have to manually install dependencies and create zip files. Faast.js uses webpack to automatically bundle dependencies, so most packages can be used with no extra steps. And native dependencies are also supported through a built-in build system that creates Lambda Layers for you.",
                         image: `${baseUrl}img/packageJson.png`,
@@ -158,8 +158,8 @@ class Index extends React.Component {
                     {
                         title: "Analyze costs in real time",
                         content:
-                            "Understand costs in real time with cost snapshots. Go even further and analyze the cost of entire workloads against multiple serverless configurations.",
-                        image: `${baseUrl}img/cost.png`,
+                            'Cost snapshots estimate the cost of your serverless function invocations in real time. Use the Cost Analyzer to answer questions like "How much memory should I allocate to my serverless function?" and "Is it worth paying more for faster processing?" The Cost Analyzer helps you by estimating the cost of workloads against multiple serverless configurations in parallel.',
+                        image: `${baseUrl}img/cost-estimate.png`,
                         imageLink: `/docs/cost-estimates`,
                         imageAlign: "right"
                     }
@@ -172,10 +172,10 @@ class Index extends React.Component {
                 {[
                     {
                         image: `${baseUrl}img/zero.svg`,
-                        imageAlign: "right",
+                        imageAlign: "left",
                         title: "Zero Ops",
                         content:
-                            "Faast.js creates serverless function infrastructure on demand. Infrastructure only exists as long as it's needed, and a garbage collector ensures nothing gets left behind. Faast.js infrastructure is *ephemeral*. <br><br>No managing servers.<br>No managing containers.<br>No managing infrastructure.<br><br>That's Zero Ops."
+                            "Faast.js creates serverless function infrastructure on demand. Infrastructure only exists as long as it's needed, and a garbage collector ensures nothing gets left behind. Faast.js infrastructure is *ephemeral*. <br><br>No servers to manage.<br>No containers to manage.<br>No infrastructure to manage.<br><br>That's Zero Ops."
                     }
                 ]}
             </Block>
@@ -183,7 +183,7 @@ class Index extends React.Component {
 
         const Features = props => [
             <Container padding={["top"]} id={props.id}>
-                <h2>All the development features you'd expect.</h2>
+                <h2>The development features you'd expect.</h2>
                 <GridBlock
                     layout="threeColumn"
                     align="center"
@@ -198,16 +198,7 @@ class Index extends React.Component {
                         {
                             image: `${baseUrl}img/cloud-plug.svg`,
                             imageAlign: "top",
-                            title: "Choose your cloud",
-                            content:
-                                "Power faast.js with AWS or Google Cloud, or on local compute."
-                        },
-                        {
-                            image: `${baseUrl}img/cost.svg`,
-                            imageAlign: "top",
-                            title: "Instant Cost Estimates",
-                            content:
-                                "Analyze and optimize cloud costs for batch workloads."
+                            title: "Supports AWS & Google Cloud"
                         }
                     ]}
                 />
@@ -222,16 +213,14 @@ class Index extends React.Component {
                     align="center"
                     contents={[
                         {
-                            image: `${baseUrl}img/pack.svg`,
+                            image: `${baseUrl}img/ts.png`,
                             imageAlign: "top",
-                            title: "Transparent bundling",
-                            content: "There's no separate deploy step to forget."
+                            title: "Type Safety"
                         },
                         {
-                            image: `${baseUrl}img/cleanup.svg`,
+                            image: `${baseUrl}img/tested.svg`,
                             imageAlign: "top",
-                            title: "Leave the cleanup to us",
-                            content: "Cleans up after itself."
+                            title: "Thoroughly tested"
                         }
                     ]}
                 />
@@ -274,8 +263,9 @@ class Index extends React.Component {
                     <Example />
                     <ScaleUp />
                     <Dependencies />
-                    <Features />
+                    <Cost />
                     <ZeroOps />
+                    <Features />
                 </div>
             </div>
         );

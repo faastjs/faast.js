@@ -1,17 +1,19 @@
 {
     "docs": {
-        "Getting Started": [
+        "faast.js": [
             "introduction",
             "workflow",
             "cost-estimates",
-            "aws-lambda",
+            "aws",
             "google-cloud",
             "local",
             "scaling-throttling",
             "architecture",
             "limitations",
-            "faq"
-        ],
-        "Other": ["contributing", "errors"]
+            "comparison",
+            "faq",
+            "contributing",
+            "errors"
+        ]
     }
 }

@@ -32,6 +32,9 @@
       "limitations": {
         "title": "Limitations"
       },
+      "comparison": {
+        "title": "faast.js vs other"
+      },
       "faq": {
         "title": "FAQ"
       },
@@ -494,8 +497,7 @@
       "Blog": "Blog"
     },
     "categories": {
-      "Getting Started": "Getting Started",
-      "Other": "Other"
+      "faast.js": "faast.js"
     }
   },
   "pages-strings": {
