@@ -89,7 +89,8 @@
     },
     "nyc": {
         "exclude": [
-            "tmp/**"
+            "tmp/**",
+            "test/fixtures/**"
         ],
         "reporter": [
             "lcov",

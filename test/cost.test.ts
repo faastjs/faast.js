@@ -88,8 +88,12 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
 
         t.true(costs.costMetrics.length > 1);
         t.true(costs.find("functionCallRequests")!.measured === 1);
+        const output = costs.toString();
+        const csvOutput = costs.csv();
         let hasPricedMetric = false;
         for (const metric of costs.costMetrics) {
+            t.regex(output, new RegExp(metric.name));
+            t.regex(csvOutput, new RegExp(metric.name));
             if (!metric.informationalOnly) {
                 t.true(metric.cost() > 0);
                 t.true(metric.measured > 0);
