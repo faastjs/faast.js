@@ -32,6 +32,7 @@ jobs:
                   paths:
                       - dist
                       - node_modules
+                      - package.json
 
     test-local:
         executor: node10
