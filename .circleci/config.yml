@@ -2,12 +2,17 @@
 #
 # Check https://circleci.com/docs/2.0/language-javascript/ for more details
 #
-version: 2
-jobs:
-    build:
+version: 2.1
+
+executors:
+    node10:
         docker:
             - image: circleci/node:10
         working_directory: ~/repo
+
+jobs:
+    build:
+        executor: node10
         steps:
             - checkout
             - restore_cache:
@@ -22,41 +27,32 @@ jobs:
                       - node_modules
                   key: v1-dependencies-{{ checksum "package.json" }}
             - run: npm run build
-            - save_cache:
-                  key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
+            - persist_to_workspace:
+                  root: .
                   paths:
-                      - ~/repo
+                      - dist
 
     test-local:
-        docker:
-            - image: circleci/node:10
-        working_directory: ~/repo
+        executor: node10
         steps:
-            - restore_cache:
-                  keys:
-                      - v1-repo-{{ .Environment.CIRCLE_SHA1 }}
+            - attach_workspace:
+                  at: ~/repo
             - run: npx nyc --reporter=lcov npm run test-local
             - run: npm run codecov
 
     test-aws:
-        docker:
-            - image: circleci/node:10
-        working_directory: ~/repo
+        executor: node10
         steps:
-            - restore_cache:
-                  keys:
-                      - v1-repo-{{ .Environment.CIRCLE_SHA1 }}
+            - attach_workspace:
+                  at: ~/repo
             - run: npx nyc --reporter=lcov npm run test-aws-remote
             - run: npm run codecov
 
     test-google:
-        docker:
-            - image: circleci/node:10
-        working_directory: ~/repo
+        executor: node10
         steps:
-            - restore_cache:
-                  keys:
-                      - v1-repo-{{ .Environment.CIRCLE_SHA1 }}
+            - attach_workspace:
+                  at: ~/repo
             - run: npm run set-gcp-key
             - run: npx nyc --reporter=lcov npm run test-google-remote
             - run: npm run codecov
