@@ -95,6 +95,37 @@ Solution: use `packageJson` for package dependencies with native components.
 
 Google requires enabling the Cloud Billing API before use. See [Google setup instructions](./05-google-cloud#setup).
 
+## [testsuite] Google Cloud: Invalid JWT
+
+This error occurred when running the cancellation test on google cloud:
+
+```text
+  faast:warning Could not get Google Cloud Functions pricing +0ms
+  faast:warning Error: invalid_grant: Invalid JWT: Token must be a short-lived token (60 minutes) and in a reasonable timeframe. Check your iat and exp values and use a clock with skew to account for clock differences between systems.
+  faast:warning     at Gaxios.<anonymous> (/home/circleci/repo/node_modules/gaxios/src/gaxios.ts:74:15)
+  faast:warning     at Generator.next (<anonymous>)
+  faast:warning     at fulfilled (/home/circleci/repo/node_modules/gaxios/build/src/gaxios.js:16:58)
+  faast:warning     at process._tickCallback (internal/process/next_tick.js:68:7) +0ms
+  faast:warning faast: createFunction error: Error: invalid_grant: Invalid JWT: Token must be a short-lived token (60 minutes) and in a reasonable timeframe. Check your iat and exp values and use a clock with skew to account for clock differences between systems. +2s
+  ✖ cancellation › remote google cleanup waits for all async operations to complete before returning { mode: 'https', childProcess: true } Rejected promise returned by test
+  faast:warning Could not get Google Cloud Functions pricing +-2s
+  faast:warning Error: invalid_grant: Invalid JWT: Token must be a short-lived token (60 minutes) and in a reasonable timeframe. Check your iat and exp values and use a clock with skew to account for clock differences between systems.
+  faast:warning     at Gaxios.<anonymous> (/home/circleci/repo/node_modules/gaxios/src/gaxios.ts:74:15)
+  faast:warning     at Generator.next (<anonymous>)
+  faast:warning     at fulfilled (/home/circleci/repo/node_modules/gaxios/build/src/gaxios.js:16:58)
+  faast:warning     at process._tickCallback (internal/process/next_tick.js:68:7) +0ms
+  faast:warning faast: createFunction error: Error: invalid_grant: Invalid JWT: Token must be a short-lived token (60 minutes) and in a reasonable timeframe. Check your iat and exp values and use a clock with skew to account for clock differences between systems. +1s
+  ✖ cancellation › remote google cleanup waits for all async operations to complete before returning { mode: 'queue', childProcess: true } Rejected promise returned by test
+
+  Unhandled rejection in dist/test/cancellation.test.js
+
+  /home/circleci/repo/node_modules/gaxios/src/gaxios.ts:74
+
+  Error: invalid_grant: Invalid JWT: Token must be a short-lived token (60 minutes) and in a reasonable timeframe. Check your iat and exp values and use a clock with skew to account for clock differences between systems.
+```
+
+The problem arose when modifying the cancellation test to use a virtual clock via lolex, from the call to `withClock()`. The virtual clock caused JS Date API to return 0 for Date.now(), which caused google's gaxios to send a time that google's server rejects because of excessive clock skew. The solution was to set the virtual time to start at the current system time: `Date.now()`.
+
 ## [testsuite] Failure in AWS basic calls with packageJson
 
 Error message:
