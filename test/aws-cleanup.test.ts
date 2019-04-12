@@ -86,7 +86,8 @@ test("remote aws cleanup removes lambda layers", async t => {
             repository: "foo",
             license: "ISC",
             dependencies: {
-                tslib: "^1.9.1"
+                "chrome-aws-lambda": "latest",
+                "puppeteer-core": "latest"
             }
         },
         gc: false
