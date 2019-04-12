@@ -31,6 +31,7 @@ jobs:
                   root: .
                   paths:
                       - dist
+                      - node_modules
 
     test-local:
         executor: node10
