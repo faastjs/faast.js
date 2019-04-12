@@ -22,7 +22,8 @@
         "test-debug": "DEBUG=faast:provider,faast:info ava --fail-fast --serial",
         "cleanup-cloud": "node dist/src/cli.js cleanup aws -x -f && node ./dist/src/cli.js cleanup google -x -f",
         "clean": "rm -rf dist",
-        "tslint": "npx tslint -p tsconfig.json"
+        "tslint": "npx tslint -p tsconfig.json",
+        "codecov": "codecov"
     },
     "author": "Andy Chou",
     "license": "Apache-2.0",
@@ -68,7 +69,9 @@
         "@types/webpack-node-externals": "^1.6.3",
         "@types/yauzl": "^2.9.1",
         "ava": "^1.4.1",
+        "codecov": "^3.3.0",
         "lolex": "^3.0.0",
+        "nyc": "^13.3.0",
         "papaparse": "^4.6.3",
         "tslint": "^5.15.0",
         "tslint-config-prettier": "^1.18.0",
@@ -83,5 +86,10 @@
     "prettier": {
         "printWidth": 90,
         "tabWidth": 4
+    },
+    "nyc": {
+        "exclude": [
+            "tmp/**"
+        ]
     }
 }
