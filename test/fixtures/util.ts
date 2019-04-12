@@ -24,7 +24,7 @@ export const stdev = (a: number[]) => {
 export type VClock = lolex.InstalledClock<lolex.Clock>;
 
 export async function withClock(fn: (clock: VClock) => Promise<void>) {
-    const clock = lolex.install({ shouldAdvanceTime: true });
+    const clock = lolex.install({ shouldAdvanceTime: true, now: Date.now() });
     try {
         await fn(clock);
     } finally {
