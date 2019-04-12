@@ -7,31 +7,33 @@ import {
     stopAsyncTracing
 } from "../src/trace";
 import * as funcs from "./fixtures/functions";
-import { configs, sleep, title } from "./fixtures/util";
+import { configs, sleep, title, withClock } from "./fixtures/util";
 
-async function testCancellation(
+function testCancellation(
     t: ExecutionContext,
     provider: Provider,
     options?: CommonOptions
 ) {
-    await sleep(0); // wait until ava sets its timeout so it doesn't get picked up by async_hooks.
-    startAsyncTracing();
-    const faastModule = await faast(provider, funcs, "./fixtures/functions", {
-        ...options,
-        childProcess: true,
-        gc: false
+    return withClock(async () => {
+        await sleep(0); // wait until ava sets its timeout so it doesn't get picked up by async_hooks.
+        startAsyncTracing();
+        const faastModule = await faast(provider, funcs, "./fixtures/functions", {
+            ...options,
+            childProcess: true,
+            gc: false
+        });
+        try {
+            faastModule.functions.spin(10000).catch(_ => {});
+            await sleep(500); // wait until the request actually starts
+        } finally {
+            await faastModule.cleanup();
+        }
+        stopAsyncTracing();
+        await sleep(500);
+        const leaks = detectAsyncLeaks();
+        t.true(leaks.length === 0);
+        clearLeakDetector();
     });
-    try {
-        faastModule.functions.spin(10000).catch(_ => {});
-        await sleep(500); // wait until the request actually starts
-    } finally {
-        await faastModule.cleanup();
-    }
-    stopAsyncTracing();
-    await sleep(500);
-    const leaks = detectAsyncLeaks();
-    t.true(leaks.length === 0);
-    clearLeakDetector();
 }
 
 for (const provider of providers) {
