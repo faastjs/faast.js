@@ -90,6 +90,10 @@
     "nyc": {
         "exclude": [
             "tmp/**"
+        ],
+        "reporter": [
+            "lcov",
+            "text"
         ]
     }
 }

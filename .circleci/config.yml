@@ -37,7 +37,7 @@ jobs:
         steps:
             - attach_workspace:
                   at: ~/repo
-            - run: npx nyc --reporter=lcov npm run test-local
+            - run: npx nyc npm run test-local
             - run:
                   command: npm run codecov
                   when: always
@@ -47,7 +47,7 @@ jobs:
         steps:
             - attach_workspace:
                   at: ~/repo
-            - run: npx nyc --reporter=lcov npm run test-aws-remote
+            - run: npx nyc npm run test-aws-remote
             - run:
                   command: npm run codecov
                   when: always
@@ -58,7 +58,7 @@ jobs:
             - attach_workspace:
                   at: ~/repo
             - run: npm run set-gcp-key
-            - run: npx nyc --reporter=lcov npm run test-google-remote
+            - run: npx nyc npm run test-google-remote
             - run:
                   command: npm run codecov
                   when: always
