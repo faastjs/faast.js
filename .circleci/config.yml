@@ -38,7 +38,9 @@ jobs:
             - attach_workspace:
                   at: ~/repo
             - run: npx nyc --reporter=lcov npm run test-local
-            - run: npm run codecov
+            - run:
+                  command: npm run codecov
+                  when: always
 
     test-aws:
         executor: node10
@@ -46,7 +48,9 @@ jobs:
             - attach_workspace:
                   at: ~/repo
             - run: npx nyc --reporter=lcov npm run test-aws-remote
-            - run: npm run codecov
+            - run:
+                  command: npm run codecov
+                  when: always
 
     test-google:
         executor: node10
@@ -55,7 +59,9 @@ jobs:
                   at: ~/repo
             - run: npm run set-gcp-key
             - run: npx nyc --reporter=lcov npm run test-google-remote
-            - run: npm run codecov
+            - run:
+                  command: npm run codecov
+                  when: always
 
 workflows:
     version: 2
