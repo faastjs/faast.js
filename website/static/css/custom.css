@@ -21,6 +21,10 @@ code.hljs {
     width: 200px;
 }
 
+.copyright {
+    font-size: 10px;
+}
+
 .imageAlignSide .blockImage {
     display: block;
 }
@@ -46,7 +50,7 @@ code.hljs {
 }
 
 .heroWrapper .button {
-    margin: 0 10px;
+    margin: 10px 10px;
     color: var(--light-font-color);
     width: 10em;
 }
@@ -89,6 +93,27 @@ code.hljs {
     padding: 5%;
 }
 
+.nav-footer {
+    padding-top: 5%;
+}
+
+.container.paddingTop {
+    padding-top: 40px;
+}
+
+.container.paddingBottom {
+    padding-bottom: 40px;
+}
+
+#scaleup,
+#cost {
+    background-color: #0e0e0e0e;
+}
+
+.nav-home img {
+    display: none;
+}
+
 @media only screen and (min-device-width: 360px) and (max-device-width: 736px) {
 }
 
@@ -99,6 +124,10 @@ code.hljs {
     }
     .faastLogoRotated {
         width: 20%;
+        display: block;
+    }
+
+    .nav-home img {
         display: block;
     }
 }

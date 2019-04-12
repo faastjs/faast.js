@@ -92,7 +92,7 @@ class Index extends React.Component {
         const Block = props => (
             <div className="feature">
                 <Container
-                    padding={props.padding || ["top"]}
+                    padding={props.padding || ["top", "bottom"]}
                     id={props.id}
                     background={props.background}
                 >
@@ -191,7 +191,7 @@ class Index extends React.Component {
                         {
                             image: `${baseUrl}img/lightning.svg`,
                             imageAlign: "top",
-                            title: "Get started fast",
+                            title: "Get started faast",
                             content:
                                 "No setup steps required.<br>Works from a bare cloud account."
                         },
