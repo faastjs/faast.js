@@ -73,7 +73,7 @@ workflows:
                       - build
             - test-aws:
                   requires:
-                      - test-local
+                      - build
             - test-google:
                   requires:
-                      - test-aws
+                      - build
