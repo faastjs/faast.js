@@ -7,22 +7,23 @@ import * as funcs from "./fixtures/functions";
 import { measureConcurrency, sleep } from "./fixtures/util";
 
 async function testCleanup(t: ExecutionContext, options: LocalOptions) {
-    const faastModule = await faastLocal(funcs, "./fixtures/functions", {
+    const m = await faastLocal(funcs, "./fixtures/functions", {
         gc: false,
         ...options
     });
-    const { hello, sleep } = faastModule.functions;
     let done = 0;
 
-    hello("there")
+    m.functions
+        .hello("there")
         .then(_ => done++)
         .catch(_ => {});
 
-    sleep(1000)
+    m.functions
+        .sleep(1000)
         .then(_ => done++)
         .catch(_ => {});
 
-    await faastModule.cleanup();
+    await m.cleanup();
     t.is(done, 0);
 }
 
