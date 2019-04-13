@@ -213,7 +213,7 @@ test("SmallestN duplicate values", t => {
     );
 });
 
-function values(a: number[]): [number, undefined][] {
+function vals(a: number[]): [number, undefined][] {
     return a.map(i => [i, undefined] as [number, undefined]);
 }
 
@@ -229,7 +229,7 @@ test("SmallestN can reduce size", t => {
     s.update(7);
 
     s.setSize(3);
-    t.deepEqual([...s], values([1, 2, 3]));
+    t.deepEqual([...s], vals([1, 2, 3]));
 });
 
 test("SmallestN can increase size", t => {
@@ -240,11 +240,11 @@ test("SmallestN can increase size", t => {
     s.update(3);
     s.update(4);
     s.update(5);
-    t.deepEqual([...s], values([1, 2, 3]));
+    t.deepEqual([...s], vals([1, 2, 3]));
 
     s.setSize(5);
     s.update(6);
     s.update(7);
     s.update(8);
-    t.deepEqual([...s], values([1, 2, 3, 6, 7]));
+    t.deepEqual([...s], vals([1, 2, 3, 6, 7]));
 });
