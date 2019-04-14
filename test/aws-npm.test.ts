@@ -30,6 +30,16 @@ async function testNpmInstall(
         t.is(layerInfo.LayerName, LayerName);
         t.true(typeof layerInfo.Version === "number");
         t.regex(installLog, /added [0-9]+ package/);
+
+        const cachedResult = await npmInstall({
+            LayerName,
+            FunctionName,
+            packageJsonContents,
+            region: "us-west-2",
+            quiet: true
+        });
+
+        t.deepEqual(cachedResult.layerInfo, layerInfo);
     } finally {
         if (layerInfo) {
             await lambda
