@@ -354,7 +354,8 @@ export async function createLayer(
     lambda: Lambda,
     packageJson: string | object | undefined,
     useDependencyCaching: boolean,
-    FunctionName: string
+    FunctionName: string,
+    region: string
 ): Promise<AwsLayerInfo | undefined> {
     if (!packageJson) {
         return;
@@ -398,7 +399,8 @@ export async function createLayer(
             const installArgs: awsNpm.NpmInstallArgs = {
                 packageJsonContents,
                 LayerName,
-                FunctionName
+                FunctionName,
+                region
             };
             const { installLog, layerInfo } = await faastModule.functions.npmInstall(
                 installArgs
@@ -515,7 +517,8 @@ export const initialize = throttle(
                 services.lambda,
                 packageJson,
                 useDependencyCaching,
-                FunctionName
+                FunctionName,
+                region
             );
 
             const codeBundle = await createCodeBundle();
