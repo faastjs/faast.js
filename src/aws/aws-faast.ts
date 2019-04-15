@@ -56,31 +56,17 @@ const defaultGcWorker = throttle(
     async (work: AwsGcWork, services: AwsServices) => {
         switch (work.type) {
             case "SetLogRetention":
-                if (
-                    await quietly(
-                        services.cloudwatch.putRetentionPolicy({
-                            ...work
-                        })
-                    )
-                ) {
-                    log.gc(
-                        `Added retention policy of ${work.retentionInDays} day(s) to ${
-                            work.logGroupName
-                        }`
-                    );
+                if (await quietly(services.cloudwatch.putRetentionPolicy(work))) {
+                    log.gc(`Added retention policy %O`, work);
                 }
                 break;
             case "DeleteResources":
                 await deleteResources(work.resources, services, log.gc);
                 break;
             case "DeleteLayerVersion":
-                await services.lambda
-                    .deleteLayerVersion({
-                        LayerName: work.layerName,
-                        VersionNumber: work.layerVersion
-                    })
-                    .promise();
-                log.gc(`deleted layer: ${work.layerName}:${work.layerVersion}`);
+                if (await quietly(services.lambda.deleteLayerVersion(work))) {
+                    log.gc(`deleted layer %O`, work);
+                }
                 break;
             default:
                 assertNever(work);
@@ -259,8 +245,8 @@ export type AwsGcWork =
       }
     | {
           type: "DeleteLayerVersion";
-          layerName: string;
-          layerVersion: number;
+          LayerName: string;
+          VersionNumber: number;
       };
 
 export function carefully<U>(arg: Request<U, AWSError>) {
@@ -303,16 +289,16 @@ export const createAwsApis = throttle(
     }
 );
 
-const ensureRole = throttle(
+export const ensureRole = throttle(
     { concurrency: 1, rate: 5, memoize: true },
-    async (RoleName: string, services: AwsServices) => {
+    async (RoleName: string, services: AwsServices, createRole: boolean) => {
         const { iam } = services;
         log.info(`Checking for cached lambda role`);
         const previousRole = await quietly(iam.getRole({ RoleName }));
         if (previousRole) {
             return previousRole.Role.Arn;
         }
-        if (RoleName !== defaults.RoleName) {
+        if (!createRole && RoleName !== defaults.RoleName) {
             throw new Error(`Could not find role ${RoleName}`);
         }
         log.info(`Creating default role "${RoleName}" for faast trampoline function`);
@@ -510,7 +496,7 @@ export const initialize = throttle(
 
         try {
             log.info(`Creating lambda function`);
-            const rolePromise = ensureRole(RoleName, services);
+            const rolePromise = ensureRole(RoleName, services, false);
             const responseQueuePromise = createResponseQueueImpl(state, FunctionName);
             const pricingPromise = requestAwsPrices(services.pricing, region);
             const layerPromise = createLayer(
@@ -892,8 +878,8 @@ export async function collectGarbage(
                             if (hasExpired(layerVersion.CreatedDate, retentionInDays)) {
                                 scheduleWork({
                                     type: "DeleteLayerVersion",
-                                    layerName: layer.LayerName!,
-                                    layerVersion: layerVersion.Version!
+                                    LayerName: layer.LayerName!,
+                                    VersionNumber: layerVersion.Version!
                                 });
                             }
                         });

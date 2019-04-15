@@ -2,15 +2,16 @@ import test from "ava";
 import { IAM } from "aws-sdk";
 import * as uuidv4 from "uuid/v4";
 import { faastAws } from "../index";
-import { deleteRole } from "../src/aws/aws-faast";
+import { deleteRole, ensureRole, createAwsApis } from "../src/aws/aws-faast";
 import * as funcs from "./fixtures/functions";
 import { sleep } from "../src/shared";
+import { title } from "./fixtures/util";
 
 /**
  * The policies tested here should match those in the documentation at
  * {@link AwsOptions.RoleName}.
  */
-test("remote aws custom role", async t => {
+test(title("aws", "custom role"), async t => {
     t.plan(1);
     const iam = new IAM();
     const uuid = uuidv4();
@@ -74,5 +75,24 @@ test("remote aws custom role", async t => {
         faastModule && (await faastModule.cleanup());
         await deleteRole(RoleName, iam);
         PolicyArn && (await iam.deletePolicy({ PolicyArn }).promise());
+    }
+});
+
+test(title("aws", "unit test ensureRole"), async t => {
+    let roleArn: string | undefined;
+    t.plan(2);
+    const RoleName = `faast-test-ensureRole-${uuidv4()}`;
+    try {
+        const services = await createAwsApis("us-west-2");
+        roleArn = await ensureRole(RoleName, services, true);
+        t.truthy(roleArn);
+    } finally {
+        const iam = new IAM();
+        await deleteRole(RoleName, iam);
+        const role = await iam
+            .getRole({ RoleName })
+            .promise()
+            .catch(_ => {});
+        t.true(role === undefined);
     }
 });

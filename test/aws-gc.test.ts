@@ -183,8 +183,8 @@ test.serial(
             const layerDeletionRecord = gcRecorder.recordings.find(({ args: [work] }) => {
                 return (
                     work.type === "DeleteLayerVersion" &&
-                    work.layerName === layer.LayerName &&
-                    work.layerVersion === layer.Version
+                    work.LayerName === layer.LayerName &&
+                    work.VersionNumber === layer.Version
                 );
             });
             if (!layerDeletionRecord) {
