@@ -85,12 +85,14 @@ test(title("aws", "custom role"), async t => {
 
 test(title("aws", "unit test ensureRole"), async t => {
     let roleArn: string | undefined;
-    t.plan(2);
+    t.plan(3);
     const RoleName = `faast-test-ensureRole-${uuidv4()}`;
     try {
         const services = await createAwsApis("us-west-2");
         roleArn = await ensureRole(RoleName, services, true);
         t.truthy(roleArn);
+        const roleArn2 = await ensureRole(RoleName, services, true);
+        t.is(roleArn, roleArn2);
     } finally {
         const services = await createAwsApis("us-west-2");
         await deleteResources({ RoleName }, services, () => {});
