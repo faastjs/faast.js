@@ -1,6 +1,6 @@
 import test, { ExecutionContext, Macro } from "ava";
 import * as sys from "child_process";
-import { createWriteStream, pathExists, remove, stat } from "fs-extra";
+import { pathExists, remove, stat } from "fs-extra";
 import * as path from "path";
 import { join } from "path";
 import { PassThrough } from "stream";
@@ -28,7 +28,8 @@ type Packer = (
     functionModule: string,
     parentDir: string,
     options: CommonOptions,
-    wrapperOptions: WrapperOptions
+    wrapperOptions: WrapperOptions,
+    FunctionName: string
 ) => Promise<PackerResult>;
 
 const testPacker: Macro<[Provider, Packer, PackageConfiguration, number]> = async (
@@ -38,28 +39,26 @@ const testPacker: Macro<[Provider, Packer, PackageConfiguration, number]> = asyn
     config: PackageConfiguration,
     size: number
 ) => {
-    const identifier = `func-${provider}-${config.name}`;
+    const identifier = `${provider}-${config.name}`;
     const tmpDir = path.join("tmp", identifier);
     exec(`mkdir -p ${tmpDir}`);
+
+    process.env["FAAST_PACKAGE_DIR"] = "tmp";
 
     const { archive } = await pack(
         require.resolve("./fixtures/functions"),
         __dirname,
         config,
-        {}
+        {},
+        identifier
     );
 
-    const stream1 = archive.pipe(new PassThrough());
-    const stream2 = archive.pipe(new PassThrough());
-
-    const zipFile = path.join("tmp", identifier + ".zip");
-    stream2.pipe(createWriteStream(zipFile));
-    const writePromise = new Promise(resolve => stream2.on("end", resolve));
-
     await remove(tmpDir);
-    const unzipPromise = unzipInDir(tmpDir, stream1);
+    const writePromise = new Promise(resolve => archive.on("end", resolve));
+    const unzipPromise = unzipInDir(tmpDir, archive);
 
     await Promise.all([writePromise, unzipPromise]);
+    const zipFile = path.join("tmp", identifier + ".zip");
     const bytes = (await stat(zipFile)).size;
     t.true(bytes < size);
     t.is(exec(`cd ${tmpDir} && node index.js`), "faast: successful cold start.\n");

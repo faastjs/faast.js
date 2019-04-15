@@ -276,6 +276,7 @@ export async function initialize(
 
     log.info(`Nonce: ${nonce}`);
     const location = `projects/${project}/locations/${region}`;
+    const functionName = "faast-" + nonce;
 
     async function createCodeBundle() {
         const wrapperOptions = {
@@ -285,7 +286,8 @@ export async function initialize(
             fmodule,
             parentDir,
             options,
-            wrapperOptions
+            wrapperOptions,
+            functionName
         );
         const uploadUrlResponse = await cloudFunctions.projects.locations.functions.generateUploadUrl(
             {
@@ -298,7 +300,6 @@ export async function initialize(
         return uploadUrlResponse.data.uploadUrl;
     }
 
-    const functionName = "faast-" + nonce;
     const trampoline = `projects/${project}/locations/${region}/functions/${functionName}`;
 
     const resources: Mutable<GoogleResources> = {
@@ -714,12 +715,20 @@ export async function googlePacker(
     functionModule: string,
     parentDir: string,
     options: CommonOptions,
-    wrapperOptions: WrapperOptions
+    wrapperOptions: WrapperOptions,
+    FunctionName: string
 ): Promise<PackerResult> {
     const { mode } = options;
     const trampolineModule =
         mode === "queue" ? googleTrampolineQueue : googleTrampolineHttps;
-    return packer(parentDir, trampolineModule, functionModule, options, wrapperOptions);
+    return packer(
+        parentDir,
+        trampolineModule,
+        functionModule,
+        options,
+        wrapperOptions,
+        FunctionName
+    );
 }
 
 const getGooglePrice = throttle(

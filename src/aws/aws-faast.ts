@@ -6,14 +6,12 @@ import {
     Lambda,
     Pricing,
     Request,
+    S3,
     SNS,
     SQS,
-    STS,
-    S3
+    STS
 } from "aws-sdk";
 import { createHash } from "crypto";
-import { ensureDir, readFile, writeFile } from "fs-extra";
-import { join } from "path";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
 import { faastAws } from "../faast";
@@ -35,7 +33,8 @@ import {
     computeHttpResponseBytes,
     defined,
     hasExpired,
-    uuidv4Pattern
+    uuidv4Pattern,
+    streamToBuffer
 } from "../shared";
 import { retryOp, throttle } from "../throttle";
 import { FunctionReturn, WrapperOptions } from "../wrapper";
@@ -50,6 +49,7 @@ import {
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
+import { readFile } from "fs-extra";
 
 const defaultGcWorker = throttle(
     { concurrency: 5, rate: 5, burst: 2 },
@@ -261,15 +261,6 @@ export async function quietly<U>(arg: Request<U, AWSError>) {
     }
 }
 
-function zipStreamToBuffer(zipStream: NodeJS.ReadableStream): Promise<Buffer> {
-    const buffers: Buffer[] = [];
-    return new Promise((resolve, reject) => {
-        zipStream.on("data", data => buffers.push(data as Buffer));
-        zipStream.on("end", () => resolve(Buffer.concat(buffers)));
-        zipStream.on("error", reject);
-    });
-}
-
 export const createAwsApis = throttle(
     { concurrency: 1, memoize: true },
     async (region: string) => {
@@ -464,8 +455,8 @@ export const initialize = throttle(
             const wrapperOptions = {
                 childProcessTimeoutMs: timeout * 1000 - 50
             };
-            const bundle = awsPacker(fModule, dir, options, wrapperOptions);
-            return { ZipFile: await zipStreamToBuffer((await bundle).archive) };
+            const bundle = awsPacker(fModule, dir, options, wrapperOptions, FunctionName);
+            return { ZipFile: await streamToBuffer((await bundle).archive) };
         }
 
         const { RoleName } = options;
@@ -508,14 +499,6 @@ export const initialize = throttle(
             );
 
             const codeBundle = await createCodeBundle();
-            const packageDir = process.env["FAAST_PACKAGE_DIR"];
-            if (packageDir) {
-                log.webpack(`FAAST_PACKAGE_DIR: ${packageDir}`);
-                const packageFile = join(packageDir, FunctionName) + ".zip";
-                await ensureDir(packageDir);
-                await writeFile(packageFile, codeBundle.ZipFile);
-                log.info(`Wrote ${packageFile}`);
-            }
             const roleArn = await rolePromise;
             const responseQueueArn = await responseQueuePromise;
             const layer = await layerPromise;
@@ -950,7 +933,8 @@ export async function awsPacker(
     functionModule: string,
     dir: string,
     options: CommonOptions,
-    wrapperOptions: WrapperOptions
+    wrapperOptions: WrapperOptions,
+    FunctionName: string
 ): Promise<PackerResult> {
     return packer(
         dir,
@@ -963,7 +947,8 @@ export async function awsPacker(
                 ...options.webpackOptions
             }
         },
-        wrapperOptions
+        wrapperOptions,
+        FunctionName
     );
 }
 

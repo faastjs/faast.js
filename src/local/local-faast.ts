@@ -145,7 +145,13 @@ async function initialize(
         return wrapper;
     };
 
-    const packerResult = await localPacker(serverModule, parentDir, options, {});
+    const packerResult = await localPacker(
+        serverModule,
+        parentDir,
+        options,
+        {},
+        `faast-${nonce}`
+    );
 
     await unzipInDir(tempDir, packerResult.archive);
     if (options.packageJson) {
@@ -179,14 +185,16 @@ export async function localPacker(
     functionModule: string,
     parentDir: string,
     options: CommonOptions,
-    wrapperOptions: WrapperOptions
+    wrapperOptions: WrapperOptions,
+    FunctionName: string
 ): Promise<PackerResult> {
     return packer(
         parentDir,
         localTrampolineFactory,
         functionModule,
         options,
-        wrapperOptions
+        wrapperOptions,
+        FunctionName
     );
 }
 

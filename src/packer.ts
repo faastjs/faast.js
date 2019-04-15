@@ -1,7 +1,15 @@
 import { Archiver } from "archiver";
-import { createWriteStream, mkdirp, pathExists, readFile, statSync } from "fs-extra";
+import {
+    createWriteStream,
+    ensureDir,
+    mkdirp,
+    pathExists,
+    readFile,
+    writeFile
+} from "fs-extra";
 import * as path from "path";
-import { Readable } from "stream";
+import { join } from "path";
+import { Readable, PassThrough } from "stream";
 import * as webpack from "webpack";
 import * as yauzl from "yauzl";
 import { LoaderOptions } from "./loader";
@@ -31,7 +39,8 @@ export async function packer(
     trampolineFactory: TrampolineFactory,
     functionModule: string,
     userOptions: CommonOptions,
-    userWrapperOptions: WrapperOptions
+    userWrapperOptions: WrapperOptions,
+    FunctionName: string
 ): Promise<PackerResult> {
     const options = { ...commonDefaults, ...userOptions };
     const wrapperOptions = { ...WrapperOptionDefaults, ...userWrapperOptions };
@@ -187,7 +196,23 @@ export async function packer(
         functionModule
     })}!`;
     await runWebpack(loader, "index.js");
-    return prepareZipArchive();
+    {
+        let { archive } = await prepareZipArchive();
+        const packageDir = process.env["FAAST_PACKAGE_DIR"];
+        if (packageDir) {
+            log.webpack(`FAAST_PACKAGE_DIR: ${packageDir}`);
+            const packageFile = join(packageDir, FunctionName) + ".zip";
+            await ensureDir(packageDir);
+            const writeStream = createWriteStream(packageFile);
+            const passThrough = archive.pipe(new PassThrough());
+            archive = archive.pipe(new PassThrough());
+            passThrough.pipe(writeStream);
+            writeStream.on("close", () => {
+                log.info(`Wrote ${packageFile}`);
+            });
+        }
+        return { archive };
+    }
 }
 
 /**
