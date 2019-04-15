@@ -37,7 +37,7 @@ async function testCostAnalyzer(
     );
     t.is(profile.estimates.length, configs.length);
     for (const { costSnapshot } of profile.estimates) {
-        t.is(costSnapshot.stats.completed, repetitions);
+        t.true(costSnapshot.stats.completed > 0);
         t.is(costSnapshot.stats.errors, 0);
         t.true(costSnapshot.stats.estimatedBilledTime.mean > 0);
         t.true(costSnapshot.total() > 0);
