@@ -69,7 +69,7 @@ $ npm run watch
 
 ## Running the Testsuite
 
-First follow the instructions to setup accounts on [AWS](./04-aws#setup) and [Google Cloud](./05-google-cloud#setup).
+First follow the instructions to setup accounts on [AWS](./04-aws.md#setup) and [Google Cloud](./05-google-cloud.md#setup).
 
 ```
 $ npm run test

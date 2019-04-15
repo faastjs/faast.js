@@ -37,7 +37,7 @@ The following diagram shows the Google Cloud resources that faast.js creates:
 
 In the `cleanup` function the Request queue, Response queue, and Cloud Function are deleted. Logs are retained according to Google's log retention policy.
 
-All faast.js Google Cloud resources can be removed using the [faastjs cleanup command](./01-introduction#cleanup-command).
+All faast.js Google Cloud resources can be removed using the [faastjs cleanup command](./01-introduction.md#cleanup-command).
 
 ## Logs
 

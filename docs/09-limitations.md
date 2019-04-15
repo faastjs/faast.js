@@ -24,7 +24,7 @@ Arguments and return values are sent through each provider's API or through a cl
 
 ### AWS Limits
 
-Limits for AWS Lambda are published [here](https://docs.aws.amazon.com/lambda/latest/dg/limits.html). These limits manifest differently for [https vs queue mode](./04-aws#queue-vs-https-mode).
+Limits for AWS Lambda are published [here](https://docs.aws.amazon.com/lambda/latest/dg/limits.html). These limits manifest differently for [https vs queue mode](./04-aws.md#queue-vs-https-mode).
 
 ### Google Limits
 

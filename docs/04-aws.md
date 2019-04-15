@@ -39,7 +39,7 @@ The following diagram shows the AWS resources that faast.js creates:
 
 In the `cleanup` function the SNS topic, SQS queue, and Lambda function are deleted. Lambda Layers are retained for 24 hours, then removed by the next faast.js instance that runs garbage collection. The Lambda Role remains permanently.
 
-All faast.js AWS resources can be removed using the [faastjs cleanup command](./01-introduction#cleanup-command).
+All faast.js AWS resources can be removed using the [faastjs cleanup command](./01-introduction.md#cleanup-command).
 
 ## Logs
 
@@ -67,7 +67,7 @@ A good way to setup dependencies is therefore the following:
 
 -   It is possible to specify your project's `package.json` file as the `packageJson` option. The main drawback of this is that there may be a large number of dependencies in the project not needed for the remote faast functions, and the dependencies may be too large in aggregate.
 
-To inspect what the bundled code package looks like, see [`FAAST_PACKAGE_DIR`](./02-development-workflow#understanding-code-bundles-with-faast_package_dir).
+To inspect what the bundled code package looks like, see [`FAAST_PACKAGE_DIR`](./02-development-workflow.md#understanding-code-bundles-with-faast_package_dir).
 
 ## Queue vs Https mode
 

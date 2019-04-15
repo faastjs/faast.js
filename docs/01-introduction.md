@@ -18,9 +18,9 @@ $ npm install faastjs
 
 Using the local provider allows you to test faast.js on your local machine. There is no setup, just use `"local"` as the name of the provider.
 
-AWS is recommended for optimal faast.js performance. See [AWS setup instructions](./04-aws#setup).
+AWS is recommended for optimal faast.js performance. See [AWS setup instructions](./04-aws.md#setup).
 
-Google Cloud is also supported. See [Google Cloud setup instructions](./05-google-cloud#setup).
+Google Cloud is also supported. See [Google Cloud setup instructions](./05-google-cloud.md#setup).
 
 ## Usage
 
@@ -122,7 +122,7 @@ await faast("aws", funcs, "./functions", {
 });
 ```
 
-Read more about [package dependencies on AWS](./04-aws#package-dependencies) and [package dependencies on Google Cloud](./05-google-cloud#package-dependencies).
+Read more about [package dependencies on AWS](./04-aws.md#package-dependencies) and [package dependencies on Google Cloud](./05-google-cloud.md#package-dependencies).
 
 Check out even more options in [CommonOptions](./api/faastjs.commonoptions.md) and cloud-specific options in [AwsOptions](./api/faastjs.awsoptions.md), [GoogleOptions](./api/faastjs.googleoptions.md), and [LocalOptions](./api/faastjs.localoptions.md).
 
