@@ -22,7 +22,7 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         mode: "queue",
         concurrency: 2000,
         childProcess: true,
-        gc: false
+        gc: "off"
         // awsLambdaOptions: { TracingConfig: { Mode: "Active" } }
     });
     console.log(`Logs: ${faastModule.logUrl()} `);

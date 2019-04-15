@@ -72,7 +72,7 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
         memorySize: 512,
         mode: "queue",
         maxRetries: 0,
-        gc: false
+        gc: "off"
     };
     const faastModule = await faast(provider, funcs, "./fixtures/functions", args);
 

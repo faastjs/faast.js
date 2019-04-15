@@ -415,7 +415,7 @@ export namespace CostAnalyzer {
      *         mode: "https",
      *         memorySize,
      *         timeout: 300,
-     *         gc: false,
+     *         gc: "off",
      *         childProcess: true
      *     }
      * }
@@ -439,7 +439,7 @@ export namespace CostAnalyzer {
                     mode: "https",
                     memorySize,
                     timeout: 300,
-                    gc: false,
+                    gc: "off",
                     childProcess: true
                 }
             });
@@ -460,7 +460,7 @@ export namespace CostAnalyzer {
      *         mode: "https",
      *         memorySize,
      *         timeout: 300,
-     *         gc: false,
+     *         gc: "off",
      *         childProcess: true
      *     }
      * }
@@ -478,7 +478,7 @@ export namespace CostAnalyzer {
                     mode: "https",
                     memorySize,
                     timeout: 300,
-                    gc: false,
+                    gc: "off",
                     childProcess: true
                 }
             });

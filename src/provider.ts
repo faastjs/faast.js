@@ -82,12 +82,18 @@ export interface CommonOptions {
      */
     concurrency?: number;
     /**
-     * Garbage collection is enabled if true. Default: true.
+     * Garbage collector mode. Default: `"auto"`.
      * @remarks
      * Garbage collection deletes resources that were created by previous
      * instantiations of faast that were not cleaned up by
      * {@link FaastModule.cleanup}, either because it was not called or because
-     * the process terminated and did not execute this cleanup step.
+     * the process terminated and did not execute this cleanup step. In `"auto"`
+     * mode, garbage collection may be throttled to run up to once per hour no
+     * matter how many faast.js instances are created. In `"force"` mode,
+     * garbage collection is run without regard to whether another gc has
+     * already been performed recently. In `"off"` mode, garbage collection is
+     * skipped entirely. This can be useful for performance-sensitive tests, or
+     * for more control over when gc is performed.
      *
      * Garbage collection is cloud-specific, but in general garbage collection
      * should not interfere with the behavior or performance of faast cloud
@@ -96,19 +102,13 @@ export interface CommonOptions {
      * circumstances take a significant amount of time even after all
      * invocations have returned.
      *
-     * It is generally recommended to leave garbage collection on, otherwise
-     * garbage resources may accumulate over time and you will eventually hit
-     * resource limits on your account.
-     *
-     * One use case for turning off garbage collection is when many invocations
-     * of faast are occurring in separate processes. In this case it can make
-     * sense to leave gc on in only one process. Note that if faast is invoked
-     * multiple times within one process, faast will automatically only run gc
-     * once every hour.
+     * It is generally recommended to leave garbage collection in `"auto"` mode,
+     * otherwise garbage resources may accumulate over time and you will
+     * eventually hit resource limits on your account.
      *
      * Also see {@link CommonOptions.retentionInDays}.
      */
-    gc?: boolean;
+    gc?: "auto" | "force" | "off";
     /**
      * Maximum number of times that faast will retry each invocation. Default: 2
      * (invocations can therefore be attemped 3 times in total).
@@ -358,7 +358,7 @@ export const commonDefaults: Required<CommonOptions> = {
     addZipFile: [],
     childProcess: true,
     concurrency: 100,
-    gc: true,
+    gc: "auto",
     maxRetries: 2,
     memorySize: 1024,
     mode: "auto",

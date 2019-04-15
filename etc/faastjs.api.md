@@ -55,7 +55,7 @@ export interface CommonOptions {
     addZipFile?: string | string[];
     childProcess?: boolean;
     concurrency?: number;
-    gc?: boolean;
+    gc?: "auto" | "force" | "off";
     maxRetries?: number;
     memorySize?: number;
     mode?: "https" | "queue" | "auto";
@@ -264,7 +264,7 @@ export type LocalFaastModule<M extends object = object> = FaastModuleProxy<M, Lo
 // @public
 export interface LocalOptions extends CommonOptions {
     // @internal (undocumented)
-    gcWorker?: (tempdir: string) => Promise<void>;
+    _gcWorker?: (tempdir: string) => Promise<void>;
 }
 
 // @public

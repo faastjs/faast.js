@@ -51,12 +51,19 @@ import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
 import { readFile } from "fs-extra";
 
-const defaultGcWorker = throttle(
+export const defaultGcWorker = throttle(
     { concurrency: 5, rate: 5, burst: 2 },
     async (work: AwsGcWork, services: AwsServices) => {
         switch (work.type) {
             case "SetLogRetention":
-                if (await quietly(services.cloudwatch.putRetentionPolicy(work))) {
+                if (
+                    await carefully(
+                        services.cloudwatch.putRetentionPolicy({
+                            logGroupName: work.logGroupName,
+                            retentionInDays: work.retentionInDays || 1
+                        })
+                    )
+                ) {
                     log.gc(`Added retention policy %O`, work);
                 }
                 break;
@@ -64,7 +71,14 @@ const defaultGcWorker = throttle(
                 await deleteResources(work.resources, services, log.gc);
                 break;
             case "DeleteLayerVersion":
-                if (await quietly(services.lambda.deleteLayerVersion(work))) {
+                if (
+                    await carefully(
+                        services.lambda.deleteLayerVersion({
+                            LayerName: work.LayerName,
+                            VersionNumber: work.VersionNumber
+                        })
+                    )
+                ) {
                     log.gc(`deleted layer %O`, work);
                 }
                 break;
@@ -249,8 +263,13 @@ export type AwsGcWork =
           VersionNumber: number;
       };
 
-export function carefully<U>(arg: Request<U, AWSError>) {
-    return arg.promise().catch(err => log.warn(err));
+export async function carefully<U>(arg: Request<U, AWSError>) {
+    try {
+        return await arg.promise();
+    } catch (err) {
+        log.warn(err);
+        return;
+    }
 }
 
 export async function quietly<U>(arg: Request<U, AWSError>) {
@@ -366,7 +385,7 @@ export async function createLayer(
             timeout: 300,
             memorySize: 2048,
             mode: "https",
-            gc: false,
+            gc: "off",
             maxRetries: 0,
             webpackOptions: {
                 externals: []
@@ -473,16 +492,18 @@ export const initialize = throttle(
         };
 
         const { gc, retentionInDays, _gcWorker: gcWorker } = options;
-        if (gc) {
+        if (gc === "auto" || gc === "force") {
             log.gc(`Starting garbage collector`);
             state.gcPromise = collectGarbage(
                 gcWorker,
                 services,
                 region,
                 accountId,
-                retentionInDays
-            );
-            state.gcPromise.catch(_silenceWarningLackOfSynchronousCatch => {});
+                retentionInDays,
+                gc
+            ).catch(err => {
+                log.gc(`Garbage collection error: ${err}`);
+            });
         }
 
         try {
@@ -709,7 +730,7 @@ export async function deleteResources(
 
 async function addLogRetentionPolicy(FunctionName: string, cloudwatch: CloudWatchLogs) {
     const logGroupName = getLogGroupName(FunctionName);
-    const response = quietly(
+    const response = await quietly(
         cloudwatch.putRetentionPolicy({ logGroupName, retentionInDays: 1 })
     );
     if (response !== undefined) {
@@ -779,26 +800,29 @@ export async function collectGarbage(
     services: AwsServices,
     region: AwsRegion,
     accountId: string,
-    retentionInDays: number
+    retentionInDays: number,
+    mode: "auto" | "force"
 ) {
     if (executor === defaultGcWorker) {
-        if (lastGc && Date.now() <= lastGc + 3600 * 1000) {
-            return;
-        }
-        const gcEntry = await caches.awsGc.get("gc");
-        if (gcEntry) {
-            try {
-                const lastGcPersistent = JSON.parse(gcEntry.toString());
-                if (
-                    lastGcPersistent &&
-                    typeof lastGcPersistent === "number" &&
-                    Date.now() <= lastGcPersistent + 3600 * 1000
-                ) {
-                    lastGc = lastGcPersistent;
-                    return;
+        if (mode === "auto") {
+            if (lastGc && Date.now() <= lastGc + 3600 * 1000) {
+                return;
+            }
+            const gcEntry = await caches.awsGc.get("gc");
+            if (gcEntry) {
+                try {
+                    const lastGcPersistent = JSON.parse(gcEntry.toString());
+                    if (
+                        lastGcPersistent &&
+                        typeof lastGcPersistent === "number" &&
+                        Date.now() <= lastGcPersistent + 3600 * 1000
+                    ) {
+                        lastGc = lastGcPersistent;
+                        return;
+                    }
+                } catch (err) {
+                    log.warn(err);
                 }
-            } catch (err) {
-                log.warn(err);
             }
         }
         lastGc = Date.now();
@@ -806,6 +830,9 @@ export async function collectGarbage(
     }
     const promises: Promise<void>[] = [];
     function scheduleWork(work: AwsGcWork) {
+        if (executor === defaultGcWorker) {
+            log.gc(`Scheduling work pushing promise: %O`, work);
+        }
         promises.push(executor(work, services));
     }
     const functionsWithLogGroups = new Set();
@@ -814,9 +841,12 @@ export async function collectGarbage(
         logGroupNamePrefix: "/aws/lambda/faast-"
     });
     await forEachPage("log groups", logGroupRequest, async ({ logGroups = [] }) => {
-        logGroups.forEach(g =>
-            functionsWithLogGroups.add(functionNameFromLogGroup(g.logGroupName!))
-        );
+        logGroups.forEach(g => {
+            const FunctionName = functionNameFromLogGroup(g.logGroupName!);
+            functionsWithLogGroups.add(FunctionName);
+        });
+
+        log.gc(`Log groups size: ${logGroups.length}`);
 
         garbageCollectLogGroups(
             logGroups,
@@ -871,6 +901,7 @@ export async function collectGarbage(
             }
         }
     });
+    log.gc(`Awaiting ${promises.length} scheduled work promises`);
     await Promise.all(promises);
 }
 
@@ -892,13 +923,15 @@ function garbageCollectLogGroups(
         g => g.retentionInDays === undefined
     );
 
-    logGroupsMissingRetentionPolicy.forEach(g =>
+    log.gc(`Log groups missing retention: ${logGroupsMissingRetentionPolicy.length}`);
+
+    logGroupsMissingRetentionPolicy.forEach(g => {
         scheduleWork({
             type: "SetLogRetention",
             logGroupName: g.logGroupName!,
             retentionInDays
-        })
-    );
+        });
+    });
 
     const garbageFunctions = logGroups
         .filter(g => hasExpired(g.creationTime, retentionInDays))

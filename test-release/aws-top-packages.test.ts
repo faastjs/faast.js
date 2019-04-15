@@ -12,7 +12,7 @@ const testPackage = throttle({ concurrency: 500 }, async (pkg: string) => {
                 mode: "https",
                 useDependencyCaching: false,
                 packageJson: { dependencies: { [pkg]: "*" } },
-                gc: false
+                gc: "off"
             }
         );
         await faastModule.cleanup();

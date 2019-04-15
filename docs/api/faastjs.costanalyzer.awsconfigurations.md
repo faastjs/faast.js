@@ -28,7 +28,7 @@ The default AWS cost analyzer configurations include every memory size from 128M
         mode: "https",
         memorySize,
         timeout: 300,
-        gc: false,
+        gc: "off",
         childProcess: true
     }
 }

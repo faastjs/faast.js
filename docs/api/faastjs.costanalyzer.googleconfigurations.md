@@ -28,7 +28,7 @@ Each google cost analyzer configuration follows this template:
         mode: "https",
         memorySize,
         timeout: 300,
-        gc: false,
+        gc: "off",
         childProcess: true
     }
 }

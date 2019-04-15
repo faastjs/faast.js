@@ -60,10 +60,10 @@ export interface LocalState {
  */
 export interface LocalOptions extends CommonOptions {
     /** @internal */
-    gcWorker?: (tempdir: string) => Promise<void>;
+    _gcWorker?: (tempdir: string) => Promise<void>;
 }
 
-function defaultGcWorker(dir: string) {
+export function defaultGcWorker(dir: string) {
     return remove(dir);
 }
 
@@ -71,7 +71,7 @@ export const defaults: Required<LocalOptions> = {
     ...commonDefaults,
     concurrency: 10,
     memorySize: 512,
-    gcWorker: defaultGcWorker
+    _gcWorker: defaultGcWorker
 };
 
 export const LocalImpl: ProviderImpl<LocalOptions, LocalState> = {
@@ -94,7 +94,7 @@ async function initialize(
 ): Promise<LocalState> {
     const wrappers: Wrapper[] = [];
     const logStreams: Writable[] = [];
-    const { gc, retentionInDays, gcWorker } = options;
+    const { gc, retentionInDays, _gcWorker: gcWorker } = options;
 
     let gcPromise;
     if (gc) {

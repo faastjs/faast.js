@@ -9,9 +9,9 @@ async function testPackage(
     provider: Provider,
     options: CommonOptions
 ) {
-    const opts = {
+    const opts: CommonOptions = {
         ...options,
-        gc: false,
+        gc: "off",
         packageJson: {
             name: "package-test",
             version: "0.0.2",
@@ -58,13 +58,13 @@ test("remote aws package dependencies with lambda layer caching", async t => {
         }
     };
     const faastModule = await faastAws(funcs, "./fixtures/functionsPackage", {
-        gc: false,
+        gc: "off",
         packageJson
     });
 
     try {
         const faastModule2 = await faastAws(funcs, "./fixtures/functionsPackage", {
-            gc: false,
+            gc: "off",
             packageJson
         });
 

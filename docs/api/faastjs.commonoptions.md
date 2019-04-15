@@ -25,7 +25,7 @@ export interface CommonOptions
 |  [addZipFile](./faastjs.commonoptions.addzipfile.md) | <code>string &#124; string[]</code> | Add zip files to the code package. |
 |  [childProcess](./faastjs.commonoptions.childprocess.md) | <code>boolean</code> | If true, create a child process to isolate user code from faast scaffolding. Default: true. |
 |  [concurrency](./faastjs.commonoptions.concurrency.md) | <code>number</code> | The maximum number of concurrent invocations to allow. Default: 100, except for the <code>local</code> provider, where the default is 10. |
-|  [gc](./faastjs.commonoptions.gc.md) | <code>boolean</code> | Garbage collection is enabled if true. Default: true. |
+|  [gc](./faastjs.commonoptions.gc.md) | <code>&quot;auto&quot; &#124; &quot;force&quot; &#124; &quot;off&quot;</code> | Garbage collector mode. Default: <code>&quot;auto&quot;</code>. |
 |  [maxRetries](./faastjs.commonoptions.maxretries.md) | <code>number</code> | Maximum number of times that faast will retry each invocation. Default: 2 (invocations can therefore be attemped 3 times in total). |
 |  [memorySize](./faastjs.commonoptions.memorysize.md) | <code>number</code> | Memory limit for each function in MB. This setting has an effect on pricing. Default varies by provider. |
 |  [mode](./faastjs.commonoptions.mode.md) | <code>&quot;https&quot; &#124; &quot;queue&quot; &#124; &quot;auto&quot;</code> | Specify invocation mode. Default: <code>&quot;auto&quot;</code>. |

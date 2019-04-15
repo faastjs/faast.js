@@ -22,6 +22,7 @@
         "no-reference": false,
         "no-namespace": false,
         "no-duplicate-imports": false,
-        "no-bitwise": false
+        "no-bitwise": false,
+        "no-object-literal-type-assertion": false
     }
 }

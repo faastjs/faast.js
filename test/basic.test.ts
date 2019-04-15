@@ -8,7 +8,7 @@ async function testBasic(
     provider: Provider,
     options: CommonOptions
 ) {
-    const opts = { timeout: 30, gc: false, ...options };
+    const opts: CommonOptions = { timeout: 30, gc: "off", ...options };
     const faastModule = await faast(provider, funcs, "./fixtures/functions", opts);
     const remote = faastModule.functions;
 
@@ -54,8 +54,13 @@ async function testBasic(
 
 async function testBasicRequire(t: ExecutionContext, provider: Provider) {
     const requiredFuncs = require("./fixtures/functions");
-    const opts = { timeout: 30, gc: false };
-    const faastModule = await faast(provider, requiredFuncs, "./fixtures/functions", opts);
+    const opts: CommonOptions = { timeout: 30, gc: "off" };
+    const faastModule = await faast(
+        provider,
+        requiredFuncs,
+        "./fixtures/functions",
+        opts
+    );
     const remote = faastModule.functions;
     try {
         t.is(await remote.identity("id"), "id");
@@ -73,7 +78,7 @@ async function testBasicRequire(t: ExecutionContext, provider: Provider) {
 //         timeout: 90,
 //         memorySize: 512,
 //         maxRetries: 0,
-//         gc: false
+//         gc: "off"
 //     });
 
 //     try {

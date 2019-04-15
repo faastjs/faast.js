@@ -13,7 +13,7 @@ async function testTimeout(
         ...options,
         timeout: 5,
         maxRetries: 0,
-        gc: false
+        gc: "off"
     });
     try {
         await t.throwsAsync(lambda.functions.spin(30 * 1000), /time/i);
@@ -28,7 +28,7 @@ async function limitOk(t: ExecutionContext, provider: Provider, options: CommonO
         timeout: 200,
         memorySize: 512,
         maxRetries: 0,
-        gc: false
+        gc: "off"
     });
 
     try {
@@ -50,7 +50,7 @@ async function limitFail(
         timeout: 200,
         memorySize: 512,
         maxRetries: 0,
-        gc: false
+        gc: "off"
     });
 
     try {

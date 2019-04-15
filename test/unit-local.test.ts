@@ -8,7 +8,7 @@ import { measureConcurrency, sleep } from "./fixtures/util";
 
 async function testCleanup(t: ExecutionContext, options: LocalOptions) {
     const m = await faastLocal(funcs, "./fixtures/functions", {
-        gc: false,
+        gc: "off",
         ...options
     });
     let done = 0;
@@ -29,7 +29,7 @@ async function testCleanup(t: ExecutionContext, options: LocalOptions) {
 
 async function testOrder(t: ExecutionContext, options: LocalOptions) {
     const faastModule = await faastLocal(funcs, "./fixtures/functions", {
-        gc: false,
+        gc: "off",
         ...options
     });
     t.plan(2);
@@ -60,7 +60,7 @@ async function testConcurrency(
 ) {
     const faastModule = await faastLocal(funcs, "./fixtures/functions", {
         ...options,
-        gc: false,
+        gc: "off",
         concurrency: maxConcurrency
     });
 
@@ -109,7 +109,7 @@ test("local provider console.log, console.warn, and console.error with child pro
     const faastModule = await faastLocal(funcs, "./fixtures/functions", {
         childProcess: true,
         concurrency: 1,
-        gc: false
+        gc: "off"
     });
     try {
         await faastModule.functions.consoleLog("Remote console.log output");
@@ -131,7 +131,7 @@ test("local provider log files should be appended, not truncated, after child pr
         childProcess: true,
         concurrency: 1,
         maxRetries: 1,
-        gc: false
+        gc: "off"
     });
     try {
         await faastModule.functions.consoleLog("output 1");
@@ -172,7 +172,7 @@ test("local provider no concurrency for cpu bound work without child processes",
 test("local provider cleanup waits for all child processes to exit", async t => {
     const faastModule = await faastLocal(funcs, "./fixtures/functions", {
         childProcess: true,
-        gc: false
+        gc: "off"
     });
     faastModule.functions.spin(5000).catch(_ => {});
     while (true) {

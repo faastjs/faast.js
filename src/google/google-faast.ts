@@ -151,7 +151,7 @@ export interface GoogleState {
     gcPromise?: Promise<void>;
 }
 
-function gcWorkerDefault(resources: GoogleResources, services: GoogleServices) {
+export function defaultGcWorker(resources: GoogleResources, services: GoogleServices) {
     return deleteResources(services, resources, log.gc);
 }
 
@@ -159,7 +159,7 @@ export const defaults: Required<GoogleOptions> = {
     ...commonDefaults,
     region: "us-central1",
     googleCloudFunctionOptions: {},
-    _gcWorker: gcWorkerDefault
+    _gcWorker: defaultGcWorker
 };
 
 export const GoogleImpl: ProviderImpl<GoogleOptions, GoogleState> = {
@@ -241,16 +241,21 @@ async function waitFor(
     api: CloudFunctions.Cloudfunctions,
     response: GaxiosPromise<CloudFunctions.Schema$Operation>
 ) {
-    const operationName = (await response).data.name!;
-    return pollOperation({
-        request: () => quietly(api.operations.get({ name: operationName })),
-        checkDone: result => {
-            if (!result || result.error) {
-                return false;
+    try {
+        const operation = await response;
+        const operationName = operation.data.name!;
+        return pollOperation({
+            request: () => quietly(api.operations.get({ name: operationName })),
+            checkDone: result => {
+                if (!result || result.error) {
+                    return false;
+                }
+                return result.done || false;
             }
-            return result.done || false;
-        }
-    });
+        });
+    } catch {
+        return;
+    }
 }
 
 async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) {
@@ -581,12 +586,12 @@ export async function cleanup(state: GoogleState, options: CleanupOptions) {
 let garbageCollectorRunning = false;
 
 async function collectGarbage(
-    gcWorker: typeof gcWorkerDefault,
+    gcWorker: typeof defaultGcWorker,
     services: GoogleServices,
     proj: string,
     retentionInDays: number
 ) {
-    if (gcWorker === gcWorkerDefault) {
+    if (gcWorker === defaultGcWorker) {
         if (garbageCollectorRunning) {
             return;
         }
@@ -640,7 +645,7 @@ async function collectGarbage(
 
         await Promise.all(promises);
     } finally {
-        if (gcWorker === gcWorkerDefault) {
+        if (gcWorker === defaultGcWorker) {
             garbageCollectorRunning = false;
         }
     }

@@ -73,7 +73,7 @@ test(title("aws", "custom role"), async t => {
 
         faastModule = await faastAws(funcs, "./fixtures/functions", {
             RoleName,
-            gc: false
+            gc: "off"
         });
         t.is(await faastModule.functions.identity("hello"), "hello");
     } finally {
