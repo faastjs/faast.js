@@ -647,7 +647,7 @@ export async function deleteRole(RoleName: string, iam: IAM) {
     await carefully(iam.deleteRole({ RoleName }));
 }
 
-async function deleteResources(
+export async function deleteResources(
     resources: Partial<AwsResources>,
     services: AwsServices,
     output: (msg: string) => void = log.info

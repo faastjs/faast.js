@@ -2,7 +2,12 @@ import test from "ava";
 import { IAM } from "aws-sdk";
 import * as uuidv4 from "uuid/v4";
 import { faastAws } from "../index";
-import { deleteRole, ensureRole, createAwsApis } from "../src/aws/aws-faast";
+import {
+    deleteRole,
+    ensureRole,
+    createAwsApis,
+    deleteResources
+} from "../src/aws/aws-faast";
 import * as funcs from "./fixtures/functions";
 import { sleep } from "../src/shared";
 import { title } from "./fixtures/util";
@@ -87,9 +92,9 @@ test(title("aws", "unit test ensureRole"), async t => {
         roleArn = await ensureRole(RoleName, services, true);
         t.truthy(roleArn);
     } finally {
-        const iam = new IAM();
-        await deleteRole(RoleName, iam);
-        const role = await iam
+        const services = await createAwsApis("us-west-2");
+        await deleteResources({ RoleName }, services, () => {});
+        const role = await services.iam
             .getRole({ RoleName })
             .promise()
             .catch(_ => {});
