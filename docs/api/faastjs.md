@@ -25,7 +25,7 @@ export function hello(name: string) {
 import { faast } from "faastjs";
 import * as funcs from "./functions";
 async function main() {
-    const faastModule = await faast("local", funcs, "./functions");
+    const faastModule = await faast("local", funcs);
     try {
         const result = await faastModule.functions.hello("world!");
         console.log(result);
@@ -54,10 +54,10 @@ main();
 
 |  Function | Description |
 |  --- | --- |
-|  [faast(provider, fmodule, modulePath, options)](./faastjs.faast.md) | The main entry point for faast with any provider and only common options. |
-|  [faastAws(fmodule, modulePath, options)](./faastjs.faastaws.md) | The main entry point for faast with AWS provider. |
-|  [faastGoogle(fmodule, modulePath, options)](./faastjs.faastgoogle.md) | The main entry point for faast with Google provider. |
-|  [faastLocal(fmodule, modulePath, options)](./faastjs.faastlocal.md) | The main entry point for faast with Local provider. |
+|  [faast(provider, fmodule, options)](./faastjs.faast.md) | The main entry point for faast with any provider and only common options. |
+|  [faastAws(fmodule, options)](./faastjs.faastaws.md) | The main entry point for faast with AWS provider. |
+|  [faastGoogle(fmodule, options)](./faastjs.faastgoogle.md) | The main entry point for faast with Google provider. |
+|  [faastLocal(fmodule, options)](./faastjs.faastlocal.md) | The main entry point for faast with Local provider. |
 |  [throttle({ concurrency, retry, rate, burst, memoize, cache }, fn)](./faastjs.throttle.md) | A decorator for rate limiting, concurrency limiting, retry, memoization, and on-disk caching. See [Limits](./faastjs.limits.md)<!-- -->. |
 
 ## Interfaces

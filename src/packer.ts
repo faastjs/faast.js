@@ -1,15 +1,8 @@
 import { Archiver } from "archiver";
-import {
-    createWriteStream,
-    ensureDir,
-    mkdirp,
-    pathExists,
-    readFile,
-    writeFile
-} from "fs-extra";
+import { createWriteStream, ensureDir, mkdirp, pathExists, readFile } from "fs-extra";
 import * as path from "path";
 import { join } from "path";
-import { Readable, PassThrough } from "stream";
+import { PassThrough, Readable } from "stream";
 import * as webpack from "webpack";
 import * as yauzl from "yauzl";
 import { LoaderOptions } from "./loader";

@@ -7,7 +7,7 @@ import * as funcs from "./fixtures/functions";
 import { measureConcurrency, sleep } from "./fixtures/util";
 
 async function testCleanup(t: ExecutionContext, options: LocalOptions) {
-    const m = await faastLocal(funcs, "./fixtures/functions", {
+    const m = await faastLocal(funcs, {
         gc: "off",
         ...options
     });
@@ -28,7 +28,7 @@ async function testCleanup(t: ExecutionContext, options: LocalOptions) {
 }
 
 async function testOrder(t: ExecutionContext, options: LocalOptions) {
-    const faastModule = await faastLocal(funcs, "./fixtures/functions", {
+    const faastModule = await faastLocal(funcs, {
         gc: "off",
         ...options
     });
@@ -58,7 +58,7 @@ async function testConcurrency(
         expectedConcurrency: number;
     }
 ) {
-    const faastModule = await faastLocal(funcs, "./fixtures/functions", {
+    const faastModule = await faastLocal(funcs, {
         ...options,
         gc: "off",
         concurrency: maxConcurrency
@@ -106,7 +106,7 @@ async function readFirstLogfile(logDirectoryUrl: string) {
 }
 
 test("local provider console.log, console.warn, and console.error with child process", async t => {
-    const faastModule = await faastLocal(funcs, "./fixtures/functions", {
+    const faastModule = await faastLocal(funcs, {
         childProcess: true,
         concurrency: 1,
         gc: "off"
@@ -127,7 +127,7 @@ test("local provider console.log, console.warn, and console.error with child pro
 });
 
 test("local provider log files should be appended, not truncated, after child process crash", async t => {
-    const faastModule = await faastLocal(funcs, "./fixtures/functions", {
+    const faastModule = await faastLocal(funcs, {
         childProcess: true,
         concurrency: 1,
         maxRetries: 1,
@@ -170,7 +170,7 @@ test("local provider no concurrency for cpu bound work without child processes",
 });
 
 test("local provider cleanup waits for all child processes to exit", async t => {
-    const faastModule = await faastLocal(funcs, "./fixtures/functions", {
+    const faastModule = await faastLocal(funcs, {
         childProcess: true,
         gc: "off"
     });

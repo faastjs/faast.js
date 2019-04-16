@@ -143,21 +143,6 @@ export type Promisified<M> = {
  */
 type ResponsifiedFunction<A extends any[], R> = (...args: A) => Promise<Response<R>>;
 
-function resolveModule(fmodule: string) {
-    if (isAbsolute(fmodule)) {
-        return fmodule;
-    }
-    if (!_parentModule) {
-        throw new Error(`Could not resolve fmodule ${fmodule}`);
-    }
-    if (_parentModule.filename.match(/aws-faast/)) {
-        log.info(
-            `WARNING: import faast before aws-faast to avoid problems with module resolution`
-        );
-    }
-    return (Module as any)._resolveFilename(fmodule, _parentModule);
-}
-
 interface FunctionReturnWithMetrics extends FunctionReturn {
     rawResponse: any;
     localRequestSentTime: number;
@@ -267,11 +252,10 @@ function processResponse<R>(
 async function createFaastModuleProxy<M extends object, O extends CommonOptions, S>(
     impl: ProviderImpl<O, S>,
     fmodule: M,
-    modulePath: string,
     userOptions?: O
 ): Promise<FaastModuleProxy<M, O, S>> {
     try {
-        const resolvedModule = resolveModule(modulePath);
+        const resolvedModule = resolve(fmodule);
         const functionId = uuidv4() as UUID;
         const options = { ...impl.defaults, ...userOptions };
         log.provider(`options ${inspectProvider(options)}`);
@@ -399,7 +383,7 @@ export interface FaastModule<M extends object> {
      * `finally` construct:
      *
      * ```typescript
-     * const faastModule = await faast("aws", m, "./path/to/module");
+     * const faastModule = await faast("aws", m);
      * try {
      *     // Call faastModule.functions.*
      * } finally {
@@ -487,7 +471,7 @@ export interface FaastModule<M extends object> {
      * Code example:
      *
      * ```typescript
-     * const faastModule = await faast("aws", m, "./path/to/module");
+     * const faastModule = await faast("aws", m);
      * try {
      *     // invoke cloud functions on faastModule.functions.*
      * } finally {
@@ -945,15 +929,30 @@ export type LocalFaastModule<M extends object = object> = FaastModuleProxy<
     LocalState
 >;
 
+function resolve(fmodule: object) {
+    const cache = (Module as any)._cache;
+    const keys = Object.keys(cache);
+
+    let modulePath: string | undefined;
+    for (const key of keys) {
+        if (cache[key].exports === fmodule) {
+            modulePath = cache[key].filename;
+            break;
+        }
+    }
+    if (!modulePath) {
+        throw new Error(`Could not find file for module`);
+    }
+    log.info(`Found file: ${modulePath}`);
+    return modulePath;
+}
+
 /**
  * The main entry point for faast with any provider and only common options.
  * @param provider - One of `"aws"`, `"google"`, or `"local"`. See
  * {@link Provider}.
  * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
  * `require` also works but loses type information.
- * @param modulePath - The path to the module, as it would be specified to
- * `import` or `require`. It should be the same as `"BBB"` from importing
- * fmodule.
  * @param options - See {@link CommonOptions}.
  * @returns See {@link FaastModule}.
  * @remarks
@@ -962,7 +961,7 @@ export type LocalFaastModule<M extends object = object> = FaastModuleProxy<
  * import { faast } from "faastjs";
  * import * as mod from "./path/to/module";
  * async function main() {
- *     const faastModule = await faast("aws", mod, "./path/to/module");
+ *     const faastModule = await faast("aws", mod);
  *     try {
  *         const result = await faastModule.functions.func("arg");
  *     } finally {
@@ -976,16 +975,15 @@ export type LocalFaastModule<M extends object = object> = FaastModuleProxy<
 export async function faast<M extends object>(
     provider: Provider,
     fmodule: M,
-    modulePath: string,
     options?: CommonOptions
 ): Promise<FaastModule<M>> {
     switch (provider) {
         case "aws":
-            return faastAws(fmodule, modulePath, options);
+            return faastAws(fmodule, options);
         case "google":
-            return faastGoogle(fmodule, modulePath, options);
+            return faastGoogle(fmodule, options);
         case "local":
-            return faastLocal(fmodule, modulePath, options);
+            return faastLocal(fmodule, options);
         default:
             throw new Error(`Unknown cloud provider option '${provider}'`);
     }
@@ -995,9 +993,6 @@ export async function faast<M extends object>(
  * The main entry point for faast with AWS provider.
  * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
  * `require` also works but loses type information.
- * @param modulePath - The path to the module, as it would be specified to
- * `import` or `require`. It should be the same as `"BBB"` from importing
- * fmodule.
  * @param options - Most common options are in {@link CommonOptions}.
  * Additional AWS-specific options are in {@link AwsOptions}.
  * @returns a Promise for {@link AwsFaastModule}.
@@ -1005,24 +1000,15 @@ export async function faast<M extends object>(
  */
 export function faastAws<M extends object>(
     fmodule: M,
-    modulePath: string,
     options?: AwsOptions
 ): Promise<AwsFaastModule<M>> {
-    return createFaastModuleProxy<M, AwsOptions, AwsState>(
-        AwsImpl,
-        fmodule,
-        modulePath,
-        options
-    );
+    return createFaastModuleProxy<M, AwsOptions, AwsState>(AwsImpl, fmodule, options);
 }
 
 /**
  * The main entry point for faast with Google provider.
  * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
  * `require` also works but loses type information.
- * @param modulePath - The path to the module, as it would be specified to
- * `import` or `require`. It should be the same as `"BBB"` from importing
- * fmodule.
  * @param options - Most common options are in {@link CommonOptions}.
  * Additional Google-specific options are in {@link GoogleOptions}.
  * @returns a Promise for {@link GoogleFaastModule}.
@@ -1030,13 +1016,11 @@ export function faastAws<M extends object>(
  */
 export function faastGoogle<M extends object>(
     fmodule: M,
-    modulePath: string,
     options?: GoogleOptions
 ): Promise<GoogleFaastModule<M>> {
     return createFaastModuleProxy<M, GoogleOptions, GoogleState>(
         GoogleImpl,
         fmodule,
-        modulePath,
         options
     );
 }
@@ -1045,9 +1029,6 @@ export function faastGoogle<M extends object>(
  * The main entry point for faast with Local provider.
  * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
  * `require` also works but loses type information.
- * @param modulePath - The path to the module, as it would be specified to
- * `import` or `require`. It should be the same as `"BBB"` from importing
- * fmodule.
  * @param options - Most common options are in {@link CommonOptions}.
  * Additional Local-specific options are in {@link LocalOptions}.
  * @returns a Promise for {@link LocalFaastModule}.
@@ -1055,13 +1036,11 @@ export function faastGoogle<M extends object>(
  */
 export function faastLocal<M extends object>(
     fmodule: M,
-    modulePath: string,
     options?: LocalOptions
 ): Promise<LocalFaastModule<M>> {
     return createFaastModuleProxy<M, LocalOptions, LocalState>(
         LocalImpl,
         fmodule,
-        modulePath,
         options
     );
 }

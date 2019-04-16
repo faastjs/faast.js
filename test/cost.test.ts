@@ -31,7 +31,7 @@ async function testCostAnalyzer(
 ) {
     const profile = await CostAnalyzer.analyze(
         funcs,
-        "./fixtures/functions",
+
         { work, silent: true },
         configs
     );
@@ -74,7 +74,7 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
         maxRetries: 0,
         gc: "off"
     };
-    const faastModule = await faast(provider, funcs, "./fixtures/functions", args);
+    const faastModule = await faast(provider, funcs, args);
 
     try {
         await faastModule.functions.hello("there");

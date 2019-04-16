@@ -14,7 +14,7 @@ Estimate the cost of a workload using multiple configurations and providers.
 <b>Signature:</b>
 
 ```typescript
-function analyze<T extends object, A extends string>(mod: T, fmodule: string, userWorkload: Workload<T, A>, configurations?: Configuration[]): Promise<Result<T, A>>;
+function analyze<T extends object, A extends string>(mod: T, userWorkload: Workload<T, A>, configurations?: Configuration[]): Promise<Result<T, A>>;
 ```
 
 ## Parameters
@@ -22,7 +22,6 @@ function analyze<T extends object, A extends string>(mod: T, fmodule: string, us
 |  Parameter | Type | Description |
 |  --- | --- | --- |
 |  mod | <code>T</code> | The module containing the remote cloud functions to analyze. |
-|  fmodule | <code>string</code> | Path to the module <code>mod</code>. This can be either an absolute filename (e.g. from <code>require.resolve</code>) or a path omitting the <code>.js</code> extension as would be use with <code>require</code> or <code>import</code>. |
 |  userWorkload | <code>Workload&lt;T, A&gt;</code> | a [CostAnalyzer.Workload](./faastjs.costanalyzer.workload.md) object specifying the workload to run and additional parameters. |
 |  configurations | <code>Configuration[]</code> | an array specifying [CostAnalyzer.Configuration](./faastjs.costanalyzer.configuration.md)<!-- -->s to run. Default: [CostAnalyzer.awsConfigurations](./faastjs.costanalyzer.awsconfigurations.md)<!-- -->. |
 
@@ -82,7 +81,7 @@ async function work(faastModule: FaastModule<typeof mod>) {
 }
 
 async function main() {
-    const results = await costAnalyzer(mod, "./functions", { work });
+    const results = await costAnalyzer(mod, { work });
     writeFileSync("cost.csv", results.csv());
 }
 

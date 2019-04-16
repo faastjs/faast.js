@@ -2,6 +2,7 @@ import test, { ExecutionContext } from "ava";
 import { faastGoogle, log } from "../index";
 import { checkResourcesCleanedUp, keysOf } from "./fixtures/util";
 import { getGoogleResources } from "./fixtures/util-google";
+import * as funcs from "./fixtures/functions";
 
 export function checkResourcesExist<T extends object>(t: ExecutionContext, resources: T) {
     t.true(keysOf(resources).length === 4);
@@ -12,7 +13,7 @@ export function checkResourcesExist<T extends object>(t: ExecutionContext, resou
 
 test("remote google cleanup removes ephemeral resources", async t => {
     try {
-        const func = await faastGoogle({}, "./fixtures/functions", {
+        const func = await faastGoogle(funcs, {
             mode: "queue"
         });
         checkResourcesExist(t, await getGoogleResources(func));

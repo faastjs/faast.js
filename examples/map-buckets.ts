@@ -16,7 +16,7 @@ import { listAllObjects, f1, GB } from "./util";
 let verbose = false;
 
 export async function mapBucket(Bucket: string, keyFilter: (key: string) => boolean) {
-    const faastModule = await faast("aws", m, "./map-buckets-module", {
+    const faastModule = await faast("aws", m, {
         memorySize: 2048,
         timeout: 300,
         mode: "queue",
@@ -107,7 +107,7 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
 }
 
 export async function mapObjects(Bucket: string, Keys: string[]) {
-    const faastModule = await faast("aws", m, "./map-buckets-module", {
+    const faastModule = await faast("aws", m, {
         memorySize: 1728,
         timeout: 300,
         mode: "https",
@@ -127,7 +127,7 @@ export async function copyObjects(
     toBucket: string,
     mapper: (key: string) => string | undefined
 ) {
-    const faastModule = await faast("aws", m, "./map-buckets-module", {
+    const faastModule = await faast("aws", m, {
         memorySize: 256,
         timeout: 300,
         mode: "queue"
@@ -154,7 +154,7 @@ export async function copyObjects(
 }
 
 export async function emptyBucket(Bucket: string) {
-    const faastModule = await faast("aws", m, "./map-buckets-module", {
+    const faastModule = await faast("aws", m, {
         memorySize: 256,
         timeout: 300,
         mode: "https",

@@ -20,7 +20,7 @@
  * import { faast } from "faastjs";
  * import * as funcs from "./functions";
  * async function main() {
- *     const faastModule = await faast("local", funcs, "./functions");
+ *     const faastModule = await faast("local", funcs);
  *     try {
  *         const result = await faastModule.functions.hello("world!");
  *         console.log(result);

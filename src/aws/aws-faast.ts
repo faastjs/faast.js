@@ -381,7 +381,7 @@ export async function createLayer(
     }
 
     try {
-        const faastModule = await faastAws(awsNpm, require.resolve("./aws-npm"), {
+        const faastModule = await faastAws(awsNpm, {
             timeout: 300,
             memorySize: 2048,
             mode: "https",

@@ -12,11 +12,11 @@ test("local garbage collector works for functions that are called", async t => {
     // avoid interference with other tests). Verify the first faast module's
     // resources are cleaned up, which shows that the garbage collector did its
     // job.
-    const mod = await faast.faastLocal(functions, "./fixtures/functions");
+    const mod = await faast.faastLocal(functions);
     try {
         await mod.functions.hello("gc-test");
         await mod.cleanup({ deleteResources: false });
-        const mod2 = await faast.faastLocal(functions, "./fixtures/functions", {
+        const mod2 = await faast.faastLocal(functions, {
             gc: "force",
             _gcWorker: async dir => {
                 if (dir === mod.state.tempDir) {
@@ -33,10 +33,10 @@ test("local garbage collector works for functions that are called", async t => {
 });
 
 test("local garbage collector works for functions that are never called", async t => {
-    const mod = await faast.faastLocal(functions, "./fixtures/functions");
+    const mod = await faast.faastLocal(functions);
     try {
         await mod.cleanup({ deleteResources: false });
-        const mod2 = await faast.faastLocal(functions, "./fixtures/functions", {
+        const mod2 = await faast.faastLocal(functions, {
             gc: "force",
             _gcWorker: async dir => {
                 if (dir === mod.state.tempDir) {

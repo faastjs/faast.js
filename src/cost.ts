@@ -107,7 +107,7 @@ export class CostMetric {
  *
  * Example using AWS:
  * ```typescript
- * const faastModule = await faast("aws", m, "./functions");
+ * const faastModule = await faast("aws", m);
  * try {
  *     // Invoke faastModule.functions.*
  * } finally {
@@ -529,12 +529,11 @@ export namespace CostAnalyzer {
 
     async function estimate<T extends object, K extends string>(
         mod: T,
-        fmodule: string,
         workload: Required<Workload<T, K>>,
         config: Configuration
     ): Promise<Estimate<K>> {
         const { provider, options } = config;
-        const faastModule = await faast(provider, mod, fmodule, options);
+        const faastModule = await faast(provider, mod, options);
         const { repetitions, concurrency: repetitionConcurrency } = workload;
         const doWork = throttle({ concurrency: repetitionConcurrency }, workload.work);
         const results: Promise<WorkloadAttribute<K> | void>[] = [];
@@ -552,9 +551,6 @@ export namespace CostAnalyzer {
      * Estimate the cost of a workload using multiple configurations and
      * providers.
      * @param mod - The module containing the remote cloud functions to analyze.
-     * @param fmodule - Path to the module `mod`. This can be either an absolute
-     * filename (e.g. from `require.resolve`) or a path omitting the `.js`
-     * extension as would be use with `require` or `import`.
      * @param userWorkload - a {@link CostAnalyzer.Workload} object
      * specifying the workload to run and additional parameters.
      * @param configurations - an array specifying
@@ -617,7 +613,7 @@ export namespace CostAnalyzer {
      * }
      *
      * async function main() {
-     *     const results = await costAnalyzer(mod, "./functions", { work });
+     *     const results = await costAnalyzer(mod, { work });
      *     writeFileSync("cost.csv", results.csv());
      * }
      *
@@ -654,12 +650,11 @@ export namespace CostAnalyzer {
      */
     export async function analyze<T extends object, A extends string>(
         mod: T,
-        fmodule: string,
         userWorkload: Workload<T, A>,
         configurations: Configuration[] = awsConfigurations
     ) {
         const scheduleEstimate = throttle<
-            [T, string, Required<Workload<T, A>>, Configuration],
+            [T, Required<Workload<T, A>>, Configuration],
             Estimate<A>
         >(
             {
@@ -679,7 +674,7 @@ export namespace CostAnalyzer {
         };
 
         const promises = configurations.map(config =>
-            scheduleEstimate(mod, fmodule, workload, config)
+            scheduleEstimate(mod, workload, config)
         );
 
         const format = workload.format || defaultFormat;

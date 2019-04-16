@@ -4,17 +4,12 @@ import { topPackages } from "./top-packages";
 
 const testPackage = throttle({ concurrency: 500 }, async (pkg: string) => {
     try {
-        const faastModule = await faast(
-            "aws",
-            require("../test/fixtures/functions"),
-            "../test/fixtures/functions",
-            {
-                mode: "https",
-                useDependencyCaching: false,
-                packageJson: { dependencies: { [pkg]: "*" } },
-                gc: "off"
-            }
-        );
+        const faastModule = await faast("aws", require("../test/fixtures/functions"), {
+            mode: "https",
+            useDependencyCaching: false,
+            packageJson: { dependencies: { [pkg]: "*" } },
+            gc: "off"
+        });
         await faastModule.cleanup();
         return pkg;
     } catch (err) {

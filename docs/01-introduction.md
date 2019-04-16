@@ -41,7 +41,7 @@ import { faast } from "faastjs";
 import * as funcs from "./functions";
 
 (async () => {
-    const m = await faast("aws", funcs, "./functions");
+    const m = await faast("aws", funcs);
     try {
         // m.functions.hello: string => Promise<string>
         const result = await m.functions.hello("world");
@@ -65,7 +65,7 @@ import { faast } from "faastjs";
 import * as funcs from "./functions";
 
 (async () => {
-    const m = await faast("aws", funcs, "./functions");
+    const m = await faast("aws", funcs);
     const promises = [];
     // Invoke m.functions.hello() 1000 times in parallel.
     for (let i = 0; i < 1000; i++) {
@@ -83,15 +83,15 @@ import * as funcs from "./functions";
 Try out different providers:
 
 ```typescript
-await faast("aws", ...)
-await faast("google", ...)
-await faast("local", ...)
+await faast("aws", funcs);
+await faast("google", funcs);
+await faast("local", funcs);
 ```
 
 Modify the amount of memory allocated to the function, timeout, and maximum concurrency:
 
 ```typescript
-await faast("aws", funcs, "./functions", {
+await faast("aws", funcs, {
     memorySize: 1024,
     timeout: 60,
     concurrency: 250
@@ -101,7 +101,7 @@ await faast("aws", funcs, "./functions", {
 Add a local directory or zipfile (which will be unzipped on the remote side) to the code package:
 
 ```typescript
-await faast("aws", funcs, "./functions", {
+await faast("aws", funcs, {
     addDirectory: "path/to/directory",
     addZipFile: "path/to/file.zip"
 });
@@ -112,7 +112,7 @@ await faast("aws", funcs, "./functions", {
 In most use cases you won't need to specify dependencies explicitly because faast.js uses webpack to automatically bundle dependencies for you. But if your bundle exceeds 50MB or has native dependencies, you'll need to specify [`packageJson`](./api/faastjs.commonoptions.packagejson.md). Faast.js even installs and caches dependencies in a Lambda Layer for you on AWS!
 
 ```typescript
-await faast("aws", funcs, "./functions", {
+await faast("aws", funcs, {
     // packageJson can be an object or a file path
     packageJson: {
         dependencies: {
@@ -153,7 +153,7 @@ import { faast } from "faastjs";
 import * as funcs from "./functions";
 
 (async () => {
-    const faastModule = await faast("aws", funcs, "./functions");
+    const faastModule = await faast("aws", funcs);
     try {
         const remote = faastModule.functions;
         console.log(await remote.hello("world"));

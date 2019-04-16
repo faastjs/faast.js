@@ -46,7 +46,7 @@ Cost information provided by faast.js is an estimate. It is derived from interna
 Example using AWS:
 
 ```typescript
-const faastModule = await faast("aws", m, "./functions");
+const faastModule = await faast("aws", m);
 try {
     // Invoke faastModule.functions.*
 } finally {

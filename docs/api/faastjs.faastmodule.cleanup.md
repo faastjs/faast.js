@@ -34,7 +34,7 @@ a Promise that resolves when the `FaastModule` runtime stops and ephemeral resou
 It is best practice to always call `cleanup` when done with a cloud function. A typical way to ensure this in normal execution is to use the `finally` construct:
 
 ```typescript
-const faastModule = await faast("aws", m, "./path/to/module");
+const faastModule = await faast("aws", m);
 try {
     // Call faastModule.functions.*
 } finally {

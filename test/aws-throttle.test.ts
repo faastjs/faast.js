@@ -3,7 +3,7 @@ import { faast, log } from "../index";
 import * as funcs from "./fixtures/functions";
 
 test("remote aws throttling to no concurrency", async t => {
-    const faastModule = await faast("aws", funcs, "./fixtures/functions", {
+    const faastModule = await faast("aws", funcs, {
         mode: "https",
         memorySize: 1024,
         concurrency: 1,

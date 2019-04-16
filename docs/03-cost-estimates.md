@@ -51,7 +51,7 @@ costSnapshot.csv();
 How much memory should you allocate to your function? More memory means a higher price per unit time, but also faster CPU. Cost analyzer helps answer this question by running your workload against multiple configurations, such as differing memory sizes:
 
 ```typescript
-costAnalyzer(mod, "./functions", { work });
+costAnalyzer(mod, { work });
 ```
 
 Cost analyzer output:

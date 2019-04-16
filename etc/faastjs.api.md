@@ -70,7 +70,7 @@ export interface CommonOptions {
 
 // @public
 export namespace CostAnalyzer {
-    export function analyze<T extends object, A extends string>(mod: T, fmodule: string, userWorkload: Workload<T, A>, configurations?: Configuration[]): Promise<Result<T, A>>;
+    export function analyze<T extends object, A extends string>(mod: T, userWorkload: Workload<T, A>, configurations?: Configuration[]): Promise<Result<T, A>>;
     export type Configuration = {
         provider: "aws";
         options: AwsOptions;
@@ -147,10 +147,10 @@ export class CostSnapshot {
 }
 
 // @public
-export function faast<M extends object>(provider: Provider, fmodule: M, modulePath: string, options?: CommonOptions): Promise<FaastModule<M>>;
+export function faast<M extends object>(provider: Provider, fmodule: M, options?: CommonOptions): Promise<FaastModule<M>>;
 
 // @public
-export function faastAws<M extends object>(fmodule: M, modulePath: string, options?: AwsOptions): Promise<AwsFaastModule<M>>;
+export function faastAws<M extends object>(fmodule: M, options?: AwsOptions): Promise<AwsFaastModule<M>>;
 
 // @public
 export class FaastError extends Error {
@@ -161,10 +161,10 @@ export class FaastError extends Error {
 }
 
 // @public
-export function faastGoogle<M extends object>(fmodule: M, modulePath: string, options?: GoogleOptions): Promise<GoogleFaastModule<M>>;
+export function faastGoogle<M extends object>(fmodule: M, options?: GoogleOptions): Promise<GoogleFaastModule<M>>;
 
 // @public
-export function faastLocal<M extends object>(fmodule: M, modulePath: string, options?: LocalOptions): Promise<LocalFaastModule<M>>;
+export function faastLocal<M extends object>(fmodule: M, options?: LocalOptions): Promise<LocalFaastModule<M>>;
 
 // @public
 export interface FaastModule<M extends object> {
