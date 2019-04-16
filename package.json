@@ -13,7 +13,7 @@
         "watch": "npm run clean && npx tsc --watch",
         "doc": "node build/make-docs.js",
         "set-gcp-key": "node build/google-save-key.js",
-        "test": "ava dist/test/*.test.js",
+        "test": "ava --concurrency=8 --timeout=4m",
         "test-local": "ava --concurrency=4 -m='!remote*'",
         "test-aws": "ava --concurrency=8 --timeout=2m -m='!remote*' -m='*aws*'",
         "test-google": "ava --concurrency=4 --timeout=4m -m='!remote*' -m='*google*'",
