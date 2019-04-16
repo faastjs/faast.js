@@ -931,17 +931,17 @@ export type LocalFaastModule<M extends object = object> = FaastModuleProxy<
 
 function resolve(fmodule: object) {
     const cache = (Module as any)._cache;
-    const keys = Object.keys(cache);
-
     let modulePath: string | undefined;
-    for (const key of keys) {
+    for (const key of Object.keys(cache).reverse()) {
         if (cache[key].exports === fmodule) {
-            modulePath = cache[key].filename;
+            modulePath = key;
             break;
         }
     }
     if (!modulePath) {
-        throw new Error(`Could not find file for module`);
+        throw new Error(
+            `Could not find file for module, must use "import * as X from Y" or "X = require(Y)" to load a module for faast.`
+        );
     }
     log.info(`Found file: ${modulePath}`);
     return modulePath;

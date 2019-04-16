@@ -185,3 +185,12 @@ test("local provider cleanup waits for all child processes to exit", async t => 
     await faastModule.cleanup();
     t.is(faastModule.state.wrappers.length, 0);
 });
+
+test("local unresolved module", async t => {
+    t.plan(1);
+    try {
+        await faastLocal({});
+    } catch (err) {
+        t.regex(err.message, /Could not find file/);
+    }
+});
