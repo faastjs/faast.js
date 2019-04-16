@@ -420,7 +420,6 @@ export function logUrl(state: AwsState) {
 export const initialize = throttle(
     { concurrency: Infinity, rate: 2 },
     async (fModule: string, nonce: UUID, options: Required<AwsOptions>, dir: string) => {
-        log.info(`Nonce: ${nonce}`);
         const { region, timeout, memorySize } = options;
         log.info(`Creating AWS APIs`);
         const services = await createAwsApis(region);

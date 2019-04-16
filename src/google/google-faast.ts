@@ -277,12 +277,11 @@ export async function initialize(
     const services = await initializeGoogleServices();
     const project = await google.auth.getProjectId();
     const { cloudFunctions, pubsub } = services;
-    const { region, timeout } = options;
-
-    log.info(`Nonce: ${nonce}`);
+    const { region } = options;
     const location = `projects/${project}/locations/${region}`;
     const functionName = "faast-" + nonce;
 
+    const { timeout } = options;
     async function createCodeBundle() {
         const wrapperOptions = {
             childProcessTimeoutMs: timeout * 1000 - 100
@@ -425,11 +424,11 @@ function getRequestQueueTopic(project: string, functionName: string) {
     return `projects/${project}/topics/${functionName}-Requests`;
 }
 
-function getResponseQueueTopic(project: string, functionName: string) {
+export function getResponseQueueTopic(project: string, functionName: string) {
     return `projects/${project}/topics/${functionName}-Responses`;
 }
 
-function getResponseSubscription(project: string, functionName: string) {
+export function getResponseSubscription(project: string, functionName: string) {
     return `projects/${project}/subscriptions/${functionName}-Responses`;
 }
 

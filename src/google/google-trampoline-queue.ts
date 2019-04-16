@@ -6,7 +6,7 @@ import PubSubApi = pubsub_v1;
 
 export const filename = module.filename;
 
-interface CloudFunctionContext {
+export interface CloudFunctionContext {
     eventId: string;
     timestamp: string;
     eventType: string;

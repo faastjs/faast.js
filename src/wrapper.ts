@@ -51,7 +51,7 @@ export interface CallingContext {
 }
 
 export interface ModuleType {
-    [name: string]: AnyFunction;
+    [name: string]: any;
 }
 
 export function createErrorResponse(
@@ -137,7 +137,9 @@ export class Wrapper {
                 }
             });
         } else {
-            this.log(`faast: successful cold start.`);
+            if (!process.env.FAAST_SILENT) {
+                this.log(`faast: successful cold start.`);
+            }
         }
     }
 

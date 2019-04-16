@@ -25,10 +25,11 @@ export function makeTrampoline(wrapper: Wrapper) {
         callback: (err: Error | null, obj: FunctionReturn | string) => void
     ) {
         const startTime = Date.now();
+        const region = env.AWS_REGION!;
+        sqs.config.region = region;
         context.callbackWaitsForEmptyEventLoop = false;
         const executionId = context.awsRequestId;
         const { logGroupName, logStreamName } = context;
-        const region = env.AWS_REGION!;
         const logUrl = getExecutionLogUrl(
             region,
             logGroupName,
@@ -58,7 +59,6 @@ export function makeTrampoline(wrapper: Wrapper) {
             callback(null, result);
         } else {
             const snsEvent = event as SNSEvent;
-            console.log(`SNS event: ${snsEvent.Records.length} records`);
             for (const record of snsEvent.Records) {
                 const call = JSON.parse(record.Sns.Message) as FunctionCall;
                 const { callId, ResponseQueueId: Queue } = call;
