@@ -8,18 +8,21 @@ executors:
     node10:
         docker:
             - image: circleci/node:10
-        working_directory: ~/repo10
+        working_directory: ~/repo
     node8:
         docker:
             - image: circleci/node:8
-        working_directory: ~/repo8
+        working_directory: ~/repo
 
-commands:
+jobs:
     build_and_test:
         description: "build faast.js"
         parameters:
             nodeVersion:
                 type: string
+            executor:
+                type: executor
+        executor: << parameters.executor >>
         steps:
             - checkout
             - restore_cache:
@@ -27,6 +30,10 @@ commands:
                       - <<parameters.nodeVersion>>-{{ checksum "package.json" }}
                       - <<parameters.nodeVersion>>
             - run: npm install
+            - save_cache:
+                  paths:
+                      - node_modules
+                  key: <<parameters.nodeVersion>>-{{ checksum "package.json" }}
             - run: npm run build
             - run: npm run set-gcp-key
             - run: npx nyc npm run test
@@ -35,11 +42,12 @@ commands:
                   when: always
 
 jobs:
-    node10:
+    build_and_test:
         executor: node10
         steps:
-            build_and_test:
+            - build_and_test:
                 nodeVersion: "node10"
+                executor: node10
     # node10:
     #     executor: node10
     #     steps:
