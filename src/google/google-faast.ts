@@ -1,5 +1,4 @@
 import { AbortController } from "abort-controller";
-import * as sys from "child_process";
 import { Gaxios, GaxiosOptions, GaxiosPromise } from "gaxios";
 import {
     cloudbilling_v1,
@@ -378,7 +377,6 @@ export async function initialize(
     } else {
         requestBody.httpsTrigger = {};
     }
-    validateGoogleLabels(requestBody.labels);
     log.info(`Create function at ${location}`);
     log.info(`Request body: %O`, requestBody);
     try {
@@ -430,12 +428,6 @@ export function getResponseQueueTopic(project: string, functionName: string) {
 
 export function getResponseSubscription(project: string, functionName: string) {
     return `projects/${project}/subscriptions/${functionName}-Responses`;
-}
-
-export function exec(cmd: string) {
-    const result = sys.execSync(cmd).toString();
-    log.info(result);
-    return result;
 }
 
 async function callFunctionHttps(
@@ -653,50 +645,6 @@ async function collectGarbage(
 function parseFunctionName(path: string) {
     const match = path.match(/^projects\/(.*)\/locations\/(.*)\/functions\/(.*)$/);
     return match && { project: match[1], region: match[2], name: match[3] };
-}
-
-/**
- * @param labels The labels applied to a resource must meet the following
- * requirements:
- *
- * Each resource can have multiple labels, up to a maximum of 64. Each label
- * must be a key-value pair. Keys have a minimum length of 1 character and a
- * maximum length of 63 characters, and cannot be empty. Values can be empty,
- * and have a maximum length of 63 characters. Keys and values can contain only
- * lowercase letters, numeric characters, underscores, and dashes. All
- * characters must use UTF-8 encoding, and international characters are allowed.
- * The key portion of a label must be unique. However, you can use the same key
- * with multiple resources. Keys must start with a lowercase letter or
- * international character. For a given reporting service and project, the
- * number of distinct key-value pair combinations that will be preserved within
- * a one-hour window is 1,000. For example, the Compute Engine service reports
- * metrics on virtual machine (VM) instances. If you deploy a project with 2,000
- * VMs, each with a distinct label, the service reports metrics are preserved
- * for only the first 1,000 labels that exist within the one-hour window.
- */
-function validateGoogleLabels(labels: { [key: string]: string } | undefined) {
-    if (!labels) {
-        return;
-    }
-    const objkeys = Object.keys(labels);
-    if (objkeys.length > 64) {
-        throw new Error("Cannot exceeded 64 labels");
-    }
-    if (objkeys.find(key => typeof key !== "string" || typeof labels[key] !== "string")) {
-        throw new Error(`Label keys and values must be strings`);
-    }
-    if (objkeys.find(key => key.length > 63 || labels[key].length > 63)) {
-        throw new Error(`Label keys and values cannot exceed 63 characters`);
-    }
-    if (objkeys.find(key => key.length === 0)) {
-        throw new Error(`Label keys must have length > 0`);
-    }
-    const pattern = /^[a-z0-9_-]*$/;
-    if (objkeys.find(key => !key.match(pattern) || !labels[key].match(pattern))) {
-        throw new Error(
-            `Label keys and values can contain only lowercase letters, numeric characters, underscores, and dashes.`
-        );
-    }
 }
 
 async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
