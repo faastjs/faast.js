@@ -14,7 +14,7 @@ Estimate the cost of a workload using multiple configurations and providers.
 <b>Signature:</b>
 
 ```typescript
-function analyze<T extends object, A extends string>(userWorkload: Workload<T, A>, configurations?: Configuration[]): Promise<Result<T, A>>;
+function analyze<T extends object, A extends string>(userWorkload: Workload<T, A>): Promise<Result<T, A>>;
 ```
 
 ## Parameters
@@ -22,7 +22,6 @@ function analyze<T extends object, A extends string>(userWorkload: Workload<T, A
 |  Parameter | Type | Description |
 |  --- | --- | --- |
 |  userWorkload | <code>Workload&lt;T, A&gt;</code> | a [CostAnalyzer.Workload](./faastjs.costanalyzer.workload.md) object specifying the workload to run and additional parameters. |
-|  configurations | <code>Configuration[]</code> | an array specifying configurations to run (see [CostAnalyzer.Configuration](./faastjs.costanalyzer.configuration.md)<!-- -->). Default: [CostAnalyzer.awsConfigurations](./faastjs.costanalyzer.awsconfigurations.md)<!-- -->. |
 
 <b>Returns:</b>
 

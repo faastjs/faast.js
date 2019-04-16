@@ -27,7 +27,7 @@ export declare namespace CostAnalyzer
 
 |  Function | Description |
 |  --- | --- |
-|  [analyze(userWorkload, configurations)](./faastjs.costanalyzer.analyze.md) | Estimate the cost of a workload using multiple configurations and providers. |
+|  [analyze(userWorkload)](./faastjs.costanalyzer.analyze.md) | Estimate the cost of a workload using multiple configurations and providers. |
 
 ## Interfaces
 

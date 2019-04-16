@@ -70,7 +70,9 @@ export interface CommonOptions {
 
 // @public
 export namespace CostAnalyzer {
-    export function analyze<T extends object, A extends string>(userWorkload: Workload<T, A>, configurations?: Configuration[]): Promise<Result<T, A>>;
+    export function analyze<T extends object, A extends string>(userWorkload: Workload<T, A>): Promise<Result<T, A>>;
+    const awsConfigurations: Configuration[];
+    const googleConfigurations: Configuration[];
     export type Configuration = {
         provider: "aws";
         options: AwsOptions;
@@ -83,8 +85,6 @@ export namespace CostAnalyzer {
         costSnapshot: CostSnapshot;
         extraMetrics: WorkloadAttribute<A>;
     }
-    const awsConfigurations: Configuration[];
-    const googleConfigurations: Configuration[];
     export class Result<T extends object, A extends string> {
         // @internal
         constructor(
@@ -96,6 +96,7 @@ export namespace CostAnalyzer {
     }
     export interface Workload<T extends object, A extends string> {
         concurrency?: number;
+        configurations?: Configuration[];
         format?: (attr: A, value: number) => string;
         formatCSV?: (attr: A, value: number) => string;
         funcs: T;

@@ -27,10 +27,15 @@ function filter(configurations: CostAnalyzer.Configuration[]) {
 
 async function testCostAnalyzer(
     t: ExecutionContext,
-    configs: CostAnalyzer.Configuration[]
+    configurations: CostAnalyzer.Configuration[]
 ) {
-    const profile = await CostAnalyzer.analyze({ funcs, work, silent: true }, configs);
-    t.is(profile.estimates.length, configs.length);
+    const profile = await CostAnalyzer.analyze({
+        funcs,
+        work,
+        configurations,
+        silent: true
+    });
+    t.is(profile.estimates.length, configurations.length);
     for (const { costSnapshot } of profile.estimates) {
         t.true(costSnapshot.stats.completed > 0);
         t.is(costSnapshot.stats.errors, 0);
@@ -44,7 +49,7 @@ async function testCostAnalyzer(
         dynamicTyping: true
     });
     log.info(`%O`, parsed.data);
-    t.is(parsed.data.length, configs.length);
+    t.is(parsed.data.length, configurations.length);
 
     for (const row of parsed.data) {
         // cloud,memory,useQueue,options,completed,errors,retries,cost,executionTime,billedTime
