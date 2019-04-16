@@ -6,7 +6,8 @@ import {
     deleteRole,
     ensureRole,
     createAwsApis,
-    deleteResources
+    deleteResources,
+    ensureRoleRaw
 } from "../src/aws/aws-faast";
 import * as funcs from "./fixtures/functions";
 import { sleep } from "../src/shared";
@@ -101,5 +102,33 @@ test(title("aws", "unit test ensureRole"), async t => {
             .promise()
             .catch(_ => {});
         t.true(role === undefined);
+    }
+});
+
+test(title("aws", "unit test missing role name"), async t => {
+    const RoleName = `faast-test-ensureRole-${uuidv4()}`;
+    t.plan(1);
+    const services = await createAwsApis("us-west-2");
+    try {
+        await ensureRole(RoleName, services, false);
+    } catch (err) {
+        t.true(true);
+    }
+});
+
+test(title("aws", "race condition in role creation"), async t => {
+    const RoleName = `faast-test-ensureRole-${uuidv4()}`;
+    t.plan(3);
+    const services = await createAwsApis("us-west-2");
+    const promises: Promise<string>[] = [];
+    try {
+        for (let i = 0; i < 3; i++) {
+            promises.push(ensureRoleRaw(RoleName, services, true));
+        }
+        const results = await Promise.all(promises);
+        const Arn = results[0];
+        results.forEach(arn => t.is(arn, Arn));
+    } finally {
+        await deleteResources({ RoleName }, services, () => {});
     }
 });

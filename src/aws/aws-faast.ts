@@ -299,51 +299,57 @@ export const createAwsApis = throttle(
     }
 );
 
-export const ensureRole = throttle(
-    { concurrency: 1, rate: 5, memoize: true },
-    async (RoleName: string, services: AwsServices, createRole: boolean) => {
-        const { iam } = services;
-        log.info(`Checking for cached lambda role`);
-        const previousRole = await quietly(iam.getRole({ RoleName }));
-        if (previousRole) {
-            return previousRole.Role.Arn;
-        }
-        if (!createRole && RoleName !== defaults.RoleName) {
-            throw new Error(`Could not find role ${RoleName}`);
-        }
-        log.info(`Creating default role "${RoleName}" for faast trampoline function`);
-        const AssumeRolePolicyDocument = JSON.stringify({
-            Version: "2012-10-17",
-            Statement: [
-                {
-                    Principal: { Service: "lambda.amazonaws.com" },
-                    Action: "sts:AssumeRole",
-                    Effect: "Allow"
-                }
-            ]
-        });
-        const roleParams: IAM.CreateRoleRequest = {
-            AssumeRolePolicyDocument,
-            RoleName,
-            Description: "role for lambda functions created by faast",
-            MaxSessionDuration: 3600
-        };
-        log.info(`Calling createRole`);
-        const PolicyArn = "arn:aws:iam::aws:policy/AdministratorAccess";
-        try {
-            const roleResponse = await iam.createRole(roleParams).promise();
-            log.info(`Attaching administrator role policy`);
+export async function ensureRoleRaw(
+    RoleName: string,
+    services: AwsServices,
+    createRole: boolean
+) {
+    const { iam } = services;
+    log.info(`Checking for cached lambda role`);
+    const previousRole = await quietly(iam.getRole({ RoleName }));
+    if (previousRole) {
+        return previousRole.Role.Arn;
+    }
+    if (!createRole && RoleName !== defaults.RoleName) {
+        throw new Error(`Could not find role ${RoleName}`);
+    }
+    log.info(`Creating default role "${RoleName}" for faast trampoline function`);
+    const AssumeRolePolicyDocument = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+            {
+                Principal: { Service: "lambda.amazonaws.com" },
+                Action: "sts:AssumeRole",
+                Effect: "Allow"
+            }
+        ]
+    });
+    const roleParams: IAM.CreateRoleRequest = {
+        AssumeRolePolicyDocument,
+        RoleName,
+        Description: "role for lambda functions created by faast",
+        MaxSessionDuration: 3600
+    };
+    log.info(`Calling createRole`);
+    const PolicyArn = "arn:aws:iam::aws:policy/AdministratorAccess";
+    try {
+        const roleResponse = await iam.createRole(roleParams).promise();
+        log.info(`Attaching administrator role policy`);
+        await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
+        return roleResponse.Role.Arn;
+    } catch (err) {
+        if (err.code === "EntityAlreadyExists") {
+            const roleResponse = await iam.getRole({ RoleName }).promise();
             await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
             return roleResponse.Role.Arn;
-        } catch (err) {
-            if (err.code === "EntityAlreadyExists") {
-                const roleResponse = await iam.getRole({ RoleName }).promise();
-                await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
-                return roleResponse.Role.Arn;
-            }
-            throw err;
         }
+        throw err;
     }
+}
+
+export const ensureRole = throttle(
+    { concurrency: 1, rate: 5, memoize: true },
+    ensureRoleRaw
 );
 
 export async function createLayer(
