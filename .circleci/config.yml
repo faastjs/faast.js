@@ -85,6 +85,6 @@ workflows:
     version: 2
     node10:
         jobs:
-            - build_and_test
-                nodeVersion: node10
-                executor: node10
+            - build_and_test:
+                  nodeVersion: "node10"
+                  executor: node10
