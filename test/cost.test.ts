@@ -29,12 +29,7 @@ async function testCostAnalyzer(
     t: ExecutionContext,
     configs: CostAnalyzer.Configuration[]
 ) {
-    const profile = await CostAnalyzer.analyze(
-        funcs,
-
-        { work, silent: true },
-        configs
-    );
+    const profile = await CostAnalyzer.analyze({ funcs, work, silent: true }, configs);
     t.is(profile.estimates.length, configs.length);
     for (const { costSnapshot } of profile.estimates) {
         t.true(costSnapshot.stats.completed > 0);

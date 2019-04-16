@@ -315,6 +315,10 @@ export namespace CostAnalyzer {
      */
     export interface Workload<T extends object, A extends string> {
         /**
+         * The imported module that contains the cloud functions to test.
+         */
+        funcs: T;
+        /**
          * A function that executes cloud functions on
          * `faastModule.functions.*`. The work function should return `void` if
          * there are no custom workload attributes. Otherwise, it should return
@@ -528,12 +532,11 @@ export namespace CostAnalyzer {
     }
 
     async function estimate<T extends object, K extends string>(
-        mod: T,
         workload: Required<Workload<T, K>>,
         config: Configuration
     ): Promise<Estimate<K>> {
         const { provider, options } = config;
-        const faastModule = await faast(provider, mod, options);
+        const faastModule = await faast(provider, workload.funcs, options);
         const { repetitions, concurrency: repetitionConcurrency } = workload;
         const doWork = throttle({ concurrency: repetitionConcurrency }, workload.work);
         const results: Promise<WorkloadAttribute<K> | void>[] = [];
@@ -550,11 +553,10 @@ export namespace CostAnalyzer {
     /**
      * Estimate the cost of a workload using multiple configurations and
      * providers.
-     * @param mod - The module containing the remote cloud functions to analyze.
-     * @param userWorkload - a {@link CostAnalyzer.Workload} object
-     * specifying the workload to run and additional parameters.
-     * @param configurations - an array specifying
-     * {@link CostAnalyzer.Configuration}s to run. Default:
+     * @param userWorkload - a {@link CostAnalyzer.Workload} object specifying
+     * the workload to run and additional parameters.
+     * @param configurations - an array specifying configurations to run (see
+     * {@link CostAnalyzer.Configuration}). Default:
      * {@link CostAnalyzer.awsConfigurations}.
      * @returns A promise for a {@link CostAnalyzer.Result}
      * @public
@@ -613,7 +615,7 @@ export namespace CostAnalyzer {
      * }
      *
      * async function main() {
-     *     const results = await costAnalyzer(mod, { work });
+     *     const results = await costAnalyzer({ mod, work });
      *     writeFileSync("cost.csv", results.csv());
      * }
      *
@@ -649,12 +651,11 @@ export namespace CostAnalyzer {
      * aligned.
      */
     export async function analyze<T extends object, A extends string>(
-        mod: T,
         userWorkload: Workload<T, A>,
         configurations: Configuration[] = awsConfigurations
     ) {
         const scheduleEstimate = throttle<
-            [T, Required<Workload<T, A>>, Configuration],
+            [Required<Workload<T, A>>, Configuration],
             Estimate<A>
         >(
             {
@@ -673,9 +674,7 @@ export namespace CostAnalyzer {
             work: throttle({ concurrency }, userWorkload.work)
         };
 
-        const promises = configurations.map(config =>
-            scheduleEstimate(mod, workload, config)
-        );
+        const promises = configurations.map(config => scheduleEstimate(workload, config));
 
         const format = workload.format || defaultFormat;
 
