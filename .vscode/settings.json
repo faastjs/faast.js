@@ -1,6 +1,6 @@
 {
     "typescript.tsdk": "node_modules/typescript/lib",
-    "debug.node.autoAttach": "on",
+    "debug.node.autoAttach": "off",
     "search.exclude": {
         "**/markdown": true
     }

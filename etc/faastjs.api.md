@@ -70,7 +70,7 @@ export interface CommonOptions {
 
 // @public
 export namespace CostAnalyzer {
-    export function analyze<T extends object, A extends string>(mod: T, userWorkload: Workload<T, A>, configurations?: Configuration[]): Promise<Result<T, A>>;
+    export function analyze<T extends object, A extends string>(userWorkload: Workload<T, A>, configurations?: Configuration[]): Promise<Result<T, A>>;
     export type Configuration = {
         provider: "aws";
         options: AwsOptions;
@@ -98,6 +98,7 @@ export namespace CostAnalyzer {
         concurrency?: number;
         format?: (attr: A, value: number) => string;
         formatCSV?: (attr: A, value: number) => string;
+        funcs: T;
         repetitions?: number;
         silent?: boolean;
         summarize?: (summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>;
