@@ -40,14 +40,6 @@ jobs:
             - run:
                   command: npm run codecov
                   when: always
-
-jobs:
-    build_and_test:
-        executor: node10
-        steps:
-            - build_and_test:
-                nodeVersion: "node10"
-                executor: node10
     # node10:
     #     executor: node10
     #     steps:
@@ -91,6 +83,8 @@ jobs:
 
 workflows:
     version: 2
-    build_and_test:
+    node10:
         jobs:
-            - node10
+            - build_and_test
+                nodeVersion: "node10"
+                executor: node10
