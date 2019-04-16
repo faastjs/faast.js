@@ -2,7 +2,7 @@ import test from "ava";
 import { CloudWatchLogs } from "aws-sdk";
 import * as uuid from "uuid/v4";
 import { faastAws, log, throttle } from "../index";
-import { defaultGcWorker } from "../src/aws/aws-faast";
+import { defaultGcWorker, clearLastGc } from "../src/aws/aws-faast";
 import { getAWSResources } from "./fixtures/util-aws";
 import * as functions from "./fixtures/functions";
 import { checkResourcesCleanedUp, sleep, title } from "./fixtures/util";
@@ -30,6 +30,7 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
     // module and set its retention to 0, and use a synthetic gc worker to
     // observe and verify the garbage collector actually cleans up.
     const mod = await faastAws(functions, "./fixtures/functions", {
+        gc: "off",
         mode: "queue",
         packageJson: {
             name: uuid(),
@@ -94,6 +95,7 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
 
 test.serial(title("aws", "garbage collects functions that are never called"), async t => {
     const mod = await faastAws(functions, "./fixtures/functions", {
+        gc: "off",
         mode: "queue"
     });
     try {
@@ -120,9 +122,28 @@ test.serial(title("aws", "garbage collects functions that are never called"), as
     }
 });
 
-test.serial(title("aws", "garbage collection"), async t => {
-    // Run a real gc to make sure the build account doesn't accumulate garbage.
-    const mod = await faastAws(functions, "./fixtures/functions");
-    await mod.cleanup();
-    t.true(true);
+test.serial(title("aws", "garbage collection caching"), async t => {
+    {
+        // Run a real gc so the build account doesn't accumulate garbage.
+        const mod = await faastAws(functions, "./fixtures/functions");
+        await mod.cleanup();
+        t.is(await mod.state.gcPromise, "done");
+    }
+
+    {
+        // Test the in-memory cache that prevents gc from multiple faast.js
+        // instances from running at the same time.
+        const mod = await faastAws(functions, "./fixtures/functions");
+        await mod.cleanup();
+        t.is(await mod.state.gcPromise, "skipped");
+    }
+
+    {
+        // Test the persistent cache that prevents gc from running too often
+        // even across processes.
+        clearLastGc();
+        const mod = await faastAws(functions, "./fixtures/functions");
+        await mod.cleanup();
+        t.is(await mod.state.gcPromise, "skipped");
+    }
 });

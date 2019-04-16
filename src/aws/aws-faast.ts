@@ -244,7 +244,7 @@ export interface AwsState {
     services: AwsServices;
     options: Required<AwsOptions>;
     metrics: AwsMetrics;
-    gcPromise?: Promise<void>;
+    gcPromise?: Promise<"done" | "skipped">;
 }
 
 export type AwsGcWork =
@@ -508,6 +508,7 @@ export const initialize = throttle(
                 gc
             ).catch(err => {
                 log.gc(`Garbage collection error: ${err}`);
+                return "skipped" as const;
             });
         }
 
@@ -777,6 +778,10 @@ function functionNameFromLogGroup(logGroupName: string) {
 
 let lastGc: number | undefined;
 
+export function clearLastGc() {
+    lastGc = undefined;
+}
+
 function forEachPage<R>(
     description: string,
     request: Request<R, AWSError>,
@@ -807,11 +812,11 @@ export async function collectGarbage(
     accountId: string,
     retentionInDays: number,
     mode: "auto" | "force"
-) {
+): Promise<"done" | "skipped"> {
     if (executor === defaultGcWorker) {
         if (mode === "auto") {
             if (lastGc && Date.now() <= lastGc + 3600 * 1000) {
-                return;
+                return "skipped";
             }
             const gcEntry = await caches.awsGc.get("gc");
             if (gcEntry) {
@@ -823,7 +828,7 @@ export async function collectGarbage(
                         Date.now() <= lastGcPersistent + 3600 * 1000
                     ) {
                         lastGc = lastGcPersistent;
-                        return;
+                        return "skipped";
                     }
                 } catch (err) {
                     log.warn(err);
@@ -908,6 +913,7 @@ export async function collectGarbage(
     });
     log.gc(`Awaiting ${promises.length} scheduled work promises`);
     await Promise.all(promises);
+    return "done";
 }
 
 export async function getAccountId(sts: STS) {
