@@ -1,6 +1,6 @@
 import * as commander from "commander";
 import { CostAnalyzer, Statistics, FaastModule } from "faastjs";
-import * as m from "./map-buckets-module";
+import * as funcs from "./map-buckets-module";
 import { listAllObjects, f1, GB, f2 } from "./util";
 import { writeFile as fsWriteFile } from "fs";
 import { promisify } from "util";
@@ -15,7 +15,7 @@ interface BandwidthMetrics {
 }
 
 const workload = (Bucket: string, filter: FilterFn) => async (
-    faastModule: FaastModule<typeof m>
+    faastModule: FaastModule<typeof funcs>
 ) => {
     const remote = faastModule.functions;
     let allObjects = await listAllObjects(Bucket);
@@ -73,17 +73,14 @@ function formatCSV(key: keyof BandwidthMetrics, value: number) {
 }
 
 async function compareAws(Bucket: string, filter: FilterFn) {
-    const result = await CostAnalyzer.analyze(
-        m,
-        require.resolve("./map-buckets-module"),
-        {
-            work: workload(Bucket, filter),
-            format,
-            formatCSV,
-            repetitions: 5,
-            concurrency: 5
-        }
-    );
+    const result = await CostAnalyzer.analyze({
+        funcs,
+        work: workload(Bucket, filter),
+        format,
+        formatCSV,
+        repetitions: 5,
+        concurrency: 5
+    });
     writeFile("cost.csv", result.csv());
 }
 
