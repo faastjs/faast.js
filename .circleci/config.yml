@@ -39,7 +39,7 @@ jobs:
         executor: node10
         steps:
             build_and_test:
-                nodeVersion: node10
+                nodeVersion: "node10"
     # node10:
     #     executor: node10
     #     steps:
