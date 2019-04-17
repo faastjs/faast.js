@@ -175,7 +175,12 @@ export const GoogleImpl: ProviderImpl<GoogleOptions, GoogleState> = {
 };
 
 export async function initializeGoogleServices(): Promise<GoogleServices> {
-    google.options({ retryConfig: { retry: 12 } });
+    google.options({
+        retryConfig: {
+            retry: 12,
+            statusCodesToRetry: [[100, 199], [429, 429], [405, 405], [500, 599]]
+        }
+    });
     const auth = await google.auth.getClient({
         scopes: ["https://www.googleapis.com/auth/cloud-platform"]
     });
@@ -471,9 +476,14 @@ async function callFunctionHttps(
             timestamp: Date.now()
         };
     } catch (err) {
-        throw err.response && err.response.status === 503
-            ? new FaastError(err, "possibly out of memory")
-            : new FaastError(err, "google cloud function invocation");
+        const { response } = err;
+        if (response && response.status === 503) {
+            throw new FaastError(err, "google cloud function: possibly out of memory");
+        }
+        throw new FaastError(
+            err,
+            `google cloud function: ${response.statusText} ${response.data}`
+        );
     }
 }
 
