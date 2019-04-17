@@ -87,7 +87,9 @@ export const configs: CommonOptions[] = [
 
 export function title(provider: Provider, msg: string, options?: object) {
     const desc = options ? inspect(options, { breakLength: Infinity }) : "";
-    return [provider === "local" ? "" : "remote", provider, msg, desc].join(" ");
+    return [provider === "local" ? "" : "remote", provider, msg, desc]
+        .filter(x => x !== "")
+        .join(" ");
 }
 
 export function sleep(ms: number) {

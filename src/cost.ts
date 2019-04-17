@@ -107,7 +107,7 @@ export class CostMetric {
  *
  * Example using AWS:
  * ```typescript
- * const faastModule = await faast("aws", m, "./functions");
+ * const faastModule = await faast("aws", m);
  * try {
  *     // Invoke faastModule.functions.*
  * } finally {
@@ -302,89 +302,6 @@ export class CostSnapshot {
  */
 export namespace CostAnalyzer {
     /**
-     * User-defined custom metrics for a workload. These are automatically
-     * summarized in the output; see {@link CostAnalyzer.Workload}.
-     * @public
-     */
-    export type WorkloadAttribute<A extends string> = { [attr in A]: number };
-
-    /**
-     * A user-defined cost analyzer workload for {@link CostAnalyzer.analyze}.
-     * @public
-     * Example:
-     */
-    export interface Workload<T extends object, A extends string> {
-        /**
-         * A function that executes cloud functions on
-         * `faastModule.functions.*`. The work function should return `void` if
-         * there are no custom workload attributes. Otherwise, it should return
-         * a {@link CostAnalyzer.WorkloadAttribute} object which maps
-         * user-defined attribute names to numerical values for the workload.
-         * For example, this might measure bandwidth or some other metric not
-         * tracked by faast.js, but are relevant for evaluating the
-         * cost-performance tradeoff of the configurations analyzed by the cost
-         * analyzer.
-         */
-        work: (faastModule: FaastModule<T>) => Promise<WorkloadAttribute<A> | void>;
-        /**
-         * Combine {@link CostAnalyzer.WorkloadAttribute} instances returned
-         * from multiple workload executions (caused by value of
-         * {@link CostAnalyzer.Workload.repetitions}). The default is a function
-         * that takes the average of each attribute.
-         */
-        summarize?: (summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>;
-        /**
-         * Format an attribute value for console output. This is displayed by
-         * the cost analyzer when all of the repetitions for a configuration
-         * have completed. The default returns
-         * `${attribute}:${value.toFixed(1)}`.
-         */
-        format?: (attr: A, value: number) => string;
-        /**
-         * Format an attribute value for CSV. The default returns
-         * `value.toFixed(1)`.
-         */
-        formatCSV?: (attr: A, value: number) => string;
-        /**
-         * If true, do not output live results to the console. Can be useful for
-         * running the cost analyzer as part of automated tests. Default: false.
-         */
-        silent?: boolean;
-        /**
-         * The number of repetitions to run the workload for each cost analyzer
-         * configuration. Higher repetitions help reduce the jitter in the
-         * results. Repetitions execute in the same FaastModule instance.
-         * Default: 10.
-         */
-        repetitions?: number;
-        /**
-         * The amount of concurrency to allow. Concurrency can arise from
-         * multiple repetitions of the same configuration, or concurrenct
-         * executions of different configurations. This concurrency limit
-         * throttles the total number of concurrent workload executions across
-         * both of these sources of concurrency. Default: 64.
-         */
-        concurrency?: number;
-    }
-
-    const workloadDefaults = {
-        summarize: summarizeMean,
-        format: defaultFormat,
-        formatCSV: defaultFormatCSV,
-        silent: false,
-        repetitions: 10,
-        concurrency: 64
-    };
-
-    function defaultFormat(attr: string, value: number) {
-        return `${attr}:${f1(value)}`;
-    }
-
-    function defaultFormatCSV(_: string, value: number) {
-        return f1(value);
-    }
-
-    /**
      * An input to {@link CostAnalyzer.analyze}, specifying one
      * configuration of faast.js to run against a workload. See
      * {@link AwsOptions} and {@link GoogleOptions}.
@@ -486,6 +403,101 @@ export namespace CostAnalyzer {
         return rv;
     })();
 
+    /**
+     * User-defined custom metrics for a workload. These are automatically
+     * summarized in the output; see {@link CostAnalyzer.Workload}.
+     * @public
+     */
+    export type WorkloadAttribute<A extends string> = { [attr in A]: number };
+
+    /**
+     * A user-defined cost analyzer workload for {@link CostAnalyzer.analyze}.
+     * @public
+     * Example:
+     */
+    export interface Workload<T extends object, A extends string> {
+        /**
+         * The imported module that contains the cloud functions to test.
+         */
+        funcs: T;
+        /**
+         * A function that executes cloud functions on
+         * `faastModule.functions.*`. The work function should return `void` if
+         * there are no custom workload attributes. Otherwise, it should return
+         * a {@link CostAnalyzer.WorkloadAttribute} object which maps
+         * user-defined attribute names to numerical values for the workload.
+         * For example, this might measure bandwidth or some other metric not
+         * tracked by faast.js, but are relevant for evaluating the
+         * cost-performance tradeoff of the configurations analyzed by the cost
+         * analyzer.
+         */
+        work: (faastModule: FaastModule<T>) => Promise<WorkloadAttribute<A> | void>;
+        /**
+         * An array of configurations to run the work function against (see
+         * {@link CostAnalyzer.Configuration}). For example, each entry in the
+         * array may specify a provider, memory size, and other options.
+         * Default: {@link CostAnalyzer.awsConfigurations}.
+         */
+        configurations?: Configuration[];
+        /**
+         * Combine {@link CostAnalyzer.WorkloadAttribute} instances returned
+         * from multiple workload executions (caused by value of
+         * {@link CostAnalyzer.Workload.repetitions}). The default is a function
+         * that takes the average of each attribute.
+         */
+        summarize?: (summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>;
+        /**
+         * Format an attribute value for console output. This is displayed by
+         * the cost analyzer when all of the repetitions for a configuration
+         * have completed. The default returns
+         * `${attribute}:${value.toFixed(1)}`.
+         */
+        format?: (attr: A, value: number) => string;
+        /**
+         * Format an attribute value for CSV. The default returns
+         * `value.toFixed(1)`.
+         */
+        formatCSV?: (attr: A, value: number) => string;
+        /**
+         * If true, do not output live results to the console. Can be useful for
+         * running the cost analyzer as part of automated tests. Default: false.
+         */
+        silent?: boolean;
+        /**
+         * The number of repetitions to run the workload for each cost analyzer
+         * configuration. Higher repetitions help reduce the jitter in the
+         * results. Repetitions execute in the same FaastModule instance.
+         * Default: 10.
+         */
+        repetitions?: number;
+        /**
+         * The amount of concurrency to allow. Concurrency can arise from
+         * multiple repetitions of the same configuration, or concurrenct
+         * executions of different configurations. This concurrency limit
+         * throttles the total number of concurrent workload executions across
+         * both of these sources of concurrency. Default: 64.
+         */
+        concurrency?: number;
+    }
+
+    const workloadDefaults = {
+        configurations: awsConfigurations,
+        summarize: summarizeMean,
+        format: defaultFormat,
+        formatCSV: defaultFormatCSV,
+        silent: false,
+        repetitions: 10,
+        concurrency: 64
+    };
+
+    function defaultFormat(attr: string, value: number) {
+        return `${attr}:${f1(value)}`;
+    }
+
+    function defaultFormatCSV(_: string, value: number) {
+        return f1(value);
+    }
+
     const ps = (n: number) => (n / 1000).toFixed(3);
 
     function summarizeMean<A extends string>(attributes: WorkloadAttribute<A>[]) {
@@ -528,13 +540,11 @@ export namespace CostAnalyzer {
     }
 
     async function estimate<T extends object, K extends string>(
-        mod: T,
-        fmodule: string,
         workload: Required<Workload<T, K>>,
         config: Configuration
     ): Promise<Estimate<K>> {
         const { provider, options } = config;
-        const faastModule = await faast(provider, mod, fmodule, options);
+        const faastModule = await faast(provider, workload.funcs, options);
         const { repetitions, concurrency: repetitionConcurrency } = workload;
         const doWork = throttle({ concurrency: repetitionConcurrency }, workload.work);
         const results: Promise<WorkloadAttribute<K> | void>[] = [];
@@ -551,15 +561,8 @@ export namespace CostAnalyzer {
     /**
      * Estimate the cost of a workload using multiple configurations and
      * providers.
-     * @param mod - The module containing the remote cloud functions to analyze.
-     * @param fmodule - Path to the module `mod`. This can be either an absolute
-     * filename (e.g. from `require.resolve`) or a path omitting the `.js`
-     * extension as would be use with `require` or `import`.
-     * @param userWorkload - a {@link CostAnalyzer.Workload} object
-     * specifying the workload to run and additional parameters.
-     * @param configurations - an array specifying
-     * {@link CostAnalyzer.Configuration}s to run. Default:
-     * {@link CostAnalyzer.awsConfigurations}.
+     * @param userWorkload - a {@link CostAnalyzer.Workload} object specifying
+     * the workload to run and additional parameters.
      * @returns A promise for a {@link CostAnalyzer.Result}
      * @public
      * @remarks
@@ -617,7 +620,7 @@ export namespace CostAnalyzer {
      * }
      *
      * async function main() {
-     *     const results = await costAnalyzer(mod, "./functions", { work });
+     *     const results = await costAnalyzer({ mod, work });
      *     writeFileSync("cost.csv", results.csv());
      * }
      *
@@ -653,13 +656,10 @@ export namespace CostAnalyzer {
      * aligned.
      */
     export async function analyze<T extends object, A extends string>(
-        mod: T,
-        fmodule: string,
-        userWorkload: Workload<T, A>,
-        configurations: Configuration[] = awsConfigurations
+        userWorkload: Workload<T, A>
     ) {
         const scheduleEstimate = throttle<
-            [T, string, Required<Workload<T, A>>, Configuration],
+            [Required<Workload<T, A>>, Configuration],
             Estimate<A>
         >(
             {
@@ -678,9 +678,8 @@ export namespace CostAnalyzer {
             work: throttle({ concurrency }, userWorkload.work)
         };
 
-        const promises = configurations.map(config =>
-            scheduleEstimate(mod, fmodule, workload, config)
-        );
+        const { configurations } = workload;
+        const promises = configurations.map(config => scheduleEstimate(workload, config));
 
         const format = workload.format || defaultFormat;
 

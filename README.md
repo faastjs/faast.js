@@ -36,7 +36,7 @@ import { faast } from "faastjs";
 import * as funcs from "./functions";
 
 (async () => {
-    const m = await faast("aws", funcs, "./functions");
+    const m = await faast("aws", funcs);
     const { hello } = m.functions;
     const result = await hello("world!");
     console.log(result);

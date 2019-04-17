@@ -2,7 +2,7 @@ import { faast } from "faastjs";
 import * as funcs from "./functions";
 
 (async () => {
-    const m = await faast("aws", funcs, "./functions");
+    const m = await faast("aws", funcs);
     await m.functions.hello("world");
     const cost = await m.costSnapshot();
     console.log(`hello world cost: $${cost.total()}`);

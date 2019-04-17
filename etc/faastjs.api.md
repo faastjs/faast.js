@@ -20,6 +20,7 @@ import { S3 } from 'aws-sdk';
 import { SNS } from 'aws-sdk';
 import { SQS } from 'aws-sdk';
 import { STS } from 'aws-sdk';
+import { VError } from 'verror';
 import * as webpack from 'webpack';
 import { Writable } from 'stream';
 
@@ -70,7 +71,9 @@ export interface CommonOptions {
 
 // @public
 export namespace CostAnalyzer {
-    export function analyze<T extends object, A extends string>(mod: T, fmodule: string, userWorkload: Workload<T, A>, configurations?: Configuration[]): Promise<Result<T, A>>;
+    export function analyze<T extends object, A extends string>(userWorkload: Workload<T, A>): Promise<Result<T, A>>;
+    const awsConfigurations: Configuration[];
+    const googleConfigurations: Configuration[];
     export type Configuration = {
         provider: "aws";
         options: AwsOptions;
@@ -83,8 +86,6 @@ export namespace CostAnalyzer {
         costSnapshot: CostSnapshot;
         extraMetrics: WorkloadAttribute<A>;
     }
-    const awsConfigurations: Configuration[];
-    const googleConfigurations: Configuration[];
     export class Result<T extends object, A extends string> {
         // @internal
         constructor(
@@ -96,8 +97,10 @@ export namespace CostAnalyzer {
     }
     export interface Workload<T extends object, A extends string> {
         concurrency?: number;
+        configurations?: Configuration[];
         format?: (attr: A, value: number) => string;
         formatCSV?: (attr: A, value: number) => string;
+        funcs: T;
         repetitions?: number;
         silent?: boolean;
         summarize?: (summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>;
@@ -147,24 +150,32 @@ export class CostSnapshot {
 }
 
 // @public
-export function faast<M extends object>(provider: Provider, fmodule: M, modulePath: string, options?: CommonOptions): Promise<FaastModule<M>>;
+export function faast<M extends object>(provider: Provider, fmodule: M, options?: CommonOptions): Promise<FaastModule<M>>;
 
 // @public
-export function faastAws<M extends object>(fmodule: M, modulePath: string, options?: AwsOptions): Promise<AwsFaastModule<M>>;
+export function faastAws<M extends object>(fmodule: M, options?: AwsOptions): Promise<AwsFaastModule<M>>;
 
 // @public
-export class FaastError extends Error {
-    // @internal
-    constructor(errObj: any, logUrl?: string);
-    [key: string]: any;
+export class FaastError extends VError {
+    args?: any[];
+    cause(): Error | undefined;
+    code?: string;
+    readonly fullStack: string;
+    functionName?: string;
+    readonly info: {
+        [key: string]: any;
+    };
     logUrl?: string;
+    message: string;
+    name: string;
+    stack: string | undefined;
 }
 
 // @public
-export function faastGoogle<M extends object>(fmodule: M, modulePath: string, options?: GoogleOptions): Promise<GoogleFaastModule<M>>;
+export function faastGoogle<M extends object>(fmodule: M, options?: GoogleOptions): Promise<GoogleFaastModule<M>>;
 
 // @public
-export function faastLocal<M extends object>(fmodule: M, modulePath: string, options?: LocalOptions): Promise<LocalFaastModule<M>>;
+export function faastLocal<M extends object>(fmodule: M, options?: LocalOptions): Promise<LocalFaastModule<M>>;
 
 // @public
 export interface FaastModule<M extends object> {

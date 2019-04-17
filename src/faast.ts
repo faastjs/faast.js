@@ -1,40 +1,36 @@
 import { EventEmitter } from "events";
-import { dirname, isAbsolute } from "path";
+import { dirname } from "path";
 import * as util from "util";
 import * as uuidv4 from "uuid/v4";
 import { _parentModule } from "../index";
 import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
 import { CostMetric, CostSnapshot } from "./cost";
+import { assertNever, FaastError, synthesizeFaastError } from "./error";
 import { GoogleImpl, GoogleOptions, GoogleState } from "./google/google-faast";
 import { LocalImpl, LocalOptions, LocalState } from "./local/local-faast";
 import { inspectProvider, log } from "./log";
 import {
+    FactoryMap,
+    FunctionCpuUsage,
+    FunctionStatsMap,
+    MemoryLeakDetector
+} from "./metrics";
+import {
     CallId,
     CleanupOptionDefaults,
     CleanupOptions,
-    ProviderImpl,
     CommonOptions,
     FunctionStats,
     Invocation,
     Provider,
+    ProviderImpl,
     UUID
 } from "./provider";
 import { FaastSerializationError, serializeCall } from "./serialize";
-import {
-    assertNever,
-    ExponentiallyDecayingAverageValue,
-    roundTo100ms,
-    sleep
-} from "./shared";
+import { ExponentiallyDecayingAverageValue, roundTo100ms, sleep } from "./shared";
 import { Deferred, Funnel, Pump } from "./throttle";
 import { Unpacked } from "./types";
 import { CpuMeasurement, FunctionCall, FunctionReturn } from "./wrapper";
-import {
-    FunctionStatsMap,
-    MemoryLeakDetector,
-    FunctionCpuUsage,
-    FactoryMap
-} from "./metrics";
 import Module = require("module");
 
 /**
@@ -42,53 +38,6 @@ import Module = require("module");
  * @public
  */
 export const providers: Provider[] = ["aws", "google", "local"];
-
-/**
- * Error type returned by cloud functions when they reject their promises with
- * an instance of Error or any object.
- * @remarks
- * When a faast.js cloud function throws an exception or rejects the promise it
- * returns with an instance of Error or any object, that error is returned as a
- * `FaastError` on the local side. The original error type is not used.
- * `FaastError` copies the properties of the original error and adds them to
- * FaastError.
- *
- * If available, a log URL for the specific invocation that caused the error is
- * appended to the log message. This log URL is also available as the `logUrl`
- * property. It will be surrounded by whilespace on both sides to ease parsing
- * as a URL by IDEs.
- *
- * Stack traces and error names should be preserved from the cloud side.
- * @public
- */
-export class FaastError extends Error {
-    /** The log URL for the specific invocation that caused this error. */
-    logUrl?: string;
-
-    /** @internal */
-    constructor(errObj: any, logUrl?: string) {
-        super("");
-        Object.assign(this, errObj);
-        let message = errObj.message;
-        if (logUrl) {
-            message += `\nlogs: ${logUrl} `;
-        }
-        this.message = message;
-        if (Object.keys(errObj).length === 0 && !(errObj instanceof Error)) {
-            log.warn(
-                `Error response object has no keys, likely a bug in faast (not serializing error objects)`
-            );
-        }
-        // Surround the logUrl with spaces because URL links are broken in
-        // vscode if there's no whitespace surrounding the URL.
-        this.logUrl = ` ${logUrl} `;
-        this.name = errObj.name;
-        this.stack = errObj.stack;
-    }
-
-    /** Additional properties from the remotely thrown Error. */
-    [key: string]: any;
-}
 
 /**
  * @internal
@@ -143,21 +92,6 @@ export type Promisified<M> = {
  */
 type ResponsifiedFunction<A extends any[], R> = (...args: A) => Promise<Response<R>>;
 
-function resolveModule(fmodule: string) {
-    if (isAbsolute(fmodule)) {
-        return fmodule;
-    }
-    if (!_parentModule) {
-        throw new Error(`Could not resolve fmodule ${fmodule}`);
-    }
-    if (_parentModule.filename.match(/aws-faast/)) {
-        log.info(
-            `WARNING: import faast before aws-faast to avoid problems with module resolution`
-        );
-    }
-    return (Module as any)._resolveFilename(fmodule, _parentModule);
-}
-
 interface FunctionReturnWithMetrics extends FunctionReturn {
     rawResponse: any;
     localRequestSentTime: number;
@@ -175,11 +109,11 @@ function processResponse<R>(
 ) {
     const { executionId, logUrl, instanceId, memoryUsage } = returned;
     let value: Promise<Unpacked<R>>;
+    const fn = callRequest.name;
     if (returned.type === "error") {
-        let error = returned.value;
-        if (returned.isErrorObject) {
-            error = new FaastError(returned.value, logUrl);
-        }
+        const error = returned.isErrorObject
+            ? synthesizeFaastError(returned.value, logUrl, fn, callRequest.args)
+            : returned.value;
         value = Promise.reject(error);
         value.catch(_silenceWarningLackOfSynchronousCatch => {});
     } else {
@@ -197,7 +131,6 @@ function processResponse<R>(
         logUrl,
         rawResponse
     };
-    const fn = callRequest.name;
     const { remoteExecutionStartTime, remoteExecutionEndTime } = returned;
 
     if (remoteExecutionStartTime && remoteExecutionEndTime) {
@@ -267,11 +200,10 @@ function processResponse<R>(
 async function createFaastModuleProxy<M extends object, O extends CommonOptions, S>(
     impl: ProviderImpl<O, S>,
     fmodule: M,
-    modulePath: string,
     userOptions?: O
 ): Promise<FaastModuleProxy<M, O, S>> {
     try {
-        const resolvedModule = resolveModule(modulePath);
+        const resolvedModule = resolve(fmodule);
         const functionId = uuidv4() as UUID;
         const options = { ...impl.defaults, ...userOptions };
         log.provider(`options ${inspectProvider(options)}`);
@@ -288,8 +220,7 @@ async function createFaastModuleProxy<M extends object, O extends CommonOptions,
             options
         );
     } catch (err) {
-        log.warn(`faast: createFunction error: ${err}`);
-        throw err;
+        throw new FaastError(err, "could not initialize cloud function");
     }
 }
 
@@ -399,7 +330,7 @@ export interface FaastModule<M extends object> {
      * `finally` construct:
      *
      * ```typescript
-     * const faastModule = await faast("aws", m, "./path/to/module");
+     * const faastModule = await faast("aws", m);
      * try {
      *     // Call faastModule.functions.*
      * } finally {
@@ -487,7 +418,7 @@ export interface FaastModule<M extends object> {
      * Code example:
      *
      * ```typescript
-     * const faastModule = await faast("aws", m, "./path/to/module");
+     * const faastModule = await faast("aws", m);
      * try {
      *     // invoke cloud functions on faastModule.functions.*
      * } finally {
@@ -592,8 +523,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             await this.impl.cleanup(this.state, options);
             log.provider(`cleanup done`);
         } catch (err) {
-            log.warn(`faast: cleanup error ${err}`);
-            throw err;
+            throw new FaastError(err, "failed in cleanup");
         }
     }
 
@@ -665,10 +595,9 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 }
             }
             if (!fname) {
-                throw new Error(`Could not find function name`);
+                throw new FaastError(`Could not find function name`);
             }
             const initialInvocationTime = this._initialInvocationTime.getOrCreate(fname);
-            // XXX capture google retries in stats?
 
             const shouldRetry = (err: any) => {
                 if (err instanceof FaastSerializationError) {
@@ -838,10 +767,9 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             switch (m.kind) {
                 case "deadletter":
                     const callRequest = callResultsPending.get(m.callId);
-                    log.info(`Error "${m.message}" in call request %O`, callRequest);
                     if (callRequest) {
-                        log.info(`Rejecting CallId: ${m.callId}`);
-                        callRequest.reject(new Error(m.message));
+                        const error = new FaastError(`dead letter message: ${m.message}`);
+                        callRequest.reject(error);
                     }
                     break;
                 case "functionstarted": {
@@ -945,15 +873,36 @@ export type LocalFaastModule<M extends object = object> = FaastModuleProxy<
     LocalState
 >;
 
+function resolve(fmodule: object) {
+    const cache = (Module as any)._cache;
+    let modulePath: string | undefined;
+    for (const key of Object.keys(cache).reverse()) {
+        if (cache[key].exports === fmodule) {
+            modulePath = key;
+            break;
+        }
+    }
+    if (!modulePath) {
+        throw new FaastError(
+            {
+                name: "FaastError",
+                info: {
+                    module: fmodule
+                }
+            },
+            `Could not find file for module, must use "import * as X from Y" or "X = require(Y)" to load a module for faast.`
+        );
+    }
+    log.info(`Found file: ${modulePath}`);
+    return modulePath;
+}
+
 /**
  * The main entry point for faast with any provider and only common options.
  * @param provider - One of `"aws"`, `"google"`, or `"local"`. See
  * {@link Provider}.
- * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
+ * @param fmodule - A module imported with `import * as X from "Y";`. Using
  * `require` also works but loses type information.
- * @param modulePath - The path to the module, as it would be specified to
- * `import` or `require`. It should be the same as `"BBB"` from importing
- * fmodule.
  * @param options - See {@link CommonOptions}.
  * @returns See {@link FaastModule}.
  * @remarks
@@ -962,7 +911,7 @@ export type LocalFaastModule<M extends object = object> = FaastModuleProxy<
  * import { faast } from "faastjs";
  * import * as mod from "./path/to/module";
  * async function main() {
- *     const faastModule = await faast("aws", mod, "./path/to/module");
+ *     const faastModule = await faast("aws", mod);
  *     try {
  *         const result = await faastModule.functions.func("arg");
  *     } finally {
@@ -976,28 +925,24 @@ export type LocalFaastModule<M extends object = object> = FaastModuleProxy<
 export async function faast<M extends object>(
     provider: Provider,
     fmodule: M,
-    modulePath: string,
     options?: CommonOptions
 ): Promise<FaastModule<M>> {
     switch (provider) {
         case "aws":
-            return faastAws(fmodule, modulePath, options);
+            return faastAws(fmodule, options);
         case "google":
-            return faastGoogle(fmodule, modulePath, options);
+            return faastGoogle(fmodule, options);
         case "local":
-            return faastLocal(fmodule, modulePath, options);
+            return faastLocal(fmodule, options);
         default:
-            throw new Error(`Unknown cloud provider option '${provider}'`);
+            throw new FaastError(`Unknown cloud provider option '${provider}'`);
     }
 }
 
 /**
  * The main entry point for faast with AWS provider.
- * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
+ * @param fmodule - A module imported with `import * as X from "Y";`. Using
  * `require` also works but loses type information.
- * @param modulePath - The path to the module, as it would be specified to
- * `import` or `require`. It should be the same as `"BBB"` from importing
- * fmodule.
  * @param options - Most common options are in {@link CommonOptions}.
  * Additional AWS-specific options are in {@link AwsOptions}.
  * @returns a Promise for {@link AwsFaastModule}.
@@ -1005,24 +950,15 @@ export async function faast<M extends object>(
  */
 export function faastAws<M extends object>(
     fmodule: M,
-    modulePath: string,
     options?: AwsOptions
 ): Promise<AwsFaastModule<M>> {
-    return createFaastModuleProxy<M, AwsOptions, AwsState>(
-        AwsImpl,
-        fmodule,
-        modulePath,
-        options
-    );
+    return createFaastModuleProxy<M, AwsOptions, AwsState>(AwsImpl, fmodule, options);
 }
 
 /**
  * The main entry point for faast with Google provider.
- * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
+ * @param fmodule - A module imported with `import * as X from "Y";`. Using
  * `require` also works but loses type information.
- * @param modulePath - The path to the module, as it would be specified to
- * `import` or `require`. It should be the same as `"BBB"` from importing
- * fmodule.
  * @param options - Most common options are in {@link CommonOptions}.
  * Additional Google-specific options are in {@link GoogleOptions}.
  * @returns a Promise for {@link GoogleFaastModule}.
@@ -1030,24 +966,19 @@ export function faastAws<M extends object>(
  */
 export function faastGoogle<M extends object>(
     fmodule: M,
-    modulePath: string,
     options?: GoogleOptions
 ): Promise<GoogleFaastModule<M>> {
     return createFaastModuleProxy<M, GoogleOptions, GoogleState>(
         GoogleImpl,
         fmodule,
-        modulePath,
         options
     );
 }
 
 /**
  * The main entry point for faast with Local provider.
- * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
+ * @param fmodule - A module imported with `import * as X from "Y";`. Using
  * `require` also works but loses type information.
- * @param modulePath - The path to the module, as it would be specified to
- * `import` or `require`. It should be the same as `"BBB"` from importing
- * fmodule.
  * @param options - Most common options are in {@link CommonOptions}.
  * Additional Local-specific options are in {@link LocalOptions}.
  * @returns a Promise for {@link LocalFaastModule}.
@@ -1055,13 +986,11 @@ export function faastGoogle<M extends object>(
  */
 export function faastLocal<M extends object>(
     fmodule: M,
-    modulePath: string,
     options?: LocalOptions
 ): Promise<LocalFaastModule<M>> {
     return createFaastModuleProxy<M, LocalOptions, LocalState>(
         LocalImpl,
         fmodule,
-        modulePath,
         options
     );
 }

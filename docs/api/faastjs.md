@@ -25,7 +25,7 @@ export function hello(name: string) {
 import { faast } from "faastjs";
 import * as funcs from "./functions";
 async function main() {
-    const faastModule = await faast("local", funcs, "./functions");
+    const faastModule = await faast("local", funcs);
     try {
         const result = await faastModule.functions.hello("world!");
         console.log(result);
@@ -43,7 +43,7 @@ main();
 |  --- | --- |
 |  [CostMetric](./faastjs.costmetric.md) | A line item in the cost estimate, including the resource usage metric measured and its pricing. |
 |  [CostSnapshot](./faastjs.costsnapshot.md) | A summary of the costs incurred by a faast.js module at a point in time. Output of [FaastModule.costSnapshot()](./faastjs.faastmodule.costsnapshot.md)<!-- -->. |
-|  [FaastError](./faastjs.faasterror.md) | Error type returned by cloud functions when they reject their promises with an instance of Error or any object. |
+|  [FaastError](./faastjs.faasterror.md) | A subclass of Error that is thrown by faast.js APIs and cloud function invocations. |
 |  [FaastModuleProxy](./faastjs.faastmoduleproxy.md) | Implementation of [FaastModule](./faastjs.faastmodule.md)<!-- -->. |
 |  [FunctionStats](./faastjs.functionstats.md) | Summary statistics for function invocations. |
 |  [FunctionStatsEvent](./faastjs.functionstatsevent.md) | Summarize statistics about cloud function invocations. |
@@ -54,10 +54,10 @@ main();
 
 |  Function | Description |
 |  --- | --- |
-|  [faast(provider, fmodule, modulePath, options)](./faastjs.faast.md) | The main entry point for faast with any provider and only common options. |
-|  [faastAws(fmodule, modulePath, options)](./faastjs.faastaws.md) | The main entry point for faast with AWS provider. |
-|  [faastGoogle(fmodule, modulePath, options)](./faastjs.faastgoogle.md) | The main entry point for faast with Google provider. |
-|  [faastLocal(fmodule, modulePath, options)](./faastjs.faastlocal.md) | The main entry point for faast with Local provider. |
+|  [faast(provider, fmodule, options)](./faastjs.faast.md) | The main entry point for faast with any provider and only common options. |
+|  [faastAws(fmodule, options)](./faastjs.faastaws.md) | The main entry point for faast with AWS provider. |
+|  [faastGoogle(fmodule, options)](./faastjs.faastgoogle.md) | The main entry point for faast with Google provider. |
+|  [faastLocal(fmodule, options)](./faastjs.faastlocal.md) | The main entry point for faast with Local provider. |
 |  [throttle({ concurrency, retry, rate, burst, memoize, cache }, fn)](./faastjs.throttle.md) | A decorator for rate limiting, concurrency limiting, retry, memoization, and on-disk caching. See [Limits](./faastjs.limits.md)<!-- -->. |
 
 ## Interfaces

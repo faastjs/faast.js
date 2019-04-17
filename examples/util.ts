@@ -31,7 +31,3 @@ export function f1(n: number) {
 export function f2(n: number) {
     return n.toFixed(2);
 }
-
-export function assertNever(x: never): never {
-    throw new Error("Unexpected object: " + x);
-}

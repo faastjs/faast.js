@@ -13,12 +13,12 @@ test("remote google garbage collector works for functions that are called", asyn
     // avoid interference with other test resources). Verify the first faast
     // module's resources would be cleaned up, which shows that the garbage
     // collector did its job.
-    const mod = await faastGoogle(functions, "./fixtures/functions", {
+    const mod = await faastGoogle(functions, {
         mode: "queue"
     });
     await mod.functions.hello("gc-test");
     await mod.cleanup({ deleteResources: false });
-    const mod2 = await faastGoogle(functions, "./fixtures/functions", {
+    const mod2 = await faastGoogle(functions, {
         gc: "force",
         retentionInDays: 0,
         _gcWorker: async (work, services) => {
@@ -34,12 +34,12 @@ test("remote google garbage collector works for functions that are called", asyn
 });
 
 test("remote google garbage collector works for functions that are never called", async t => {
-    const mod = await faastGoogle(functions, "./fixtures/functions", {
+    const mod = await faastGoogle(functions, {
         mode: "queue",
         gc: "off"
     });
     await mod.cleanup({ deleteResources: false });
-    const mod2 = await faastGoogle(functions, "./fixtures/functions", {
+    const mod2 = await faastGoogle(functions, {
         gc: "force",
         retentionInDays: 0,
         _gcWorker: async (work, services) => {

@@ -9,7 +9,7 @@ async function testBasic(
     options: CommonOptions
 ) {
     const opts: CommonOptions = { timeout: 30, gc: "off", ...options };
-    const faastModule = await faast(provider, funcs, "./fixtures/functions", opts);
+    const faastModule = await faast(provider, funcs, opts);
     const remote = faastModule.functions;
 
     try {
@@ -42,10 +42,10 @@ async function testBasic(
             await remote.customError();
             t.fail("remote.customError() did not reject as expected");
         } catch (err) {
-            t.true(err instanceof FaastError);
             const ferr = err as FaastError;
-            t.truthy(ferr.message.match(/^message/));
-            t.is(ferr.custom, "custom");
+            t.true(err instanceof FaastError);
+            t.truthy(ferr.message.match(/^custom error message/));
+            t.is(ferr.info.custom, "custom value");
         }
     } finally {
         await faastModule.cleanup();
@@ -55,12 +55,7 @@ async function testBasic(
 async function testBasicRequire(t: ExecutionContext, provider: Provider) {
     const requiredFuncs = require("./fixtures/functions");
     const opts: CommonOptions = { timeout: 30, gc: "off" };
-    const faastModule = await faast(
-        provider,
-        requiredFuncs,
-        "./fixtures/functions",
-        opts
-    );
+    const faastModule = await faast(provider, requiredFuncs, opts);
     const remote = faastModule.functions;
     try {
         t.is(await remote.identity("id"), "id");
@@ -73,7 +68,7 @@ async function testBasicRequire(t: ExecutionContext, provider: Provider) {
 // async function testCpuMetrics(t: ExecutionContext, provider: Provider) {
 //     t.plan(4);
 
-//     const lambda = await faast(provider, funcs, "./fixtures/functions", {
+//     const lambda = await faast(provider, funcs,  {
 //         childProcess: true,
 //         timeout: 90,
 //         memorySize: 512,

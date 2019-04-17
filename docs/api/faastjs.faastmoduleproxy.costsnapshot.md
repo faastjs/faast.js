@@ -29,7 +29,7 @@ A cost snapshot provides a near real-time estimate of the costs of the cloud fun
 Code example:
 
 ```typescript
-const faastModule = await faast("aws", m, "./path/to/module");
+const faastModule = await faast("aws", m);
 try {
     // invoke cloud functions on faastModule.functions.*
 } finally {

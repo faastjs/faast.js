@@ -13,7 +13,7 @@
         "watch": "npm run clean && npx tsc --watch",
         "doc": "node build/make-docs.js",
         "set-gcp-key": "node build/google-save-key.js",
-        "test": "ava dist/test/*.test.js",
+        "test": "ava --concurrency=8 --timeout=4m",
         "test-local": "ava --concurrency=4 -m='!remote*'",
         "test-aws": "ava --concurrency=8 --timeout=2m -m='!remote*' -m='*aws*'",
         "test-google": "ava --concurrency=4 --timeout=4m -m='!remote*' -m='*google*'",
@@ -46,6 +46,7 @@
         "process-doctor": "^1.0.0",
         "tslib": "^1.9.1",
         "uuid": "^3.2.1",
+        "verror": "^1.10.0",
         "webpack": "^4.29.6",
         "webpack-node-externals": "^1.7.2",
         "yauzl": "^2.10.0"
@@ -65,6 +66,7 @@
         "@types/papaparse": "^4.5.9",
         "@types/tar-stream": "^1.6.0",
         "@types/uuid": "^3.4.3",
+        "@types/verror": "^1.10.3",
         "@types/webpack": "^4.4.27",
         "@types/webpack-node-externals": "^1.6.3",
         "@types/yauzl": "^2.9.1",
@@ -90,7 +92,9 @@
     "nyc": {
         "exclude": [
             "tmp/**",
-            "test/fixtures/**"
+            "test/fixtures/**/*.ts",
+            "coverage/**",
+            "**/node_modules/**"
         ],
         "reporter": [
             "lcov",

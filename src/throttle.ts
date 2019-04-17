@@ -2,6 +2,7 @@ import * as assert from "assert";
 import { sleep } from "./shared";
 import { PersistentCache } from "./cache";
 import { createHash } from "crypto";
+import { FaastError } from "./error";
 
 export class Deferred<T = void> {
     promise: Promise<T>;
@@ -25,7 +26,7 @@ export class DeferredWorker<T = void> extends Deferred<T> {
     async execute() {
         const cancelMessage = this.cancel && this.cancel();
         if (cancelMessage) {
-            this.reject(new Error(cancelMessage));
+            this.reject(new FaastError(cancelMessage));
         } else {
             try {
                 const rv = await this.worker();

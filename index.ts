@@ -20,7 +20,7 @@
  * import { faast } from "faastjs";
  * import * as funcs from "./functions";
  * async function main() {
- *     const faastModule = await faast("local", funcs, "./functions");
+ *     const faastModule = await faast("local", funcs);
  *     try {
  *         const result = await faastModule.functions.hello("world!");
  *         console.log(result);
@@ -35,11 +35,11 @@
 export { AwsOptions, AwsRegion } from "./src/aws/aws-faast";
 export { PersistentCache } from "./src/cache";
 export { CostAnalyzer, CostMetric, CostSnapshot } from "./src/cost";
+export { FaastError } from "./src/error";
 export {
     AwsFaastModule,
     faast,
     faastAws,
-    FaastError,
     faastGoogle,
     faastLocal,
     FaastModule,

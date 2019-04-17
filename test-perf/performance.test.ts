@@ -9,10 +9,7 @@ async function throughput(
     provider: Provider,
     options: CommonOptions & { duration: number }
 ) {
-    const lambda = await faast(provider, funcs, "../test/fixtures/functions", {
-        gc: "off",
-        ...options
-    });
+    const lambda = await faast(provider, funcs, { gc: "off", ...options });
     lambda.on("stats", s => console.log(s.toString()));
 
     try {
@@ -37,10 +34,7 @@ async function throughput(
 }
 
 async function rampUp(t: ExecutionContext, provider: Provider, options: CommonOptions) {
-    const lambda = await faast(provider, funcs, "../test/fixtures/functions", {
-        gc: "off",
-        ...options
-    });
+    const lambda = await faast(provider, funcs, { gc: "off", ...options });
     lambda.on("stats", s => console.log(s.toString()));
 
     try {

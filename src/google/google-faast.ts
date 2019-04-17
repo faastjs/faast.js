@@ -10,6 +10,7 @@ import {
 import * as util from "util";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
+import { assertNever, FaastError } from "../error";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import {
@@ -24,7 +25,6 @@ import {
     UUID
 } from "../provider";
 import {
-    assertNever,
     computeHttpResponseBytes,
     hasExpired,
     keysOf,
@@ -174,7 +174,12 @@ export const GoogleImpl: ProviderImpl<GoogleOptions, GoogleState> = {
 };
 
 export async function initializeGoogleServices(): Promise<GoogleServices> {
-    google.options({ retryConfig: { retry: 12 } });
+    google.options({
+        retryConfig: {
+            retry: 12,
+            statusCodesToRetry: [[100, 199], [429, 429], [405, 405], [500, 599]]
+        }
+    });
     const auth = await google.auth.getClient({
         scopes: ["https://www.googleapis.com/auth/cloud-platform"]
     });
@@ -221,7 +226,7 @@ async function pollOperation<T>({
             return result;
         }
         if (retries++ >= maxRetries) {
-            throw new Error(`Timed out after ${retries} attempts.`);
+            throw new FaastError(`Timed out after ${retries} attempts.`);
         }
         await delay(retries);
     }
@@ -392,10 +397,8 @@ export async function initialize(
         );
     } catch (err) {
         if (!err.message.match(/already exists/)) {
-            log.warn(`createFunction error: ${err.stack}`);
-            log.info(`delete function ${trampoline}`);
             await deleteFunction(cloudFunctions, trampoline).catch(() => {});
-            throw err;
+            throw new FaastError(err, "failed to create google cloud function");
         }
     }
     if (mode === "https" || mode === "auto") {
@@ -404,11 +407,11 @@ export async function initialize(
         });
 
         if (!func.data.httpsTrigger) {
-            throw new Error("Could not get http trigger url");
+            throw new FaastError("Could not get http trigger url");
         }
         const { url } = func.data.httpsTrigger!;
         if (!url) {
-            throw new Error("Could not get http trigger url");
+            throw new FaastError("Could not get http trigger url");
         }
         log.info(`Function URL: ${url}`);
         state.url = url;
@@ -466,19 +469,13 @@ async function callFunctionHttps(
         };
     } catch (err) {
         const { response } = err;
-        let error = err;
-        if (response) {
-            const interpretation =
-                response && response.status === 503
-                    ? " (faast: possibly out of memory error)"
-                    : "";
-            error = new Error(
-                `${response.status} ${response.statusText} ${
-                    response.data
-                }${interpretation}`
-            );
+        if (response && response.status === 503) {
+            throw new FaastError(err, "google cloud function: possibly out of memory");
         }
-        throw error;
+        throw new FaastError(
+            err,
+            `google cloud function: ${response.statusText} ${response.data}`
+        );
     }
 }
 
@@ -491,7 +488,6 @@ async function invoke(
     switch (options.mode) {
         case "auto":
         case "https":
-            // XXX Use response queue even with https mode?
             return callFunctionHttps(url!, call, metrics, cancel);
         case "queue":
             const { requestQueueTopic } = resources;
@@ -716,14 +712,10 @@ const getGooglePrice = throttle(
             );
             return price;
         } catch (err) {
-            const { message: m } = err;
-            if (!m.match(/socket hang up/)) {
-                log.warn(
-                    `Could not get Google Cloud Functions pricing for '${description}'`
-                );
-                log.warn(err);
-            }
-            throw err;
+            throw new FaastError(
+                err,
+                `failed to get google pricing for "${description}"`
+            );
         }
     }
 );
@@ -746,51 +738,35 @@ async function getGoogleCloudFunctionsPricing(
     cloudBilling: CloudBilling.Cloudbilling,
     region: string
 ): Promise<GoogleCloudPricing> {
-    try {
-        const services = await listGoogleServices(cloudBilling);
+    const services = await listGoogleServices(cloudBilling);
 
-        const getPricing = (
-            serviceName: string,
-            description: string,
-            conversionFactor: number = 1
-        ) => {
-            const service = services.find(s => s.displayName === serviceName)!;
+    const getPricing = (
+        serviceName: string,
+        description: string,
+        conversionFactor: number = 1
+    ) => {
+        const service = services.find(s => s.displayName === serviceName)!;
 
-            return getGooglePrice(
-                cloudBilling,
-                region,
-                service.name!,
-                description,
-                conversionFactor
-            );
-        };
+        return getGooglePrice(
+            cloudBilling,
+            region,
+            service.name!,
+            description,
+            conversionFactor
+        );
+    };
 
-        return {
-            perInvocation: await getPricing("Cloud Functions", "Invocations"),
-            perGhzSecond: await getPricing("Cloud Functions", "CPU Time"),
-            perGbSecond: await getPricing("Cloud Functions", "Memory Time", 2 ** 30),
-            perGbOutboundData: await getPricing(
-                "Cloud Functions",
-                `Network Egress from ${region}`,
-                2 ** 30
-            ),
-            perGbPubSub: await getPricing(
-                "Cloud Pub/Sub",
-                "Message Delivery Basic",
-                2 ** 30
-            )
-        };
-    } catch (err) {
-        log.warn(`Could not get Google Cloud Functions pricing`);
-        log.warn(err);
-        return {
-            perInvocation: 0,
-            perGhzSecond: 0,
-            perGbSecond: 0,
-            perGbOutboundData: 0,
-            perGbPubSub: 0
-        };
-    }
+    return {
+        perInvocation: await getPricing("Cloud Functions", "Invocations"),
+        perGhzSecond: await getPricing("Cloud Functions", "CPU Time"),
+        perGbSecond: await getPricing("Cloud Functions", "Memory Time", 2 ** 30),
+        perGbOutboundData: await getPricing(
+            "Cloud Functions",
+            `Network Egress from ${region}`,
+            2 ** 30
+        ),
+        perGbPubSub: await getPricing("Cloud Pub/Sub", "Message Delivery Basic", 2 ** 30)
+    };
 }
 
 // https://cloud.google.com/functions/pricing

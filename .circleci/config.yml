@@ -9,71 +9,82 @@ executors:
         docker:
             - image: circleci/node:10
         working_directory: ~/repo
+    node8:
+        docker:
+            - image: circleci/node:8
+        working_directory: ~/repo
 
 jobs:
-    build:
-        executor: node10
+    build_and_test:
+        description: "build faast.js"
+        parameters:
+            nodeVersion:
+                type: string
+            executor:
+                type: executor
+        executor: << parameters.executor >>
         steps:
             - checkout
             - restore_cache:
                   keys:
-                      - v1-dependencies-{{ checksum "package.json" }}
-                      # fallback to using the latest cache if no exact match is found
-                      - v1-dependencies-
-
+                      - <<parameters.nodeVersion>>-{{ checksum "package.json" }}
+                      - <<parameters.nodeVersion>>
             - run: npm install
             - save_cache:
                   paths:
                       - node_modules
-                  key: v1-dependencies-{{ checksum "package.json" }}
+                  key: <<parameters.nodeVersion>>-{{ checksum "package.json" }}
             - run: npm run build
-            - persist_to_workspace:
-                  root: .
-                  paths:
-                      - .
-
-    test-local:
-        executor: node10
-        steps:
-            - attach_workspace:
-                  at: ~/repo
-            - run: npx nyc npm run test-local
-            - run:
-                  command: npm run codecov
-                  when: always
-
-    test-aws:
-        executor: node10
-        steps:
-            - attach_workspace:
-                  at: ~/repo
-            - run: npx nyc npm run test-aws-remote
-            - run:
-                  command: npm run codecov
-                  when: always
-
-    test-google:
-        executor: node10
-        steps:
-            - attach_workspace:
-                  at: ~/repo
             - run: npm run set-gcp-key
-            - run: npx nyc npm run test-google-remote
+            - run: npx nyc npm run test
             - run:
                   command: npm run codecov
                   when: always
+    # node10:
+    #     executor: node10
+    #     steps:
+    #         - checkout
+    #         - restore_cache:
+    #               keys:
+    #                   - v10-dependencies-{{ checksum "package.json" }}
+    #                   # fallback to using the latest cache if no exact match is found
+    #                   - v10-dependencies-
+    #         - run: npm install
+    #         - save_cache:
+    #               paths:
+    #                   - node_modules
+    #               key: v10-dependencies-{{ checksum "package.json" }}
+    #         - run: npm run build
+    #         - run: npm run set-gcp-key
+    #         - run: npx nyc npm run test
+    #         - run:
+    #               command: npm run codecov
+    #               when: always
+    # node8:
+    #     executor: node8
+    #     steps:
+    #         - checkout
+    #         - restore_cache:
+    #               keys:
+    #                   - v8-dependencies-{{ checksum "package.json" }}
+    #                   # fallback to using the latest cache if no exact match is found
+    #                   - v8-dependencies-
+    #         - run: npm install
+    #         - save_cache:
+    #               paths:
+    #                   - node_modules
+    #               key: v8-dependencies-{{ checksum "package.json" }}
+    #         - run: npm run build
+    #         - run: npm run set-gcp-key
+    #         - run: npx nyc npm run test
+    #         - run:
+    #               command: npm run codecov
+    #               when: always
 
 workflows:
     version: 2
-    build_and_test:
+    node10:
         jobs:
-            - build
-            - test-local:
-                  requires:
-                      - build
-            - test-aws:
-                  requires:
-                      - build
-            - test-google:
-                  requires:
-                      - build
+            - build_and_test:
+                  nodeVersion: "node10"
+                  executor: node10

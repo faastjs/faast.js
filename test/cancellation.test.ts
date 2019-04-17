@@ -17,7 +17,7 @@ function testCancellation(
     return withClock(async () => {
         await sleep(0); // wait until ava sets its timeout so it doesn't get picked up by async_hooks.
         startAsyncTracing();
-        const faastModule = await faast(provider, funcs, "./fixtures/functions", {
+        const faastModule = await faast(provider, funcs, {
             ...options,
             childProcess: true,
             gc: "off"

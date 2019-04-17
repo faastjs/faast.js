@@ -29,7 +29,7 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
     // cleanup while leaving the resources in place. Then create another faast
     // module and set its retention to 0, and use a synthetic gc worker to
     // observe and verify the garbage collector actually cleans up.
-    const mod = await faastAws(functions, "./fixtures/functions", {
+    const mod = await faastAws(functions, {
         gc: "off",
         mode: "queue",
         packageJson: {
@@ -56,7 +56,7 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
         let setLogRetention = false;
         let deletedLayer = false;
         const { layer, FunctionName } = mod.state.resources;
-        const mod2 = await faastAws(functions, "./fixtures/functions", {
+        const mod2 = await faastAws(functions, {
             gc: "force",
             retentionInDays: 0,
             _gcWorker: async (work, services) => {
@@ -94,14 +94,11 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
 });
 
 test.serial(title("aws", "garbage collects functions that are never called"), async t => {
-    const mod = await faastAws(functions, "./fixtures/functions", {
-        gc: "off",
-        mode: "queue"
-    });
+    const mod = await faastAws(functions, { gc: "off", mode: "queue" });
     try {
         await mod.cleanup({ deleteResources: false });
         const { FunctionName } = mod.state.resources;
-        const mod2 = await faastAws(functions, "./fixtures/functions", {
+        const mod2 = await faastAws(functions, {
             gc: "force",
             retentionInDays: 0,
             _gcWorker: async (work, services) => {
@@ -125,7 +122,7 @@ test.serial(title("aws", "garbage collects functions that are never called"), as
 test.serial(title("aws", "garbage collection caching"), async t => {
     {
         // Run a real gc so the build account doesn't accumulate garbage.
-        const mod = await faastAws(functions, "./fixtures/functions");
+        const mod = await faastAws(functions);
         await mod.cleanup();
         t.is(await mod.state.gcPromise, "done");
     }
@@ -133,7 +130,7 @@ test.serial(title("aws", "garbage collection caching"), async t => {
     {
         // Test the in-memory cache that prevents gc from multiple faast.js
         // instances from running at the same time.
-        const mod = await faastAws(functions, "./fixtures/functions");
+        const mod = await faastAws(functions);
         await mod.cleanup();
         t.is(await mod.state.gcPromise, "skipped");
     }
@@ -142,7 +139,7 @@ test.serial(title("aws", "garbage collection caching"), async t => {
         // Test the persistent cache that prevents gc from running too often
         // even across processes.
         clearLastGc();
-        const mod = await faastAws(functions, "./fixtures/functions");
+        const mod = await faastAws(functions);
         await mod.cleanup();
         t.is(await mod.state.gcPromise, "skipped");
     }

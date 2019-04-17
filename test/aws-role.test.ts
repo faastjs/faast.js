@@ -72,7 +72,7 @@ test(title("aws", "custom role"), async t => {
 
         await sleep(30 * 1000);
 
-        faastModule = await faastAws(funcs, "./fixtures/functions", {
+        faastModule = await faastAws(funcs, {
             RoleName,
             gc: "off"
         });

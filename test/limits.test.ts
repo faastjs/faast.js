@@ -9,7 +9,7 @@ async function testTimeout(
     provider: Provider,
     options: CommonOptions
 ) {
-    const lambda = await faast(provider, funcs, "./fixtures/functions", {
+    const lambda = await faast(provider, funcs, {
         ...options,
         timeout: 5,
         maxRetries: 0,
@@ -23,7 +23,7 @@ async function testTimeout(
 }
 
 async function limitOk(t: ExecutionContext, provider: Provider, options: CommonOptions) {
-    const lambda = await faast(provider, funcs, "./fixtures/functions", {
+    const lambda = await faast(provider, funcs, {
         ...options,
         timeout: 200,
         memorySize: 512,
@@ -45,7 +45,7 @@ async function limitFail(
     provider: Provider,
     options: CommonOptions
 ) {
-    const lambda = await faast(provider, funcs, "./fixtures/functions", {
+    const lambda = await faast(provider, funcs, {
         ...options,
         timeout: 200,
         memorySize: 512,

@@ -3,9 +3,10 @@ import * as uuid from "uuid/v4";
 import { faastAws } from "../index";
 import { checkResourcesCleanedUp } from "./fixtures/util";
 import { getAWSResources } from "./fixtures/util-aws";
+import * as funcs from "./fixtures/functions";
 
 test("remote aws cleanup removes ephemeral resources", async t => {
-    const func = await faastAws({}, "./fixtures/functions", {
+    const func = await faastAws(funcs, {
         mode: "queue",
         gc: "off"
     });
@@ -14,7 +15,7 @@ test("remote aws cleanup removes ephemeral resources", async t => {
 });
 
 test("remote aws cleanup removes lambda layers", async t => {
-    const func = await faastAws({}, "./fixtures/functions", {
+    const func = await faastAws(funcs, {
         packageJson: {
             name: uuid(),
             version: "0.0.2",

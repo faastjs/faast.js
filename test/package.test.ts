@@ -25,7 +25,7 @@ async function testPackage(
         },
         useDependencyCaching: false
     };
-    const faastModule = await faast(provider, funcs, "./fixtures/functionsPackage", opts);
+    const faastModule = await faast(provider, funcs, opts);
     const remote = faastModule.functions;
     try {
         t.is(await remote.isDir("."), true);
@@ -57,17 +57,9 @@ test("remote aws package dependencies with lambda layer caching", async t => {
             tslib: "^1.9.1"
         }
     };
-    const faastModule = await faastAws(funcs, "./fixtures/functionsPackage", {
-        gc: "off",
-        packageJson
-    });
-
+    const faastModule = await faastAws(funcs, { gc: "off", packageJson });
     try {
-        const faastModule2 = await faastAws(funcs, "./fixtures/functionsPackage", {
-            gc: "off",
-            packageJson
-        });
-
+        const faastModule2 = await faastAws(funcs, { gc: "off", packageJson });
         t.not(faastModule.state.resources.layer, undefined);
         t.deepEqual(
             faastModule.state.resources.layer,
