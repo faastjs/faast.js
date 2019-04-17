@@ -1,5 +1,5 @@
 import test, { ExecutionContext } from "ava";
-import { CommonOptions, faast, Provider, providers, FaastError } from "../index";
+import { CommonOptions, faast, Provider, providers } from "../index";
 import * as funcs from "./fixtures/functions";
 import { configs, title } from "./fixtures/util";
 

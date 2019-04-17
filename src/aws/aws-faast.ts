@@ -15,7 +15,7 @@ import { createHash } from "crypto";
 import { readFile } from "fs-extra";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
-import { FError } from "../error";
+import { FaastError, assertNever } from "../error";
 import { faastAws } from "../faast";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
@@ -31,7 +31,6 @@ import {
     UUID
 } from "../provider";
 import {
-    assertNever,
     computeHttpResponseBytes,
     defined,
     hasExpired,
@@ -310,7 +309,7 @@ export const ensureRole = throttle(
             return response.Role.Arn;
         } catch (err) {
             if (!createRole) {
-                throw new FError(err, `could not find role ${RoleName}`);
+                throw new FaastError(err, `could not find role ${RoleName}`);
             }
         }
         log.info(`Creating default role "${RoleName}" for faast trampoline function`);
@@ -343,7 +342,7 @@ export const ensureRole = throttle(
                 await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
                 return roleResponse.Role.Arn;
             }
-            throw new FError(err, "failed to create faast role");
+            throw new FaastError(err, "failed to create faast role");
         }
     }
 );
@@ -409,7 +408,7 @@ export async function createLayer(
             await faastModule.cleanup();
         }
     } catch (err) {
-        throw new FError(err, "failed to create lambda layer from packageJson");
+        throw new FaastError(err, "failed to create lambda layer from packageJson");
     }
 }
 
@@ -535,7 +534,7 @@ export const initialize = throttle(
             try {
                 await cleanup(state, { deleteResources: true, deleteCaches: false });
             } catch {}
-            throw new FError(err, "failed to initialize cloud function");
+            throw new FaastError(err, "failed to initialize cloud function");
         }
     }
 );
@@ -1154,7 +1153,7 @@ export const awsPrice = throttle(
                 log.warn(`Could not get AWS pricing for '${ServiceCode}' (%O)`, filter);
                 log.warn(err);
             }
-            throw new FError(err, `failed to get AWS pricing for "${ServiceCode}"`);
+            throw new FaastError(err, `failed to get AWS pricing for "${ServiceCode}"`);
         }
     }
 );

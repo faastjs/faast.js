@@ -5,7 +5,7 @@ import { join } from "path";
 import { PassThrough, Readable } from "stream";
 import * as webpack from "webpack";
 import * as yauzl from "yauzl";
-import { FError } from "./error";
+import { FaastError } from "./error";
 import { LoaderOptions } from "./loader";
 import { log } from "./log";
 import { commonDefaults, CommonOptions } from "./provider";
@@ -86,7 +86,7 @@ export async function packer(
         } else if (await pathExists(pathName)) {
             return pathName;
         }
-        throw new FError(`Could not find "${pathName}" or "${relativeDir}"`);
+        throw new FaastError(`Could not find "${pathName}" or "${relativeDir}"`);
     }
 
     async function processAddDirectories(archive: Archiver, directories: string[]) {
@@ -192,7 +192,7 @@ export async function packer(
     try {
         await runWebpack(loader, "index.js");
     } catch (err) {
-        throw new FError(err, "failed running webpack");
+        throw new FaastError(err, "failed running webpack");
     }
     try {
         let { archive } = await prepareZipArchive();
@@ -211,7 +211,7 @@ export async function packer(
         }
         return { archive };
     } catch (err) {
-        throw new FError(err, "failed creating zip archive");
+        throw new FaastError(err, "failed creating zip archive");
     }
 }
 

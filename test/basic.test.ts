@@ -42,10 +42,10 @@ async function testBasic(
             await remote.customError();
             t.fail("remote.customError() did not reject as expected");
         } catch (err) {
-            t.true(err instanceof FaastError);
             const ferr = err as FaastError;
-            t.truthy(ferr.message.match(/^message/));
-            t.is(ferr.custom, "custom");
+            t.true(err instanceof FaastError);
+            t.truthy(ferr.message.match(/^custom error message/));
+            t.is(ferr.info.custom, "custom value");
         }
     } finally {
         await faastModule.cleanup();

@@ -43,9 +43,8 @@ main();
 |  --- | --- |
 |  [CostMetric](./faastjs.costmetric.md) | A line item in the cost estimate, including the resource usage metric measured and its pricing. |
 |  [CostSnapshot](./faastjs.costsnapshot.md) | A summary of the costs incurred by a faast.js module at a point in time. Output of [FaastModule.costSnapshot()](./faastjs.faastmodule.costsnapshot.md)<!-- -->. |
-|  [FaastError](./faastjs.faasterror.md) | Error type returned by cloud functions when they reject their promises with an instance of Error or any object. |
+|  [FaastError](./faastjs.faasterror.md) | A subclass of Error that is thrown by faast.js APIs and cloud function invocations. |
 |  [FaastModuleProxy](./faastjs.faastmoduleproxy.md) | Implementation of [FaastModule](./faastjs.faastmodule.md)<!-- -->. |
-|  [FError](./faastjs.ferror.md) | A subclass of Error that is thrown by faast.js APIs. |
 |  [FunctionStats](./faastjs.functionstats.md) | Summary statistics for function invocations. |
 |  [FunctionStatsEvent](./faastjs.functionstatsevent.md) | Summarize statistics about cloud function invocations. |
 |  [PersistentCache](./faastjs.persistentcache.md) | A simple persistent key-value store. Used to implement [Limits.cache](./faastjs.limits.cache.md) for [throttle()](./faastjs.throttle.md)<!-- -->. |

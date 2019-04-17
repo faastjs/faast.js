@@ -156,11 +156,19 @@ export function faast<M extends object>(provider: Provider, fmodule: M, options?
 export function faastAws<M extends object>(fmodule: M, options?: AwsOptions): Promise<AwsFaastModule<M>>;
 
 // @public
-export class FaastError extends Error {
-    // @internal
-    constructor(errObj: any, logUrl?: string);
-    [key: string]: any;
+export class FaastError extends VError {
+    args?: any[];
+    cause(): Error | undefined;
+    code?: string;
+    readonly fullStack: string;
+    functionName?: string;
+    readonly info: {
+        [key: string]: any;
+    };
     logUrl?: string;
+    message: string;
+    name: string;
+    stack: string | undefined;
 }
 
 // @public
@@ -201,12 +209,6 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
     readonly state: S;
     stats(functionName?: string): FunctionStats;
     }
-
-// @public
-export class FError extends VError {
-    // (undocumented)
-    name: string;
-}
 
 // @public
 export class FunctionStats {

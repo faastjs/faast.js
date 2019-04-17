@@ -1,95 +1,43 @@
 import { EventEmitter } from "events";
-import { dirname, isAbsolute } from "path";
+import { dirname } from "path";
 import * as util from "util";
 import * as uuidv4 from "uuid/v4";
 import { _parentModule } from "../index";
 import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
 import { CostMetric, CostSnapshot } from "./cost";
+import { assertNever, FaastError, synthesizeFaastError } from "./error";
 import { GoogleImpl, GoogleOptions, GoogleState } from "./google/google-faast";
 import { LocalImpl, LocalOptions, LocalState } from "./local/local-faast";
 import { inspectProvider, log } from "./log";
 import {
+    FactoryMap,
+    FunctionCpuUsage,
+    FunctionStatsMap,
+    MemoryLeakDetector
+} from "./metrics";
+import {
     CallId,
     CleanupOptionDefaults,
     CleanupOptions,
-    ProviderImpl,
     CommonOptions,
     FunctionStats,
     Invocation,
     Provider,
+    ProviderImpl,
     UUID
 } from "./provider";
 import { FaastSerializationError, serializeCall } from "./serialize";
-import {
-    assertNever,
-    ExponentiallyDecayingAverageValue,
-    roundTo100ms,
-    sleep
-} from "./shared";
+import { ExponentiallyDecayingAverageValue, roundTo100ms, sleep } from "./shared";
 import { Deferred, Funnel, Pump } from "./throttle";
 import { Unpacked } from "./types";
 import { CpuMeasurement, FunctionCall, FunctionReturn } from "./wrapper";
-import {
-    FunctionStatsMap,
-    MemoryLeakDetector,
-    FunctionCpuUsage,
-    FactoryMap
-} from "./metrics";
 import Module = require("module");
-import { FError } from "./error";
 
 /**
  * An array of all available provider.
  * @public
  */
 export const providers: Provider[] = ["aws", "google", "local"];
-
-/**
- * Error type returned by cloud functions when they reject their promises with
- * an instance of Error or any object.
- * @remarks
- * When a faast.js cloud function throws an exception or rejects the promise it
- * returns with an instance of Error or any object, that error is returned as a
- * `FaastError` on the local side. The original error type is not used.
- * `FaastError` copies the properties of the original error and adds them to
- * FaastError.
- *
- * If available, a log URL for the specific invocation that caused the error is
- * appended to the log message. This log URL is also available as the `logUrl`
- * property. It will be surrounded by whilespace on both sides to ease parsing
- * as a URL by IDEs.
- *
- * Stack traces and error names should be preserved from the cloud side.
- * @public
- */
-export class FaastError extends Error {
-    /** The log URL for the specific invocation that caused this error. */
-    logUrl?: string;
-
-    /** @internal */
-    constructor(errObj: any, logUrl?: string) {
-        super("");
-        Object.assign(this, errObj);
-        let message = errObj.message;
-        if (logUrl) {
-            message += `\nlogs: ${logUrl} `;
-        }
-        this.message = message;
-        if (Object.keys(errObj).length === 0 && !(errObj instanceof Error)) {
-            log.warn(
-                `Error response object has no keys, likely a bug in faast (not serializing error objects)`
-            );
-        }
-        // Surround the logUrl with spaces because URL links are broken in
-        // vscode if there's no whitespace surrounding the URL.
-        this.logUrl = ` ${logUrl} `;
-        this.name = errObj.name;
-        this.stack = errObj.stack;
-    }
-
-    /** Additional properties from the remotely thrown Error. */
-    [key: string]: any;
-}
 
 /**
  * @internal
@@ -161,11 +109,11 @@ function processResponse<R>(
 ) {
     const { executionId, logUrl, instanceId, memoryUsage } = returned;
     let value: Promise<Unpacked<R>>;
+    const fn = callRequest.name;
     if (returned.type === "error") {
-        let error = returned.value;
-        if (returned.isErrorObject) {
-            error = new FaastError(returned.value, logUrl);
-        }
+        const error = returned.isErrorObject
+            ? synthesizeFaastError(returned.value, logUrl, fn, callRequest.args)
+            : returned.value;
         value = Promise.reject(error);
         value.catch(_silenceWarningLackOfSynchronousCatch => {});
     } else {
@@ -183,7 +131,6 @@ function processResponse<R>(
         logUrl,
         rawResponse
     };
-    const fn = callRequest.name;
     const { remoteExecutionStartTime, remoteExecutionEndTime } = returned;
 
     if (remoteExecutionStartTime && remoteExecutionEndTime) {
@@ -273,7 +220,7 @@ async function createFaastModuleProxy<M extends object, O extends CommonOptions,
             options
         );
     } catch (err) {
-        throw new FError(err, "could not initialize cloud function");
+        throw new FaastError(err, "could not initialize cloud function");
     }
 }
 
@@ -576,7 +523,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             await this.impl.cleanup(this.state, options);
             log.provider(`cleanup done`);
         } catch (err) {
-            throw new FError(err, "failed in cleanup");
+            throw new FaastError(err, "failed in cleanup");
         }
     }
 
@@ -648,7 +595,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 }
             }
             if (!fname) {
-                throw new FError(`Could not find function name`);
+                throw new FaastError(`Could not find function name`);
             }
             const initialInvocationTime = this._initialInvocationTime.getOrCreate(fname);
 
@@ -821,7 +768,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 case "deadletter":
                     const callRequest = callResultsPending.get(m.callId);
                     if (callRequest) {
-                        const error = new FError(`dead letter message: ${m.message}`);
+                        const error = new FaastError(`dead letter message: ${m.message}`);
                         callRequest.reject(error);
                     }
                     break;
@@ -936,7 +883,7 @@ function resolve(fmodule: object) {
         }
     }
     if (!modulePath) {
-        throw new FError(
+        throw new FaastError(
             {
                 name: "FaastError",
                 info: {
@@ -988,7 +935,7 @@ export async function faast<M extends object>(
         case "local":
             return faastLocal(fmodule, options);
         default:
-            throw new FError(`Unknown cloud provider option '${provider}'`);
+            throw new FaastError(`Unknown cloud provider option '${provider}'`);
     }
 }
 

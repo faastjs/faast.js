@@ -113,7 +113,7 @@ class CustomError extends Error {
 }
 
 export function customError() {
-    throw new CustomError("message", "custom");
+    throw new CustomError("custom error message", "custom value");
 }
 
 export async function allocate(bytes: number) {

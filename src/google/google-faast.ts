@@ -11,7 +11,7 @@ import {
 import * as util from "util";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
-import { FError } from "../error";
+import { assertNever, FaastError } from "../error";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import {
@@ -26,7 +26,6 @@ import {
     UUID
 } from "../provider";
 import {
-    assertNever,
     computeHttpResponseBytes,
     hasExpired,
     keysOf,
@@ -223,7 +222,7 @@ async function pollOperation<T>({
             return result;
         }
         if (retries++ >= maxRetries) {
-            throw new FError(`Timed out after ${retries} attempts.`);
+            throw new FaastError(`Timed out after ${retries} attempts.`);
         }
         await delay(retries);
     }
@@ -396,7 +395,7 @@ export async function initialize(
     } catch (err) {
         if (!err.message.match(/already exists/)) {
             await deleteFunction(cloudFunctions, trampoline).catch(() => {});
-            throw new FError(err, "failed to create google cloud function");
+            throw new FaastError(err, "failed to create google cloud function");
         }
     }
     if (mode === "https" || mode === "auto") {
@@ -405,11 +404,11 @@ export async function initialize(
         });
 
         if (!func.data.httpsTrigger) {
-            throw new FError("Could not get http trigger url");
+            throw new FaastError("Could not get http trigger url");
         }
         const { url } = func.data.httpsTrigger!;
         if (!url) {
-            throw new FError("Could not get http trigger url");
+            throw new FaastError("Could not get http trigger url");
         }
         log.info(`Function URL: ${url}`);
         state.url = url;
@@ -473,8 +472,8 @@ async function callFunctionHttps(
         };
     } catch (err) {
         throw err.response && err.response.status === 503
-            ? new FError(err, "possibly out of memory")
-            : new FError(err, "google cloud function invocation");
+            ? new FaastError(err, "possibly out of memory")
+            : new FaastError(err, "google cloud function invocation");
     }
 }
 
@@ -667,20 +666,20 @@ function validateGoogleLabels(labels: { [key: string]: string } | undefined) {
     }
     const objkeys = Object.keys(labels);
     if (objkeys.length > 64) {
-        throw new FError("Cannot exceeded 64 labels");
+        throw new FaastError("Cannot exceeded 64 labels");
     }
     if (objkeys.find(key => typeof key !== "string" || typeof labels[key] !== "string")) {
-        throw new FError(`Label keys and values must be strings`);
+        throw new FaastError(`Label keys and values must be strings`);
     }
     if (objkeys.find(key => key.length > 63 || labels[key].length > 63)) {
-        throw new FError(`Label keys and values cannot exceed 63 characters`);
+        throw new FaastError(`Label keys and values cannot exceed 63 characters`);
     }
     if (objkeys.find(key => key.length === 0)) {
-        throw new FError(`Label keys must have length > 0`);
+        throw new FaastError(`Label keys must have length > 0`);
     }
     const pattern = /^[a-z0-9_-]*$/;
     if (objkeys.find(key => !key.match(pattern) || !labels[key].match(pattern))) {
-        throw new FError(
+        throw new FaastError(
             `Label keys and values can contain only lowercase letters, numeric characters, underscores, and dashes.`
         );
     }
@@ -755,7 +754,10 @@ const getGooglePrice = throttle(
             );
             return price;
         } catch (err) {
-            throw new FError(err, `failed to get google pricing for "${description}"`);
+            throw new FaastError(
+                err,
+                `failed to get google pricing for "${description}"`
+            );
         }
     }
 );

@@ -107,10 +107,6 @@ export function chomp(s: string) {
     return s;
 }
 
-export function assertNever(x: never): never {
-    throw new Error("Unexpected object: " + x);
-}
-
 export const sum = (a: number[]) => a.reduce((total, n) => total + n, 0);
 
 export function objectSize(obj?: { [key: string]: string }) {

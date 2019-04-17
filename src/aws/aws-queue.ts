@@ -1,6 +1,6 @@
 import { SNSEvent } from "aws-lambda";
 import { SNS, SQS } from "aws-sdk";
-import { FError } from "../error";
+import { FaastError, assertNever } from "../error";
 import { log } from "../log";
 import {
     CALLID_ATTR,
@@ -13,7 +13,7 @@ import {
     ReceivableMessage
 } from "../provider";
 import { serializeReturn } from "../serialize";
-import { assertNever, computeHttpResponseBytes, defined, sum } from "../shared";
+import { computeHttpResponseBytes, defined, sum } from "../shared";
 import { Attributes } from "../types";
 import { FunctionCall } from "../wrapper";
 import { AwsMetrics } from "./aws-faast";
@@ -116,10 +116,10 @@ export async function createSQSQueue(QueueName: string, VTimeout: number, sqs: S
 }
 
 export function processAwsErrorMessage(message: string): Error {
-    let err = new FError(message);
-    err = new FError(err, "lambda execution error");
+    let err = new FaastError(message);
+    err = new FaastError(err, "lambda execution error");
     if (message && message.match(/Process exited before completing/)) {
-        err = new FError(err, "possibly out of memory");
+        err = new FaastError(err, "possibly out of memory");
     }
     return err;
 }

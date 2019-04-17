@@ -9,7 +9,7 @@ hide_title: true
 
 ## FaastError.logUrl property
 
-The log URL for the specific invocation that caused this error.
+The log URL if this `FaastError` was caused by a cloud function invocation exception. The url will have a space at the beginning and end.
 
 <b>Signature:</b>
 
