@@ -92,7 +92,9 @@
     "nyc": {
         "exclude": [
             "tmp/**",
-            "test/fixtures/**"
+            "test/fixtures/**/*.ts",
+            "coverage/**",
+            "**/node_modules/**"
         ],
         "reporter": [
             "lcov",
