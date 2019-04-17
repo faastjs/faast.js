@@ -35,6 +35,7 @@
 export { AwsOptions, AwsRegion } from "./src/aws/aws-faast";
 export { PersistentCache } from "./src/cache";
 export { CostAnalyzer, CostMetric, CostSnapshot } from "./src/cost";
+export { FError } from "./src/error";
 export {
     AwsFaastModule,
     faast,

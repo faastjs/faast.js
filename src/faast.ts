@@ -36,6 +36,7 @@ import {
     FactoryMap
 } from "./metrics";
 import Module = require("module");
+import { FError } from "./error";
 
 /**
  * An array of all available provider.
@@ -272,8 +273,7 @@ async function createFaastModuleProxy<M extends object, O extends CommonOptions,
             options
         );
     } catch (err) {
-        log.warn(`faast: createFunction error: ${err}`);
-        throw err;
+        throw new FError(err, "could not initialize cloud function");
     }
 }
 
@@ -576,8 +576,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             await this.impl.cleanup(this.state, options);
             log.provider(`cleanup done`);
         } catch (err) {
-            log.warn(`faast: cleanup error ${err}`);
-            throw err;
+            throw new FError(err, "failed in cleanup");
         }
     }
 
@@ -649,10 +648,9 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 }
             }
             if (!fname) {
-                throw new Error(`Could not find function name`);
+                throw new FError(`Could not find function name`);
             }
             const initialInvocationTime = this._initialInvocationTime.getOrCreate(fname);
-            // XXX capture google retries in stats?
 
             const shouldRetry = (err: any) => {
                 if (err instanceof FaastSerializationError) {
@@ -822,10 +820,9 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             switch (m.kind) {
                 case "deadletter":
                     const callRequest = callResultsPending.get(m.callId);
-                    log.info(`Error "${m.message}" in call request %O`, callRequest);
                     if (callRequest) {
-                        log.info(`Rejecting CallId: ${m.callId}`);
-                        callRequest.reject(new Error(m.message));
+                        const error = new FError(`dead letter message: ${m.message}`);
+                        callRequest.reject(error);
                     }
                     break;
                 case "functionstarted": {
@@ -939,7 +936,13 @@ function resolve(fmodule: object) {
         }
     }
     if (!modulePath) {
-        throw new Error(
+        throw new FError(
+            {
+                name: "FaastError",
+                info: {
+                    module: fmodule
+                }
+            },
             `Could not find file for module, must use "import * as X from Y" or "X = require(Y)" to load a module for faast.`
         );
     }
@@ -951,7 +954,7 @@ function resolve(fmodule: object) {
  * The main entry point for faast with any provider and only common options.
  * @param provider - One of `"aws"`, `"google"`, or `"local"`. See
  * {@link Provider}.
- * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
+ * @param fmodule - A module imported with `import * as X from "Y";`. Using
  * `require` also works but loses type information.
  * @param options - See {@link CommonOptions}.
  * @returns See {@link FaastModule}.
@@ -985,13 +988,13 @@ export async function faast<M extends object>(
         case "local":
             return faastLocal(fmodule, options);
         default:
-            throw new Error(`Unknown cloud provider option '${provider}'`);
+            throw new FError(`Unknown cloud provider option '${provider}'`);
     }
 }
 
 /**
  * The main entry point for faast with AWS provider.
- * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
+ * @param fmodule - A module imported with `import * as X from "Y";`. Using
  * `require` also works but loses type information.
  * @param options - Most common options are in {@link CommonOptions}.
  * Additional AWS-specific options are in {@link AwsOptions}.
@@ -1007,7 +1010,7 @@ export function faastAws<M extends object>(
 
 /**
  * The main entry point for faast with Google provider.
- * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
+ * @param fmodule - A module imported with `import * as X from "Y";`. Using
  * `require` also works but loses type information.
  * @param options - Most common options are in {@link CommonOptions}.
  * Additional Google-specific options are in {@link GoogleOptions}.
@@ -1027,7 +1030,7 @@ export function faastGoogle<M extends object>(
 
 /**
  * The main entry point for faast with Local provider.
- * @param fmodule - A module imported with `import * as AAA from "BBB";`. Using
+ * @param fmodule - A module imported with `import * as X from "Y";`. Using
  * `require` also works but loses type information.
  * @param options - Most common options are in {@link CommonOptions}.
  * Additional Local-specific options are in {@link LocalOptions}.

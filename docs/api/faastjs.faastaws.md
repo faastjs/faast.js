@@ -21,7 +21,7 @@ export declare function faastAws<M extends object>(fmodule: M, options?: AwsOpti
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  fmodule | <code>M</code> | A module imported with <code>import * as AAA from &quot;BBB&quot;;</code>. Using <code>require</code> also works but loses type information. |
+|  fmodule | <code>M</code> | A module imported with <code>import * as X from &quot;Y&quot;;</code>. Using <code>require</code> also works but loses type information. |
 |  options | <code>AwsOptions</code> | Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional AWS-specific options are in [AwsOptions](./faastjs.awsoptions.md)<!-- -->. |
 
 <b>Returns:</b>

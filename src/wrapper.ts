@@ -263,7 +263,7 @@ export class Wrapper {
                 const func = this.lookupFunction(call);
                 if (!func) {
                     throw new Error(
-                        `faast: module wrapper: could not find function '${call.name}'`
+                        `faast module wrapper: could not find function '${call.name}'`
                     );
                 }
                 const returned = await func.apply(undefined, call.args);

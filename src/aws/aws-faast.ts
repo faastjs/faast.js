@@ -12,8 +12,10 @@ import {
     STS
 } from "aws-sdk";
 import { createHash } from "crypto";
+import { readFile } from "fs-extra";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
+import { FError } from "../error";
 import { faastAws } from "../faast";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
@@ -33,8 +35,8 @@ import {
     computeHttpResponseBytes,
     defined,
     hasExpired,
-    uuidv4Pattern,
-    streamToBuffer
+    streamToBuffer,
+    uuidv4Pattern
 } from "../shared";
 import { retryOp, throttle } from "../throttle";
 import { FunctionReturn, WrapperOptions } from "../wrapper";
@@ -49,7 +51,6 @@ import {
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
-import { readFile } from "fs-extra";
 
 export const defaultGcWorker = throttle(
     { concurrency: 5, rate: 5, burst: 2 },
@@ -304,12 +305,13 @@ export const ensureRole = throttle(
     async (RoleName: string, services: AwsServices, createRole: boolean) => {
         const { iam } = services;
         log.info(`Checking for cached lambda role`);
-        const previousRole = await quietly(iam.getRole({ RoleName }));
-        if (previousRole) {
-            return previousRole.Role.Arn;
-        }
-        if (!createRole && RoleName !== defaults.RoleName) {
-            throw new Error(`Could not find role ${RoleName}`);
+        try {
+            const response = await iam.getRole({ RoleName }).promise();
+            return response.Role.Arn;
+        } catch (err) {
+            if (!createRole) {
+                throw new FError(err, `could not find role ${RoleName}`);
+            }
         }
         log.info(`Creating default role "${RoleName}" for faast trampoline function`);
         const AssumeRolePolicyDocument = JSON.stringify({
@@ -341,7 +343,7 @@ export const ensureRole = throttle(
                 await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
                 return roleResponse.Role.Arn;
             }
-            throw err;
+            throw new FError(err, "failed to create faast role");
         }
     }
 );
@@ -407,8 +409,7 @@ export async function createLayer(
             await faastModule.cleanup();
         }
     } catch (err) {
-        log.warn(`createPackageLayer error:`);
-        throw err;
+        throw new FError(err, "failed to create lambda layer from packageJson");
     }
 }
 
@@ -453,20 +454,11 @@ export const initialize = throttle(
                 ...rest
             };
             log.info(`createFunctionRequest: %O`, request);
-            try {
-                const func = await retryOp(4, () =>
-                    lambda.createFunction(request).promise()
-                );
-                log.info(
-                    `Created function ${func.FunctionName}, FunctionArn: ${
-                        func.FunctionArn
-                    }`
-                );
-                return func;
-            } catch (err) {
-                log.warn(`Could not initialize lambda function: ${err}`);
-                throw err;
-            }
+            const func = await retryOp(4, () => lambda.createFunction(request).promise());
+            log.info(
+                `Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`
+            );
+            return func;
         }
 
         async function createCodeBundle() {
@@ -540,11 +532,10 @@ export const initialize = throttle(
             log.info(`Lambda function initialization complete.`);
             return state;
         } catch (err) {
-            const newError = new Error("Could not initialize cloud function");
-            log.warn(`${newError.stack}`);
-            log.warn(`Underlying error: ${err.stack}`);
-            await cleanup(state, { deleteResources: true, deleteCaches: false });
-            throw err;
+            try {
+                await cleanup(state, { deleteResources: true, deleteCaches: false });
+            } catch {}
+            throw new FError(err, "failed to initialize cloud function");
         }
     }
 );
@@ -610,11 +601,11 @@ async function invokeHttps(
 
     let body: string | FunctionReturn;
     if (rawResponse.FunctionError) {
-        const response = processAwsErrorMessage(rawResponse.Payload as string);
+        const error = processAwsErrorMessage(rawResponse.Payload as string);
         body = {
             type: "error",
             callId: message.callId,
-            value: new Error(response)
+            value: error
         };
     } else {
         body = rawResponse.Payload! as string;
@@ -1163,7 +1154,7 @@ export const awsPrice = throttle(
                 log.warn(`Could not get AWS pricing for '${ServiceCode}' (%O)`, filter);
                 log.warn(err);
             }
-            throw err;
+            throw new FError(err, `failed to get AWS pricing for "${ServiceCode}"`);
         }
     }
 );

@@ -20,6 +20,7 @@ import { S3 } from 'aws-sdk';
 import { SNS } from 'aws-sdk';
 import { SQS } from 'aws-sdk';
 import { STS } from 'aws-sdk';
+import { VError } from 'verror';
 import * as webpack from 'webpack';
 import { Writable } from 'stream';
 
@@ -200,6 +201,12 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
     readonly state: S;
     stats(functionName?: string): FunctionStats;
     }
+
+// @public
+export class FError extends VError {
+    // (undocumented)
+    name: string;
+}
 
 // @public
 export class FunctionStats {

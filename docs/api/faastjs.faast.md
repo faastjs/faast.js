@@ -22,7 +22,7 @@ export declare function faast<M extends object>(provider: Provider, fmodule: M, 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
 |  provider | <code>Provider</code> | One of <code>&quot;aws&quot;</code>, <code>&quot;google&quot;</code>, or <code>&quot;local&quot;</code>. See [Provider](./faastjs.provider.md)<!-- -->. |
-|  fmodule | <code>M</code> | A module imported with <code>import * as AAA from &quot;BBB&quot;;</code>. Using <code>require</code> also works but loses type information. |
+|  fmodule | <code>M</code> | A module imported with <code>import * as X from &quot;Y&quot;;</code>. Using <code>require</code> also works but loses type information. |
 |  options | <code>CommonOptions</code> | See [CommonOptions](./faastjs.commonoptions.md)<!-- -->. |
 
 <b>Returns:</b>
