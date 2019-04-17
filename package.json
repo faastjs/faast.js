@@ -92,7 +92,7 @@
     "nyc": {
         "exclude": [
             "tmp/**",
-            "test/fixtures/**/*.ts",
+            "test/fixtures/**",
             "coverage/**",
             "**/node_modules/**"
         ],
