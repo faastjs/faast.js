@@ -23,7 +23,7 @@ const users = [
 const repoUrl = "https://github.com/faastjs/faast.js";
 
 const siteConfig = {
-    title: "faast.js", // Title for your website.
+    //    title: "", // Title for your website.
     tagline: "Serverless batch computing made simple",
     url: repoUrl, // Your website URL
     baseUrl: "/", // Base URL for your project */
@@ -51,8 +51,8 @@ const siteConfig = {
     users,
 
     /* path to images for header/footer */
-    headerIcon: "img/faastjs-inv.svg",
-    footerIcon: "img/faastjs.svg",
+    headerIcon: "img/faastjs-icon.svg",
+    footerIcon: "img/faastjs-icon.svg",
     favicon: "img/favicon.png",
 
     /* Colors for website */

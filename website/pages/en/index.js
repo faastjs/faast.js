@@ -64,7 +64,7 @@ class HomeSplash extends React.Component {
 
         return (
             <SplashContainer>
-                <Logo img_src={`${baseUrl}img/faastjs.svg`} />
+                <Logo img_src={`${baseUrl}img/faastjs-inv.svg`} />
                 <div className="inner">
                     <ProjectTitle siteConfig={siteConfig} />
                     <PromoSection>
@@ -92,7 +92,7 @@ class Index extends React.Component {
         const Block = props => (
             <div className="feature">
                 <Container
-                    padding={props.padding || ["top", "bottom"]}
+                    padding={props.padding || ["top"]}
                     id={props.id}
                     background={props.background}
                 >
@@ -105,17 +105,13 @@ class Index extends React.Component {
             </div>
         );
 
-        // *Lambdas*. They're supposed to be functions. But creating and using lambda functions involves a lot of incidental complexity. Suddenly you're knee deep in command line tools, configuration files, web consoles,  and execution roles. Didn't we get into this to *just run some code?*
-
-        // <p>Faast.js functions summon the resources they need automatically, do their job, and then go away when they're done. Faast.js doesn't leave behind any operational infrastructure to worry about.
-
         const Example = () => (
             <Block id="example">
                 {[
                     {
                         title: "Invoke serverless functions like regular functions.",
                         content: `Serverless functions are powerful and scalable, but their architecture is geared towards event-driven systems. Faast.js simplifies serverless deployment and invocation for batch applications by abstracting function deployment and invocation.`,
-                        image: `${baseUrl}img/basic.png`,
+                        image: `${baseUrl}img/hello-world.png`,
                         imageLink: `/docs/introduction#usage`,
                         imageAlign: "right"
                     }
@@ -141,9 +137,9 @@ class Index extends React.Component {
             <Block id="dependencies">
                 {[
                     {
-                        title: "Automatic Dependency Bundling.",
+                        title: "Automate bundling and dependencies.",
                         content:
-                            "Serverless functions are inconvenient to package and deploy. Iterating quickly is difficult when you have to manually install dependencies and create zip files. Faast.js uses webpack to automatically bundle dependencies, so most packages can be used with no extra steps. And native dependencies are also supported through a built-in build system that creates Lambda Layers for you.",
+                            "Deploy without zip files. Zero-configuration support for bundling dependencies with built-in webpack support. Use native dependencies, even on AWS Lambda. Faast.js eliminates the friction of using packages with serverless functions. ",
                         image: `${baseUrl}img/packageJson.png`,
                         imageLink: `/docs/introduction#package-dependencies`,
                         imageAlign: "right"
@@ -158,7 +154,7 @@ class Index extends React.Component {
                     {
                         title: "Estimate costs in real time.",
                         content:
-                            "Cost snapshots estimate the cost of your serverless function invocations in real time. For deeper analysis, use the Cost Analyzer to estimate the cost of workloads against multiple serverless configurations in parallel. Finally get an answer ",
+                            "Cost snapshots estimate the cost of your serverless function invocations in real time. For deeper analysis, use the Cost Analyzer to estimate the cost of workloads against multiple serverless configurations in parallel.",
                         image: `${baseUrl}img/cost-estimate.png`,
                         imageLink: `/docs/cost-estimates`,
                         imageAlign: "right"
@@ -168,21 +164,21 @@ class Index extends React.Component {
         );
 
         const ZeroOps = () => (
-            <Block id="zeroops" padding={["top"]}>
+            <Block id="zeroops" padding={["top", "bottom"]}>
                 {[
                     {
                         image: `${baseUrl}img/zero.svg`,
                         imageAlign: "left",
-                        title: "Zero Ops",
+                        title: "Develop faster with zero ops.",
                         content:
-                            "Faast.js creates serverless function infrastructure on demand. Infrastructure only exists as long as it's needed, and a garbage collector ensures nothing gets left behind. Faast.js infrastructure is *ephemeral*. <br><br>No servers to manage.<br>No containers to manage.<br>No infrastructure to manage.<br><br>That's Zero Ops."
+                            "Serverless function calls are, by nature, ephemeral. Faast.js takes this a step further by making serverless function *infrastructure* ephemeral too. Welcome to infrastructure that's deployed only as long as it's needed, and cleaned up when it's not. <br><br>No servers to manage.<br>No containers to build.<br>No infrastructure to monitor.<br><br>That's zero ops."
                     }
                 ]}
             </Block>
         );
 
         const Features = props => [
-            <Container padding={["top"]} id="features">
+            <Container id="features">
                 <h1>The development features you'd expect.</h1>
                 <GridBlock
                     layout="threeColumn"

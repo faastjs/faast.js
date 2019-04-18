@@ -26,7 +26,31 @@ code.hljs {
 }
 
 .imageAlignSide .blockImage {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+}
+
+.imageAlignSide .blockContent {
+    min-width: 40%;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.imageAlignSide .blockContent h2 {
+    margin-top: 0;
+}
+
+.container .wrapper .imageAlignSide p {
+    margin-bottom: 0;
+}
+
+.mainContainer {
+    padding-top: 0;
 }
 
 .blockImage > img {
@@ -38,13 +62,13 @@ code.hljs {
     background-image: url("../../img/trianglify.svg");
     background-attachment: fixed;
     background-size: cover;
-    padding-top: 8%;
+    padding-top: 5%;
     padding-bottom: 10%;
 }
 
 .heroWrapper {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
 }
@@ -57,14 +81,6 @@ code.hljs {
 
 .faastLogo {
     display: none;
-    position: absolute;
-    left: 10%;
-}
-
-.faastLogoRotated {
-    display: none;
-    position: absolute;
-    right: 10%;
 }
 
 .productShowcaseSection h3 {
@@ -97,6 +113,10 @@ code.hljs {
     padding-top: 5%;
 }
 
+.nav-footer .sitemap a {
+    margin: 0;
+}
+
 .container.paddingTop {
     padding-top: 40px;
 }
@@ -105,9 +125,16 @@ code.hljs {
     padding-bottom: 40px;
 }
 
-#scaleup,
 #cost {
+    padding-bottom: 40px;
+}
+
+#zeroops {
     background-color: #0e0e0e0e;
+}
+
+#zeroops .blockImage {
+    padding-bottom: 20px;
 }
 
 .nav-home img {
@@ -117,36 +144,58 @@ code.hljs {
 @media only screen and (min-device-width: 360px) and (max-device-width: 736px) {
 }
 
-@media only screen and (min-width: 1024px) {
+@media only screen and (min-width: 768px) {
     .faastLogo {
-        width: 20%;
+        width: 50%;
         display: block;
+        margin-bottom: -50px;
     }
-    .faastLogoRotated {
-        width: 20%;
-        display: block;
-    }
-
     .nav-home img {
         display: block;
     }
+
+    #dependencies img {
+        max-width: 400px;
+    }
+    .imageAlignSide .blockImage {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        margin: 20px;
+    }
+
+    .imageAlignSide .blockContent {
+        margin: 20px;
+    }
+
+    .container.paddingTop {
+        padding-top: 5%;
+    }
+
+    .container.paddingBottom {
+        padding-bottom: 5%;
+    }
 }
 
-@media only screen and (max-width: 1023px) {
+@media only screen and (max-width: 768px) {
     .faastLogo {
+        width: 80%;
         display: block;
-        width: 150px;
-        position: static;
         margin: 0 auto;
-    }
-    .faastLogoRotated {
-        display: none;
+        margin-bottom: -50px;
     }
     .heroWrapper {
-        display: block;
+        display: flex;
     }
     #zero {
         width: 150px;
+    }
+    .homeContainer {
+        padding-top: 15%;
+        padding-bottom: 25%;
+    }
+    .feature {
+        padding-top: 40px;
     }
 }
 

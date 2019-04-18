@@ -158,11 +158,17 @@
       "api/faastjs.costanalyzer.workload.concurrency": {
         "title": "CostAnalyzer.Workload.concurrency property"
       },
+      "api/faastjs.costanalyzer.workload.configurations": {
+        "title": "CostAnalyzer.Workload.configurations property"
+      },
       "api/faastjs.costanalyzer.workload.format": {
         "title": "CostAnalyzer.Workload.format property"
       },
       "api/faastjs.costanalyzer.workload.formatcsv": {
         "title": "CostAnalyzer.Workload.formatCSV property"
+      },
+      "api/faastjs.costanalyzer.workload.funcs": {
+        "title": "CostAnalyzer.Workload.funcs property"
       },
       "api/faastjs.costanalyzer.workload": {
         "title": "CostAnalyzer.Workload interface"
@@ -248,11 +254,38 @@
       "api/faastjs.faastaws": {
         "title": "faastAws() function"
       },
+      "api/faastjs.faasterror.args": {
+        "title": "FaastError.args property"
+      },
+      "api/faastjs.faasterror.cause": {
+        "title": "FaastError.cause() method"
+      },
+      "api/faastjs.faasterror.code": {
+        "title": "FaastError.code property"
+      },
+      "api/faastjs.faasterror.fullstack": {
+        "title": "FaastError.fullStack property"
+      },
+      "api/faastjs.faasterror.functionname": {
+        "title": "FaastError.functionName property"
+      },
+      "api/faastjs.faasterror.info": {
+        "title": "FaastError.info property"
+      },
       "api/faastjs.faasterror.logurl": {
         "title": "FaastError.logUrl property"
       },
       "api/faastjs.faasterror": {
         "title": "FaastError class"
+      },
+      "api/faastjs.faasterror.message": {
+        "title": "FaastError.message property"
+      },
+      "api/faastjs.faasterror.name": {
+        "title": "FaastError.name property"
+      },
+      "api/faastjs.faasterror.stack": {
+        "title": "FaastError.stack property"
       },
       "api/faastjs.faastgoogle": {
         "title": "faastGoogle() function"
