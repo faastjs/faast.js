@@ -2,7 +2,7 @@
 
 :root {
     --dark-bg-color: #011627;
-    --dark-font-color: #black;
+    --light-font-color: white;
 }
 
 .projectTitle {
@@ -59,7 +59,7 @@ code.hljs {
 
 .homeContainer {
     background-color: white;
-    background-image: url("../../img/trianglify-light-2.svg");
+    background-image: url("../../img/trianglify.svg");
     background-attachment: fixed;
     background-size: cover;
     padding-top: 5%;
@@ -75,7 +75,7 @@ code.hljs {
 
 .heroWrapper .button {
     margin: 10px 10px;
-    color: var(--dark-font-color);
+    color: var(--light-font-color);
     width: 10em;
 }
 
@@ -94,11 +94,11 @@ header img.logo {
 }
 
 .productShowcaseSection h3 {
-    color: var(--dark-font-color);
+    color: var(--light-font-color);
 }
 
 .projectTitle {
-    color: var(--dark-font-color);
+    color: var(--light-font-color);
 }
 
 #features h1 {
@@ -140,10 +140,11 @@ header img.logo {
 }
 
 #zeroops {
-    background-image: url("../../img/trianglify-light-3.svg");
+    background-image: url("../../img/trianglify.svg");
     background-attachment: fixed;
     background-size: cover;
     background-color: #0e0e0e0e;
+    color: var(--light-font-color);
 }
 
 #zeroops .blockImage {

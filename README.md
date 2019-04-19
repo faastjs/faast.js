@@ -1,4 +1,4 @@
-# [![faastjs](./website/static/img/faastjs-padded.png)](https://faastjs.org) faast.js
+# [![faastjs](./website/static/img/faastjs-medium.png)](https://faastjs.org)
 
 [![CircleCI](https://circleci.com/gh/faastjs/faast.js.svg?style=shield&circle-token=c97f196a78c7173d6ca4e5fc9f09c2cba4ab0647)](https://circleci.com/gh/faastjs/faast.js) [![codecov](https://codecov.io/gh/faastjs/faast.js/branch/master/graph/badge.svg?token=Ml90RLLbEh)](https://codecov.io/gh/faastjs/faast.js) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1132c1cda6a24a5d85d7c7c61c849ef6)](https://www.codacy.com?utm_source=github.com&utm_medium=referral&utm_content=faastjs/faast.js&utm_campaign=Badge_Grade) [![Greenkeeper badge](https://badges.greenkeeper.io/faastjs/faast.js.svg?token=4f92113146ab695745cf41679765865db00593b4a434636951e2c8abe2fb0cef&ts=1555123461370)](https://greenkeeper.io/)
 
