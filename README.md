@@ -54,7 +54,7 @@ for (let i = 0; i < 1000; i++) {
 await Promise.all(promises);
 ```
 
-Hold on! How much did that cost???
+Hold on! How much did that cost?
 
 ```typescript
 const cost = await m.costSnapshot();
