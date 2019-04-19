@@ -6,15 +6,15 @@ hide_title: true
 
 # Contributing to faast.js
 
-Thanks for your interest in contributing to faast.js! The information on this page will tell you how you can contribute and provides setup instructions for a development environment.
+Thanks for your interest in contributing to faast.js! The information on this page explains how to contribute, and provides setup instructions for a development environment to hack on faast.js.
 
-## Let's talk
+## Communication
 
 Sign up for our [Slack channel](https://join.slack.com/t/faastjs/shared_invite/enQtNTk0NTczMzI4NzQxLTA2MWU1NDA1ZjBkOTc3MTNkOGMzMDY0OWU1NGQ5MzM2NDY1YTJiZmNmODk4NzI0OWI1MzZhZDdiOTIzODNkOGY). If you're already signed up, [log in](https://faastjs.slack.com).
 
-Also check out the [`faast.js` tag on StackOverflow](https://stackoverflow.com/questions/tagged/faast.js)
+Also check out the [`faast.js` tag on StackOverflow](https://stackoverflow.com/questions/tagged/faast.js).
 
-## How you can contribute
+## How to contribute
 
 There are a many ways to contribute to faast.js:
 
@@ -46,11 +46,13 @@ External tools that may be useful:
 
 ## Building
 
+To install node, see [tooling](#tooling).
+
 ```shell
 $ node -v
 ```
 
-Ensure you're using Node version 8+. To install node, see [tooling](#tooling).
+Ensure you're using Node version 8+.
 
 Then build:
 
@@ -69,7 +71,7 @@ $ npm run watch
 
 ## Running the Testsuite
 
-First follow the instructions to setup accounts on [AWS](./04-aws.md#setup) and [Google Cloud](./05-google-cloud.md#setup).
+The full testsuite requires both AWS and Google Cloud accounts to be set up. See instructions to setup accounts on [AWS](./04-aws.md#setup) and [Google Cloud](./05-google-cloud.md#setup).
 
 ```
 $ npm run test
@@ -95,21 +97,25 @@ $ npm run test-local
 
 ## Documentation
 
-There are two documentation sources: the markdown files in `docs/*.md` and generated documentation from the source code, which forms the API docs.
+There are two documentation sources: the markdown files in `docs/*.md` and generated API documentation from the source code. The generated API documentation is output to `docs/api/*` and is checked into the repository.
 
 ### Generating API documentation from source code
 
-Documentation generation uses [API-extractor](https://api-extractor.com/) and [API-documenter](https://api-extractor.com/pages/setup/generating_docs/).
+API documentation generation uses [API-extractor](https://api-extractor.com/) and [API-documenter](https://api-extractor.com/pages/setup/generating_docs/).
 
-Generating docs requires first ensuring the code is built, so docs are automatically generated as part of `npm run build`.
+To perform a clean build that includes building API documentation:
 
-However, the documentation generator lacks a watch mode, so is not automatically updated when using `npm run watch`. To occassionally update the documentation without running a full build:
+```shell
+$ npm run build
+```
+
+This takes a little time, and unfortunately the documentation generator lacks a watch mode, so is not automatically updated when using `npm run watch`. To occassionally update the documentation without running a full build:
 
 ```
 $ npm run doc
 ```
 
-Also see [doc.ts](../src/doc.ts), which executes the documentation build steps.
+This will execute the documentation builder script [doc.ts](../src/doc.ts).
 
 ### Writing API documentation
 
@@ -207,20 +213,20 @@ Test titles are important. Please following the following rules to ensure the CI
 
 See `.circleci/config.yml`. On CircleCI's project settings page, you need to set environment variables to run tests on the cloud providers:
 
-```
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
-GOOGLE_APPLICATION_CREDENTIALS
-GOOGLE_KEY_VALUE
-```
+| environment variable             | value                                                        |
+| -------------------------------- | ------------------------------------------------------------ |
+| `AWS_ACCESS_KEY_ID`              | An AWS IAM user access key ID. See [AWS CLI][].              |
+| `AWS_SECRET_ACCESS_KEY`          | An AWS IAM user access key secret. See [AWS CLI][].          |
+| `GOOGLE_APPLICATION_CREDENTIALS` | gcp-key.json                                                 |
+| `GOOGLE_KEY_VALUE`               | The contents of a Google service account key (a JSON file)   |
+| `CODECOV_TOKEN`                  | The project token for [codecov][], available in web console. |
 
-The AWS environment variables are as documented for [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html).
+[aws cli]: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
+[codecov]: https://codecov.io/
 
-The Google environment variables are different because Google requires pointing to a file on disk in the environment variable. To get around this, the run script `npm run set-gcp-key` will copy the contents of the `GOOGLE_KEY_VALUE` environment variable into the file `gcp-key.json` in the current working directory. Then, you can set `GOOGLE_APPLICATION_CREDENTIALS` to `gcp-key.json` for Google authentication to work. In summary:
+Google requires pointing to a file on disk for credentials. To get around this, the run script `npm run set-gcp-key` copies the contents of the `GOOGLE_KEY_VALUE` environment variable into the file `gcp-key.json` in the current working directory. Therefore setting `GOOGLE_APPLICATION_CREDENTIALS` to `gcp-key.json` allows Google authentication to work. The circleci yaml configuration already performs these steps so only the environment variables need to be set.
 
--   Set `GOOGLE_KEY_VALUE` to the contents of your Google service account key, which should be a JSON file.
-
--   Set `GOOGLE_APPLICATION_CREDENTIALS` to `gcp-key.json`
+The codecov token can be retrieved from the web console in a codecov account. Code coverage is optional.
 
 ## Adding a new cloud provider
 

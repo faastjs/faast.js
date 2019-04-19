@@ -78,8 +78,8 @@ It's that easy.
 
 ## Ready to learn more?
 
-Check out our [documentation](./docs/01-introduction.md) or detailed [API](./docs/api/faastjs.md).
+Check out our [documentation](./docs/01-introduction.md) or detailed [API](./docs/api/faastjs.md). There's also an [FAQ](./docs/11-faq.md).
 
 ## Contributing
 
-See [contributing](./docs/11-contributing.md)
+See [contributing](./docs/12-contributing.md)
