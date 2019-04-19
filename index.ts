@@ -6,29 +6,7 @@
  * an object that implements the {@link FaastModule} interface. The most common
  * options are {@link CommonOptions}. Using faast.js requires writing two
  * modules, one containing the functions to upload to the cloud, and the other
- * that invokes faast.js and calls the resulting cloud functions:
- *
- * ```typescript
- * // functions.ts
- * export function hello(name: string) {
- *     return "hello " + name;
- * }
- * ```
- *
- * ```typescript
- * // main.ts
- * import { faast } from "faastjs";
- * import * as funcs from "./functions";
- * async function main() {
- *     const faastModule = await faast("local", funcs);
- *     try {
- *         const result = await faastModule.functions.hello("world!");
- *         console.log(result);
- *     } finally {
- *         await faastModule.cleanup();
- *     }
- * }
- * main();
+ * that invokes faast.js and calls the resulting cloud functions.
  * ```
  * @packageDocumentation
  */

@@ -2,7 +2,7 @@
 
 :root {
     --dark-bg-color: #011627;
-    --light-font-color: white;
+    --dark-font-color: #black;
 }
 
 .projectTitle {
@@ -58,8 +58,8 @@ code.hljs {
 }
 
 .homeContainer {
-    background-color: var(--dark-bg-color);
-    background-image: url("../../img/trianglify.svg");
+    background-color: white;
+    background-image: url("../../img/trianglify-light-2.svg");
     background-attachment: fixed;
     background-size: cover;
     padding-top: 5%;
@@ -75,7 +75,7 @@ code.hljs {
 
 .heroWrapper .button {
     margin: 10px 10px;
-    color: var(--light-font-color);
+    color: var(--dark-font-color);
     width: 10em;
 }
 
@@ -83,12 +83,22 @@ code.hljs {
     display: none;
 }
 
+header img.logo {
+    height: 90%;
+}
+
+.headerTitleWithLogo {
+    font-family: aller, sans-serif;
+    font-weight: 400;
+    font-style: italic;
+}
+
 .productShowcaseSection h3 {
-    color: var(--light-font-color);
+    color: var(--dark-font-color);
 }
 
 .projectTitle {
-    color: var(--light-font-color);
+    color: var(--dark-font-color);
 }
 
 #features h1 {
@@ -130,6 +140,9 @@ code.hljs {
 }
 
 #zeroops {
+    background-image: url("../../img/trianglify-light-3.svg");
+    background-attachment: fixed;
+    background-size: cover;
     background-color: #0e0e0e0e;
 }
 
@@ -146,17 +159,17 @@ code.hljs {
 
 @media only screen and (min-width: 768px) {
     .faastLogo {
-        width: 50%;
+        width: 40%;
         display: block;
-        margin-bottom: -50px;
+        margin-bottom: 40px;
+        margin-top: 40px;
     }
     .nav-home img {
         display: block;
+        max-width: 100px;
+        margin: 0px 40px;
     }
 
-    #dependencies img {
-        max-width: 400px;
-    }
     .imageAlignSide .blockImage {
         display: flex;
         flex-direction: column;
@@ -182,7 +195,6 @@ code.hljs {
         width: 80%;
         display: block;
         margin: 0 auto;
-        margin-bottom: -50px;
     }
     .heroWrapper {
         display: flex;
@@ -191,11 +203,17 @@ code.hljs {
         width: 150px;
     }
     .homeContainer {
-        padding-top: 15%;
+        padding-top: 25%;
         padding-bottom: 25%;
     }
     .feature {
         padding-top: 40px;
+    }
+}
+
+@media (max-width: 480px) {
+    .headerTitleWithLogo {
+        display: block !important;
     }
 }
 

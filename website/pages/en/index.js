@@ -36,7 +36,6 @@ class HomeSplash extends React.Component {
 
         const ProjectTitle = () => (
             <h2 className="projectTitle">
-                {siteConfig.title}
                 <small>{siteConfig.tagline}</small>
             </h2>
         );
@@ -64,7 +63,7 @@ class HomeSplash extends React.Component {
 
         return (
             <SplashContainer>
-                <Logo img_src={`${baseUrl}img/faastjs-inv.svg`} />
+                <Logo img_src={`${baseUrl}img/faastjs.svg`} />
                 <div className="inner">
                     <ProjectTitle siteConfig={siteConfig} />
                     <PromoSection>
