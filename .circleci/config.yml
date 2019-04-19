@@ -40,46 +40,6 @@ jobs:
             - run:
                   command: npm run codecov
                   when: always
-    # node10:
-    #     executor: node10
-    #     steps:
-    #         - checkout
-    #         - restore_cache:
-    #               keys:
-    #                   - v10-dependencies-{{ checksum "package.json" }}
-    #                   # fallback to using the latest cache if no exact match is found
-    #                   - v10-dependencies-
-    #         - run: npm install
-    #         - save_cache:
-    #               paths:
-    #                   - node_modules
-    #               key: v10-dependencies-{{ checksum "package.json" }}
-    #         - run: npm run build
-    #         - run: npm run set-gcp-key
-    #         - run: npx nyc npm run test
-    #         - run:
-    #               command: npm run codecov
-    #               when: always
-    # node8:
-    #     executor: node8
-    #     steps:
-    #         - checkout
-    #         - restore_cache:
-    #               keys:
-    #                   - v8-dependencies-{{ checksum "package.json" }}
-    #                   # fallback to using the latest cache if no exact match is found
-    #                   - v8-dependencies-
-    #         - run: npm install
-    #         - save_cache:
-    #               paths:
-    #                   - node_modules
-    #               key: v8-dependencies-{{ checksum "package.json" }}
-    #         - run: npm run build
-    #         - run: npm run set-gcp-key
-    #         - run: npx nyc npm run test
-    #         - run:
-    #               command: npm run codecov
-    #               when: always
 
 workflows:
     version: 2
@@ -88,3 +48,8 @@ workflows:
             - build_and_test:
                   nodeVersion: "node10"
                   executor: node10
+    node8:
+        jobs:
+            - build_and_test:
+                  nodeVersion: "node8"
+                  executor: node8
