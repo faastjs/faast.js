@@ -1,4 +1,4 @@
-<a href="https://faastjs.org"><img src="./website/static/img/faastjs.svg" height="50"></a>
+<a href="https://faastjs.org"><img src="./website/static/img/faastjs.png" height="50"></a>
 
 #
 
