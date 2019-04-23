@@ -1,6 +1,6 @@
-# <a href="https://faastjs.org"><img src="./website/static/img/faastjs.png" height="50"></a>
+# <a href="https://faastjs.org"><img alt="faast.js" src="./website/static/img/faastjs.png" height="50"></a>
 
-[![CircleCI](https://circleci.com/gh/faastjs/faast.js.svg?style=shield&circle-token=c97f196a78c7173d6ca4e5fc9f09c2cba4ab0647)](https://circleci.com/gh/faastjs/faast.js) [![codecov](https://codecov.io/gh/faastjs/faast.js/branch/master/graph/badge.svg?token=Ml90RLLbEh)](https://codecov.io/gh/faastjs/faast.js) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1132c1cda6a24a5d85d7c7c61c849ef6)](https://www.codacy.com?utm_source=github.com&utm_medium=referral&utm_content=faastjs/faast.js&utm_campaign=Badge_Grade)
+![GitHub](https://img.shields.io/github/license/faastjs/faast.js.svg) [![CircleCI](https://circleci.com/gh/faastjs/faast.js.svg?style=shield&circle-token=c97f196a78c7173d6ca4e5fc9f09c2cba4ab0647)](https://circleci.com/gh/faastjs/faast.js) [![codecov](https://codecov.io/gh/faastjs/faast.js/branch/master/graph/badge.svg?token=Ml90RLLbEh)](https://codecov.io/gh/faastjs/faast.js) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1132c1cda6a24a5d85d7c7c61c849ef6)](https://www.codacy.com?utm_source=github.com&utm_medium=referral&utm_content=faastjs/faast.js&utm_campaign=Badge_Grade)
 
 Faast.js dynamically transforms JavaScript modules into scalable serverless functions.
 
@@ -78,7 +78,7 @@ It's that easy.
 
 ## Ready to learn more?
 
-Check out our [documentation](./docs/01-introduction.md) or detailed [API](./docs/api/faastjs.md). There's also an [FAQ](./docs/11-faq.md).
+Check out our [website](https://faastjs.org), [documentation](https://faastjs.org/docs/introduction) or detailed [API](https://faastjs.org/docs/api/faastjs).
 
 ## Contributing
 
