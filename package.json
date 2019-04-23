@@ -8,6 +8,18 @@
         "type": "git",
         "url": "https://github.com/faastjs/faast.js"
     },
+    "bugs": {
+        "url": "https://github.com/faastjs/faast.js/issues"
+    },
+    "keywords": [
+        "faast.js",
+        "faastjs",
+        "serverless",
+        "aws",
+        "lambda",
+        "cloud functions",
+        "batch"
+    ],
     "scripts": {
         "build": "npm run clean && npx tsc && npm run doc",
         "watch": "npm run clean && npx tsc --watch",
@@ -25,7 +37,10 @@
         "tslint": "npx tslint -p tsconfig.json",
         "codecov": "codecov"
     },
-    "author": "Andy Chou",
+    "author": {
+        "name": "Andy Chou",
+        "email": "andy@faastjs.org"
+    },
     "license": "Apache-2.0",
     "bin": {
         "faastjs": "./dist/src/cli.js"
