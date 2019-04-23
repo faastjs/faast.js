@@ -7,7 +7,6 @@
  * options are {@link CommonOptions}. Using faast.js requires writing two
  * modules, one containing the functions to upload to the cloud, and the other
  * that invokes faast.js and calls the resulting cloud functions.
- * ```
  * @packageDocumentation
  */
 export { AwsOptions, AwsRegion } from "./src/aws/aws-faast";
