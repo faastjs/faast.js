@@ -166,6 +166,20 @@ header img.logo {
     display: none;
 }
 
+.emphasize {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.question {
+    margin: 20px;
+}
+
+img.prefix {
+    margin-right: 16px;
+    vertical-align: middle;
+}
+
 @media only screen and (min-device-width: 360px) and (max-device-width: 736px) {
 }
 

@@ -104,12 +104,64 @@ class Index extends React.Component {
             </div>
         );
 
+        const Why = () => (
+            <div class="wrapper">
+                <div class="question">
+                    <h2>Faast.js makes serverless functions:</h2>
+                    <img
+                        class="prefix"
+                        src={`${baseUrl}img/icons8-source_code.svg`}
+                        height="40px"
+                    />
+                    <span class="emphasize">Easy to program</span> using regular async
+                    functions.
+                    <p />
+                    <img
+                        class="prefix"
+                        src={`${baseUrl}img/icons8-broadcasting.svg`}
+                        height="40px"
+                    />
+                    <span class="emphasize">Scalable</span> to a thousand cores and
+                    beyond.
+                    <p />
+                    <img
+                        class="prefix"
+                        src={`${baseUrl}img/icons8-do_not_drop.svg`}
+                        height="40px"
+                    />
+                    <span class="emphasize">Productive</span> with support for npm
+                    packages, type safety, and local development.
+                    <p />
+                    <img
+                        class="prefix"
+                        src={`${baseUrl}img/icons8-cheap_2.svg`}
+                        height="40px"
+                    />
+                    <span class="emphasize">Cost-optimized</span> with real-time estimates
+                    and workload optimization. <p />
+                    <img
+                        class="prefix"
+                        src={`${baseUrl}img/icons8-virus_free.svg`}
+                        height="40px"
+                    />
+                    <span class="emphasize">Zero-Ops</span> with infrastructure
+                    ephemerality as core design principle.
+                    <p />
+                    Today, faast.js is ready for rapid iteration on embarrassingly
+                    parallel problems. <br />
+                    Tomorrow, faast.js will grow more capable as serverless function
+                    platforms mature. <br />
+                    Read on to learn more.
+                </div>
+            </div>
+        );
+
         const Example = () => (
             <Block id="example">
                 {[
                     {
                         title: "Invoke serverless functions like regular functions.",
-                        content: `Serverless functions are powerful and scalable, but their architecture is geared towards event-driven systems. Faast.js simplifies serverless deployment and invocation for batch applications by abstracting function deployment and invocation.`,
+                        content: `Serverless function architectures are optimized for event-driven systems. Faast.js simplifies serverless  batch applications by automating infrastructure, code packaging, invocation, and cleanup. Combine the power of scalable serverless functions with the ease-of-use and familiarity of ordinary async functions.`,
                         image: `${baseUrl}img/hello-world.png`,
                         imageLink: `/docs/introduction#usage`,
                         imageAlign: "right"
@@ -168,7 +220,7 @@ class Index extends React.Component {
                     {
                         image: `${baseUrl}img/zero.svg`,
                         imageAlign: "left",
-                        title: "Develop faster with zero ops.",
+                        title: "Develop faster with Zero-Ops.",
                         content:
                             "Serverless function calls are, by nature, ephemeral. Faast.js takes this a step further by making serverless function *infrastructure* ephemeral too. Welcome to infrastructure that's deployed only as long as it's needed, and cleaned up when it's not. <br><br>No servers to manage.<br>No containers to build.<br>No infrastructure to monitor.<br><br>That's zero ops."
                     }
