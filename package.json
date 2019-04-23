@@ -1,6 +1,6 @@
 {
     "name": "faastjs",
-    "version": "0.0.2",
+    "version": "1.0.0",
     "description": "Serverless without the cruft.",
     "main": "dist/index.js",
     "types": "dist/decls/index.d.ts",
