@@ -25,7 +25,7 @@ export declare class FaastError extends VError
 |  [code](./faastjs.faasterror.code.md) |  | <code>string</code> | Error code, if any. |
 |  [fullStack](./faastjs.faasterror.fullstack.md) |  | <code>string</code> | The full stack trace including stack traces for underlying causes, if any. |
 |  [functionName](./faastjs.faasterror.functionname.md) |  | <code>string</code> | For errors returned from a cloud function call, this is the function name that was invoked that caused the error. |
-|  [info](./faastjs.faasterror.info.md) |  | <code>{`<p/>`        [key: string]: any;`<p/>`    }</code> | Get additional metadata about this error. For errors returned from a remote cloud function call, the returned object will contain all of the properties from the original error on the remote side. |
+|  [info](./faastjs.faasterror.info.md) |  | <code>{</code><br/><code>        [key: string]: any;</code><br/><code>    }</code> | Get additional metadata about this error. For errors returned from a remote cloud function call, the returned object will contain all of the properties from the original error on the remote side. |
 |  [logUrl](./faastjs.faasterror.logurl.md) |  | <code>string</code> | The log URL if this <code>FaastError</code> was caused by a cloud function invocation exception. The url will have a space at the beginning and end. |
 |  [message](./faastjs.faasterror.message.md) |  | <code>string</code> | The error message. If nested errors occurred, this message summarizes all nested errors separated with colons (:). |
 |  [name](./faastjs.faasterror.name.md) |  | <code>string</code> | Always <code>&quot;FaastError&quot;</code> |
