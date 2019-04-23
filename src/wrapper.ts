@@ -1,5 +1,3 @@
-/// <reference path="../types/proctor.d.ts" />
-
 import * as childProcess from "child_process";
 import * as process from "process";
 import * as proctor from "process-doctor";
@@ -367,7 +365,9 @@ export class Wrapper {
     }
 }
 
-export interface CpuMeasurement extends Pick<proctor.Result, "stime" | "utime"> {
+export interface CpuMeasurement {
+    stime: number;
+    utime: number;
     elapsed: number;
 }
 

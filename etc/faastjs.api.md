@@ -13,7 +13,6 @@ import { GoogleApis } from 'googleapis';
 import { IAM } from 'aws-sdk';
 import { Lambda } from 'aws-sdk';
 import { Pricing } from 'aws-sdk';
-import * as proctor from 'process-doctor';
 import { pubsub_v1 } from 'googleapis';
 import { Readable } from 'stream';
 import { S3 } from 'aws-sdk';
