@@ -402,9 +402,11 @@ export async function initialize(
         }
     }
     if (mode === "https" || mode === "auto") {
-        const func = await cloudFunctions.projects.locations.functions.get({
-            name: trampoline
-        });
+        const func = await retryOp(3, () =>
+            cloudFunctions.projects.locations.functions.get({
+                name: trampoline
+            })
+        );
 
         if (!func.data.httpsTrigger) {
             throw new FaastError("Could not get http trigger url");
