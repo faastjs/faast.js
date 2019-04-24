@@ -22,6 +22,8 @@ jobs:
                 type: string
             executor:
                 type: executor
+            target:
+                type: string
         executor: << parameters.executor >>
         steps:
             - checkout
@@ -36,20 +38,26 @@ jobs:
                   key: <<parameters.nodeVersion>>-{{ checksum "package.json" }}
             - run: npm run build
             - run: npm run set-gcp-key
-            - run: npx nyc npm run test
+            - run: npx nyc npm run <<parameters.target>>
             - run:
                   command: npm run codecov
                   when: always
 
 workflows:
     version: 2
-    node10:
+    aws:
         jobs:
             - build_and_test:
                   nodeVersion: "node10"
                   executor: node10
-    node8:
-        jobs:
+                  target: "test-aws"
             - build_and_test:
                   nodeVersion: "node8"
                   executor: node8
+                  target: "test-aws"
+    google:
+        jobs:
+            - build_and_test:
+                  nodeVersion: "node10"
+                  executor: node10
+                  target: "test-google-remote"
