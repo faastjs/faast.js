@@ -1,7 +1,6 @@
 let leftBoxContainer, rightBoxContainer;
 
-function animate() {
-    const hero = document.querySelector(".heroWrapper");
+function animate(hero) {
     const { offsetHeight, offsetWidth, children } = hero;
 
     let contentWidth = 0;
@@ -97,13 +96,15 @@ function animate() {
     setInterval(transition, 15000);
 }
 
-window.addEventListener("load", animate);
+window.addEventListener("load", () => {
+    const hero = document.querySelector(".heroWrapper");
+    if (!hero) {
+        return;
+    }
+    animate(hero);
 
-const delay = 200;
-
-(() => {
+    const delay = 200;
     resizeTaskId = null;
-
     window.addEventListener("resize", evt => {
         if (resizeTaskId !== null) {
             clearTimeout(resizeTaskId);
@@ -113,7 +114,7 @@ const delay = 200;
             resizeTaskId = null;
             leftBoxContainer && leftBoxContainer.remove();
             rightBoxContainer && rightBoxContainer.remove();
-            animate();
+            animate(hero);
         }, delay);
     });
-})();
+});
