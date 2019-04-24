@@ -43,13 +43,11 @@ jobs:
 
 workflows:
     version: 2
-    node10:
+    faastjs:
         jobs:
             - build_and_test:
                   nodeVersion: "node10"
                   executor: node10
-    node8:
-        jobs:
             - build_and_test:
                   requires:
                       - node10
