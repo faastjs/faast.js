@@ -25,5 +25,5 @@
         "allowSyntheticDefaultImports": true,
         "skipLibCheck": true
     },
-    "exclude": ["node_modules", "dist", "etc", "temp", "examples"]
+    "exclude": ["node_modules", "dist", "etc", "temp", "examples", "test-release"]
 }

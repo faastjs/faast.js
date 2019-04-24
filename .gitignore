@@ -69,3 +69,4 @@ cost*.csv
 temp
 src/provider.ts
 pkg/
+test-release/
