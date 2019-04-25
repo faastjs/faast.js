@@ -95,7 +95,7 @@
         "ava": "1.4.1",
         "codecov": "3.3.0",
         "lolex": "4.0.1",
-        "nyc": "^13.3.0",
+        "nyc": "13.3.0",
         "papaparse": "4.6.3",
         "tslint": "5.16.0",
         "tslint-config-prettier": "1.18.0",
