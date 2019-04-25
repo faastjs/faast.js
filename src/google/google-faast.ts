@@ -31,7 +31,7 @@ import {
     sleep,
     uuidv4Pattern
 } from "../shared";
-import { throttle } from "../throttle";
+import { throttle, retryOp } from "../throttle";
 import { Mutable } from "../types";
 import { WrapperOptions } from "../wrapper";
 import { publishPubSub, receiveMessages } from "./google-queue";
@@ -404,16 +404,22 @@ export async function initialize(
     log.info(`Request body: %O`, requestBody);
     try {
         log.info(`create function ${requestBody.name}`);
-        await waitFor(
-            cloudFunctions,
-            cloudFunctions.projects.locations.functions.create({
-                location,
-                requestBody
-            })
+        await retryOp(
+            err => err.message.match(/already exists/),
+            () =>
+                waitFor(
+                    cloudFunctions,
+                    cloudFunctions.projects.locations.functions.create({
+                        location,
+                        requestBody
+                    })
+                )
         );
     } catch (err) {
-        await deleteFunction(cloudFunctions, trampoline).catch(() => {});
-        throw new FaastError(err, "failed to create google cloud function");
+        if (!err.message.match(/already exists/)) {
+            await deleteFunction(cloudFunctions, trampoline).catch(() => {});
+            throw new FaastError(err, "failed to create google cloud function");
+        }
     }
     if (mode === "https" || mode === "auto") {
         try {
