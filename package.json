@@ -123,7 +123,8 @@
             "text"
         ],
         "check-coverage": true,
-        "lines": 10
+        "lines": 10,
+        "exclude-after-remap": false
     },
     "renovate": {
         "extends": [
