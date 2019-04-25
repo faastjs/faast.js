@@ -97,7 +97,7 @@ async function initialize(
     const { gc, retentionInDays, _gcWorker: gcWorker } = options;
 
     let gcPromise;
-    if (gc) {
+    if (gc === "auto" || gc === "force") {
         gcPromise = collectGarbage(gcWorker, retentionInDays!);
     }
     const tempDir = join(tmpdir(), "faast", nonce);
