@@ -17,7 +17,7 @@ async function work(faastModule: FaastModule<typeof funcs>) {
 }
 
 const repetitions = 10;
-const memorySizes = [256, 2048];
+const memorySizes = [1024, 2048];
 
 function filter(configurations: CostAnalyzer.Configuration[]) {
     return configurations
