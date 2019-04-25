@@ -31,7 +31,7 @@ import {
     sleep,
     uuidv4Pattern
 } from "../shared";
-import { retryOp, throttle } from "../throttle";
+import { throttle } from "../throttle";
 import { Mutable } from "../types";
 import { WrapperOptions } from "../wrapper";
 import { publishPubSub, receiveMessages } from "./google-queue";
@@ -245,9 +245,14 @@ async function waitFor(
     api: CloudFunctions.Cloudfunctions,
     response: GaxiosPromise<CloudFunctions.Schema$Operation>
 ) {
+    let operation;
     try {
-        const operation = await response;
-        const operationName = operation.data.name!;
+        operation = await response;
+    } catch (err) {
+        throw new FaastError(err, "could not get operation");
+    }
+    const operationName = operation.data.name!;
+    try {
         return pollOperation({
             request: () => quietly(api.operations.get({ name: operationName })),
             checkDone: result => {
@@ -258,18 +263,24 @@ async function waitFor(
             }
         });
     } catch (err) {
-        throw new FaastError(err, "operation failed");
+        throw new FaastError(err, "poll operation failed");
     }
 }
 
-// XXX wait for deletion; if the function doesn't exist then stop immediately, don't retry.
 async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) {
-    return waitFor(
-        api,
-        api.projects.locations.functions.delete({
-            name: path
-        })
-    );
+    try {
+        return await waitFor(
+            api,
+            api.projects.locations.functions.delete({
+                name: path
+            })
+        );
+    } catch (err) {
+        if (err.message.match(/does not exist/)) {
+            return;
+        }
+        throw err;
+    }
 }
 
 export async function initialize(
