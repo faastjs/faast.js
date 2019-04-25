@@ -424,19 +424,17 @@ async function main() {
         .option(
             "-r, --region <region>",
             "Cloud region to operate on. Defaults to us-west-2 for AWS, and us-central1 for Google."
-        );
-
-    commander
-        .command("cleanup <cloud>")
-        .description(
-            `Cleanup faast.js resources that may have leaked. The <cloud> argument must be "aws", "google", or "local".
-        By default the output is a dry run and will only print the actions that would be performed if '-x' is specified.`
         )
         .option(
             "-x, --execute",
             "Execute the cleanup process. If this option is not specified, the output will be a dry run."
         )
         .option("-f, --force", "When used with -x, skips the prompt")
+        .command("cleanup <cloud>")
+        .description(
+            `Cleanup faast.js resources that may have leaked. The <cloud> argument must be "aws", "google", or "local".
+        By default the output is a dry run and will only print the actions that would be performed if '-x' is specified.`
+        )
         .action(arg => {
             command = "cleanup";
             cloud = arg;
