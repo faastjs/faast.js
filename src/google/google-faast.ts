@@ -258,10 +258,11 @@ async function waitFor(
             }
         });
     } catch (err) {
-        throw new FaastError(err, "create operation failed");
+        throw new FaastError(err, "operation failed");
     }
 }
 
+// XXX wait for deletion; if the function doesn't exist then stop immediately, don't retry.
 async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) {
     return waitFor(
         api,
@@ -562,13 +563,21 @@ async function deleteResources(
 export async function cleanup(state: GoogleState, options: CleanupOptions) {
     log.info(`google cleanup starting.`);
     if (state.gcPromise) {
-        log.info(`Waiting for garbage collection...`);
-        await state.gcPromise;
-        log.info(`Garbage collection done.`);
+        try {
+            log.info(`Waiting for garbage collection...`);
+            await state.gcPromise;
+            log.info(`Garbage collection done.`);
+        } catch (err) {
+            throw new FaastError(err, "garbage collection failed");
+        }
     }
 
     if (options.deleteResources) {
-        await deleteResources(state.services, state.resources);
+        try {
+            await deleteResources(state.services, state.resources);
+        } catch (err) {
+            throw new FaastError(err, "delete resources failed");
+        }
     }
     log.info(`google cleanup done.`);
 }
