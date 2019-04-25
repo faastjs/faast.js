@@ -306,7 +306,7 @@ export interface CommonOptions {
      * proactively sends a timeout exception. Faast does this because not all
      * providers reliably send timely feedback when timeouts occur, leaving
      * developers to look through cloud logs. In general faast.js' timeout will
-     * be up to 200ms earlier than the timeout specified, in order to give time
+     * be up to 250ms earlier than the timeout specified, in order to give time
      * to allow faast.js to send a timeout message. Proactive timeout detection
      * only works with {@link CommonOptions.childProcess} set to `true` (the
      * default).
