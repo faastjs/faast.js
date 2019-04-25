@@ -36,7 +36,7 @@
         "test-aws-remote": "ava --concurrency=8 --timeout=2m -m='remote*aws*'",
         "test-google-remote": "ava --concurrency=4 --timeout=4m -m='remote*google*'",
         "test-debug": "DEBUG=faast:provider,faast:info ava --fail-fast --serial",
-        "test-release": "npm run build && rm -rf test-release && mkdir test-release && cp examples/*.{ts,json} test-release && npm pack && cp faastjs-$npm_package_version.tgz test-release && cd test-release && npm install faastjs-$npm_package_version.tgz && npm run build && node dist/hello-world.js",
+        "test-release": "rm -rf test-release && mkdir test-release && cp examples/*.{ts,json} test-release && npm pack && cp faastjs-$npm_package_version.tgz test-release && cd test-release && npm install faastjs-$npm_package_version.tgz && npm run build && node dist/hello-world.js",
         "cleanup-cloud": "node dist/src/cli.js cleanup aws -x -f && node ./dist/src/cli.js cleanup google -x -f",
         "clean": "rm -rf dist",
         "tslint": "npx tslint -p tsconfig.json",
