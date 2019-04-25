@@ -122,5 +122,12 @@
             "lcov",
             "text"
         ]
+    },
+    "renovate": {
+        "extends": [
+            "config:base"
+        ],
+        "automerge": true,
+        "prHourlyLimit": 1
     }
 }
