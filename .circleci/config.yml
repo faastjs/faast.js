@@ -51,11 +51,11 @@ workflows:
             - build_and_test:
                   nodeVersion: "node10"
                   executor: node10
-                  target: "test-aws"
+                  target: "test-aws-release"
             - build_and_test:
                   nodeVersion: "node8"
                   executor: node8
-                  target: "test-aws"
+                  target: "test-aws-release"
     google:
         jobs:
             - build_and_test:

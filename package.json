@@ -31,6 +31,7 @@
         "test": "ava --concurrency=8 --timeout=4m",
         "test-local": "ava --concurrency=4 -m='!remote*'",
         "test-aws": "ava --concurrency=8 --timeout=2m -m='!remote*' -m='*aws*'",
+        "test-aws-release": "npm run test-aws && npm run test-release",
         "test-google": "ava --concurrency=4 --timeout=4m -m='!remote*' -m='*google*'",
         "test-aws-remote": "ava --concurrency=8 --timeout=2m -m='remote*aws*'",
         "test-google-remote": "ava --concurrency=4 --timeout=4m -m='remote*google*'",
