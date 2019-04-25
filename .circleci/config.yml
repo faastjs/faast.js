@@ -39,6 +39,7 @@ jobs:
             - run: npm run build
             - run: npm run set-gcp-key
             - run: npx nyc npm run <<parameters.target>>
+            - run: if [ -s coverage/lcov.info ]; then echo "coverage found"; else echo "no coverage information!"; exit 1; fi
             - run:
                   command: npm run codecov
                   when: always
