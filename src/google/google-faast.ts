@@ -207,7 +207,7 @@ async function defaultPollDelay(retries: number) {
     if (retries > 5) {
         await sleep(5 * 1000);
     }
-    await sleep((retries + 1) * 100);
+    await sleep((retries + 1) * 500);
 }
 
 async function pollOperation<T>({
@@ -257,8 +257,8 @@ async function waitFor(
                 return result.done || false;
             }
         });
-    } catch {
-        return;
+    } catch (err) {
+        throw new FaastError(err, "create operation failed");
     }
 }
 
@@ -386,37 +386,38 @@ export async function initialize(
     log.info(`Request body: %O`, requestBody);
     try {
         log.info(`create function ${requestBody.name}`);
-        await retryOp(1, () =>
-            waitFor(
-                cloudFunctions,
-                cloudFunctions.projects.locations.functions.create({
-                    location,
-                    requestBody
-                })
-            )
-        );
-    } catch (err) {
-        if (!err.message.match(/already exists/)) {
-            await deleteFunction(cloudFunctions, trampoline).catch(() => {});
-            throw new FaastError(err, "failed to create google cloud function");
-        }
-    }
-    if (mode === "https" || mode === "auto") {
-        const func = await retryOp(3, () =>
-            cloudFunctions.projects.locations.functions.get({
-                name: trampoline
+        await waitFor(
+            cloudFunctions,
+            cloudFunctions.projects.locations.functions.create({
+                location,
+                requestBody
             })
         );
+    } catch (err) {
+        await deleteFunction(cloudFunctions, trampoline).catch(() => {});
+        throw new FaastError(err, "failed to create google cloud function");
+    }
+    if (mode === "https" || mode === "auto") {
+        try {
+            const func = await cloudFunctions.projects.locations.functions.get({
+                name: trampoline
+            });
 
-        if (!func.data.httpsTrigger) {
-            throw new FaastError("Could not get http trigger url");
+            if (!func.data.httpsTrigger) {
+                throw new FaastError("Could not get http trigger url");
+            }
+            const { url } = func.data.httpsTrigger!;
+            if (!url) {
+                throw new FaastError("Could not get http trigger url");
+            }
+            log.info(`Function URL: ${url}`);
+            state.url = url;
+        } catch (err) {
+            throw new FaastError(
+                err,
+                `Could not get function ${trampoline} or its url, despite it being created`
+            );
         }
-        const { url } = func.data.httpsTrigger!;
-        if (!url) {
-            throw new FaastError("Could not get http trigger url");
-        }
-        log.info(`Function URL: ${url}`);
-        state.url = url;
     }
     await pricingPromise;
     await responseQueuePromise;
