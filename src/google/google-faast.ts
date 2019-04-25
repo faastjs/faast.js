@@ -336,10 +336,16 @@ export async function initialize(
     };
 
     const { gc, retentionInDays, _gcWorker: gcWorker } = options;
-    if (gc) {
+    if (gc === "auto" || gc === "force") {
         log.gc(`Starting garbage collector`);
-        state.gcPromise = collectGarbage(gcWorker, services, project, retentionInDays);
-        state.gcPromise.catch(_silenceWarningLackOfSynchronousCatch => {});
+        state.gcPromise = collectGarbage(
+            gcWorker,
+            services,
+            project,
+            retentionInDays
+        ).catch(err => {
+            log.gc(`Garbage collection error: ${err}`);
+        });
     }
 
     const pricingPromise = getGoogleCloudFunctionsPricing(services.cloudBilling, region);
@@ -543,44 +549,49 @@ async function deleteResources(
     const _exhaustiveCheck: Required<typeof rest> = {};
     const { cloudFunctions, pubsub } = services;
 
-    if (responseSubscription) {
-        if (
-            await quietly(
-                pubsub.projects.subscriptions.delete({
-                    subscription: responseSubscription
-                })
-            )
-        ) {
-            output(`Deleted response subscription: ${responseSubscription}`);
+    // We deliberately rethrow transient errors here, so only if all prior
+    // deletes succeed do we proceed. If there's a transient error then future
+    // garbage collection will clean up. The order is important; the function
+    // itself must be deleted last.
+    const check = async <T>(request: Promise<T>) => {
+        try {
+            await request;
+        } catch (err) {
+            if (err.message.match(/Resource not found/)) {
+                return;
+            }
+            throw err;
         }
+    };
+
+    if (responseSubscription) {
+        await check(
+            pubsub.projects.subscriptions.delete({
+                subscription: responseSubscription
+            })
+        );
+        output(`Deleted response subscription: ${responseSubscription}`);
     }
     if (responseQueueTopic) {
-        if (await quietly(pubsub.projects.topics.delete({ topic: responseQueueTopic }))) {
-            output(`Deleted response queue topic: ${responseQueueTopic}`);
-        }
+        await check(pubsub.projects.topics.delete({ topic: responseQueueTopic }));
+        output(`Deleted response queue topic: ${responseQueueTopic}`);
     }
     if (requestQueueTopic) {
-        if (await quietly(pubsub.projects.topics.delete({ topic: requestQueueTopic }))) {
-            output(`Deleted request queue topic: ${requestQueueTopic}`);
-        }
+        await check(pubsub.projects.topics.delete({ topic: requestQueueTopic }));
+        output(`Deleted request queue topic: ${requestQueueTopic}`);
     }
     if (trampoline) {
-        if (await deleteFunction(cloudFunctions, trampoline)) {
-            output(`Deleted function ${trampoline}`);
-        }
+        await check(deleteFunction(cloudFunctions, trampoline));
+        output(`Deleted function ${trampoline}`);
     }
 }
 
 export async function cleanup(state: GoogleState, options: CleanupOptions) {
     log.info(`google cleanup starting.`);
     if (state.gcPromise) {
-        try {
-            log.info(`Waiting for garbage collection...`);
-            await state.gcPromise;
-            log.info(`Garbage collection done.`);
-        } catch (err) {
-            throw new FaastError(err, "garbage collection failed");
-        }
+        log.info(`Waiting for garbage collection...`);
+        await state.gcPromise;
+        log.info(`Garbage collection done.`);
     }
 
     if (options.deleteResources) {
