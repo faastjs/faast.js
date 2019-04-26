@@ -119,13 +119,15 @@
             "coverage/**",
             "**/node_modules/**"
         ],
+        "extension": [
+            ".ts"
+        ],
         "reporter": [
             "lcov",
             "text"
         ],
         "check-coverage": true,
-        "lines": 10,
-        "exclude-after-remap": false
+        "lines": 10
     },
     "renovate": {
         "extends": [
