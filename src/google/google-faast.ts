@@ -256,8 +256,18 @@ async function waitFor(
         return pollOperation({
             request: () => quietly(api.operations.get({ name: operationName })),
             checkDone: result => {
-                if (!result || result.error) {
+                if (!result) {
                     return false;
+                }
+                if (result.error) {
+                    console.log(
+                        `Operation Error: ${result.error.message}, ${
+                            result.error.details
+                        }`
+                    );
+                    const underlying = new FaastError(result.error.message);
+                    underlying.stack = "";
+                    throw new FaastError(underlying, "Error polling operation");
                 }
                 return result.done || false;
             }
