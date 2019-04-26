@@ -220,9 +220,12 @@ See `.circleci/config.yml`. On CircleCI's project settings page, you need to set
 | `GOOGLE_APPLICATION_CREDENTIALS` | gcp-key.json                                                 |
 | `GOOGLE_KEY_VALUE`               | The contents of a Google service account key (a JSON file)   |
 | `CODECOV_TOKEN`                  | The project token for [codecov][], available in web console. |
+| `GH_TOKEN`                       | Github token (for [semantic-release][])                      |
+| `NPM_TOKEN`                      | NPM publish token (for [semantic-release][])                 |
 
 [aws cli]: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
 [codecov]: https://codecov.io/
+[semantic-release]: https://github.com/semantic-release/semantic-release
 
 Google requires pointing to a file on disk for credentials. To get around this, the run script `npm run set-gcp-key` copies the contents of the `GOOGLE_KEY_VALUE` environment variable into the file `gcp-key.json` in the current working directory. Therefore setting `GOOGLE_APPLICATION_CREDENTIALS` to `gcp-key.json` allows Google authentication to work. The circleci yaml configuration already performs these steps so only the environment variables need to be set.
 

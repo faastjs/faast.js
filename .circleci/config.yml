@@ -43,22 +43,44 @@ jobs:
             - run:
                   command: npm run codecov
                   when: always
+    release:
+        description: "semantic release"
+        executor: node10
+        steps:
+            - checkout
+            - restore_cache:
+                  keys:
+                      - node10-{{ checksum "package.json" }}
+                      - node10
+            - run: npm install
+            - run: npm run build
+            - run: npm run test-release
+            - run: npm run semantic-release
 
 workflows:
     version: 2
-    aws:
+    faastjs:
         jobs:
             - build_and_test:
+                  name: "aws-node10"
                   nodeVersion: "node10"
                   executor: node10
                   target: "test-aws-release"
             - build_and_test:
+                  name: "aws-node8"
                   nodeVersion: "node8"
                   executor: node8
                   target: "test-aws-release"
-    google:
-        jobs:
             - build_and_test:
+                  name: "google-node10"
                   nodeVersion: "node10"
                   executor: node10
                   target: "test-google-remote"
+            - release:
+                  requires:
+                      - aws-node10
+                      - aws-node8
+                      - google-node10
+                  filters:
+                      branches:
+                          only: master

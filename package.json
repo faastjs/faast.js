@@ -1,6 +1,6 @@
 {
     "name": "faastjs",
-    "version": "1.0.0",
+    "version": "0.0.0-semantic-release",
     "description": "Serverless batch computing made simple.",
     "main": "dist/index.js",
     "types": "dist/faastjs.d.ts",
@@ -40,7 +40,8 @@
         "cleanup-cloud": "node dist/src/cli.js cleanup aws -x -f && node ./dist/src/cli.js cleanup google -x -f",
         "clean": "rm -rf dist",
         "tslint": "npx tslint -p tsconfig.json",
-        "codecov": "codecov"
+        "codecov": "codecov",
+        "semantic-release": "semantic-release"
     },
     "author": {
         "name": "Andy Chou",
@@ -98,6 +99,7 @@
         "lolex": "4.0.1",
         "nyc": "14.0.0",
         "papaparse": "4.6.3",
+        "semantic-release": "^15.13.3",
         "tslint": "5.16.0",
         "tslint-config-prettier": "1.18.0",
         "typescript": "3.4.5",
@@ -134,6 +136,10 @@
             "config:base"
         ],
         "automerge": true,
-        "prHourlyLimit": 1
+        "prHourlyLimit": 1,
+        "semanticCommits": true
+    },
+    "release": {
+        "dryRun": true
     }
 }
