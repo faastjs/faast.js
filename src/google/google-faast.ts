@@ -260,11 +260,6 @@ async function waitFor(
                     return false;
                 }
                 if (result.error) {
-                    console.log(
-                        `Operation Error: ${result.error.message}, ${
-                            result.error.details
-                        }`
-                    );
                     const underlying = new FaastError(result.error.message);
                     underlying.stack = "";
                     throw new FaastError(underlying, "Error polling operation");
@@ -415,7 +410,7 @@ export async function initialize(
     try {
         log.info(`create function ${requestBody.name}`);
         await retryOp(
-            err => err.message.match(/already exists/),
+            (err, n) => n < 3 && err.message.match(/Build failed/),
             () =>
                 waitFor(
                     cloudFunctions,
