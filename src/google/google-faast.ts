@@ -413,7 +413,7 @@ export async function initialize(
     log.info(`Request body: %O`, requestBody);
     try {
         log.info(`create function ${requestBody.name}`);
-        waitFor(cloudFunctions, () =>
+        await waitFor(cloudFunctions, () =>
             cloudFunctions.projects.locations.functions.create({
                 location,
                 requestBody
