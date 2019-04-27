@@ -1,5 +1,5 @@
 import { AbortController } from "abort-controller";
-import { Gaxios, GaxiosOptions, GaxiosPromise } from "gaxios";
+import { Gaxios, GaxiosOptions, GaxiosPromise, GaxiosResponse } from "gaxios";
 import {
     cloudbilling_v1,
     cloudfunctions_v1,
@@ -243,11 +243,16 @@ async function quietly<T>(promise: GaxiosPromise<T>) {
 
 async function waitFor(
     api: CloudFunctions.Cloudfunctions,
-    response: GaxiosPromise<CloudFunctions.Schema$Operation>
+    response: () => GaxiosPromise<CloudFunctions.Schema$Operation>
 ) {
-    let operation;
+    let operation: GaxiosResponse<CloudFunctions.Schema$Operation>;
     try {
-        operation = await response;
+        operation = await retryOp(
+            (err, n) =>
+                n < 3 &&
+                (err.message.match(/Build failed/) || err.message.match(/Quota/)),
+            response
+        );
     } catch (err) {
         throw new FaastError(err, "could not get operation");
     }
@@ -274,8 +279,7 @@ async function waitFor(
 
 async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) {
     try {
-        return await waitFor(
-            api,
+        return await waitFor(api, () =>
             api.projects.locations.functions.delete({
                 name: path
             })
@@ -409,16 +413,11 @@ export async function initialize(
     log.info(`Request body: %O`, requestBody);
     try {
         log.info(`create function ${requestBody.name}`);
-        await retryOp(
-            (err, n) => n < 3 && err.message.match(/Build failed/),
-            () =>
-                waitFor(
-                    cloudFunctions,
-                    cloudFunctions.projects.locations.functions.create({
-                        location,
-                        requestBody
-                    })
-                )
+        waitFor(cloudFunctions, () =>
+            cloudFunctions.projects.locations.functions.create({
+                location,
+                requestBody
+            })
         );
     } catch (err) {
         if (!err.message.match(/already exists/)) {
