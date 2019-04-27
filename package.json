@@ -1,6 +1,6 @@
 {
     "name": "faastjs",
-    "version": "1.0.0",
+    "version": "0.0.0-semantic-release",
     "description": "Serverless batch computing made simple.",
     "main": "dist/index.js",
     "types": "dist/faastjs.d.ts",
@@ -31,7 +31,6 @@
         "test": "ava --concurrency=8 --timeout=4m",
         "test-local": "ava --concurrency=4 -m='!remote*'",
         "test-aws": "ava --concurrency=8 --timeout=2m -m='!remote*' -m='*aws*'",
-        "test-aws-release": "npm run test-aws && npm run test-release",
         "test-google": "ava --concurrency=4 --timeout=4m -m='!remote*' -m='*google*'",
         "test-aws-remote": "ava --concurrency=8 --timeout=2m -m='remote*aws*'",
         "test-google-remote": "ava --concurrency=4 --timeout=4m -m='remote*google*'",
@@ -40,7 +39,9 @@
         "cleanup-cloud": "node dist/src/cli.js cleanup aws -x -f && node ./dist/src/cli.js cleanup google -x -f",
         "clean": "rm -rf dist",
         "tslint": "npx tslint -p tsconfig.json",
-        "codecov": "codecov"
+        "codecov": "codecov",
+        "semantic-release": "semantic-release",
+        "commit": "npx git-cz"
     },
     "author": {
         "name": "Andy Chou",
@@ -95,9 +96,12 @@
         "@types/yauzl": "2.9.1",
         "ava": "1.4.1",
         "codecov": "3.3.0",
+        "commitizen": "^3.1.1",
+        "cz-conventional-changelog": "^2.1.0",
         "lolex": "4.0.1",
         "nyc": "14.0.0",
         "papaparse": "4.6.3",
+        "semantic-release": "^15.13.3",
         "tslint": "5.16.0",
         "tslint-config-prettier": "1.18.0",
         "typescript": "3.4.5",
@@ -119,19 +123,30 @@
             "coverage/**",
             "**/node_modules/**"
         ],
+        "extension": [
+            ".ts"
+        ],
         "reporter": [
             "lcov",
             "text"
         ],
         "check-coverage": true,
-        "lines": 10,
-        "exclude-after-remap": false
+        "lines": 10
     },
     "renovate": {
         "extends": [
             "config:base"
         ],
         "automerge": true,
-        "prHourlyLimit": 1
+        "prHourlyLimit": 1,
+        "semanticCommits": true
+    },
+    "release": {
+        "dryRun": true
+    },
+    "config": {
+        "commitizen": {
+            "path": "./node_modules/cz-conventional-changelog"
+        }
     }
 }

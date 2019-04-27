@@ -38,6 +38,10 @@ Included in `package.json`:
 
 -   [API-extractor](https://api-extractor.com/) - API documentation generator and more.
 
+-   [semantic-release](https://github.com/semantic-release/semantic-release) - automatic changelog and release generation.
+
+-   [commitizen](https://github.com/commitizen/cz-cli) - commit message formatting
+
 External tools that may be useful:
 
 -   [draw.io](https://draw.io) - diagram creator for SVGs.
@@ -127,7 +131,15 @@ When reviewing the API review file, all undefined types should be part of declar
 
 ## Semantic versioning
 
-Faast.js follows [semantic versioning](https://semver.org/).
+Faast.js follows [semantic versioning](https://semver.org/). We use the [semantic-release](https://github.com/semantic-release/semantic-release) tool to automatically generate releases from the master branch on github. Semantic-release automatically increments version numbers, generates changelogs, and performs `npm publish` based on commit messages.
+
+When creating pull requests, you can format your messages with the following command:
+
+```shell
+$ npm run commit
+```
+
+This will run commitizen, prompting you to answer some questions about your changes. Don't worry, we will fix your commit messages (if needed) before accepting your pull request.
 
 ## Website
 
@@ -220,9 +232,12 @@ See `.circleci/config.yml`. On CircleCI's project settings page, you need to set
 | `GOOGLE_APPLICATION_CREDENTIALS` | gcp-key.json                                                 |
 | `GOOGLE_KEY_VALUE`               | The contents of a Google service account key (a JSON file)   |
 | `CODECOV_TOKEN`                  | The project token for [codecov][], available in web console. |
+| `GH_TOKEN`                       | Github token (for [semantic-release][])                      |
+| `NPM_TOKEN`                      | NPM publish token (for [semantic-release][])                 |
 
 [aws cli]: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
 [codecov]: https://codecov.io/
+[semantic-release]: https://github.com/semantic-release/semantic-release
 
 Google requires pointing to a file on disk for credentials. To get around this, the run script `npm run set-gcp-key` copies the contents of the `GOOGLE_KEY_VALUE` environment variable into the file `gcp-key.json` in the current working directory. Therefore setting `GOOGLE_APPLICATION_CREDENTIALS` to `gcp-key.json` allows Google authentication to work. The circleci yaml configuration already performs these steps so only the environment variables need to be set.
 

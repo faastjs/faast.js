@@ -138,7 +138,7 @@ Check out even more options in [CommonOptions](./api/faastjs.commonoptions.md) a
 
 ## Functions must be idempotent
 
-Functions you invoke with faast.js must be idempotent. That is, it should be possible to execute them more than once (including concurrently) and still get the same result without causing any undesirable side effects. This is because faast.js or the cloud provider might invoke your function more than once, usually to retry transient errors that are inherent in large scale distributed systems. Faast.js may also issue redundant requests that are still executing to try to reduce [tail latency][https://blog.acolyer.org/2015/01/15/the-tail-at-scale/].
+Functions you invoke with faast.js must be idempotent. That is, it should be possible to execute them more than once (including concurrently) and still get the same result without causing any undesirable side effects. This is because faast.js or the cloud provider might invoke your function more than once, usually to retry transient errors that are inherent in large scale distributed systems. Faast.js may also issue redundant requests that are still executing to try to reduce [tail latency](https://blog.acolyer.org/2015/01/15/the-tail-at-scale/).
 
 ## Ephemeral Infrastructure
 
