@@ -141,9 +141,7 @@
         "prHourlyLimit": 1,
         "semanticCommits": true
     },
-    "release": {
-        "dryRun": true
-    },
+    "release": {},
     "config": {
         "commitizen": {
             "path": "./node_modules/cz-conventional-changelog"
