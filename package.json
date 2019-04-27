@@ -41,7 +41,8 @@
         "clean": "rm -rf dist",
         "tslint": "npx tslint -p tsconfig.json",
         "codecov": "codecov",
-        "semantic-release": "semantic-release"
+        "semantic-release": "semantic-release",
+        "commit": "npx git-cz"
     },
     "author": {
         "name": "Andy Chou",

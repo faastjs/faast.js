@@ -38,6 +38,10 @@ Included in `package.json`:
 
 -   [API-extractor](https://api-extractor.com/) - API documentation generator and more.
 
+-   [semantic-release](https://github.com/semantic-release/semantic-release) - automatic changelog and release generation.
+
+-   [commitizen](https://github.com/commitizen/cz-cli) - commit message formatting
+
 External tools that may be useful:
 
 -   [draw.io](https://draw.io) - diagram creator for SVGs.
@@ -127,7 +131,15 @@ When reviewing the API review file, all undefined types should be part of declar
 
 ## Semantic versioning
 
-Faast.js follows [semantic versioning](https://semver.org/).
+Faast.js follows [semantic versioning](https://semver.org/). We use the [semantic-release](https://github.com/semantic-release/semantic-release) tool to automatically generate releases from the master branch on github. Semantic-release automatically increments version numbers, generates changelogs, and performs `npm publish` based on commit messages.
+
+When creating pull requests, you can format your messages with the following command:
+
+```shell
+$ npm run commit
+```
+
+This will run commitizen, prompting you to answer some questions about your changes. Don't worry, we will fix your commit messages (if needed) before accepting your pull request.
 
 ## Website
 
