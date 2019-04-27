@@ -31,7 +31,7 @@ import {
     sleep,
     uuidv4Pattern
 } from "../shared";
-import { throttle, retryOp } from "../throttle";
+import { throttle } from "../throttle";
 import { Mutable } from "../types";
 import { WrapperOptions } from "../wrapper";
 import { publishPubSub, receiveMessages } from "./google-queue";
@@ -241,18 +241,23 @@ async function quietly<T>(promise: GaxiosPromise<T>) {
     }
 }
 
+const throttleGoogleWrite = throttle(
+    {
+        concurrency: 4,
+        rate: 4,
+        retry: (err, n) =>
+            n < 5 && (err.message.match(/Build failed/) || err.message.match(/Quota/))
+    },
+    <T>(op: () => Promise<T>) => op()
+);
+
 async function waitFor(
     api: CloudFunctions.Cloudfunctions,
     response: () => GaxiosPromise<CloudFunctions.Schema$Operation>
 ) {
     let operation: GaxiosResponse<CloudFunctions.Schema$Operation>;
     try {
-        operation = await retryOp(
-            (err, n) =>
-                n < 3 &&
-                (err.message.match(/Build failed/) || err.message.match(/Quota/)),
-            response
-        );
+        operation = await throttleGoogleWrite(response);
     } catch (err) {
         throw new FaastError(err, "could not get operation");
     }
@@ -318,10 +323,10 @@ export async function initialize(
             wrapperOptions,
             functionName
         );
-        const uploadUrlResponse = await cloudFunctions.projects.locations.functions.generateUploadUrl(
-            {
+        const uploadUrlResponse = await throttleGoogleWrite(() =>
+            cloudFunctions.projects.locations.functions.generateUploadUrl({
                 parent: location
-            }
+            })
         );
 
         const uploadResult = await uploadZip(uploadUrlResponse.data.uploadUrl!, archive);

@@ -62,7 +62,9 @@ export async function retryOp<T>(retryN: RetryType, fn: (retries: number) => Pro
             if (!retryTest(err, i)) {
                 throw err;
             }
-            await sleep(Math.min(30 * 1000, 1000 * 2 ** i) + Math.random());
+            await sleep(
+                Math.min(30 * 1000, 1000 * (1 + Math.random()) * 2 ** i) + Math.random()
+            );
         }
     }
 }
