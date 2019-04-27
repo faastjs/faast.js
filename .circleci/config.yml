@@ -65,12 +65,12 @@ workflows:
                   name: "aws-node10"
                   nodeVersion: "node10"
                   executor: node10
-                  target: "test-aws-release"
+                  target: "test-aws"
             - build_and_test:
                   name: "aws-node8"
                   nodeVersion: "node8"
                   executor: node8
-                  target: "test-aws-release"
+                  target: "test-aws"
             - build_and_test:
                   name: "google-node10"
                   nodeVersion: "node10"
