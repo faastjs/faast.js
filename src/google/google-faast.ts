@@ -244,9 +244,11 @@ async function quietly<T>(promise: GaxiosPromise<T>) {
 const throttleGoogleWrite = throttle(
     {
         concurrency: 4,
-        rate: 4,
+        rate: 3,
         retry: (err, n) =>
-            n < 5 && (err.message.match(/Build failed/) || err.message.match(/Quota/))
+            n < 6 &&
+            ((err as Error).message.match(/Build failed/) !== null ||
+                (err as Error).message.match(/Quota/) !== null)
     },
     <T>(op: () => Promise<T>) => op()
 );
