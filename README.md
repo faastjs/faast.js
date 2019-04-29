@@ -78,7 +78,7 @@ It's that easy.
 
 ## Ready to learn more?
 
-Check out our [website](https://faastjs.org), [documentation](https://faastjs.org/docs/introduction) or detailed [API](https://faastjs.org/docs/api/faastjs).
+Check out our [documentation](https://faastjs.org/docs/introduction), [examples](https://github.com/faastjs/examples) or detailed [API](https://faastjs.org/docs/api/faastjs).
 
 ## Contributing
 
