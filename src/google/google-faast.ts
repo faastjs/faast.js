@@ -174,17 +174,17 @@ export const GoogleImpl: ProviderImpl<GoogleOptions, GoogleState> = {
 };
 
 export async function initializeGoogleServices(): Promise<GoogleServices> {
+    const auth = await google.auth.getClient({
+        scopes: ["https://www.googleapis.com/auth/cloud-platform"]
+    });
+
     google.options({
+        auth,
         retryConfig: {
             retry: 12,
             statusCodesToRetry: [[100, 199], [429, 429], [405, 405], [500, 599]]
         }
     });
-    const auth = await google.auth.getClient({
-        scopes: ["https://www.googleapis.com/auth/cloud-platform"]
-    });
-
-    google.options({ auth });
     return {
         cloudFunctions: google.cloudfunctions("v1"),
         pubsub: google.pubsub("v1"),

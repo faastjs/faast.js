@@ -21,7 +21,13 @@ async function initialize() {
         const auth = await google.auth.getClient({
             scopes: ["https://www.googleapis.com/auth/cloud-platform"]
         });
-        google.options({ auth });
+        google.options({
+            auth,
+            retryConfig: {
+                retry: 6,
+                statusCodesToRetry: [[100, 199], [429, 429], [405, 405], [500, 599]]
+            }
+        });
         pubsub = google.pubsub("v1");
     }
 }
