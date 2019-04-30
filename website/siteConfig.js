@@ -120,7 +120,13 @@ const siteConfig = {
 
     // You may provide arbitrary config keys to be used as needed by your
     // template. For example, if you need your repo's URL...
-    repoUrl
+    repoUrl,
+
+    algolia: {
+        apiKey: "8e3fe27d018892ea446f21935e453b86",
+        indexName: "faastjs",
+        algoliaOptions: {} // Optional, if provided by Algolia
+    }
 };
 
 module.exports = siteConfig;
