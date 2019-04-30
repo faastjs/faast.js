@@ -5,5 +5,10 @@ coverage:
 
     status:
         project: yes
-        patch: yes
         changes: no
+        patch:
+            default:
+                target: 80%
+
+comment:
+    layout: "diff, files"
