@@ -17,6 +17,7 @@ import { Attributes } from "../types";
 import { GoogleMetrics } from "./google-faast";
 import PubSubApi = pubsub_v1;
 import PubSubMessage = pubsub_v1.Schema$PubsubMessage;
+import { retryOp } from "../throttle";
 
 function pubsubMessageAttribute(message: PubSubMessage, attr: string) {
     const attributes = message && message.attributes;
@@ -104,10 +105,13 @@ export async function publishPubSub(
     attributes?: Attributes
 ) {
     const data = Buffer.from(message).toString("base64");
-    await pubsub.projects.topics.publish({
-        topic,
-        requestBody: { messages: [{ data, attributes }] }
-    });
+
+    await retryOp(3, () =>
+        pubsub.projects.topics.publish({
+            topic,
+            requestBody: { messages: [{ data, attributes }] }
+        })
+    );
 }
 
 export function publishResponseMessage(
