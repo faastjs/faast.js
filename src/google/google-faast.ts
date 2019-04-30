@@ -257,31 +257,33 @@ async function waitFor(
     api: CloudFunctions.Cloudfunctions,
     response: () => GaxiosPromise<CloudFunctions.Schema$Operation>
 ) {
-    let operation: GaxiosResponse<CloudFunctions.Schema$Operation>;
-    try {
-        operation = await throttleGoogleWrite(response);
-    } catch (err) {
-        throw new FaastError(err, "could not get operation");
-    }
-    const operationName = operation.data.name!;
-    try {
-        return pollOperation({
-            request: () => quietly(api.operations.get({ name: operationName })),
-            checkDone: result => {
-                if (!result) {
-                    return false;
+    return throttleGoogleWrite(async () => {
+        let operation: GaxiosResponse<CloudFunctions.Schema$Operation>;
+        try {
+            operation = await response();
+        } catch (err) {
+            throw new FaastError(err, "could not get operation");
+        }
+        const operationName = operation.data.name!;
+        try {
+            return pollOperation({
+                request: () => quietly(api.operations.get({ name: operationName })),
+                checkDone: result => {
+                    if (!result) {
+                        return false;
+                    }
+                    if (result.error) {
+                        const underlying = new FaastError(result.error.message);
+                        underlying.stack = "";
+                        throw new FaastError(underlying, "Error polling operation");
+                    }
+                    return result.done || false;
                 }
-                if (result.error) {
-                    const underlying = new FaastError(result.error.message);
-                    underlying.stack = "";
-                    throw new FaastError(underlying, "Error polling operation");
-                }
-                return result.done || false;
-            }
-        });
-    } catch (err) {
-        throw new FaastError(err, "poll operation failed");
-    }
+            });
+        } catch (err) {
+            throw new FaastError(err, "poll operation failed");
+        }
+    });
 }
 
 async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) {
