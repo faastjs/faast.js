@@ -42,6 +42,9 @@ export function checkResourcesCleanedUp<T extends object>(
 ) {
     for (const key of keysOf(resources)) {
         t.is(resources[key], undefined);
+        if (resources[key] !== undefined) {
+            console.log(`Resource not cleaned up: %O`, resources[key]);
+        }
     }
 }
 
