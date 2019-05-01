@@ -269,9 +269,11 @@ async function waitFor(
             return pollOperation({
                 request: () => quietly(api.operations.get({ name: operationName })),
                 checkDone: result => {
+                    /* istanbul ignore if  */
                     if (!result) {
                         return false;
                     }
+                    /* istanbul ignore if */
                     if (result.error) {
                         const underlying = new FaastError(result.error.message);
                         underlying.stack = "";
