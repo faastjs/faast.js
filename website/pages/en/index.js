@@ -67,7 +67,13 @@ class HomeSplash extends React.Component {
                 <div className="inner">
                     <ProjectTitle siteConfig={siteConfig} />
                     <PromoSection>
-                        <Button href="#example">About</Button>
+                        <Button
+                            href="https://github.com/faastjs/faast.js"
+                            target="_blank"
+                            rel="noreferrer noopener"
+                        >
+                            GitHub
+                        </Button>
                         <Button href={docUrl("introduction")}>Docs</Button>
                         <Button
                             href="https://github.com/faastjs/examples"
