@@ -67,7 +67,7 @@ code.hljs {
 }
 
 .homeContainer {
-    background-color: #fff;
+    background-color: var(--dark-bg-color);
     padding-top: 5%;
     padding-bottom: 5%;
 }
@@ -117,7 +117,7 @@ header img.logo {
 }
 
 .projectTitle {
-    color: var(--splash-font-color);
+    color: rgba(255,255,255,.85);
     font-weight: bold;
     margin-bottom: 45px;
     max-width: 700px;

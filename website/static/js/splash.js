@@ -45,7 +45,7 @@ function animate(hero) {
                 const box = boxes[col * rows + row];
                 const style = box.style;
                 style.transitionDelay = (rowDelay / 1000) * (rows - row) + "s";
-                style.backgroundColor = "#ECECEC";
+                style.backgroundColor = "rgba(255,255,255,.15)";
                 setTimeout(() => {
                     style.border = `2px solid ${randomColor()}`;
                 }, Math.random() * maxBorderTimeout + rowDelay * rows);
@@ -60,7 +60,7 @@ function animate(hero) {
         boxes.forEach(box => {
             const style = box.style;
             const delay = (Math.random() * collapseSpeed) / 1000;
-            style.backgroundColor = "#FFF";
+            style.backgroundColor = "rgba(255,255,255,.15)";
             style.transitionDelay = delay + "s";
         });
     }
@@ -73,7 +73,7 @@ function animate(hero) {
         if (n < 0.3) {
             return "#ECECEC";
         }
-        return "#FFFFFF";
+        return "rgba(255,255,255,.15)";
     }
 
     const leftBoxes = makeBoxes("left");
