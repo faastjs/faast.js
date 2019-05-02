@@ -2,14 +2,9 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0) [![CircleCI](https://circleci.com/gh/faastjs/faast.js.svg?style=shield&circle-token=c97f196a78c7173d6ca4e5fc9f09c2cba4ab0647)](https://circleci.com/gh/faastjs/faast.js) [![codecov](https://codecov.io/gh/faastjs/faast.js/branch/master/graph/badge.svg?token=Ml90RLLbEh)](https://codecov.io/gh/faastjs/faast.js) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1132c1cda6a24a5d85d7c7c61c849ef6)](https://www.codacy.com?utm_source=github.com&utm_medium=referral&utm_content=faastjs/faast.js&utm_campaign=Badge_Grade)[![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
 
-Faast.js dynamically transforms JavaScript modules into scalable serverless functions.
+Faast.js makes regular functions callable as serverless functions on AWS Lambda and Google Cloud. It handles the details of uploading your code, creating cloud infrastructure, and cleaning up. Scale up your functions to a thousand cores in seconds :rocket:
 
--   **Frictionless:** Faast.js takes care of packaging your code, setting up IAM roles, and other infrastructure complexity. Run your code on a thousand cores in seconds. All you need is an AWS or GCP account.
--   **Scalable:** Use serverless functions to scale your batch jobs up to thousands of cores.
--   **Cost-effective:** Understand and optimize your workload costs in real time. Pay only for compute time actually used.
--   **Ephemeral:** No clusters or services to manage. Faast.js creates the infrastructure it uses on the fly and cleans up when it's done.
--   **Developer optimized:** First class support for TypeScript and JavaScript. Type safety, documentation, and extensive testing are part of our DNA.
--   **Portable:** Built-in support for AWS Lambda and Google Cloud Functions, as well as local processing mode when you don't have network access. Switch with one line of code.
+Faast.js is a pure library with no service dependencies, operational overhead, or unnecessary complexity.
 
 ## Installation
 
@@ -58,28 +53,36 @@ Hold on! How much did that cost?
 
 ```typescript
 const cost = await m.costSnapshot();
-console.log(cost);
+console.log(`$${cost.total()}`);
 ```
 
 Relax. It's just half a penny:
 
 ```
-functionCallDuration  $0.00002813/second          102.0 seconds    $0.00286876    68.2%  [1]
-sqs                   $0.00000040/request          1276 requests   $0.00051040    12.1%  [2]
-sns                   $0.00000050/request          1000 requests   $0.00050000    11.9%  [3]
-functionCallRequests  $0.00000020/request          1000 requests   $0.00020000     4.8%  [4]
-outboundDataTransfer  $0.09000000/GB         0.00143808 GB         $0.00012943     3.1%  [5]
-logIngestion          $0.50000000/GB                  0 GB         $0              0.0%  [6]
----------------------------------------------------------------------------------------
-                                                                   $0.00420858 (USD)
+$0.00420858
 ```
 
-It's that easy.
+## Features
+
+-   **Frictionless:** Faast.js takes care of packaging your code, setting up IAM roles, and other infrastructure complexity. Run your code on a thousand cores in seconds. All you need is an AWS or GCP account.
+-   **Scalable:** Use serverless functions to scale your batch jobs up to thousands of cores.
+-   **Cost-effective:** Understand and optimize your workload costs in real time. Pay only for compute time actually used.
+-   **Ephemeral:** No clusters or services to manage. Faast.js creates the infrastructure it uses on the fly and cleans up when it's done.
+-   **Developer optimized:** First class support for TypeScript and JavaScript. Type safety, documentation, and extensive testing are part of our DNA.
+-   **Portable:** Built-in support for AWS Lambda and Google Cloud Functions, as well as local processing mode when you don't have network access. Switch with one line of code.
 
 ## Ready to learn more?
 
-Check out our [documentation](https://faastjs.org/docs/introduction), [examples](https://github.com/faastjs/examples) or detailed [API](https://faastjs.org/docs/api/faastjs).
+Check out our [getting started documentation](https://faastjs.org/docs/introduction).
+
+Work through some [examples](https://github.com/faastjs/examples)
+
+Review the detailed [API documentation](https://faastjs.org/docs/api/faastjs).
+
+Join our [slack channel](https://join.slack.com/t/faastjs/shared_invite/enQtNTk0NTczMzI4NzQxLTA2MWU1NDA1ZjBkOTc3MTNkOGMzMDY0OWU1NGQ5MzM2NDY1YTJiZmNmODk4NzI0OWI1MzZhZDdiOTIzODNkOGY). Already joined? [sign in](https://faastjs.slack.com/).
+
+Follow us on [twitter](https://twitter.com/faastjs).
 
 ## Contributing
 
-See [contributing](./docs/12-contributing.md)
+See [contributing](./docs/12-contributing.md).

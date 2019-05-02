@@ -7,11 +7,9 @@ authorImageURL: /img/andy.png
 
 **What if serverless functions were as easy to use as regular functions?**
 
-There would be no infrastructure to create, no command lines to run. Invoke them, and they would run. Finish with them, and they would go away. They would work with all of the nice things in your IDE, and be programmable with the powerful tools and libraries you already use.
+There would be no infrastructure to create, no command lines to run. You would simply write functions and call them, and they would handle everything else needed to run in the cloud. They would work with all the nice things in your IDE, and be programmable with the tools you already use. So powerful, you could summon a thousand cores to demolish large jobs in a snap. So convenient, it would start to feel limiting not to use them. _It would make you think differently about how to write code._
 
-So powerful, you could summon a thousand cores to get large jobs done in a snap. So convenient, it would start to feel limiting not to use them. _It would make you think differently about how to write code._
-
-That's what faast.js is designed to do.
+That's what faast.js was designed to do.
 
 <!--truncate-->
 
