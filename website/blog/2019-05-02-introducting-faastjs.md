@@ -27,7 +27,7 @@ But trying to build this on AWS Lambda was challenging:
 
 -   **Developer productivity.** Debugging, high quality editor support, and other basic productivity tools are awkward or missing from serverless function development tooling.
 
-Faast.js was born to solve these and many other practical problems, to make serverless batch processing as simple as possible while preserving their power.
+Faast.js was born to solve these and many other practical problems, to make serverless batch processing as simple as possible.
 
 ## Design principles for faast.js
 
