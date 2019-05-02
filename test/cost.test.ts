@@ -37,10 +37,10 @@ async function testCostAnalyzer(
     });
     t.is(profile.estimates.length, configurations.length);
     for (const { costSnapshot } of profile.estimates) {
-        t.true(costSnapshot.stats.completed > 0);
-        t.is(costSnapshot.stats.errors, 0);
-        t.true(costSnapshot.stats.estimatedBilledTime.mean > 0);
-        t.true(costSnapshot.total() > 0);
+        t.true(costSnapshot.stats.completed > 0, `completed > 0`);
+        t.is(costSnapshot.stats.errors, 0, `errors === 0`);
+        t.true(costSnapshot.stats.estimatedBilledTime.mean > 0, `billed time > 0`);
+        t.true(costSnapshot.total() > 0, `total > 0`);
     }
 
     const parsed = ppp.parse(profile.csv(), {
@@ -86,8 +86,11 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
             costs.costMetrics.find(m => m.name === "functionCallDuration")!.measured
         );
 
-        t.true(costs.costMetrics.length > 1);
-        t.true(costs.find("functionCallRequests")!.measured === 1);
+        t.true(costs.costMetrics.length > 1, "cost metrics exist");
+        t.true(
+            costs.find("functionCallRequests")!.measured === 1,
+            "functionCallRequests === 1"
+        );
         const output = costs.toString();
         const csvOutput = costs.csv();
         let hasPricedMetric = false;
@@ -95,20 +98,23 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
             t.regex(output, new RegExp(metric.name));
             t.regex(csvOutput, new RegExp(metric.name));
             if (!metric.informationalOnly) {
-                t.true(metric.cost() > 0);
-                t.true(metric.measured > 0);
-                t.true(metric.pricing > 0);
+                t.true(metric.cost() > 0, `${metric.name}.cost() > 0`);
+                t.true(metric.measured > 0, `${metric.name}.measured > 0`);
+                t.true(metric.pricing > 0, `${metric.name}.pricing > 0`);
             }
             hasPricedMetric = true;
-            t.true(metric.cost() < 0.00001);
-            t.true(metric.name.length > 0);
-            t.true(metric.unit.length > 0);
-            t.true(metric.cost() === metric.pricing * metric.measured);
+            t.true(metric.cost() < 0.00001, `${metric.name}.cost() < 0.00001`);
+            t.true(metric.name.length > 0, `${metric.name}.length > 0`);
+            t.true(metric.unit.length > 0, `${metric.name}.unit.length > 0`);
+            t.true(
+                metric.cost() === metric.pricing * metric.measured,
+                `${metric.name} cost is computed correctly`
+            );
         }
         if (hasPricedMetric) {
-            t.true(costs.total() >= 0);
+            t.true(costs.total() >= 0, `costs.total > 0 (hasPricedMetric)`);
         } else {
-            t.true(costs.total() === 0);
+            t.true(costs.total() === 0, `costs.total === 0 (!hasPricedMetric)`);
         }
     } finally {
         await faastModule.cleanup();
