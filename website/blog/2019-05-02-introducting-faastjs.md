@@ -75,9 +75,9 @@ Here are a few ideas to get you started.
 
 -   **Test at scale.** Run hundreds tests in parallel. Run _thousands_ of tests in parallel. Run [headless chrome](https://github.com/GoogleChrome/puppeteer) and grab screenshots of web pages a thousand at a time.
 
--   **Generate load.** Don't bother setting up a complex load testing environment. Mix request logic, stir with faast.js, and you've got instant load testing infrastructure. Imagine load testing every commit, or even have developers load test _before_ they commit.
+-   **Generate load.** Don't bother setting up a complex load testing environment. Mix request logic, stir with faast.js, and you've got instant load testing infrastructure. Imagine load testing every commit, or even have developers load test before they commit.
 
--   **Process documents and data.** Scatter 1TB of data from S3 to Lambda functions in under 40 seconds _for free_. Run transformations, analysis, ETL, and other workloads faster, and do it with no operational overhead, just pure code.
+-   **Process documents and data.** Scatter 1TB of data from S3 to Lambda functions in under 40 seconds. Run transformations, analysis, ETL, and other workloads faster, and do it with no operational overhead, just pure code.
 
 -   **Process images.** Make light work of resizing boatloads of images. [Sharp](https://github.com/lovell/sharp) and other native image processing libraries can be used with minimal hassle with faast.js.
 
