@@ -16,7 +16,7 @@ $ npm install faastjs
 
 ## Example
 
-Export your cloud functions in a module, and invoke faast.js on that module:
+First write the functions you want to run in a serverless function. Make sure to export them:
 
 ```typescript
 // functions.ts
@@ -24,6 +24,8 @@ export function hello(name: string) {
     return "hello " + name;
 }
 ```
+
+Use faast.js to turn this into a serverless function:
 
 ```typescript
 // main.ts
@@ -49,7 +51,7 @@ for (let i = 0; i < 1000; i++) {
 await Promise.all(promises);
 ```
 
-Hold on! How much did that cost?
+How much did that cost...?
 
 ```typescript
 const cost = await m.costSnapshot();
@@ -64,12 +66,12 @@ $0.00420858
 
 ## Features
 
--   **Frictionless:** Faast.js takes care of packaging your code, setting up IAM roles, and other infrastructure complexity. Run your code on a thousand cores in seconds. All you need is an AWS or GCP account.
--   **Scalable:** Use serverless functions to scale your batch jobs up to thousands of cores.
--   **Cost-effective:** Understand and optimize your workload costs in real time. Pay only for compute time actually used.
--   **Ephemeral:** No clusters or services to manage. Faast.js creates the infrastructure it uses on the fly and cleans up when it's done.
--   **Developer optimized:** First class support for TypeScript and JavaScript. Type safety, documentation, and extensive testing are part of our DNA.
--   **Portable:** Built-in support for AWS Lambda and Google Cloud Functions, as well as local processing mode when you don't have network access. Switch with one line of code.
+-   **Frictionless.** Faast.js takes care of packaging your code, setting up IAM roles, and other infrastructure complexity. Run your code on a thousand cores in seconds. All you need is an AWS or GCP account.
+-   **Scalable.** Use serverless functions to scale your batch jobs up to thousands of cores.
+-   **Cost-effective.** Understand and optimize your workload costs in real time. Pay only for compute time actually used.
+-   **Ephemeral.** No clusters or services to manage. Faast.js creates the infrastructure it uses on the fly and cleans up when it's done.
+-   **Productive.** First class support for TypeScript and JavaScript. Type safety, documentation, and extensive testing are part of our DNA.
+-   **Multi-cloud:** Built-in support for AWS Lambda and Google Cloud Functions, as well as local processing mode when you don't have network access. Switch with one line of code.
 
 ## Ready to learn more?
 
