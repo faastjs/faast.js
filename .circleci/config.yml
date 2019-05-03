@@ -56,6 +56,14 @@ jobs:
             - run: npm run build
             - run: npm run test-release
             - run: npm run semantic-release
+    cleanup:
+        description: "cleanup cloud accounts"
+        executor: node10
+        steps:
+            - checkout
+            - run: npm install
+            - run: npm run build
+            - run: npm run cleanup-cloud
 
 workflows:
     version: 2
@@ -84,3 +92,13 @@ workflows:
                   filters:
                       branches:
                           only: master
+    nightly_cleanup:
+        triggers:
+            - schedule:
+                  cron: "0 10 * * *"
+                  filters:
+                      branches:
+                          only:
+                              - master
+        jobs:
+            - cleanup
