@@ -122,6 +122,7 @@ export class Wrapper {
         this.verbose = this.options.wrapperVerbose;
         this.funcs = fModule;
 
+        /* istanbul ignore if  */
         if (process.env["FAAST_CHILD"]) {
             this.options.childProcess = false;
             this.log(`faast: started child process for module wrapper.`);
@@ -195,6 +196,7 @@ export class Wrapper {
         overrideTimeout?: number
     ): Promise<FunctionReturn> {
         try {
+            /* istanbul ignore if  */
             if (this.executing) {
                 this.log(`faast: warning: module wrapper execute is not re-entrant`);
                 throw new Error(`faast: module wrapper is not re-entrant`);
@@ -216,6 +218,7 @@ export class Wrapper {
                     `faast: invoking '${call.name}' in child process, memory: ${memInfo}`
                 );
                 this.child.send(call, err => {
+                    /* istanbul ignore if  */
                     if (err) {
                         log.provider(`child send error: rejecting deferred on ${err}`);
                         this.deferred!.reject(err);
@@ -303,6 +306,7 @@ export class Wrapper {
 
         let execArgv = process.execArgv.slice();
         if (this.options.childProcessMemoryLimitMb) {
+            /* istanbul ignore next  */
             execArgv = process.execArgv.filter(
                 arg => !arg.match(/^--max-old-space-size/) && !arg.match(/^--inspect/)
             );
@@ -338,6 +342,7 @@ export class Wrapper {
             log.provider(`child message: resolving with %O`, value);
             this.deferred!.resolve(value);
         });
+        /* istanbul ignore next  */
         child.on("error", err => {
             log.provider(`child error: rejecting deferred with ${err}`);
             this.child = undefined;

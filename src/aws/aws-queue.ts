@@ -115,6 +115,7 @@ export async function createSQSQueue(QueueName: string, VTimeout: number, sqs: S
     return { QueueUrl, QueueArn };
 }
 
+/* istanbul ignore next  */
 export function processAwsErrorMessage(message: string): Error {
     let err = new FaastError(message);
     err = new FaastError(err, "lambda execution error");
@@ -174,6 +175,7 @@ function processIncomingQueueMessage(m: SQS.Message): ReceivableMessage | void {
     // Check for dead letter messages first.
     // https://docs.aws.amazon.com/lambda/latest/dg/dlq.html
     const errorMessage = sqsMessageAttribute(m, "ErrorMessage");
+    /* istanbul ignore if  */
     if (errorMessage) {
         log.info(`Received DLQ message: %O`, m);
         const body = m.Body && JSON.parse(m.Body);

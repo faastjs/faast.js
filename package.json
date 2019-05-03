@@ -121,7 +121,8 @@
             "tmp/**",
             "test/fixtures/**",
             "coverage/**",
-            "**/node_modules/**"
+            "**/node_modules/**",
+            "src/trace.ts"
         ],
         "extension": [
             ".ts"

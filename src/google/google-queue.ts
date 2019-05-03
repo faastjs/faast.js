@@ -79,6 +79,7 @@ function processMessage(m: PubSubMessage): ReceivableMessage | void {
     const body = Buffer.from(data, "base64").toString();
 
     switch (kind) {
+        /* istanbul ignore next  */
         case "deadletter":
             log.warn("Not expecting deadletter message from google queue");
             return;

@@ -436,6 +436,7 @@ export async function initialize(
             })
         );
     } catch (err) {
+        /* istanbul ignore next  */
         if (!err.message.match(/already exists/)) {
             await deleteFunction(cloudFunctions, trampoline).catch(() => {});
             throw new FaastError(err, "failed to create google cloud function");
@@ -583,6 +584,7 @@ async function deleteResources(
         try {
             await request;
         } catch (err) {
+            /* istanbul ignore next  */
             if (err.message.match(/Resource not found/)) {
                 return;
             }

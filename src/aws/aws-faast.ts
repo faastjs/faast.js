@@ -1156,16 +1156,25 @@ export const awsPrice = throttle(
             const price = extractPrice(first(pList.terms.OnDemand));
             return price;
         } catch (err) {
-            const { message: m } = err;
-            if (
-                !m.match(/Rate exceeded/) &&
-                !m.match(/EPROTO/) &&
-                !m.match(/socket hang up/)
-            ) {
-                log.warn(`Could not get AWS pricing for '${ServiceCode}' (%O)`, filter);
-                log.warn(err);
+            /* istanbul ignore next  */
+            {
+                const { message: m } = err;
+                if (
+                    !m.match(/Rate exceeded/) &&
+                    !m.match(/EPROTO/) &&
+                    !m.match(/socket hang up/)
+                ) {
+                    log.warn(
+                        `Could not get AWS pricing for '${ServiceCode}' (%O)`,
+                        filter
+                    );
+                    log.warn(err);
+                }
+                throw new FaastError(
+                    err,
+                    `failed to get AWS pricing for "${ServiceCode}"`
+                );
             }
-            throw new FaastError(err, `failed to get AWS pricing for "${ServiceCode}"`);
         }
     }
 );
@@ -1175,6 +1184,7 @@ export const requestAwsPrices = async (
     region: AwsRegion
 ): Promise<AwsPrices> => {
     const location = locations[region];
+    /* istanbul ignore next  */
     return {
         lambdaPerRequest: await awsPrice(pricing, "AWSLambda", {
             location,
