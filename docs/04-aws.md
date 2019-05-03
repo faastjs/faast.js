@@ -53,7 +53,7 @@ Log ingestion is not included in faast.js cost estimates.
 
 By default, AWS does not provide a package dependency solution. Faast.js adds dependency bundling automatically using two different methods: webpack bundling and remote npm install.
 
-Webpack bundling happens by default. When you specify a module to the `faast` or `faastAws` function, the module and its dependencies are collected by webopack and bundled into a single `.js` file. This placed into a zipfile and sent to AWS Lambda as the code package. If you install dependencies using `package.json` and `import` or `require` them in the usual way, then webpack should be able to bundle your dependencies with no extra effort on your part.
+Webpack bundling happens by default. When you specify a module to the `faast` or `faastAws` function, the module and its dependencies are collected by webpack and bundled into a single `.js` file. This placed into a zipfile and sent to AWS Lambda as the code package. If you install dependencies using `package.json` and `import` or `require` them in the usual way, then webpack should be able to bundle your dependencies with no extra effort on your part.
 
 There are a few drawbacks with the default webpack approach. The first drawback is that the code bundle needs to be uploaded every time you invoke `faast` because it creates fresh infrastructure each time it initializes. If the bundle is large, this can take a substantial amount of time. Worse, AWS limits code package sizes using direct upload to 50MB. The second drawback is that native dependencies are not supported in this way because webpack cannot bundle them.
 

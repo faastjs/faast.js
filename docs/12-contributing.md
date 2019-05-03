@@ -159,7 +159,7 @@ This should open your browser allowing you to see a live preview. Note that you'
 
 ### Why AVA (and not Jest, Mocha, etc)?
 
-[AVA](https://github.com/avajs/ava) is designed to run all tests _within_ a file concurrently. This is a different architecture than most other JavaScript test frameworks, and it is especially suited to faast.js. The faast.js testsuite needs to create many lambda functions and other infrastructure in the cloud. Performing these operations can take some time, but can be done in parallel easily. Google Cloud Functions takes an espcially long time (sometimes > 1min) for common operations like function creation.
+[AVA](https://github.com/avajs/ava) is designed to run all tests _within_ a file concurrently. This is a different architecture than most other JavaScript test frameworks, and it is especially suited to faast.js. The faast.js testsuite needs to create many lambda functions and other infrastructure in the cloud. Performing these operations can take some time, but can be done in parallel easily. Google Cloud Functions takes an especially long time (sometimes > 1min) for common operations like function creation.
 
 In addition, faast.js has to execute the same tests across a test matrix of cloud providers and configurations:
 

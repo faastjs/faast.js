@@ -20,7 +20,7 @@ There's a natural way to use faast.js to maximize developer productivity:
 
 6. Gradually increase concurrency and fix any issues that arise from scaling.
 
-Using this workflow maximizes your ability to use local debugging tools, and confines most errors to local or small scale cloud testing. This can help avoid costly mistakes which consume lots of procesing time on a large scale.
+Using this workflow maximizes your ability to use local debugging tools, and confines most errors to local or small scale cloud testing. This can help avoid costly mistakes which consume lots of processing time on a large scale.
 
 ## Debugging
 
