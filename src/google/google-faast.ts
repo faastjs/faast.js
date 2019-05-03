@@ -245,10 +245,15 @@ const throttleGoogleWrite = throttle(
     {
         concurrency: 4,
         rate: 3,
-        retry: (err, n) =>
-            n < 6 &&
-            ((err as Error).message.match(/Build failed/) !== null ||
-                (err as Error).message.match(/Quota/) !== null)
+        retry: (err, n) => {
+            const { message } = err as Error;
+            return (
+                n < 6 &&
+                (message.match(/Build failed/) !== null ||
+                    message.match(/Quota/) !== null ||
+                    message.match(/load attempt timed out/) !== null)
+            );
+        }
     },
     <T>(op: () => Promise<T>) => op()
 );
