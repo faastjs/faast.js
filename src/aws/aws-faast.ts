@@ -505,7 +505,11 @@ export const initialize = throttle(
 
         try {
             log.info(`Creating lambda function`);
-            const rolePromise = ensureRole(RoleName, services, false);
+            const rolePromise = ensureRole(
+                RoleName,
+                services,
+                RoleName === defaults.RoleName
+            );
             const responseQueuePromise = createResponseQueueImpl(state, FunctionName);
             const pricingPromise = requestAwsPrices(services.pricing, region);
             const layerPromise = createLayer(
