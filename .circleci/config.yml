@@ -102,3 +102,17 @@ workflows:
                               - master
         jobs:
             - cleanup
+            - build_and_test:
+                  name: "aws-node10"
+                  nodeVersion: "node10"
+                  executor: node10
+                  target: "test-aws"
+                  requires:
+                      - cleanup
+            - build_and_test:
+                  name: "google-node10"
+                  nodeVersion: "node10"
+                  executor: node10
+                  target: "test-google-remote"
+                  requires:
+                      - cleanup
