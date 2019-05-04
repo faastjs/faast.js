@@ -63,6 +63,7 @@ jobs:
             - checkout
             - run: npm install
             - run: npm run build
+            - run: npm run set-gcp-key
             - run: npm run cleanup-cloud
 
 workflows:
