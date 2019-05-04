@@ -49,7 +49,7 @@ async function main() {
                         title = titleLine[1];
                     }
                 }
-                const homeLink = line.match(/\[Home\]\(.\/index\) &gt; (.*)/);
+                const homeLink = line.match(/\[Home\]\(.\/index\.md\) &gt; (.*)/);
                 if (homeLink) {
                     // Skip the breadcrumb for the toplevel index file.
                     if (id !== "faastjs") {

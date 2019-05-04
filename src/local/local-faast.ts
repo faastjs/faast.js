@@ -109,7 +109,11 @@ async function initialize(
 
     log.info(`logURL: ${url}`);
 
-    const { childProcess, memorySize, timeout } = options;
+    const { childProcess, memorySize, timeout, env } = options;
+
+    if (!childProcess) {
+        process.env = { ...process.env, ...env };
+    }
 
     const getWrapper = async () => {
         const idleWrapper = wrappers.find(w => w.executing === false);
@@ -139,6 +143,7 @@ async function initialize(
             childProcess,
             childProcessMemoryLimitMb: memorySize,
             childProcessTimeoutMs: timeout * 1000 - (childProcess ? 50 : 0),
+            childProcessEnvironment: env,
             childDir: tempDir
         });
         wrappers.push(wrapper);

@@ -403,7 +403,7 @@ export async function initialize(
     }
 
     const sourceUploadUrl = await createCodeBundle();
-    const { memorySize, googleCloudFunctionOptions } = options;
+    const { memorySize, googleCloudFunctionOptions, env } = options;
     if (!GoogleCloudFunctionsMemorySizes.find(size => size === memorySize)) {
         log.warn(`Invalid memorySize ${memorySize} for Google Cloud Functions`);
     }
@@ -413,6 +413,7 @@ export async function initialize(
         timeout: `${timeout}s`,
         availableMemoryMb: memorySize,
         sourceUploadUrl,
+        environmentVariables: env,
         runtime: "nodejs8",
         ...googleCloudFunctionOptions
     };

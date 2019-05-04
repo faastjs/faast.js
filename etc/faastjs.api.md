@@ -55,6 +55,9 @@ export interface CommonOptions {
     addZipFile?: string | string[];
     childProcess?: boolean;
     concurrency?: number;
+    env?: {
+        [key: string]: string;
+    };
     gc?: "auto" | "force" | "off";
     maxRetries?: number;
     memorySize?: number;

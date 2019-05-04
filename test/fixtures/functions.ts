@@ -129,6 +129,10 @@ export async function allocate(bytes: number) {
     return { bytes, elems };
 }
 
+export function getEnv(key: string) {
+    return process.env[key];
+}
+
 export interface MonteCarloReturn {
     inside: number;
     samples: number;

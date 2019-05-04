@@ -426,7 +426,7 @@ export function logUrl(state: AwsState) {
 export const initialize = throttle(
     { concurrency: Infinity, rate: 2 },
     async (fModule: string, nonce: UUID, options: Required<AwsOptions>, dir: string) => {
-        const { region, timeout, memorySize } = options;
+        const { region, timeout, memorySize, env } = options;
         log.info(`Creating AWS APIs`);
         const services = await createAwsApis(region);
         const { lambda, sts } = services;
@@ -454,6 +454,7 @@ export const initialize = throttle(
                 Description: "faast trampoline function",
                 Timeout: timeout,
                 MemorySize: memorySize,
+                Environment: { Variables: env },
                 DeadLetterConfig: { TargetArn: responseQueueArn },
                 Layers,
                 ...rest

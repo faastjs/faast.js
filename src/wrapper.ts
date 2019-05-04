@@ -89,6 +89,7 @@ export interface WrapperOptions {
     childProcess?: boolean;
     childProcessMemoryLimitMb?: number;
     childProcessTimeoutMs?: number;
+    childProcessEnvironment?: { [key: string]: string };
     childDir?: string;
     wrapperVerbose?: boolean;
 }
@@ -98,6 +99,7 @@ export const WrapperOptionDefaults: Required<WrapperOptions> = {
     childProcess: true,
     childProcessMemoryLimitMb: 0,
     childProcessTimeoutMs: 0,
+    childProcessEnvironment: {},
     childDir: ".",
     wrapperVerbose: false
 };
@@ -315,9 +317,12 @@ export class Wrapper {
             );
         }
 
+        const { childProcessEnvironment } = this.options;
+        const env = { ...process.env, ...childProcessEnvironment, FAAST_CHILD: "true" };
+        this.log(`Env: ${inspect(env)}`);
         const forkOptions: childProcess.ForkOptions = {
             silent: true, // redirects stdout and stderr to IPC.
-            env: { ...process.env, FAAST_CHILD: "true" },
+            env,
             cwd: this.options.childDir,
             execArgv
         };

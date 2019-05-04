@@ -172,7 +172,8 @@ export async function packer(
         childDir,
         childProcessMemoryLimitMb,
         childProcessTimeoutMs,
-        wrapperLog: _onlyUsedForLocalProviderDirectWrapperInstantiation2,
+        childProcessEnvironment: _onlyUsedForLocalProviderDirectWrapperInstantiation2,
+        wrapperLog: _onlyUsedForLocalProviderDirectWrapperInstantiation3,
         ...rest
     } = wrapperOptions;
     const _exhaustiveCheck2: Required<typeof rest> = {};

@@ -8,7 +8,12 @@ async function testBasic(
     provider: Provider,
     options: CommonOptions
 ) {
-    const opts: CommonOptions = { timeout: 30, gc: "off", ...options };
+    const opts: CommonOptions = {
+        timeout: 30,
+        gc: "off",
+        env: { faastEnvironmentVariable: "the_answer_is_42" },
+        ...options
+    };
     const faastModule = await faast(provider, funcs, opts);
     const remote = faastModule.functions;
 
@@ -47,6 +52,8 @@ async function testBasic(
             t.truthy(ferr.message.match(/^custom error message/));
             t.is(ferr.info.custom, "custom value");
         }
+        t.is(await remote.getEnv("faastEnvironmentVariable"), "the_answer_is_42");
+        t.is(await remote.getEnv("nonexistent"), undefined);
     } finally {
         await faastModule.cleanup();
     }

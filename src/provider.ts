@@ -82,6 +82,11 @@ export interface CommonOptions {
      */
     concurrency?: number;
     /**
+     * Environment variables available during serverless function execution.
+     * Default: \{\}.
+     */
+    env?: { [key: string]: string };
+    /**
      * Garbage collector mode. Default: `"auto"`.
      * @remarks
      * Garbage collection deletes resources that were created by previous
@@ -358,6 +363,7 @@ export const commonDefaults: Required<CommonOptions> = {
     addZipFile: [],
     childProcess: true,
     concurrency: 100,
+    env: {},
     gc: "auto",
     maxRetries: 2,
     memorySize: 1024,
