@@ -513,6 +513,9 @@ export const initialize = throttle(
             );
             const responseQueuePromise = createResponseQueueImpl(state, FunctionName);
             const pricingPromise = requestAwsPrices(services.pricing, region);
+            const codeBundlePromise = createCodeBundle();
+            // Ensure role exists before creating lambda layer, which also needs the role.
+            const roleArn = await rolePromise;
             const layerPromise = createLayer(
                 services.lambda,
                 packageJson,
@@ -521,8 +524,7 @@ export const initialize = throttle(
                 region
             );
 
-            const codeBundle = await createCodeBundle();
-            const roleArn = await rolePromise;
+            const codeBundle = await codeBundlePromise;
             const responseQueueArn = await responseQueuePromise;
             const layer = await layerPromise;
             if (layer) {
