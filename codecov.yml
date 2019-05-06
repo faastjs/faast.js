@@ -10,5 +10,4 @@ coverage:
             default:
                 target: 80%
 
-comment:
-    layout: "diff, files"
+comment: off
