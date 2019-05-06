@@ -8,6 +8,38 @@ hide_title: true
 
 A catalogue of common error messages and their root causes. Some of these errors are specific to the faast.js testsuite, but other errors may be encountered by users.
 
+## AWS IAM role permissions problems
+
+A constellation of errors can occur with AWS IAM roles:
+
+```text
+Lambda was unable to decrypt the environment variables due to an internal service error.
+```
+
+```text
+The provided execution role does not have permissions to call SendMessage on SQS
+```
+
+```text
+AccessDeniedException: The role defined for the function cannot be assumed by Lambda.
+```
+
+These all occurred in the following scenario:
+
+(1) the CLI was used to run cleanup, removing all faast.js resources including the cached IAM role.
+
+(2) A large number of serverless functions were created in parallel (e.g. with the testsuite).
+
+(3) Each of these functions attempted to create the IAM role; when some detected the role already existed, they proceeded as-if the role had a policy attached already and propagated.
+
+(4) Even the AWS IAM API returns that it believes the IAM role has the currect policy attached, but it hasn't propagated across all of AWS.
+
+(5) Lambda functions are created assuming the role's permissions are set correctly. But they aren't so the functions fail when invoked, with one of the mysterious errors above.
+
+This should be a relatively rare occurrence, unless the cleanup command is used regularly to remove the cached IAM role (creating the role should be a one-time event, if the cleanup script is not used).
+
+This issue has been fixed. The solution is to test if the role was recently created (within the last 2min). If so, then invoke the lambda function after creating it, in order to test that the permissions are correct. If the invocation fails, then delete the lambda and retry deployment. This procedure is necessary because once a lambda is created with a role whose policy has not been propagated, the lambda continues to issue errors even after retrying invocations or waiting for a long period of time; the lambda deployment should be considered bad in this case. Therefore deleting the function and re-deploying is the way forward, and empirically this makes function creation very reliable.
+
 ## Error with permissions on Google Cloud
 
 This error occurs after setting the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to point to a service account with Owner permissions, which should be enough:

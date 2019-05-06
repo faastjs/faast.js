@@ -308,7 +308,7 @@ export async function ensureRoleRaw(
     log.info(`Checking for cached lambda role`);
     try {
         const response = await iam.getRole({ RoleName }).promise();
-        return response.Role.Arn;
+        return response.Role;
     } catch (err) {
         if (!createRole) {
             throw new FaastError(err, `could not find role "${RoleName}"`);
@@ -337,12 +337,12 @@ export async function ensureRoleRaw(
         const roleResponse = await iam.createRole(roleParams).promise();
         log.info(`Attaching administrator role policy`);
         await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
-        return roleResponse.Role.Arn;
+        return roleResponse.Role;
     } catch (err) {
         if (err.code === "EntityAlreadyExists") {
             const roleResponse = await iam.getRole({ RoleName }).promise();
             await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
-            return roleResponse.Role.Arn;
+            return roleResponse.Role;
         }
         throw new FaastError(err, `failed to create role "${RoleName}"`);
     }
@@ -460,7 +460,7 @@ export const initialize = throttle(
                 ...rest
             };
             log.info(`createFunctionRequest: %O`, request);
-            const func = await retryOp(4, () => lambda.createFunction(request).promise());
+            const func = await lambda.createFunction(request).promise();
             log.info(
                 `Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`
             );
@@ -515,7 +515,7 @@ export const initialize = throttle(
             const pricingPromise = requestAwsPrices(services.pricing, region);
             const codeBundlePromise = createCodeBundle();
             // Ensure role exists before creating lambda layer, which also needs the role.
-            const roleArn = await rolePromise;
+            const role = await rolePromise;
             const layerPromise = createLayer(
                 services.lambda,
                 packageJson,
@@ -530,16 +530,58 @@ export const initialize = throttle(
             if (layer) {
                 state.resources.layer = layer;
             }
-            const lambdaFn = await createFunctionRequest(
-                codeBundle,
-                roleArn,
-                responseQueueArn,
-                layer
+
+            let lambdaFnArn!: string;
+            await retryOp(
+                (err, n) =>
+                    n < 5 &&
+                    err &&
+                    err.message &&
+                    (err.message.match(/role/) !== null ||
+                        err.message.match(/KMS Exception/) !== null ||
+                        err.message.match(/internal service error/) !== null),
+                async () => {
+                    try {
+                        const lambdaFn = await createFunctionRequest(
+                            codeBundle,
+                            role.Arn,
+                            responseQueueArn,
+                            layer
+                        );
+
+                        lambdaFnArn = lambdaFn.FunctionArn!;
+
+                        // If the role for the lambda function was created
+                        // recently, test that the role works by invoking the
+                        // function. If an exception occurs, the function is
+                        // deleted and re-deployed. Empirically, this is the way
+                        // to ensure successful lambda creation when an IAM role
+                        // is recently created.
+                        if (Date.now() - role.CreateDate.getTime() < 120 * 1000) {
+                            await invokeHttps(
+                                lambda,
+                                FunctionName,
+                                { callId: "0", body: "" },
+                                state.metrics,
+                                new Promise(_ => {})
+                            );
+                        }
+                    } catch (err) {
+                        await lambda
+                            .deleteFunction({ FunctionName })
+                            .promise()
+                            .catch(_ => {});
+                        throw new FaastError(
+                            err,
+                            "New lambda function failed invocation test"
+                        );
+                    }
+                }
             );
 
             const { mode } = options;
             if (mode === "queue") {
-                await createRequestQueueImpl(state, FunctionName, lambdaFn.FunctionArn!);
+                await createRequestQueueImpl(state, FunctionName, lambdaFnArn);
             }
             await pricingPromise;
             log.info(`Lambda function initialization complete.`);
@@ -564,11 +606,19 @@ async function invoke(
         case "https":
             const { lambda } = services;
             const { FunctionName } = resources;
-            return invokeHttps(lambda, FunctionName, call, metrics, cancel);
+            try {
+                return await invokeHttps(lambda, FunctionName, call, metrics, cancel);
+            } catch (err) {
+                throw new FaastError(err, "invoke https error");
+            }
         case "queue":
             const { sns } = services;
             const { RequestTopicArn } = resources;
-            await publishInvocationMessage(sns, RequestTopicArn!, call, metrics);
+            try {
+                await publishInvocationMessage(sns, RequestTopicArn!, call, metrics);
+            } catch (err) {
+                throw new FaastError(err, "invoke sns error");
+            }
             return;
         default:
             assertNever(options.mode);

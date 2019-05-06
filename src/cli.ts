@@ -42,7 +42,7 @@ async function deleteResources(
                 concurrency,
                 rate,
                 burst,
-                retry: 3
+                retry: 5
             },
             async arg => {
                 await doRemove(arg);
@@ -55,7 +55,11 @@ async function deleteResources(
         );
         try {
             await Promise.all(
-                matchingResources.map(resource => scheduleRemove(resource))
+                matchingResources.map(resource =>
+                    scheduleRemove(resource).catch(err =>
+                        console.warn(`Could not remove resource ${resource}: ${err}`)
+                    )
+                )
             );
         } finally {
             clearInterval(timer);
