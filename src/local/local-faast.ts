@@ -41,7 +41,7 @@ export interface LocalState {
     /** @internal */
     wrappers: Wrapper[];
     /** @internal */
-    getWrapper: () => Promise<Wrapper>;
+    getWrapper: () => Wrapper;
     /** @internal */
     logStreams: Writable[];
     tempDir: string;
@@ -115,7 +115,7 @@ async function initialize(
         process.env = { ...process.env, ...env };
     }
 
-    const getWrapper = async () => {
+    const getWrapper = () => {
         const idleWrapper = wrappers.find(w => w.executing === false);
         if (idleWrapper) {
             return idleWrapper;
@@ -132,7 +132,6 @@ async function initialize(
             log.info(`Creating write stream ${logFile}`);
             logStream = createWriteStream(logFile);
             logStreams.push(logStream);
-            await new Promise(resolve => logStream.on("open", resolve));
         } catch (err) {
             log.warn(`ERROR: Could not create log`);
             log.warn(err);
@@ -210,8 +209,8 @@ async function invoke(
 ): Promise<ResponseMessage | void> {
     const {} = state;
     const startTime = Date.now();
-    const wrapper = await state.getWrapper();
     const call: FunctionCall = JSON.parse(request.body);
+    const wrapper = state.getWrapper();
     const promise = wrapper.execute({ call, startTime }, metrics =>
         state.queue.enqueue({
             kind: "cpumetrics",
