@@ -194,3 +194,23 @@ test("local unresolved module", async t => {
         t.regex(err.message, /Could not find file/);
     }
 });
+
+test("local issue #37", async t => {
+    // Previously this code caused an exception about module wrapper not being
+    // re-entrant. The problem was a race condition between wrapper selection
+    // and execution in local provider. Solved by making wrapper selector a
+    // regular function instead of an async function.
+    const m = await faastLocal(funcs);
+    try {
+        const { identity } = m.functions;
+        await identity("a");
+        const b = identity("b");
+        const c = identity("c");
+        await b;
+        await c;
+        // Test succeeds if no exceptions are thrown.
+        t.true(true);
+    } finally {
+        await m.cleanup();
+    }
+});
