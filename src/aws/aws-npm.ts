@@ -1,4 +1,4 @@
-import * as archiver from "archiver";
+import archiver from "archiver";
 import { Lambda, S3 } from "aws-sdk";
 import * as sys from "child_process";
 import { writeFile, ensureDir, remove } from "fs-extra";

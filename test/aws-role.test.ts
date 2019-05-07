@@ -1,6 +1,6 @@
 import test from "ava";
 import { IAM } from "aws-sdk";
-import * as uuidv4 from "uuid/v4";
+import uuidv4 from "uuid/v4";
 import { faastAws } from "../index";
 import {
     deleteRole,

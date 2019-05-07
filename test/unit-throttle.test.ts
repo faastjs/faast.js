@@ -1,5 +1,5 @@
 import test from "ava";
-import * as uuidv4 from "uuid/v4";
+import uuidv4 from "uuid/v4";
 import { PersistentCache } from "../src/cache";
 import {
     AsyncQueue,

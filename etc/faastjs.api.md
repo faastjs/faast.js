@@ -8,7 +8,8 @@ import * as childProcess from 'child_process';
 import { cloudbilling_v1 } from 'googleapis';
 import { cloudfunctions_v1 } from 'googleapis';
 import { CloudWatchLogs } from 'aws-sdk';
-import * as debug from 'debug';
+import { Configuration } from 'webpack';
+import { default } from 'debug';
 import { GoogleApis } from 'googleapis';
 import { IAM } from 'aws-sdk';
 import { Lambda } from 'aws-sdk';
@@ -20,7 +21,6 @@ import { SNS } from 'aws-sdk';
 import { SQS } from 'aws-sdk';
 import { STS } from 'aws-sdk';
 import { VError } from 'verror';
-import * as webpack from 'webpack';
 import { Writable } from 'stream';
 
 // Warning: (ae-forgotten-export) The symbol "AwsState" needs to be exported by the entry point index.d.ts
@@ -68,7 +68,7 @@ export interface CommonOptions {
     speculativeRetryThreshold?: number;
     timeout?: number;
     useDependencyCaching?: boolean;
-    webpackOptions?: webpack.Configuration;
+    webpackOptions?: Configuration;
 }
 
 // @public
@@ -282,14 +282,14 @@ export interface LocalOptions extends CommonOptions {
 
 // @public
 export const log: {
-    info: debug.Debugger;
-    warn: debug.Debugger;
-    gc: debug.Debugger;
-    leaks: debug.Debugger;
-    calls: debug.Debugger;
-    webpack: debug.Debugger;
-    provider: debug.Debugger;
-    awssdk: debug.Debugger;
+    info: default.Debugger;
+    warn: default.Debugger;
+    gc: default.Debugger;
+    leaks: default.Debugger;
+    calls: default.Debugger;
+    webpack: default.Debugger;
+    provider: default.Debugger;
+    awssdk: default.Debugger;
 };
 
 // @internal (undocumented)

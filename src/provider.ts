@@ -1,4 +1,4 @@
-import * as webpack from "webpack";
+import { Configuration as WebpackConfiguration } from "webpack";
 import { CostSnapshot } from "./cost";
 import { Statistics, keysOf } from "./shared";
 import { CpuMeasurement, FunctionReturn } from "./wrapper";
@@ -326,7 +326,7 @@ export interface CommonOptions {
      * or override the default webpack configuration:
      *
      * ```typescript
-     * const config: webpack.Configuration = {
+     * const config: WebpackConfiguration = {
      *   entry,
      *   mode: "development",
      *   output: {
@@ -355,7 +355,7 @@ export interface CommonOptions {
      * The `FAAST_PACKAGE_DIR` environment variable can be useful for debugging
      * webpack issues.
      */
-    webpackOptions?: webpack.Configuration;
+    webpackOptions?: WebpackConfiguration;
 }
 
 export const commonDefaults: Required<CommonOptions> = {

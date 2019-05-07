@@ -1,7 +1,7 @@
 import test from "ava";
 import { Context, SNSEvent } from "aws-lambda";
 import { SQS } from "aws-sdk";
-import * as uuidv4 from "uuid/v4";
+import uuidv4 from "uuid/v4";
 import { AwsMetrics } from "../src/aws/aws-faast";
 import { receiveMessages } from "../src/aws/aws-queue";
 import { makeTrampoline } from "../src/aws/aws-trampoline";

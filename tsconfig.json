@@ -3,6 +3,7 @@
         "outDir": "dist",
         "rootDir": ".",
         "module": "commonjs",
+        "esModuleInterop": true,
         "target": "es2017",
         "lib": ["es2017", "esnext.asynciterable"],
         // "sourceMap": true,
@@ -22,7 +23,6 @@
         "strict": true,
         "noEmitHelpers": true,
         "importHelpers": true,
-        "allowSyntheticDefaultImports": true,
         "skipLibCheck": true
     },
     "exclude": ["node_modules", "dist", "etc", "temp", "examples", "test-release"]

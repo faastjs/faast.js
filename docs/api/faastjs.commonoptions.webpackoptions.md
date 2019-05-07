@@ -14,7 +14,7 @@ Extra webpack options to use to bundle the code package.
 <b>Signature:</b>
 
 ```typescript
-webpackOptions?: webpack.Configuration;
+webpackOptions?: WebpackConfiguration;
 ```
 
 ## Remarks
@@ -22,7 +22,7 @@ webpackOptions?: webpack.Configuration;
 By default, faast.js uses webpack to bundle the code package. Webpack automatically handles finding and bundling dependencies, adding source mappings, etc. If you need specialized bundling, use this option to add or override the default webpack configuration:
 
 ```typescript
-const config: webpack.Configuration = {
+const config: WebpackConfiguration = {
   entry,
   mode: "development",
   output: {

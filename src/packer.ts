@@ -3,7 +3,7 @@ import { createWriteStream, ensureDir, mkdirp, pathExists, readFile } from "fs-e
 import * as path from "path";
 import { join } from "path";
 import { PassThrough, Readable } from "stream";
-import * as webpack from "webpack";
+import webpack from "webpack";
 import * as yauzl from "yauzl";
 import { FaastError } from "./error";
 import { LoaderOptions } from "./loader";

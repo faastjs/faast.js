@@ -1,4 +1,4 @@
-import * as Listr from "listr";
+import Listr from "listr";
 import { inspect } from "util";
 import { faast, FaastModule } from "../index";
 import { AwsOptions } from "./aws/aws-faast";

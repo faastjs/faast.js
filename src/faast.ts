@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { dirname } from "path";
 import * as util from "util";
-import * as uuidv4 from "uuid/v4";
+import uuidv4 from "uuid/v4";
 import { _parentModule } from "../index";
 import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
 import { CostMetric, CostSnapshot } from "./cost";

@@ -11,7 +11,7 @@ import {
 import { homedir } from "os";
 import { join } from "path";
 import { Readable } from "stream";
-import * as uuidv4 from "uuid/v4";
+import uuidv4 from "uuid/v4";
 
 interface Blob {}
 

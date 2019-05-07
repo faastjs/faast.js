@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import assert from "assert";
 import { sleep } from "./shared";
 import { PersistentCache } from "./cache";
 import { createHash } from "crypto";

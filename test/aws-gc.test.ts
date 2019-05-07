@@ -1,6 +1,6 @@
 import test from "ava";
 import { CloudWatchLogs } from "aws-sdk";
-import * as uuid from "uuid/v4";
+import uuid from "uuid/v4";
 import { faastAws, log, throttle } from "../index";
 import { defaultGcWorker, clearLastGc } from "../src/aws/aws-faast";
 import { getAWSResources } from "./fixtures/util-aws";

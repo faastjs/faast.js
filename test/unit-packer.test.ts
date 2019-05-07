@@ -3,7 +3,6 @@ import * as sys from "child_process";
 import { pathExists, remove, stat } from "fs-extra";
 import * as path from "path";
 import { join } from "path";
-import { PassThrough } from "stream";
 import { CommonOptions, log, Provider, providers } from "../index";
 import { awsPacker } from "../src/aws/aws-faast";
 import { googlePacker } from "../src/google/google-faast";

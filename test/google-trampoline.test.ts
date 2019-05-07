@@ -1,7 +1,7 @@
 import test from "ava";
 import { Request, Response } from "express";
 import { google } from "googleapis";
-import * as uuidv4 from "uuid/v4";
+import uuidv4 from "uuid/v4";
 import {
     getResponseQueueTopic,
     getResponseSubscription,
