@@ -1,16 +1,17 @@
 import { Context, SNSEvent } from "aws-lambda";
 import { SQS } from "aws-sdk";
 import { env } from "process";
+import { Invocation, ResponseMessage } from "../provider";
+import { deserializeCall } from "../serialize";
 import {
     CallingContext,
     createErrorResponse,
     FunctionCall,
-    Wrapper,
-    FunctionReturn
+    FunctionReturn,
+    Wrapper
 } from "../wrapper";
 import { sendResponseQueueMessage } from "./aws-queue";
 import { getExecutionLogUrl } from "./aws-shared";
-import { ResponseMessage, Invocation } from "../provider";
 
 const sqs = new SQS({ apiVersion: "2012-11-05" });
 
@@ -60,7 +61,7 @@ export function makeTrampoline(wrapper: Wrapper) {
         } else {
             const snsEvent = event as SNSEvent;
             for (const record of snsEvent.Records) {
-                const call = JSON.parse(record.Sns.Message) as FunctionCall;
+                const call = deserializeCall(record.Sns.Message);
                 const { callId, ResponseQueueId: Queue } = call;
                 const startedMessageTimer = setTimeout(
                     () =>

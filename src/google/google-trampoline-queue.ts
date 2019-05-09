@@ -1,4 +1,5 @@
 import { google, pubsub_v1 } from "googleapis";
+import { deserializeCall } from "../serialize";
 import { createErrorResponse, FunctionCall, Wrapper } from "../wrapper";
 import { publishResponseMessage } from "./google-queue";
 import { getExecutionLogUrl } from "./google-shared";
@@ -42,7 +43,7 @@ export function makeTrampoline(wrapper: Wrapper) {
         const functionName = process.env["FUNCTION_NAME"]!;
         const logUrl = getExecutionLogUrl(project, functionName, executionId);
         const str = Buffer.from(data.data!, "base64");
-        const call: FunctionCall = JSON.parse(str.toString()) as FunctionCall;
+        const call: FunctionCall = deserializeCall(str.toString());
 
         const { callId, ResponseQueueId } = call;
         const startedMessageTimer = setTimeout(

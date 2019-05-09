@@ -26,7 +26,7 @@ import {
     ProviderImpl,
     UUID
 } from "./provider";
-import { serializeCall, ESERIALIZE } from "./serialize";
+import { serializeCall, ESERIALIZE, deserializeReturn } from "./serialize";
 import { ExponentiallyDecayingAverageValue, roundTo100ms, sleep } from "./shared";
 import { Deferred, Funnel, Pump } from "./throttle";
 import { Unpacked } from "./types";
@@ -644,7 +644,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                             log.provider(`invoke returned ${inspectProvider(message)}`);
                             let returned = message.body;
                             if (typeof returned === "string") {
-                                returned = JSON.parse(returned) as FunctionReturn;
+                                returned = deserializeReturn(returned);
                             }
                             const response: FunctionReturnWithMetrics = {
                                 ...returned,
@@ -786,7 +786,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                     try {
                         const { body, timestamp } = m;
                         const returned: FunctionReturn =
-                            typeof body === "string" ? JSON.parse(body) : body;
+                            typeof body === "string" ? deserializeReturn(body) : body;
                         const deferred = callResultsPending.get(m.callId);
                         if (deferred) {
                             const rv: FunctionReturnWithMetrics = {

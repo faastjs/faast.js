@@ -12,25 +12,26 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { Writable } from "stream";
 import { promisify } from "util";
+import { CostMetric, CostSnapshot } from "../cost";
 import { log } from "../log";
 import { packer, PackerResult, unzipInDir } from "../packer";
 import {
     CleanupOptions,
-    ProviderImpl,
     commonDefaults,
     CommonOptions,
+    FunctionStats,
     Invocation,
     PollResult,
+    ProviderImpl,
     ReceivableMessage,
     ResponseMessage,
-    UUID,
-    FunctionStats
+    UUID
 } from "../provider";
+import { deserializeCall } from "../serialize";
 import { hasExpired, uuidv4Pattern } from "../shared";
 import { AsyncQueue } from "../throttle";
 import { FunctionCall, Wrapper, WrapperOptions } from "../wrapper";
 import * as localTrampolineFactory from "./local-trampoline";
-import { CostSnapshot, CostMetric } from "../cost";
 
 const exec = promisify(sys.exec);
 
@@ -209,7 +210,7 @@ async function invoke(
 ): Promise<ResponseMessage | void> {
     const {} = state;
     const startTime = Date.now();
-    const call: FunctionCall = JSON.parse(request.body);
+    const call: FunctionCall = deserializeCall(request.body);
     const wrapper = state.getWrapper();
     const promise = wrapper.execute({ call, startTime }, metrics =>
         state.queue.enqueue({

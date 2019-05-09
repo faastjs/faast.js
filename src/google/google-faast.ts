@@ -251,7 +251,8 @@ const throttleGoogleWrite = throttle(
                 n < 6 &&
                 (message.match(/Build failed/) !== null ||
                     message.match(/Quota/) !== null ||
-                    message.match(/load attempt timed out/) !== null)
+                    message.match(/load attempt timed out/) !== null ||
+                    message.match(/ECONNRESET/) !== null)
             );
         }
     },
@@ -742,46 +743,67 @@ export async function googlePacker(
     );
 }
 
-const getGooglePrice = throttle(
-    { concurrency: 1, rate: 3, retry: 3, memoize: true, cache: caches.googlePrices },
-    async (
-        cloudBilling: CloudBilling.Cloudbilling,
-        region: string,
-        serviceName: string,
-        description: string,
-        conversionFactor: number
-    ) => {
-        try {
-            const skusResponse = await cloudBilling.services.skus.list({
-                parent: serviceName
-            });
-            const { skus = [] } = skusResponse.data;
-            const matchingSkus = skus.filter(sku => sku.description === description);
-            log.provider(`matching SKUs: ${util.inspect(matchingSkus, { depth: null })}`);
+let getGooglePrice: (
+    region: string,
+    serviceName: string,
+    description: string,
+    conversionFactor: number
+) => Promise<number>;
 
-            const regionOrGlobalSku =
-                matchingSkus.find(sku => sku.serviceRegions![0] === region) ||
-                matchingSkus.find(sku => sku.serviceRegions![0] === "global");
-
-            const pexp = regionOrGlobalSku!.pricingInfo![0].pricingExpression!;
-            const prices = pexp.tieredRates!.map(
-                rate =>
-                    Number(rate.unitPrice!.units || "0") + rate.unitPrice!.nanos! / 1e9
-            );
-            const price =
-                Math.max(...prices) * (conversionFactor / pexp.baseUnitConversionFactor!);
-            log.provider(
-                `Found price for ${serviceName}, ${description}, ${region}: ${price}`
-            );
-            return price;
-        } catch (err) {
-            throw new FaastError(
-                err,
-                `failed to get google pricing for "${description}"`
-            );
-        }
+function ensureGooglePriceCache(cloudBilling: CloudBilling.Cloudbilling) {
+    if (getGooglePrice) {
+        return;
     }
-);
+    getGooglePrice = throttle(
+        {
+            concurrency: 1,
+            rate: 3,
+            retry: 3,
+            memoize: true,
+            cache: caches.googlePrices
+        },
+        async (
+            region: string,
+            serviceName: string,
+            description: string,
+            conversionFactor: number
+        ) => {
+            try {
+                const skusResponse = await cloudBilling.services.skus.list({
+                    parent: serviceName
+                });
+                const { skus = [] } = skusResponse.data;
+                const matchingSkus = skus.filter(sku => sku.description === description);
+                log.provider(
+                    `matching SKUs: ${util.inspect(matchingSkus, { depth: null })}`
+                );
+
+                const regionOrGlobalSku =
+                    matchingSkus.find(sku => sku.serviceRegions![0] === region) ||
+                    matchingSkus.find(sku => sku.serviceRegions![0] === "global");
+
+                const pexp = regionOrGlobalSku!.pricingInfo![0].pricingExpression!;
+                const prices = pexp.tieredRates!.map(
+                    rate =>
+                        Number(rate.unitPrice!.units || "0") +
+                        rate.unitPrice!.nanos! / 1e9
+                );
+                const price =
+                    Math.max(...prices) *
+                    (conversionFactor / pexp.baseUnitConversionFactor!);
+                log.provider(
+                    `Found price for ${serviceName}, ${description}, ${region}: ${price}`
+                );
+                return price;
+            } catch (err) {
+                throw new FaastError(
+                    err,
+                    `failed to get google pricing for "${description}"`
+                );
+            }
+        }
+    );
+}
 
 let googleServices: cloudbilling_v1.Schema$Service[] | undefined;
 
@@ -802,6 +824,7 @@ async function getGoogleCloudFunctionsPricing(
     region: string
 ): Promise<GoogleCloudPricing> {
     const services = await listGoogleServices(cloudBilling);
+    ensureGooglePriceCache(cloudBilling);
 
     const getPricing = (
         serviceName: string,
@@ -809,14 +832,7 @@ async function getGoogleCloudFunctionsPricing(
         conversionFactor: number = 1
     ) => {
         const service = services.find(s => s.displayName === serviceName)!;
-
-        return getGooglePrice(
-            cloudBilling,
-            region,
-            service.name!,
-            description,
-            conversionFactor
-        );
+        return getGooglePrice(region, service.name!, description, conversionFactor);
     };
 
     return {

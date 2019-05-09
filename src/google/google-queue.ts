@@ -11,13 +11,13 @@ import {
     ReceivableKind,
     ReceivableMessage
 } from "../provider";
-import { serializeReturn } from "../serialize";
+import { serializeReturn, deserialize } from "../serialize";
 import { computeHttpResponseBytes, defined } from "../shared";
+import { retryOp } from "../throttle";
 import { Attributes } from "../types";
 import { GoogleMetrics } from "./google-faast";
 import PubSubApi = pubsub_v1;
 import PubSubMessage = pubsub_v1.Schema$PubsubMessage;
-import { retryOp } from "../throttle";
 
 function pubsubMessageAttribute(message: PubSubMessage, attr: string) {
     const attributes = message && message.attributes;
@@ -94,7 +94,7 @@ function processMessage(m: PubSubMessage): ReceivableMessage | void {
             }
             return { kind, callId, body, rawResponse: m, timestamp };
         case "cpumetrics":
-            return JSON.parse(body);
+            return deserialize(body);
     }
     assertNever(kind);
 }

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { google, pubsub_v1 } from "googleapis";
+import { deserializeCall } from "../serialize";
 import { createErrorResponse, FunctionCall, Wrapper } from "../wrapper";
 import { publishResponseMessage } from "./google-queue";
 import { getExecutionLogUrl } from "./google-shared";
@@ -23,7 +24,7 @@ export function makeTrampoline(wrapper: Wrapper) {
     async function trampoline(request: Request, response: Response) {
         const startTime = Date.now();
         await initialize();
-        const call: FunctionCall = JSON.parse(request.body) as FunctionCall;
+        const call: FunctionCall = deserializeCall(request.body);
         const executionId = request.headers["function-execution-id"] as string;
         const project = process.env["GCP_PROJECT"]!;
         const functionName = process.env["FUNCTION_NAME"]!;
