@@ -356,6 +356,31 @@ export interface CommonOptions {
      * webpack issues.
      */
     webpackOptions?: webpack.Configuration;
+    /**
+     * Check arguments and return values from cloud functions are serializable
+     * without losing information. Default: true.
+     * @remarks
+     * Arguments to cloud functions are automatically serialized with
+     * `JSON.stringify`. Return values go through the same process. Some
+     * JavaScript objects cannot be serialized. By default
+     * `validateSerialization` will verify that every argument and return value
+     * can be serialized and deserialized without losing information. A
+     * `FaastError` will be thrown if a problem is detected. The detection
+     * process perform the following:
+     *
+     * 1. Serialize arguments and return values with `JSON.stringify`
+     *
+     * 2. Deserialize the values with `JSON.parse`.
+     *
+     * 3. Use
+     * {@link https://nodejs.org/api/assert.html#assert_assert_deepstrictequal_actual_expected_message | assert.deepStringEqual}
+     * to compare the original object with the deserialized object from step 2.
+     *
+     * There is some overhead to this process because each argument is
+     * serialized and deserialized, which can be costly if arguments or return
+     * values are large.
+     */
+    validateSerialization?: boolean;
 }
 
 export const commonDefaults: Required<CommonOptions> = {
@@ -373,7 +398,8 @@ export const commonDefaults: Required<CommonOptions> = {
     retentionInDays: 1,
     speculativeRetryThreshold: 3,
     timeout: 60,
-    webpackOptions: {}
+    webpackOptions: {},
+    validateSerialization: true
 };
 
 /**

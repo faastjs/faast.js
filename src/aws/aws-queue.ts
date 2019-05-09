@@ -1,6 +1,6 @@
 import { SNSEvent } from "aws-lambda";
 import { SNS, SQS } from "aws-sdk";
-import { FaastError, assertNever } from "../error";
+import { assertNever, FaastError } from "../error";
 import { log } from "../log";
 import {
     CALLID_ATTR,
@@ -73,7 +73,7 @@ export function sendResponseQueueMessage(
             const body =
                 typeof message.body === "string"
                     ? message.body
-                    : serializeReturn(message.body);
+                    : serializeReturn({ returned: message.body, validate: false });
             return publishSQS(sqs, QueueUrl, body, {
                 ...kind,
                 [CALLID_ATTR]: message.callId

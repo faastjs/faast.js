@@ -10,6 +10,7 @@
         "tar-stream": "^2.0.1"
     },
     "devDependencies": {
-        "@types/tar-stream": "^1.6.0"
+        "@types/tar-stream": "^1.6.0",
+        "typescript": "^3.4.5"
     }
 }

@@ -165,7 +165,7 @@ export async function packer(
         );
     }
 
-    const { childProcess } = options;
+    const { childProcess, validateSerialization } = options;
     const {
         wrapperVerbose: wrapperVerbose,
         childProcess: _onlyUsedForLocalProviderDirectWrapperInstantiation,
@@ -174,6 +174,7 @@ export async function packer(
         childProcessTimeoutMs,
         childProcessEnvironment: _onlyUsedForLocalProviderDirectWrapperInstantiation2,
         wrapperLog: _onlyUsedForLocalProviderDirectWrapperInstantiation3,
+        validateSerialization: _ignoredInFavorOfCommonOptionsSetting,
         ...rest
     } = wrapperOptions;
     const _exhaustiveCheck2: Required<typeof rest> = {};
@@ -186,7 +187,8 @@ export async function packer(
             childProcess,
             childDir,
             childProcessMemoryLimitMb,
-            childProcessTimeoutMs
+            childProcessTimeoutMs,
+            validateSerialization
         },
         functionModule
     })}!`;

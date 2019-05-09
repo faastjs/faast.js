@@ -5,6 +5,7 @@ import { inspect } from "util";
 import { log } from "./log";
 import { Deferred } from "./throttle";
 import { AnyFunction } from "./types";
+import { serializeReturn } from "./serialize";
 
 export const filename = module.filename;
 
@@ -92,6 +93,7 @@ export interface WrapperOptions {
     childProcessEnvironment?: { [key: string]: string };
     childDir?: string;
     wrapperVerbose?: boolean;
+    validateSerialization?: boolean;
 }
 
 export const WrapperOptionDefaults: Required<WrapperOptions> = {
@@ -101,7 +103,8 @@ export const WrapperOptionDefaults: Required<WrapperOptions> = {
     childProcessTimeoutMs: 0,
     childProcessEnvironment: {},
     childDir: ".",
-    wrapperVerbose: false
+    wrapperVerbose: false,
+    validateSerialization: true
 };
 
 type CpuUsageCallback = (usage: CpuMeasurement) => void;
@@ -114,7 +117,7 @@ export class Wrapper {
     protected funcs: ModuleType = {};
     protected child?: childProcess.ChildProcess;
     protected log: (msg: string) => void;
-    protected deferred?: Deferred<FunctionReturn>;
+    protected deferred?: Deferred<{ returned: FunctionReturn; serialized?: string }>;
     readonly options: Required<WrapperOptions>;
     protected monitoringTimer?: NodeJS.Timer;
 
@@ -196,7 +199,7 @@ export class Wrapper {
         callingContext: CallingContext,
         callback?: CpuUsageCallback,
         overrideTimeout?: number
-    ): Promise<FunctionReturn> {
+    ): Promise<{ returned: FunctionReturn; serialized?: string }> {
         try {
             /* istanbul ignore if  */
             if (this.executing) {
@@ -269,12 +272,12 @@ export class Wrapper {
                         `faast module wrapper: could not find function '${call.name}'`
                     );
                 }
-                const returned = await func.apply(undefined, call.args);
-                this.verbose && this.log(`returned value: ${inspect(returned)}`);
+                const value = await func.apply(undefined, call.args);
+                this.verbose && this.log(`returned value: ${inspect(value)}`);
 
-                return {
+                const returned: FunctionReturn = {
                     type: "returned",
-                    value: returned,
+                    value,
                     callId: call.callId,
                     remoteExecutionStartTime: startTime,
                     remoteExecutionEndTime: Date.now(),
@@ -283,11 +286,17 @@ export class Wrapper {
                     memoryUsage,
                     instanceId
                 };
+                const validate = this.options.validateSerialization;
+                let serialized: string | undefined;
+                if (validate) {
+                    serialized = serializeReturn({ returned, validate });
+                }
+                return { returned, serialized };
             }
         } catch (err) {
             log.provider(`wrapper function exception: ${err}`);
             this.log(`faast: wrapped function exception or promise rejection: ${err}`);
-            return createErrorResponse(err, callingContext);
+            return { returned: createErrorResponse(err, callingContext) };
         } finally {
             this.executing = false;
         }
@@ -343,10 +352,13 @@ export class Wrapper {
         child.stdout!.on("data", this.logLines);
         child.stderr!.on("data", this.logLines);
         child.stderr!.on("data", detectOom);
-        child.on("message", (value: FunctionReturn) => {
-            log.provider(`child message: resolving with %O`, value);
-            this.deferred!.resolve(value);
-        });
+        child.on(
+            "message",
+            (value: { returned: FunctionReturn; serialized?: string }) => {
+                log.provider(`child message: resolving with %O`, value);
+                this.deferred!.resolve(value);
+            }
+        );
         /* istanbul ignore next  */
         child.on("error", err => {
             log.provider(`child error: rejecting deferred with ${err}`);

@@ -35,6 +35,7 @@ export interface CommonOptions
 |  [speculativeRetryThreshold](./faastjs.commonoptions.speculativeretrythreshold.md) | <code>number</code> | <b><i>(BETA)</i></b> Reduce tail latency by retrying invocations that take substantially longer than other invocations of the same function. Default: 3. |
 |  [timeout](./faastjs.commonoptions.timeout.md) | <code>number</code> | Execution time limit for each invocation, in seconds. Default: 60. |
 |  [useDependencyCaching](./faastjs.commonoptions.usedependencycaching.md) | <code>boolean</code> | Cache installed dependencies from [CommonOptions.packageJson](./faastjs.commonoptions.packagejson.md)<!-- -->. Only applies to AWS. Default: true. |
+|  [validateSerialization](./faastjs.commonoptions.validateserialization.md) | <code>boolean</code> | Check arguments and return values from cloud functions are serializable without losing information. Default: true. |
 |  [webpackOptions](./faastjs.commonoptions.webpackoptions.md) | <code>webpack.Configuration</code> | Extra webpack options to use to bundle the code package. |
 
 ## Remarks

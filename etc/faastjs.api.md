@@ -68,6 +68,7 @@ export interface CommonOptions {
     speculativeRetryThreshold?: number;
     timeout?: number;
     useDependencyCaching?: boolean;
+    validateSerialization?: boolean;
     webpackOptions?: webpack.Configuration;
 }
 

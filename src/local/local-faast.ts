@@ -218,14 +218,14 @@ async function invoke(
             callId: call.callId
         })
     );
-    const returned = await Promise.race([promise, cancel]);
-    if (!returned) {
+    const result = await Promise.race([promise, cancel]);
+    if (!result) {
         wrapper.stop();
         return;
     }
     return {
         kind: "response",
-        body: returned,
+        body: result.returned,
         callId: request.callId,
         rawResponse: undefined,
         timestamp: Date.now()

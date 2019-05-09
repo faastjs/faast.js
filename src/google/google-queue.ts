@@ -131,7 +131,7 @@ export function publishResponseMessage(
             const body =
                 typeof message.body === "string"
                     ? message.body
-                    : serializeReturn(message.body);
+                    : serializeReturn({ returned: message.body, validate: false });
             return publishPubSub(pubsub, ResponseQueue, body, {
                 ...kind,
                 [CALLID_ATTR]: message.callId
