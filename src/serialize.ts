@@ -3,6 +3,8 @@ import { inspect } from "util";
 import { FunctionCall, FunctionReturn } from "./wrapper";
 import { FaastError } from "./error";
 
+export const ESERIALIZE = "ESERIALIZE";
+
 export function deepCopyUndefined(dest: object, source: object) {
     const stack: object[] = [];
     function isBackReference(o: object) {
@@ -30,7 +32,19 @@ export function deepCopyUndefined(dest: object, source: object) {
     typeof source === "object" && recurse(dest, source);
 }
 
-export const ESERIALIZE = "ESERIALIZE";
+export function serialize({ arg, validate }: { arg: any; validate: boolean }) {
+    const str = JSON.stringify(arg);
+    if (validate) {
+        const deserialized = JSON.parse(str);
+        deepCopyUndefined(deserialized, arg);
+        deepStrictEqual(deserialized, arg);
+    }
+    return str;
+}
+
+export function deserialize(str: string) {
+    return JSON.parse(str);
+}
 
 export function serializeCall({
     call,
@@ -39,25 +53,22 @@ export function serializeCall({
     call: FunctionCall;
     validate: boolean;
 }) {
-    const callStr = JSON.stringify(call);
-    if (validate) {
-        const deserialized = JSON.parse(callStr);
-        deepCopyUndefined(deserialized, call);
-        try {
-            deepStrictEqual(deserialized, call);
-        } catch {
-            const error = new FaastError(
-                `faast: Detected '${
-                    call.name
-                }' is unsupported because one of its arguments cannot be serialized by JSON.stringify
-  original arguments: ${inspect(call.args)}
-serialized arguments: ${inspect(deserialized.args)}`
-            );
-            error.code = ESERIALIZE;
-            throw error;
-        }
+    try {
+        return serialize({ arg: call, validate });
+    } catch (err) {
+        const error = new FaastError(
+            err,
+            `faast: Detected '${
+                call.name
+            }' is unsupported because one of its arguments cannot be serialized by JSON.stringify`
+        );
+        error.code = ESERIALIZE;
+        throw error;
     }
-    return callStr;
+}
+
+export function deserializeCall(raw: string): FunctionCall {
+    return deserialize(raw);
 }
 
 export function serializeReturn({
@@ -67,23 +78,20 @@ export function serializeReturn({
     returned: FunctionReturn;
     validate: boolean;
 }) {
-    const rv = JSON.stringify(returned);
-    if (validate) {
-        const deserialized = JSON.parse(rv);
-        deepCopyUndefined(deserialized.value, returned.value);
-        try {
-            deepStrictEqual(deserialized.value, returned.value);
-        } catch {
-            const error = new FaastError(
-                `faast: Detected callId ${
-                    returned.callId
-                } returns an unsupported value that cannot be serialized by JSON.stringify
-  original arguments: ${inspect(returned.value)}
-serialized arguments: ${inspect(deserialized.value)}`
-            );
-            error.code = ESERIALIZE;
-            throw error;
-        }
+    try {
+        return serialize({ arg: returned, validate });
+    } catch (err) {
+        const error = new FaastError(
+            err,
+            `faast: Detected callId ${
+                returned.callId
+            } returns an unsupported value that cannot be serialized by JSON.stringify`
+        );
+        error.code = ESERIALIZE;
+        throw error;
     }
-    return rv;
+}
+
+export function deserializeReturn(raw: string): FunctionReturn {
+    return deserialize(raw);
 }
