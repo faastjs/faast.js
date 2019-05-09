@@ -85,12 +85,13 @@ export const configs: CommonOptions[] = [
     { mode: "https", childProcess: false },
     { mode: "https", childProcess: true },
     { mode: "queue", childProcess: false },
-    { mode: "queue", childProcess: true },
-    { mode: "https", childProcess: false, validateSerialization: false },
-    { mode: "https", childProcess: true, validateSerialization: false },
-    { mode: "queue", childProcess: false, validateSerialization: false },
-    { mode: "queue", childProcess: true, validateSerialization: false }
+    { mode: "queue", childProcess: true }
 ];
+
+export const noValidateConfigs = configs.map(c => ({
+    ...c,
+    validateSerialization: false
+}));
 
 export function title(provider: Provider, msg: string, options?: object) {
     const desc = options ? inspect(options, { breakLength: Infinity }) : "";
