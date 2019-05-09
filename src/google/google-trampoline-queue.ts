@@ -81,13 +81,16 @@ export function makeTrampoline(wrapper: Wrapper) {
                 body: result.serialized || result.returned
             });
         } catch (err) {
-            console.error(err);
-            if (ResponseQueueId) {
-                await publishResponseMessage(pubsub, call.ResponseQueueId!, {
-                    kind: "response",
-                    callId,
-                    body: createErrorResponse(err, callingContext)
-                });
+            /* istanbul ignore next */
+            {
+                console.error(err);
+                if (ResponseQueueId) {
+                    await publishResponseMessage(pubsub, call.ResponseQueueId!, {
+                        kind: "response",
+                        callId,
+                        body: createErrorResponse(err, callingContext)
+                    });
+                }
             }
         }
     }
