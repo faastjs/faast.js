@@ -64,7 +64,7 @@ export function makeTrampoline(wrapper: Wrapper) {
         try {
             const deadline =
                 Date.parse(context.timestamp) + wrapper.options.childProcessTimeoutMs;
-            const returned = await wrapper.execute(
+            const result = await wrapper.execute(
                 callingContext,
                 metrics =>
                     publishResponseMessage(pubsub, ResponseQueueId!, {
@@ -78,16 +78,15 @@ export function makeTrampoline(wrapper: Wrapper) {
             await publishResponseMessage(pubsub, call.ResponseQueueId!, {
                 kind: "response",
                 callId,
-                body: returned
+                body: result.serialized || result.returned
             });
         } catch (err) {
             console.error(err);
             if (ResponseQueueId) {
-                const error = createErrorResponse(err, callingContext);
                 await publishResponseMessage(pubsub, call.ResponseQueueId!, {
                     kind: "response",
                     callId,
-                    body: error
+                    body: createErrorResponse(err, callingContext)
                 });
             }
         }

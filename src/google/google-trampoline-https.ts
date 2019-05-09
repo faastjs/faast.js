@@ -35,14 +35,14 @@ export function makeTrampoline(wrapper: Wrapper) {
             executionId
         };
         try {
-            const returned = await wrapper.execute(callingContext, metrics =>
+            const result = await wrapper.execute(callingContext, metrics =>
                 publishResponseMessage(pubsub, call.ResponseQueueId!, {
                     kind: "cpumetrics",
                     callId: call.callId,
                     metrics
                 })
             );
-            response.send(returned);
+            response.send(result.returned);
         } catch (err) {
             console.error(err);
             response.send(createErrorResponse(err, callingContext));

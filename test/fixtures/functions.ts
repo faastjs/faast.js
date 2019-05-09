@@ -167,14 +167,28 @@ export function functionArg(fn: () => void) {
 
 export function functionReturn() {
     return () => {
-        console.log("nope");
+        console.log("returned a function");
     };
 }
 
+export function bufferArg(_: Buffer) {}
+
+export function bufferReturn() {
+    return Buffer.from("contents");
+}
+
 export function dateArg(_: Date) {}
+
+export function dateReturn() {
+    return new Date();
+}
 
 export class Cls {
     constructor() {}
 }
 
 export function classArg(_: Cls) {}
+
+export function classReturn() {
+    return new Cls();
+}

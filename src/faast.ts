@@ -26,7 +26,7 @@ import {
     ProviderImpl,
     UUID
 } from "./provider";
-import { FaastSerializationError, serializeCall } from "./serialize";
+import { serializeCall, ESERIALIZE } from "./serialize";
 import { ExponentiallyDecayingAverageValue, roundTo100ms, sleep } from "./shared";
 import { Deferred, Funnel, Pump } from "./throttle";
 import { Unpacked } from "./types";
@@ -258,9 +258,9 @@ class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
     executing?: boolean;
     serialized: string;
 
-    constructor(readonly call: FunctionCall) {
+    constructor(readonly call: FunctionCall, validate: boolean) {
         super();
-        this.serialized = serializeCall(call);
+        this.serialized = serializeCall({ call, validate });
     }
 }
 
@@ -600,7 +600,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             const initialInvocationTime = this._initialInvocationTime.getOrCreate(fname);
 
             const shouldRetry = (err: any) => {
-                if (err instanceof FaastSerializationError) {
+                if (err instanceof FaastError && err.code === ESERIALIZE) {
                     return false;
                 }
                 if (retries < this.options.maxRetries) {
@@ -623,7 +623,10 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                     modulePath: this.modulePath,
                     ResponseQueueId
                 };
-                const pending = new PendingRequest(callObject);
+                const pending = new PendingRequest(
+                    callObject,
+                    this.options.validateSerialization
+                );
                 this._callResultsPending.set(callId, pending);
 
                 const invokeCloudFunction = () => {

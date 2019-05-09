@@ -56,7 +56,7 @@ export function makeTrampoline(wrapper: Wrapper) {
                     }),
                 timeout
             );
-            callback(null, result);
+            callback(null, result.returned);
         } else {
             const snsEvent = event as SNSEvent;
             for (const record of snsEvent.Records) {
@@ -86,7 +86,7 @@ export function makeTrampoline(wrapper: Wrapper) {
                 const response: ResponseMessage = {
                     kind: "response",
                     callId,
-                    body: result
+                    body: result.serialized || result.returned
                 };
                 return sendResponseQueueMessage(sqs, Queue!, response).catch(err => {
                     console.error(err);
