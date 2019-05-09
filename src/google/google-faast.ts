@@ -173,6 +173,8 @@ export const GoogleImpl: ProviderImpl<GoogleOptions, GoogleState> = {
     responseQueueId
 };
 
+const statusCodesToRetry = [[100, 199], [429, 429], [405, 405], [500, 599]];
+
 export async function initializeGoogleServices(): Promise<GoogleServices> {
     const auth = await google.auth.getClient({
         scopes: ["https://www.googleapis.com/auth/cloud-platform"]
@@ -182,7 +184,7 @@ export async function initializeGoogleServices(): Promise<GoogleServices> {
         auth,
         retryConfig: {
             retry: 12,
-            statusCodesToRetry: [[100, 199], [429, 429], [405, 405], [500, 599]]
+            statusCodesToRetry
         }
     });
     return {
@@ -496,7 +498,8 @@ async function callFunctionHttps(
             url,
             headers: { "Content-Type": "text/plain" },
             body: call.body,
-            signal: source.signal
+            signal: source.signal,
+            retryConfig: { retry: 3, statusCodesToRetry }
         };
         const rawResponse = await Promise.race([
             gaxios.request<string>(axiosConfig),
@@ -524,7 +527,7 @@ async function callFunctionHttps(
         }
         throw new FaastError(
             err,
-            `google cloud function: ${response.statusText} ${response.data}`
+            `when invoking google cloud function: ${response.statusText} ${response.data}`
         );
     }
 }
@@ -716,9 +719,7 @@ async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
             "content-type": "application/zip",
             "x-goog-content-length-range": "0,104857600"
         },
-        retryConfig: {
-            retry: 5
-        }
+        retryConfig: { retry: 5, statusCodesToRetry }
     };
     return gaxios.request(config);
 }
