@@ -1,7 +1,7 @@
 import test, { ExecutionContext } from "ava";
-import { CommonOptions, faast, Provider, providers, FaastError } from "../index";
+import { CommonOptions, faast, FaastError, Provider, providers } from "../index";
 import * as funcs from "./fixtures/functions";
-import { configs, title } from "./fixtures/util";
+import { configs, noValidateConfigs, title } from "./fixtures/util";
 
 async function testBasic(
     t: ExecutionContext,
@@ -100,7 +100,7 @@ async function testBasicRequire(t: ExecutionContext, provider: Provider) {
 // }
 
 for (const provider of providers) {
-    for (const config of configs) {
+    for (const config of [...configs, ...noValidateConfigs]) {
         test(title(provider, `basic calls`, config), testBasic, provider, config);
     }
     // XXX Disable CPU metrics for now.
