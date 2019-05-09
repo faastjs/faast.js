@@ -44,8 +44,11 @@ export function makeTrampoline(wrapper: Wrapper) {
             );
             response.send(result.returned);
         } catch (err) {
-            console.error(err);
-            response.send(createErrorResponse(err, callingContext));
+            /* istanbul ignore next */
+            {
+                console.error(err);
+                response.send(createErrorResponse(err, callingContext));
+            }
         }
     }
     return { trampoline };
