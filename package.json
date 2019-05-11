@@ -59,7 +59,7 @@
         "aws-sdk": "^2.441.0",
         "commander": "^2.20.0",
         "debug": "^4.1.1",
-        "fs-extra": "^7.0.1",
+        "fs-extra": "^8.0.0",
         "googleapis": "^39.2.0",
         "listr": "^0.14.3",
         "memory-fs": "^0.4.1",
