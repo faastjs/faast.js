@@ -11,13 +11,13 @@ import {
     ReceivableKind,
     ReceivableMessage
 } from "../provider";
-import { serializeReturn, deserialize } from "../serialize";
 import { computeHttpResponseBytes, defined } from "../shared";
 import { retryOp } from "../throttle";
 import { Attributes } from "../types";
 import { GoogleMetrics } from "./google-faast";
 import PubSubApi = pubsub_v1;
 import PubSubMessage = pubsub_v1.Schema$PubsubMessage;
+import { deserializeMessage, serializeMessage } from "../serialize";
 
 function pubsubMessageAttribute(message: PubSubMessage, attr: string) {
     const attributes = message && message.attributes;
@@ -76,7 +76,7 @@ function processMessage(m: PubSubMessage): ReceivableMessage | void {
     const callId = pubsubMessageAttribute(m, CALLID_ATTR);
     const timestamp = parseTimestamp(m.publishTime!);
     const data = m.data || "";
-    const body = Buffer.from(data, "base64").toString();
+    const raw = Buffer.from(data, "base64").toString();
 
     switch (kind) {
         /* istanbul ignore next  */
@@ -88,13 +88,15 @@ function processMessage(m: PubSubMessage): ReceivableMessage | void {
                 return;
             }
             return { kind, callId };
-        case "response":
+        case "response": {
             if (!callId || !m.data) {
                 return;
             }
+            const body = deserializeMessage(raw);
             return { kind, callId, body, rawResponse: m, timestamp };
+        }
         case "cpumetrics":
-            return deserialize(body);
+            return deserializeMessage(raw);
     }
     assertNever(kind);
 }
@@ -128,10 +130,7 @@ export function publishResponseMessage(
                 [CALLID_ATTR]: message.callId
             });
         case "response":
-            const body =
-                typeof message.body === "string"
-                    ? message.body
-                    : serializeReturn({ returned: message.body, validate: false });
+            const body = serializeMessage(message.body);
             return publishPubSub(pubsub, ResponseQueue, body, {
                 ...kind,
                 [CALLID_ATTR]: message.callId

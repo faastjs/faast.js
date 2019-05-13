@@ -4,8 +4,8 @@ import * as proctor from "process-doctor";
 import { inspect } from "util";
 import { log } from "./log";
 import { Deferred } from "./throttle";
-import { AnyFunction } from "./types";
-import { serializeReturn } from "./serialize";
+import { AnyFunction, Omit } from "./types";
+import { serializeFunctionReturn, deserializeFunctionCall } from "./serialize";
 
 export const filename = module.filename;
 
@@ -29,9 +29,17 @@ export interface FunctionCall extends CallId {
     ResponseQueueId?: string;
 }
 
+export interface FunctionCallSerialized extends Omit<FunctionCall, "args"> {
+    serializedArgs: string;
+}
+
 export interface FunctionReturn extends CallId {
     type: "returned" | "error";
-    value?: any;
+    // Using an array for the return value to enable it to be non-optional even
+    // for undefined return values. This makes type checking stronger and
+    // ensures FunctionReturn can never be confused for
+    // FunctionReturnSerialized.
+    value: any[];
     isErrorObject?: boolean;
     remoteExecutionStartTime?: number;
     remoteExecutionEndTime?: number;
@@ -41,8 +49,12 @@ export interface FunctionReturn extends CallId {
     memoryUsage?: NodeJS.MemoryUsage;
 }
 
+export interface FunctionReturnSerialized extends Omit<FunctionReturn, "value"> {
+    serializedValue: string;
+}
+
 export interface CallingContext {
-    call: FunctionCall;
+    sCall: FunctionCallSerialized;
     startTime: number;
     logUrl?: string;
     executionId?: string;
@@ -55,8 +67,8 @@ export interface ModuleType {
 
 export function createErrorResponse(
     err: any,
-    { call, startTime, logUrl, executionId }: CallingContext
-): FunctionReturn {
+    { sCall, startTime, logUrl, executionId }: CallingContext
+): FunctionReturnSerialized {
     let errObj: any = err;
     if (err instanceof Error) {
         errObj = {};
@@ -66,16 +78,19 @@ export function createErrorResponse(
             }
         });
     }
-    return {
-        type: "error",
-        value: errObj,
-        isErrorObject: typeof err === "object" && err instanceof Error,
-        callId: call.callId || "",
-        remoteExecutionStartTime: startTime,
-        remoteExecutionEndTime: Date.now(),
-        logUrl,
-        executionId
-    };
+    return serializeFunctionReturn(
+        {
+            type: "error",
+            value: errObj,
+            isErrorObject: typeof err === "object" && err instanceof Error,
+            callId: sCall.callId || "",
+            remoteExecutionStartTime: startTime,
+            remoteExecutionEndTime: Date.now(),
+            logUrl,
+            executionId
+        },
+        false
+    );
 }
 
 export interface WrapperOptions {
@@ -111,13 +126,15 @@ type CpuUsageCallback = (usage: CpuMeasurement) => void;
 
 const oomPattern = /Allocation failed - JavaScript heap out of memory/;
 
+const FAAST_CHILD_ENV = "FAAST_CHILD";
+
 export class Wrapper {
     executing = false;
     protected verbose = false;
     protected funcs: ModuleType = {};
     protected child?: childProcess.ChildProcess;
     protected log: (msg: string) => void;
-    protected deferred?: Deferred<{ returned: FunctionReturn; serialized?: string }>;
+    protected deferred?: Deferred<FunctionReturnSerialized>;
     readonly options: Required<WrapperOptions>;
     protected monitoringTimer?: NodeJS.Timer;
 
@@ -128,13 +145,13 @@ export class Wrapper {
         this.funcs = fModule;
 
         /* istanbul ignore if  */
-        if (process.env["FAAST_CHILD"]) {
+        if (process.env[FAAST_CHILD_ENV]) {
             this.options.childProcess = false;
             this.log(`faast: started child process for module wrapper.`);
-            process.on("message", async (call: FunctionCall) => {
+            process.on("message", async (sCall: FunctionCallSerialized) => {
                 const startTime = Date.now();
                 try {
-                    const ret = await this.execute({ call, startTime });
+                    const ret = await this.execute({ sCall, startTime });
                     process.send!(ret);
                 } catch (err) {
                     this.log(err);
@@ -148,7 +165,7 @@ export class Wrapper {
     }
 
     protected lookupFunction(request: object): AnyFunction {
-        const { name, args } = request as FunctionCall;
+        const { name, serializedArgs: args } = request as FunctionCallSerialized;
         if (!name) {
             throw new Error("Invalid function call request: no name");
         }
@@ -199,7 +216,7 @@ export class Wrapper {
         callingContext: CallingContext,
         callback?: CpuUsageCallback,
         overrideTimeout?: number
-    ): Promise<{ returned: FunctionReturn; serialized?: string }> {
+    ): Promise<FunctionReturnSerialized> {
         try {
             /* istanbul ignore if  */
             if (this.executing) {
@@ -213,16 +230,16 @@ export class Wrapper {
                 compact: true,
                 breakLength: Infinity
             });
-            const { call, startTime, logUrl, executionId, instanceId } = callingContext;
+            const { sCall, startTime, logUrl, executionId, instanceId } = callingContext;
             if (this.options.childProcess) {
                 this.deferred = new Deferred();
                 if (!this.child) {
                     this.child = this.setupChildProcess();
                 }
                 this.log(
-                    `faast: invoking '${call.name}' in child process, memory: ${memInfo}`
+                    `faast: invoking '${sCall.name}' in child process, memory: ${memInfo}`
                 );
-                this.child.send(call, err => {
+                this.child.send(sCall, err => {
                     /* istanbul ignore if  */
                     if (err) {
                         log.provider(`child send error: rejecting deferred on ${err}`);
@@ -265,38 +282,47 @@ export class Wrapper {
                     this.deferred = undefined;
                 }
             } else {
-                this.log(`faast: Invoking '${call.name}', memory: ${memInfo}`);
-                const func = this.lookupFunction(call);
+                this.log(`faast: Invoking '${sCall.name}', memory: ${memInfo}`);
+                const func = this.lookupFunction(sCall);
                 if (!func) {
                     throw new Error(
-                        `faast module wrapper: could not find function '${call.name}'`
+                        `faast module wrapper: could not find function '${sCall.name}'`
                     );
                 }
-                const value = await func.apply(undefined, call.args);
-                this.verbose && this.log(`returned value: ${inspect(value)}`);
-
-                const returned: FunctionReturn = {
-                    type: "returned",
-                    value,
-                    callId: call.callId,
-                    remoteExecutionStartTime: startTime,
-                    remoteExecutionEndTime: Date.now(),
-                    logUrl,
-                    executionId,
-                    memoryUsage,
-                    instanceId
-                };
-                const validate = this.options.validateSerialization;
-                let serialized: string | undefined;
-                if (validate) {
-                    serialized = serializeReturn({ returned, validate });
+                const call = deserializeFunctionCall(sCall);
+                this.log(`About to call function, verbose: ${this.verbose}`);
+                let value;
+                try {
+                    value = await func.apply(undefined, call.args);
+                    this.log(`Finished call function`);
+                } catch (err) {
+                    this.log(`caught error`);
+                    this.log(`${err}`);
+                    throw err;
                 }
-                return { returned, serialized };
+                this.verbose &&
+                    this.log(`returned value: ${inspect(value)}, type: ${typeof value}`);
+
+                const validate = this.options.validateSerialization;
+                return serializeFunctionReturn(
+                    {
+                        type: "returned",
+                        value: [value],
+                        callId: call.callId,
+                        remoteExecutionStartTime: startTime,
+                        remoteExecutionEndTime: Date.now(),
+                        logUrl,
+                        executionId,
+                        memoryUsage,
+                        instanceId
+                    },
+                    validate
+                );
             }
         } catch (err) {
             log.provider(`wrapper function exception: ${err}`);
             this.log(`faast: wrapped function exception or promise rejection: ${err}`);
-            return { returned: createErrorResponse(err, callingContext) };
+            return createErrorResponse(err, callingContext);
         } finally {
             this.executing = false;
         }
@@ -352,13 +378,10 @@ export class Wrapper {
         child.stdout!.on("data", this.logLines);
         child.stderr!.on("data", this.logLines);
         child.stderr!.on("data", detectOom);
-        child.on(
-            "message",
-            (value: { returned: FunctionReturn; serialized?: string }) => {
-                log.provider(`child message: resolving with %O`, value);
-                this.deferred!.resolve(value);
-            }
-        );
+        child.on("message", (value: FunctionReturnSerialized) => {
+            log.provider(`child message: resolving with %O`, value);
+            this.deferred!.resolve(value);
+        });
         /* istanbul ignore next  */
         child.on("error", err => {
             log.provider(`child error: rejecting deferred with ${err}`);

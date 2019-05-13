@@ -2,6 +2,8 @@ export function test() {
     return "Successfully called test function.";
 }
 
+export function empty() {}
+
 export function identity(name: string) {
     return name;
 }
@@ -162,7 +164,7 @@ export function promiseArg(promise: Promise<any>) {
 }
 
 export function functionArg(fn: () => void) {
-    fn();
+    return fn;
 }
 
 export function functionReturn() {
@@ -171,23 +173,21 @@ export function functionReturn() {
     };
 }
 
-export function bufferArg(_: Buffer) {}
-
-export function bufferReturn() {
-    return Buffer.from("contents");
+export function bufferArg(buf: Buffer) {
+    return buf;
 }
 
-export function dateArg(_: Date) {}
-
-export function dateReturn() {
-    return new Date();
+export function dateArg(arg: Date) {
+    return arg;
 }
 
 export class Cls {
     constructor() {}
 }
 
-export function classArg(_: Cls) {}
+export function classArg(arg: Cls) {
+    return arg;
+}
 
 export function classReturn() {
     return new Cls();

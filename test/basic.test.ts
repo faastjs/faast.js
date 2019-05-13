@@ -21,6 +21,7 @@ async function testBasic(
         t.is(await remote.hello("Andy"), "Hello Andy!");
         t.is(await remote.identity("你好"), "你好");
         t.is(await remote.identityNum(42), 42);
+        t.is(await remote.empty(), undefined);
         t.is(await remote.arrow("arrow"), "arrow");
         t.is(await remote.asyncArrow("asyncArrow"), "asyncArrow");
         t.is(await remote.fact(5), 120);
@@ -31,6 +32,10 @@ async function testBasic(
         t.is(typeof (await remote.path()), "string");
         t.is(await remote.optionalArg(), "No arg");
         t.is(await remote.optionalArg("has arg"), "has arg");
+        const date = new Date();
+        t.deepEqual(await remote.dateArg(date), date);
+        const buffer = Buffer.from("contents");
+        t.deepEqual(await remote.bufferArg(buffer), buffer);
         try {
             await remote.emptyReject();
             t.fail("remote.emptyReject() did not reject as expected");
@@ -53,7 +58,7 @@ async function testBasic(
             t.is(ferr.info.custom, "custom value");
         }
         t.is(await remote.getEnv("faastEnvironmentVariable"), "the_answer_is_42");
-        t.is(await remote.getEnv("nonexistent"), undefined);
+        t.is(await remote.getEnv("faastNonexistent"), undefined);
     } finally {
         await faastModule.cleanup();
     }

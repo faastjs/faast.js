@@ -13,7 +13,12 @@ import {
     CloudFunctionContext,
     makeTrampoline as makeTrampolineQueue
 } from "../src/google/google-trampoline-queue";
-import { FunctionCall, FunctionReturn, Wrapper } from "../src/wrapper";
+import {
+    deserializeFunctionReturn,
+    serializeFunctionCall,
+    serializeMessage
+} from "../src/serialize";
+import { FunctionReturnSerialized, Wrapper } from "../src/wrapper";
 import * as funcs from "./fixtures/functions";
 import { title } from "./fixtures/util";
 
@@ -23,12 +28,15 @@ test(title("google", "trampoline https mode"), async t => {
     const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
     const { trampoline } = makeTrampolineHttps(wrapper);
     const arg = "abc123";
-    const call = JSON.stringify({
-        callId: "42",
-        name: "identity",
-        args: [arg],
-        modulePath: "./fixtures/functions"
-    });
+    const call = serializeFunctionCall(
+        {
+            callId: "42",
+            name: "identity",
+            args: [arg],
+            modulePath: "./fixtures/functions"
+        },
+        true
+    );
 
     const headers: Request["headers"] = {
         "function-execution-id": "google-trampoline-test-function-execution-id"
@@ -36,8 +44,9 @@ test(title("google", "trampoline https mode"), async t => {
 
     const request = { body: call, headers } as Request;
     const response = {
-        send: (ret: FunctionReturn) => {
-            t.is(ret.value, arg);
+        send: (obj: FunctionReturnSerialized) => {
+            const ret = deserializeFunctionReturn(obj);
+            t.is(ret.value[0], arg);
         }
     } as Response;
     await trampoline(request, response);
@@ -77,15 +86,18 @@ test(title("google", "trampoline queue mode"), async t => {
 
     try {
         const { trampoline } = makeTrampolineQueue(wrapper);
-        const call: FunctionCall = {
-            callId: "42",
-            name: "identity",
-            args: [arg],
-            modulePath: "./fixtures/functions",
-            ResponseQueueId: topicName
-        };
+        const call = serializeFunctionCall(
+            {
+                callId: "42",
+                name: "identity",
+                args: [arg],
+                modulePath: "./fixtures/functions",
+                ResponseQueueId: topicName
+            },
+            true
+        );
         const event = {
-            data: Buffer.from(JSON.stringify(call)).toString("base64")
+            data: Buffer.from(serializeMessage(call)).toString("base64")
         };
 
         const context: CloudFunctionContext = {
@@ -104,8 +116,8 @@ test(title("google", "trampoline queue mode"), async t => {
         const msg = result.Messages[0];
         t.is(msg.kind, "response");
         if (msg.kind === "response") {
-            const ret = JSON.parse(msg.body as string) as FunctionReturn;
-            t.is(ret.value, arg);
+            const ret = deserializeFunctionReturn(msg.body);
+            t.is(ret.value[0], arg);
         }
     } finally {
         await pubsub.projects.subscriptions.delete({

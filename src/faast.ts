@@ -21,16 +21,24 @@ import {
     CleanupOptions,
     CommonOptions,
     FunctionStats,
-    Invocation,
     Provider,
     ProviderImpl,
     UUID
 } from "./provider";
-import { serializeCall, ESERIALIZE, deserializeReturn } from "./serialize";
+import {
+    deserializeFunctionReturn,
+    ESERIALIZE,
+    serializeFunctionCall
+} from "./serialize";
 import { ExponentiallyDecayingAverageValue, roundTo100ms, sleep } from "./shared";
 import { Deferred, Funnel, Pump } from "./throttle";
 import { Unpacked } from "./types";
-import { CpuMeasurement, FunctionCall, FunctionReturn } from "./wrapper";
+import {
+    CpuMeasurement,
+    FunctionCall,
+    FunctionCallSerialized,
+    FunctionReturn
+} from "./wrapper";
 import Module = require("module");
 
 /**
@@ -117,7 +125,7 @@ function processResponse<R>(
         value = Promise.reject(error);
         value.catch(_silenceWarningLackOfSynchronousCatch => {});
     } else {
-        value = Promise.resolve(returned.value);
+        value = Promise.resolve(returned.value[0]);
     }
     const {
         localRequestSentTime,
@@ -256,11 +264,11 @@ export class FunctionStatsEvent {
 class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
     created: number = Date.now();
     executing?: boolean;
-    serialized: string;
+    serialized: FunctionCallSerialized;
 
     constructor(readonly call: FunctionCall, validate: boolean) {
         super();
-        this.serialized = serializeCall({ call, validate });
+        this.serialized = serializeFunctionCall(call, validate);
     }
 }
 
@@ -611,6 +619,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 return false;
             };
 
+            const validate = this.options.validateSerialization;
             const invoke = async () => {
                 const callId = uuidv4();
                 log.calls(`Calling '${fname}' (${callId})`);
@@ -631,21 +640,15 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
 
                 const invokeCloudFunction = () => {
                     this._stats.incr(fname, "invocations");
-                    const invocation: Invocation = {
-                        callId,
-                        body: pending.serialized
-                    };
-                    log.provider(`invoke ${inspectProvider(invocation)}`);
+                    log.provider(`invoke ${inspectProvider(pending.serialized)}`);
                     this.withCancellation(async cancel => {
                         const message = await this.impl
-                            .invoke(this.state, invocation, cancel)
+                            .invoke(this.state, pending.serialized, cancel)
                             .catch(err => pending.reject(err));
                         if (message) {
                             log.provider(`invoke returned ${inspectProvider(message)}`);
-                            let returned = message.body;
-                            if (typeof returned === "string") {
-                                returned = deserializeReturn(returned);
-                            }
+                            const returned = deserializeFunctionReturn(message.body);
+                            log.provider(`deserialized return: %O`, returned);
                             const response: FunctionReturnWithMetrics = {
                                 ...returned,
                                 callId,
@@ -785,8 +788,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 case "response":
                     try {
                         const { body, timestamp } = m;
-                        const returned: FunctionReturn =
-                            typeof body === "string" ? deserializeReturn(body) : body;
+                        const returned = deserializeFunctionReturn(body);
                         const deferred = callResultsPending.get(m.callId);
                         if (deferred) {
                             const rv: FunctionReturnWithMetrics = {

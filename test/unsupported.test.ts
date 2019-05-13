@@ -16,26 +16,20 @@ async function testUnsupported(
         await t.throwsAsync(remote.identityNum(NaN), /unsupported/);
         await t.throwsAsync(remote.promiseArg(Promise.resolve()), /unsupported/);
         await t.throwsAsync(remote.functionArg(() => {}), /unsupported/);
-        await t.throwsAsync(remote.dateArg(new Date()), /unsupported/);
-        await t.throwsAsync(remote.dateReturn(), /unsupported/);
+        await t.throwsAsync(remote.functionReturn(), /unsupported/);
         await t.throwsAsync(remote.classArg(new funcs.Cls()), /unsupported/);
         await t.throwsAsync(remote.classReturn(), /unsupported/);
-        await t.throwsAsync(remote.bufferArg(Buffer.from("")), /unsupported/);
-        await t.throwsAsync(remote.bufferReturn(), /unsupported/);
-        await t.throwsAsync(remote.functionReturn(), /unsupported/);
     } finally {
         await faastModule.cleanup();
     }
 }
 for (const provider of providers) {
     for (const config of configs) {
-        if (config.validateSerialization !== false) {
-            test(
-                title(provider, `unsupported arguments`, config),
-                testUnsupported,
-                provider,
-                config
-            );
-        }
+        test(
+            title(provider, `unsupported arguments`, config),
+            testUnsupported,
+            provider,
+            config
+        );
     }
 }

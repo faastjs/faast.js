@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { google, pubsub_v1 } from "googleapis";
-import { deserializeCall } from "../serialize";
-import { createErrorResponse, FunctionCall, Wrapper } from "../wrapper";
+import { createErrorResponse, FunctionCallSerialized, Wrapper } from "../wrapper";
 import { publishResponseMessage } from "./google-queue";
 import { getExecutionLogUrl } from "./google-shared";
 import PubSubApi = pubsub_v1;
@@ -24,26 +23,26 @@ export function makeTrampoline(wrapper: Wrapper) {
     async function trampoline(request: Request, response: Response) {
         const startTime = Date.now();
         await initialize();
-        const call: FunctionCall = deserializeCall(request.body);
+        const sCall: FunctionCallSerialized = request.body;
         const executionId = request.headers["function-execution-id"] as string;
         const project = process.env["GCP_PROJECT"]!;
         const functionName = process.env["FUNCTION_NAME"]!;
         const logUrl = getExecutionLogUrl(project, functionName, executionId);
         const callingContext = {
-            call,
+            sCall,
             startTime,
             logUrl,
             executionId
         };
         try {
             const result = await wrapper.execute(callingContext, metrics =>
-                publishResponseMessage(pubsub, call.ResponseQueueId!, {
+                publishResponseMessage(pubsub, sCall.ResponseQueueId!, {
                     kind: "cpumetrics",
-                    callId: call.callId,
+                    callId: sCall.callId,
                     metrics
                 })
             );
-            response.send(result.returned);
+            response.send(result);
         } catch (err) {
             /* istanbul ignore next */
             {

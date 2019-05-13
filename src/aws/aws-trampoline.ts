@@ -1,13 +1,13 @@
 import { Context, SNSEvent } from "aws-lambda";
 import { SQS } from "aws-sdk";
 import { env } from "process";
-import { Invocation, ResponseMessage } from "../provider";
-import { deserializeCall } from "../serialize";
+import { ResponseMessage } from "../provider";
+import { deserializeMessage } from "../serialize";
 import {
     CallingContext,
     createErrorResponse,
-    FunctionCall,
-    FunctionReturn,
+    FunctionCallSerialized,
+    FunctionReturnSerialized,
     Wrapper
 } from "../wrapper";
 import { sendResponseQueueMessage } from "./aws-queue";
@@ -17,13 +17,13 @@ const sqs = new SQS({ apiVersion: "2012-11-05" });
 
 export const filename = module.filename;
 
-const CallIdAttribute: Extract<keyof Invocation, "callId"> = "callId";
+const CallIdAttribute: Extract<keyof FunctionCallSerialized, "callId"> = "callId";
 
 export function makeTrampoline(wrapper: Wrapper) {
     async function trampoline(
-        event: FunctionCall | SNSEvent,
+        event: FunctionCallSerialized | SNSEvent,
         context: Context,
-        callback: (err: Error | null, obj: FunctionReturn | string) => void
+        callback: (err: Error | null, obj: FunctionReturnSerialized) => void
     ) {
         const startTime = Date.now();
         const region = env.AWS_REGION!;
@@ -44,11 +44,11 @@ export function makeTrampoline(wrapper: Wrapper) {
             instanceId: logStreamName
         };
         if (CallIdAttribute in event) {
-            const call = event as FunctionCall;
-            const { callId, ResponseQueueId: Queue } = call;
+            const sCall = event as FunctionCallSerialized;
+            const { callId, ResponseQueueId: Queue } = sCall;
             const timeout = context.getRemainingTimeInMillis() - 100;
             const result = await wrapper.execute(
-                { call, ...callingContext },
+                { sCall, ...callingContext },
                 metrics =>
                     sendResponseQueueMessage(sqs, Queue!, {
                         kind: "cpumetrics",
@@ -57,12 +57,14 @@ export function makeTrampoline(wrapper: Wrapper) {
                     }),
                 timeout
             );
-            callback(null, result.returned);
+            callback(null, result);
         } else {
             const snsEvent = event as SNSEvent;
             for (const record of snsEvent.Records) {
-                const call = deserializeCall(record.Sns.Message);
-                const { callId, ResponseQueueId: Queue } = call;
+                const sCall: FunctionCallSerialized = deserializeMessage(
+                    record.Sns.Message
+                );
+                const { callId, ResponseQueueId: Queue } = sCall;
                 const startedMessageTimer = setTimeout(
                     () =>
                         sendResponseQueueMessage(sqs, Queue!, {
@@ -71,7 +73,7 @@ export function makeTrampoline(wrapper: Wrapper) {
                         }),
                     2 * 1000
                 );
-                const cc: CallingContext = { call, ...callingContext };
+                const cc: CallingContext = { sCall, ...callingContext };
                 const timeout = context.getRemainingTimeInMillis() - 100;
                 const result = await wrapper.execute(
                     cc,
@@ -87,7 +89,7 @@ export function makeTrampoline(wrapper: Wrapper) {
                 const response: ResponseMessage = {
                     kind: "response",
                     callId,
-                    body: result.serialized || result.returned
+                    body: result
                 };
                 return sendResponseQueueMessage(sqs, Queue!, response).catch(err => {
                     console.error(err);

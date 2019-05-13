@@ -1,7 +1,12 @@
 import { deepStrictEqual } from "assert";
-import { inspect } from "util";
-import { FunctionCall, FunctionReturn } from "./wrapper";
+import {
+    FunctionCall,
+    FunctionReturn,
+    FunctionReturnSerialized,
+    FunctionCallSerialized
+} from "./wrapper";
 import { FaastError } from "./error";
+import { inspect } from "util";
 
 export const ESERIALIZE = "ESERIALIZE";
 
@@ -32,29 +37,71 @@ export function deepCopyUndefined(dest: object, source: object) {
     typeof source === "object" && recurse(dest, source);
 }
 
-export function serialize({ arg, validate }: { arg: any; validate: boolean }) {
-    const str = JSON.stringify(arg);
+const FJS_TYPE = "[faastjs type]";
+
+function replacer(this: any, key: any, value: any) {
+    const orig = this[key];
+    if (typeof orig === "object") {
+        if (orig instanceof Date) {
+            return { [FJS_TYPE]: "Date", value };
+        }
+        if (orig instanceof Buffer) {
+            return { [FJS_TYPE]: "Buffer", value };
+        }
+    } else if (typeof orig === "undefined") {
+        return { [FJS_TYPE]: "undefined" };
+    }
+    return value;
+}
+
+export function _serialize(arg: any, validate: boolean) {
+    const str = JSON.stringify(arg, replacer);
     if (validate) {
-        const deserialized = JSON.parse(str);
+        const deserialized = _deserialize(str);
         deepCopyUndefined(deserialized, arg);
         deepStrictEqual(deserialized, arg);
     }
     return str;
 }
 
-export function deserialize(str: string) {
-    return JSON.parse(str);
+function reviver(this: any, _: any, value: any) {
+    try {
+        if (typeof value === "object") {
+            if (value.hasOwnProperty(FJS_TYPE)) {
+                const type = value[FJS_TYPE];
+                switch (type) {
+                    case "Date":
+                        return new Date(value["value"]);
+                    case "Buffer":
+                        return Buffer.from(value["value"]);
+                    case "undefined":
+                        return undefined;
+                }
+            }
+        }
+    } catch {}
+    return value;
 }
 
-export function serializeCall({
-    call,
-    validate
-}: {
-    call: FunctionCall;
-    validate: boolean;
-}) {
+export function _deserialize(str: string) {
+    return JSON.parse(str, reviver);
+}
+
+function deserializeArgs(s: string): any[] {
+    const args = _deserialize(s);
+    if (!Array.isArray(args)) {
+        throw new FaastError(`deserialized arguments not an array: ${inspect(args)}`);
+    }
+    return args;
+}
+
+export function serializeFunctionCall(
+    call: FunctionCall,
+    validate: boolean
+): FunctionCallSerialized {
+    const { args, ...rest } = call;
     try {
-        return serialize({ arg: call, validate });
+        return { ...rest, serializedArgs: _serialize(call.args, validate) };
     } catch (err) {
         const error = new FaastError(
             err,
@@ -67,19 +114,18 @@ export function serializeCall({
     }
 }
 
-export function deserializeCall(raw: string): FunctionCall {
-    return deserialize(raw);
+export function deserializeFunctionCall(sCall: FunctionCallSerialized): FunctionCall {
+    const { serializedArgs, ...rest } = sCall;
+    return { ...rest, args: deserializeArgs(sCall.serializedArgs) };
 }
 
-export function serializeReturn({
-    returned,
-    validate
-}: {
-    returned: FunctionReturn;
-    validate: boolean;
-}) {
+export function serializeFunctionReturn(
+    returned: FunctionReturn,
+    validate: boolean
+): FunctionReturnSerialized {
+    const { value, ...rest } = returned;
     try {
-        return serialize({ arg: returned, validate });
+        return { ...rest, serializedValue: _serialize(returned.value, validate) };
     } catch (err) {
         const error = new FaastError(
             err,
@@ -92,6 +138,17 @@ export function serializeReturn({
     }
 }
 
-export function deserializeReturn(raw: string): FunctionReturn {
-    return deserialize(raw);
+export function deserializeFunctionReturn(
+    returned: FunctionReturnSerialized
+): FunctionReturn {
+    const { serializedValue, ...rest } = returned;
+    return { ...rest, value: _deserialize(serializedValue) };
+}
+
+export function serializeMessage(msg: any): string {
+    return _serialize(msg, false);
+}
+
+export function deserializeMessage(msg: string): any {
+    return _deserialize(msg);
 }

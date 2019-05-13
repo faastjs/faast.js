@@ -1,7 +1,11 @@
 import * as webpack from "webpack";
 import { CostSnapshot } from "./cost";
-import { Statistics, keysOf } from "./shared";
-import { CpuMeasurement, FunctionReturn } from "./wrapper";
+import { keysOf, Statistics } from "./shared";
+import {
+    CpuMeasurement,
+    FunctionCallSerialized,
+    FunctionReturnSerialized
+} from "./wrapper";
 
 export const CALLID_ATTR = "__faast_callid__";
 export const KIND_ATTR = "__faast_kind__";
@@ -575,20 +579,12 @@ export class FunctionExecutionMetrics {
     secondMetrics: Statistics[] = [];
 }
 
-export type StringifiedFunctionCall = string;
-export type StringifiedFunctionReturn = string;
-
 export type CallId = string;
-
-export interface Invocation {
-    callId: CallId;
-    body: StringifiedFunctionCall;
-}
 
 export interface ResponseMessage {
     kind: "response";
     callId: CallId;
-    body: StringifiedFunctionReturn | FunctionReturn;
+    body: FunctionReturnSerialized;
     rawResponse?: any;
     timestamp?: number; // timestamp when response message was sent according to cloud service, this is optional and used to provide more accurate metrics.
 }
@@ -642,7 +638,7 @@ export interface ProviderImpl<O extends CommonOptions, S> {
     logUrl(state: S): string;
     invoke(
         state: S,
-        request: Invocation,
+        request: FunctionCallSerialized,
         cancel: Promise<void>
     ): Promise<ResponseMessage | void>;
     poll(state: S, cancel: Promise<void>): Promise<PollResult>;
