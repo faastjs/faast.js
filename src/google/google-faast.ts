@@ -542,9 +542,9 @@ async function callFunctionHttps(
 
             throw new FaastError(
                 err,
-                `when invoking google cloud function: ${response.statusText} ${
-                    response.data
-                }`
+                `when invoking google cloud function: %s %s`,
+                response.statusText,
+                response.data
             );
         }
         throw new FaastError(err, `when invoking google cloud function`);
