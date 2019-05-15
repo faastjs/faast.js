@@ -202,7 +202,7 @@ test("local issue #37", async t => {
     // regular function instead of an async function.
     const m = await faastLocal(funcs);
     try {
-        const { identity } = m.functions;
+        const { identityString: identity } = m.functions;
         await identity("a");
         const b = identity("b");
         const c = identity("c");

@@ -22,7 +22,11 @@ async function testTimeout(
     }
 }
 
-async function limitOk(t: ExecutionContext, provider: Provider, options: CommonOptions) {
+async function memoryLimitOk(
+    t: ExecutionContext,
+    provider: Provider,
+    options: CommonOptions
+) {
     const lambda = await faast(provider, funcs, {
         ...options,
         timeout: 200,
@@ -40,7 +44,7 @@ async function limitOk(t: ExecutionContext, provider: Provider, options: CommonO
     }
 }
 
-async function limitFail(
+async function memoryLimitFail(
     t: ExecutionContext,
     provider: Provider,
     options: CommonOptions
@@ -71,11 +75,11 @@ const configurations: [Provider, CommonOptions][] = [
 
 for (const [provider, config] of configurations) {
     const opts = inspect(config);
-    test(title(provider, `memory under limit ${opts}`), limitOk, provider, config);
+    test(title(provider, `memory under limit ${opts}`), memoryLimitOk, provider, config);
     if (provider === "google" && config.mode === "queue") {
         // Google in queue mode cannot detect OOM errors.
     } else {
-        test(title(provider, `out of memory`, config), limitFail, provider, config);
+        test(title(provider, `out of memory`, config), memoryLimitFail, provider, config);
     }
     test(title(provider, `timeout`, config), testTimeout, provider, config);
 }

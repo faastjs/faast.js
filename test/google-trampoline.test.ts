@@ -31,7 +31,7 @@ test(title("google", "trampoline https mode"), async t => {
     const call = serializeFunctionCall(
         {
             callId: "42",
-            name: "identity",
+            name: funcs.identityNum.name,
             args: [arg],
             modulePath: "./fixtures/functions"
         },
@@ -89,7 +89,7 @@ test(title("google", "trampoline queue mode"), async t => {
         const call = serializeFunctionCall(
             {
                 callId: "42",
-                name: "identity",
+                name: funcs.identityNum.name,
                 args: [arg],
                 modulePath: "./fixtures/functions",
                 ResponseQueueId: topicName

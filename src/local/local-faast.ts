@@ -214,12 +214,16 @@ async function invoke(
     const {} = state;
     const startTime = Date.now();
     const wrapper = state.getWrapper();
-    const promise = wrapper.execute({ sCall, startTime }, metrics =>
-        state.queue.enqueue({
-            kind: "cpumetrics",
-            metrics,
-            callId: sCall.callId
-        })
+    const promise = wrapper.execute(
+        { sCall, startTime },
+        {
+            onCpuUsage: metrics =>
+                state.queue.enqueue({
+                    kind: "cpumetrics",
+                    metrics,
+                    callId: sCall.callId
+                })
+        }
     );
     const result = await Promise.race([promise, cancel]);
     if (!result) {

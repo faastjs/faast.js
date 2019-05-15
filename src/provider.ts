@@ -365,20 +365,24 @@ export interface CommonOptions {
      * without losing information. Default: true.
      * @remarks
      * Arguments to cloud functions are automatically serialized with
-     * `JSON.stringify`. Return values go through the same process. Some
-     * JavaScript objects cannot be serialized. By default
+     * `JSON.stringify` with a custom replacer that handles built-in JavaScript
+     * types such as `Date` and `Buffer`. Return values go through the same
+     * process. Some JavaScript objects cannot be serialized. By default
      * `validateSerialization` will verify that every argument and return value
      * can be serialized and deserialized without losing information. A
-     * `FaastError` will be thrown if a problem is detected. The detection
-     * process perform the following:
+     * `FaastError` will be thrown if faast.js detects a problem according to
+     * the following procedure:
      *
-     * 1. Serialize arguments and return values with `JSON.stringify`
+     * 1. Serialize arguments and return values with `JSON.stringify` using a
+     *    special `replacer` function.
      *
-     * 2. Deserialize the values with `JSON.parse`.
+     * 2. Deserialize the values with `JSON.parse` with a special `reviver`
+     *    function.
      *
      * 3. Use
-     * {@link https://nodejs.org/api/assert.html#assert_assert_deepstrictequal_actual_expected_message | assert.deepStringEqual}
-     * to compare the original object with the deserialized object from step 2.
+     *    {@link https://nodejs.org/api/assert.html#assert_assert_deepstrictequal_actual_expected_message | assert.deepStringEqual}
+     *    to compare the original object with the deserialized object from step
+     *    2.
      *
      * There is some overhead to this process because each argument is
      * serialized and deserialized, which can be costly if arguments or return

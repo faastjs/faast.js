@@ -19,8 +19,11 @@ async function testBasic(
 
     try {
         t.is(await remote.hello("Andy"), "Hello Andy!");
-        t.is(await remote.identity("你好"), "你好");
+        t.is(await remote.identityString("你好"), "你好");
         t.is(await remote.identityNum(42), 42);
+        t.is(await remote.identityNum(Infinity), Infinity);
+        t.is(await remote.identityNum(-Infinity), -Infinity);
+        t.is(await remote.identityNum(NaN), NaN);
         t.is(await remote.empty(), undefined);
         t.is(await remote.arrow("arrow"), "arrow");
         t.is(await remote.asyncArrow("asyncArrow"), "asyncArrow");
@@ -33,9 +36,47 @@ async function testBasic(
         t.is(await remote.optionalArg(), "No arg");
         t.is(await remote.optionalArg("has arg"), "has arg");
         const date = new Date();
-        t.deepEqual(await remote.dateArg(date), date);
+        t.deepEqual(await remote.identityDate(date), date);
         const buffer = Buffer.from("contents");
-        t.deepEqual(await remote.bufferArg(buffer), buffer);
+        t.deepEqual(await remote.identityBuffer(buffer), buffer);
+        t.deepEqual(await remote.identityArrayNum([42, 8, 10]), [42, 8, 10]);
+        t.deepEqual(await remote.identityArrayNum([NaN, Infinity, -Infinity]), [
+            NaN,
+            Infinity,
+            -Infinity
+        ]);
+        t.deepEqual(await remote.identityArrayString(["a", "there"]), ["a", "there"]);
+        t.is(await remote.identityBool(true), true);
+        t.is(await remote.identityBool(false), false);
+        t.is(await remote.identityUndefined(undefined), undefined);
+        t.is(await remote.identityNull(null), null);
+        t.deepEqual(await remote.identityObject({}), {});
+        t.deepEqual(await remote.identityObject({ a: 42, b: "hello" }), {
+            a: 42,
+            b: "hello"
+        });
+        const int8 = Int8Array.of(0, -8, 42);
+        t.deepEqual(await remote.identityInt8(int8), int8);
+        const uint8 = Uint8Array.of(0, 8, 42);
+        t.deepEqual(await remote.identityUint8(uint8), uint8);
+        const uint8Clamped = Uint8ClampedArray.of(0, 8, 42);
+        t.deepEqual(await remote.identityUint8Clamped(uint8Clamped), uint8Clamped);
+        const int16 = Int16Array.of(0, 8, 42, -1);
+        t.deepEqual(await remote.identityInt16(int16), int16);
+        const uint16 = Uint16Array.of(0, 8, 42, -1);
+        t.deepEqual(await remote.identityUint16(uint16), uint16);
+        const int32 = Int32Array.of(0, 8, 42, -1);
+        t.deepEqual(await remote.identityInt32(int32), int32);
+        const uint32 = Uint32Array.of(0, 8, 42, -1);
+        t.deepEqual(await remote.identityUint32(uint32), uint32);
+        const float32 = Float32Array.of(0, 0.3, 100.042, -1);
+        t.deepEqual(await remote.identityFloat32(float32), float32);
+        const float64 = Float64Array.of(0, 0.3, 100.042, -1);
+        t.deepEqual(await remote.identityFloat64(float64), float64);
+        const m = new Map([[1, 2], [42, 10]]);
+        t.deepEqual(await remote.identityMap(m), m);
+        const s = new Set([1, 42, 100]);
+        t.deepEqual(await remote.identitySet(s), s);
         try {
             await remote.emptyReject();
             t.fail("remote.emptyReject() did not reject as expected");
@@ -70,7 +111,7 @@ async function testBasicRequire(t: ExecutionContext, provider: Provider) {
     const faastModule = await faast(provider, requiredFuncs, opts);
     const remote = faastModule.functions;
     try {
-        t.is(await remote.identity("id"), "id");
+        t.is(await remote.identityString("id"), "id");
         t.is(await remote.arrow("arrow"), "arrow");
     } finally {
         await faastModule.cleanup();

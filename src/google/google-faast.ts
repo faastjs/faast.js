@@ -103,7 +103,7 @@ export interface GoogleOptions extends CommonOptions {
      *      timeout,
      *      availableMemoryMb,
      *      sourceUploadUrl,
-     *      runtime: "nodejs8",
+     *      runtime: "nodejs10",
      *      ...googleCloudFunctionOptions
      *  };
      * ```
@@ -421,7 +421,7 @@ export async function initialize(
         availableMemoryMb: memorySize,
         sourceUploadUrl,
         environmentVariables: env,
-        runtime: "nodejs8",
+        runtime: "nodejs10",
         ...googleCloudFunctionOptions
     };
     if (mode === "queue") {

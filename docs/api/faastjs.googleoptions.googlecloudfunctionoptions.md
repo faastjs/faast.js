@@ -28,7 +28,7 @@ If you need specialized options, you can pass them to the Google Cloud Functions
      timeout,
      availableMemoryMb,
      sourceUploadUrl,
-     runtime: "nodejs8",
+     runtime: "nodejs10",
      ...googleCloudFunctionOptions
  };
 

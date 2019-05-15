@@ -1,6 +1,7 @@
 import { Context, SNSEvent } from "aws-lambda";
 import { SQS } from "aws-sdk";
 import { env } from "process";
+import { FaastError } from "../error";
 import { ResponseMessage } from "../provider";
 import { deserializeMessage } from "../serialize";
 import {
@@ -13,11 +14,18 @@ import {
 import { sendResponseQueueMessage } from "./aws-queue";
 import { getExecutionLogUrl } from "./aws-shared";
 
-const sqs = new SQS({ apiVersion: "2012-11-05" });
+const sqs = new SQS();
 
 export const filename = module.filename;
 
 const CallIdAttribute: Extract<keyof FunctionCallSerialized, "callId"> = "callId";
+
+function errorCallback(err: Error) {
+    if (err.message.match(/SIGKILL/)) {
+        return new FaastError(err, "possibly out of memory");
+    }
+    return err;
+}
 
 export function makeTrampoline(wrapper: Wrapper) {
     async function trampoline(
@@ -49,13 +57,16 @@ export function makeTrampoline(wrapper: Wrapper) {
             const timeout = context.getRemainingTimeInMillis() - 100;
             const result = await wrapper.execute(
                 { sCall, ...callingContext },
-                metrics =>
-                    sendResponseQueueMessage(sqs, Queue!, {
-                        kind: "cpumetrics",
-                        callId,
-                        metrics
-                    }),
-                timeout
+                {
+                    onCpuUsage: metrics =>
+                        sendResponseQueueMessage(sqs, Queue!, {
+                            kind: "cpumetrics",
+                            callId,
+                            metrics
+                        }),
+                    overrideTimeout: timeout,
+                    errorCallback
+                }
             );
             callback(null, result);
         } else {
@@ -75,16 +86,16 @@ export function makeTrampoline(wrapper: Wrapper) {
                 );
                 const cc: CallingContext = { sCall, ...callingContext };
                 const timeout = context.getRemainingTimeInMillis() - 100;
-                const result = await wrapper.execute(
-                    cc,
-                    metrics =>
+                const result = await wrapper.execute(cc, {
+                    onCpuUsage: metrics =>
                         sendResponseQueueMessage(sqs, Queue!, {
                             kind: "cpumetrics",
                             callId,
                             metrics
                         }),
-                    timeout
-                );
+                    overrideTimeout: timeout,
+                    errorCallback
+                });
                 clearTimeout(startedMessageTimer);
                 const response: ResponseMessage = {
                     kind: "response",

@@ -10,7 +10,7 @@ import {
     serializeFunctionCall,
     serializeMessage
 } from "../src/serialize";
-import { FunctionCall, FunctionReturnSerialized, Wrapper } from "../src/wrapper";
+import { FunctionReturnSerialized, Wrapper } from "../src/wrapper";
 import * as funcs from "./fixtures/functions";
 import { title } from "./fixtures/util";
 
@@ -42,7 +42,7 @@ test(title("aws", "trampoline https mode"), async t => {
         serializeFunctionCall(
             {
                 callId: "42",
-                name: "identity",
+                name: funcs.identityNum.name,
                 args: [arg],
                 modulePath: "./fixtures/functions"
             },
@@ -70,7 +70,7 @@ test(title("aws", "trampoline queue mode"), async t => {
         const call = serializeFunctionCall(
             {
                 callId: "42",
-                name: "identity",
+                name: funcs.identityNum.name,
                 args: [arg],
                 modulePath: "./fixtures/functions",
                 ResponseQueueId: QueueUrl

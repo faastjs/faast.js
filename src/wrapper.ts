@@ -123,6 +123,13 @@ export const WrapperOptionDefaults: Required<WrapperOptions> = {
 };
 
 type CpuUsageCallback = (usage: CpuMeasurement) => void;
+type ErrorCallback = (err: Error) => Error;
+
+export interface WrapperExecuteOptions {
+    overrideTimeout?: number;
+    onCpuUsage?: CpuUsageCallback;
+    errorCallback?: ErrorCallback;
+}
 
 const oomPattern = /Allocation failed - JavaScript heap out of memory/;
 
@@ -203,6 +210,7 @@ export class Wrapper {
     stop() {
         this.stopCpuMonitoring();
         if (this.child) {
+            this.log(`Stopping child process.`);
             this.child.stdout!.removeListener("data", this.logLines);
             this.child.stderr!.removeListener("data", this.logLines);
             this.child!.disconnect();
@@ -214,8 +222,11 @@ export class Wrapper {
 
     async execute(
         callingContext: CallingContext,
-        callback?: CpuUsageCallback,
-        overrideTimeout?: number
+        {
+            onCpuUsage: cpuUsageCallback,
+            overrideTimeout,
+            errorCallback
+        }: WrapperExecuteOptions = {}
     ): Promise<FunctionReturnSerialized> {
         try {
             /* istanbul ignore if  */
@@ -224,13 +235,17 @@ export class Wrapper {
                 throw new Error(`faast: module wrapper is not re-entrant`);
             }
             this.executing = true;
-            this.verbose && this.log(`callingContext: ${inspect(callingContext)}`);
+            const { sCall, startTime, logUrl, executionId, instanceId } = callingContext;
+            if (this.verbose) {
+                this.log(`calling: ${sCall.name}`);
+                this.log(`   args: ${sCall.serializedArgs}`);
+                this.log(`   callId: ${sCall.callId}`);
+            }
             const memoryUsage = process.memoryUsage();
             const memInfo = inspect(memoryUsage, {
                 compact: true,
                 breakLength: Infinity
             });
-            const { sCall, startTime, logUrl, executionId, instanceId } = callingContext;
             if (this.options.childProcess) {
                 this.deferred = new Deferred();
                 if (!this.child) {
@@ -246,7 +261,7 @@ export class Wrapper {
                         this.deferred!.reject(err);
                     }
                 });
-                if (callback) {
+                if (cpuUsageCallback) {
                     this.log(`Starting CPU monitor for pid ${this.child.pid}`);
                     // XXX CPU Monitoring not enabled for now.
                     // this.startCpuMonitoring(this.child.pid, callback);
@@ -290,7 +305,6 @@ export class Wrapper {
                     );
                 }
                 const call = deserializeFunctionCall(sCall);
-                this.log(`About to call function, verbose: ${this.verbose}`);
                 let value;
                 try {
                     value = await func.apply(undefined, call.args);
@@ -319,7 +333,11 @@ export class Wrapper {
                     validate
                 );
             }
-        } catch (err) {
+        } catch (origError) {
+            const err =
+                errorCallback && origError instanceof Error
+                    ? errorCallback(origError)
+                    : origError;
             log.provider(`wrapper function exception: ${err}`);
             this.log(`faast: wrapped function exception or promise rejection: ${err}`);
             return createErrorResponse(err, callingContext);
@@ -354,7 +372,7 @@ export class Wrapper {
 
         const { childProcessEnvironment } = this.options;
         const env = { ...process.env, ...childProcessEnvironment, FAAST_CHILD: "true" };
-        this.log(`Env: ${inspect(env)}`);
+        this.verbose && this.log(`Env: ${inspect(env)}`);
         const forkOptions: childProcess.ForkOptions = {
             silent: true, // redirects stdout and stderr to IPC.
             env,

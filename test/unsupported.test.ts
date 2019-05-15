@@ -13,11 +13,10 @@ async function testUnsupported(
     const remote = faastModule.functions;
 
     try {
-        await t.throwsAsync(remote.identityNum(NaN), /unsupported/);
         await t.throwsAsync(remote.promiseArg(Promise.resolve()), /unsupported/);
-        await t.throwsAsync(remote.functionArg(() => {}), /unsupported/);
+        await t.throwsAsync(remote.identityFunction(() => {}), /unsupported/);
         await t.throwsAsync(remote.functionReturn(), /unsupported/);
-        await t.throwsAsync(remote.classArg(new funcs.Cls()), /unsupported/);
+        await t.throwsAsync(remote.identityClass(new funcs.Cls()), /unsupported/);
         await t.throwsAsync(remote.classReturn(), /unsupported/);
     } finally {
         await faastModule.cleanup();

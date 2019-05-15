@@ -8,15 +8,32 @@ hide_title: true
 
 ## Arguments and return values must be serializable
 
-Cloudified function arguments must be serializable with [`JSON.stringify`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify). Faast.js will print a warning if it detects a case where `JSON.stringify` will result in a loss of information passed to the function. This may cause unexpected behavior when the code in the lambda function executes. For example, the following are not supported as cloud function arguments:
+Cloudified function arguments must be serializable with [`JSON.stringify`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify). Faast.js uses a custom `replacer()` function that allows for these types to be safely passed as arguments or return values:
+
+-   `Buffer`
+-   `Date`
+-   `undefined`
+-   `Infinity`
+-   `-Infinity`
+-   `NaN`
+-   `Int8Array`
+-   `Uint8Array`
+-   `Uint8ClampedArray`
+-   `Int16Array`
+-   `Uint16Array`
+-   `Int32Array`
+-   `Uint32Array`
+-   `Float32Array`
+-   `Float64Array`
+-   `Map`
+-   `Set`
+
+Faast.js will throw a `FaastError` if it detects a case where an argument or return value cannot be serialized without a loss of information (see [CommonOptions.validateSerialization](./api/faastjs.commonoptions.validateserialization.md)). For example, the following are not supported as cloud function arguments:
 
 -   Promise arguments (however Promise return values are supported)
--   `Date` arguments or return values
 -   Functions passed as arguments or return values
 -   Class instances
 -   ... and more. The MDN documentation contains more details about specific cases.
-
-Faast.js tries its best to detect these cases, but 100% detection is not guaranteed.
 
 ## Size limits on arguments and return values
 

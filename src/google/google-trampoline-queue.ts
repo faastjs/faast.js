@@ -65,16 +65,15 @@ export function makeTrampoline(wrapper: Wrapper) {
         try {
             const deadline =
                 Date.parse(context.timestamp) + wrapper.options.childProcessTimeoutMs;
-            const result = await wrapper.execute(
-                callingContext,
-                metrics =>
+            const result = await wrapper.execute(callingContext, {
+                onCpuUsage: metrics =>
                     publishResponseMessage(pubsub, ResponseQueueId!, {
                         kind: "cpumetrics",
                         callId,
                         metrics
                     }),
-                deadline - Date.now()
-            );
+                overrideTimeout: deadline - Date.now()
+            });
             clearTimeout(startedMessageTimer);
             await publishResponseMessage(pubsub, sCall.ResponseQueueId!, {
                 kind: "response",

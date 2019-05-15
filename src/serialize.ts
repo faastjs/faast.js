@@ -41,17 +41,39 @@ const FJS_TYPE = "[faastjs type]";
 
 function replacer(this: any, key: any, value: any) {
     const orig = this[key];
-    if (typeof orig === "object") {
-        if (orig instanceof Date) {
-            return { [FJS_TYPE]: "Date", value };
-        }
-        if (orig instanceof Buffer) {
-            return { [FJS_TYPE]: "Buffer", value };
-        }
-    } else if (typeof orig === "undefined") {
-        return { [FJS_TYPE]: "undefined" };
+    const type = Object.prototype.toString.call(orig).slice(8, -1);
+    if (typeof orig === "object" && orig instanceof Buffer) {
+        return { [FJS_TYPE]: "Buffer", value };
     }
-    return value;
+    switch (type) {
+        case "Undefined":
+            return { [FJS_TYPE]: type };
+        case "Number":
+            if (orig === Number.POSITIVE_INFINITY) {
+                return { [FJS_TYPE]: type, value: "+Infinity" };
+            } else if (orig === Number.NEGATIVE_INFINITY) {
+                return { [FJS_TYPE]: type, value: "-Infinity" };
+            } else if (Number.isNaN(orig)) {
+                return { [FJS_TYPE]: type, value: "NaN" };
+            }
+            return value;
+        case "Date":
+            return { [FJS_TYPE]: type, value };
+        case "Int8Array":
+        case "Uint8Array":
+        case "Uint8ClampedArray":
+        case "Int16Array":
+        case "Uint16Array":
+        case "Int32Array":
+        case "Uint32Array":
+        case "Float32Array":
+        case "Float64Array":
+        case "Map":
+        case "Set":
+            return { [FJS_TYPE]: type, value: [...orig] };
+        default:
+            return value;
+    }
 }
 
 export function _serialize(arg: any, validate: boolean) {
@@ -74,8 +96,42 @@ function reviver(this: any, _: any, value: any) {
                         return new Date(value["value"]);
                     case "Buffer":
                         return Buffer.from(value["value"]);
-                    case "undefined":
+                    case "Int8Array":
+                        return new Int8Array(value["value"]);
+                    case "Uint8Array":
+                        return new Uint8Array(value["value"]);
+                    case "Uint8ClampedArray":
+                        return new Uint8ClampedArray(value["value"]);
+                    case "Int16Array":
+                        return new Int16Array(value["value"]);
+                    case "Uint16Array":
+                        return new Uint16Array(value["value"]);
+                    case "Int32Array":
+                        return new Int32Array(value["value"]);
+                    case "Uint32Array":
+                        return new Uint32Array(value["value"]);
+                    case "Float32Array":
+                        return new Float32Array(value["value"]);
+                    case "Float64Array":
+                        return new Float64Array(value["value"]);
+                    case "Undefined":
                         return undefined;
+                    case "Number": {
+                        switch (value["value"]) {
+                            case "+Infinity":
+                                return Number.POSITIVE_INFINITY;
+                            case "-Infinity":
+                                return Number.NEGATIVE_INFINITY;
+                            case "NaN":
+                                return Number.NaN;
+                            default:
+                                return value;
+                        }
+                    }
+                    case "Map":
+                        return new Map(value["value"]);
+                    case "Set":
+                        return new Set(value["value"]);
                 }
             }
         }

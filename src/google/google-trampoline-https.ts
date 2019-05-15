@@ -35,13 +35,14 @@ export function makeTrampoline(wrapper: Wrapper) {
             executionId
         };
         try {
-            const result = await wrapper.execute(callingContext, metrics =>
-                publishResponseMessage(pubsub, sCall.ResponseQueueId!, {
-                    kind: "cpumetrics",
-                    callId: sCall.callId,
-                    metrics
-                })
-            );
+            const result = await wrapper.execute(callingContext, {
+                onCpuUsage: metrics =>
+                    publishResponseMessage(pubsub, sCall.ResponseQueueId!, {
+                        kind: "cpumetrics",
+                        callId: sCall.callId,
+                        metrics
+                    })
+            });
             response.send(result);
         } catch (err) {
             /* istanbul ignore next */
