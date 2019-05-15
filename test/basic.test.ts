@@ -3,6 +3,14 @@ import { CommonOptions, faast, FaastError, Provider, providers } from "../index"
 import * as funcs from "./fixtures/functions";
 import { configs, noValidateConfigs, title } from "./fixtures/util";
 
+function nodeMajorVersion() {
+    const match = process.version.match(/^v(\d+)\./);
+    if (match) {
+        return Number(match[1]);
+    }
+    return 0;
+}
+
 async function testBasic(
     t: ExecutionContext,
     provider: Provider,
@@ -23,7 +31,9 @@ async function testBasic(
         t.is(await remote.identityNum(42), 42);
         t.is(await remote.identityNum(Infinity), Infinity);
         t.is(await remote.identityNum(-Infinity), -Infinity);
-        t.is(await remote.identityNum(NaN), NaN);
+        if (nodeMajorVersion() >= 10) {
+            t.is(await remote.identityNum(NaN), NaN);
+        }
         t.is(await remote.empty(), undefined);
         t.is(await remote.arrow("arrow"), "arrow");
         t.is(await remote.asyncArrow("asyncArrow"), "asyncArrow");
@@ -40,11 +50,12 @@ async function testBasic(
         const buffer = Buffer.from("contents");
         t.deepEqual(await remote.identityBuffer(buffer), buffer);
         t.deepEqual(await remote.identityArrayNum([42, 8, 10]), [42, 8, 10]);
-        t.deepEqual(await remote.identityArrayNum([NaN, Infinity, -Infinity]), [
-            NaN,
-            Infinity,
-            -Infinity
-        ]);
+
+        const inf = [Infinity, -Infinity];
+        t.deepEqual(await remote.identityArrayNum(inf), inf);
+        if (nodeMajorVersion() >= 10) {
+            t.deepEqual(await remote.identityArrayNum([NaN]), [NaN]);
+        }
         t.deepEqual(await remote.identityArrayString(["a", "there"]), ["a", "there"]);
         t.is(await remote.identityBool(true), true);
         t.is(await remote.identityBool(false), false);
