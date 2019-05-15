@@ -95,7 +95,7 @@
         "@types/webpack-node-externals": "1.6.3",
         "@types/yauzl": "2.9.1",
         "ava": "1.4.1",
-        "codecov": "3.4.0",
+        "codecov": "3.5.0",
         "commitizen": "3.1.1",
         "cz-conventional-changelog": "2.1.0",
         "lolex": "4.0.1",
