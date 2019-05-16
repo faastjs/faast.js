@@ -120,6 +120,7 @@ export function synthesizeFaastError(
             cause: underlying,
             info: errObj
         },
+        "%s",
         errObj.message
     );
     error.stack = errObj.stack;
