@@ -498,7 +498,7 @@ async function callFunctionHttps(
     const source = new AbortController();
     try {
         const axiosConfig: GaxiosOptions = {
-            method: "PUT",
+            method: "POST",
             url,
             headers: { "Content-Type": "application/json" },
             body: serializeMessage(call),
@@ -542,7 +542,7 @@ async function callFunctionHttps(
 
             throw new FaastError(
                 err,
-                `when invoking google cloud function: %s %s`,
+                `when invoking google cloud function: %s\n    Details: %s`,
                 response.statusText,
                 response.data
             );
