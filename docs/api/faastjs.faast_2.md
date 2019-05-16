@@ -12,7 +12,7 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-export declare function faast<M extends object>(provider: "local", fmodule: M, options?: LocalOptions): Promise<FaastModule<M>>;
+export declare function faast<M extends object>(provider: "local", fmodule: M, options?: LocalOptions): Promise<LocalFaastModule<M>>;
 ```
 
 ## Parameters
@@ -25,4 +25,4 @@ export declare function faast<M extends object>(provider: "local", fmodule: M, o
 
 <b>Returns:</b>
 
-`Promise<FaastModule<M>>`
+`Promise<LocalFaastModule<M>>`

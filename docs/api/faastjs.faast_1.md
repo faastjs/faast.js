@@ -12,7 +12,7 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-export declare function faast<M extends object>(provider: "google", fmodule: M, options?: GoogleOptions): Promise<FaastModule<M>>;
+export declare function faast<M extends object>(provider: "google", fmodule: M, options?: GoogleOptions): Promise<GoogleFaastModule<M>>;
 ```
 
 ## Parameters
@@ -25,4 +25,4 @@ export declare function faast<M extends object>(provider: "google", fmodule: M, 
 
 <b>Returns:</b>
 
-`Promise<FaastModule<M>>`
+`Promise<GoogleFaastModule<M>>`

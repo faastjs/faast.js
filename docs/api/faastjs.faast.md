@@ -14,7 +14,7 @@ The main entry point for faast with any provider and only common options.
 <b>Signature:</b>
 
 ```typescript
-export declare function faast<M extends object>(provider: "aws", fmodule: M, options?: AwsOptions): Promise<FaastModule<M>>;
+export declare function faast<M extends object>(provider: "aws", fmodule: M, options?: AwsOptions): Promise<AwsFaastModule<M>>;
 ```
 
 ## Parameters
@@ -27,7 +27,7 @@ export declare function faast<M extends object>(provider: "aws", fmodule: M, opt
 
 <b>Returns:</b>
 
-`Promise<FaastModule<M>>`
+`Promise<AwsFaastModule<M>>`
 
 See [FaastModule](./faastjs.faastmodule.md)<!-- -->.
 
