@@ -10,7 +10,7 @@ hide_title: true
 
 Faast.js transforms ordinary JavaScript modules into serverless cloud functions that can run on AWS Lambda and Google Cloud Functions.
 
-The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, which returns an object that implements the [FaastModule](./faastjs.faastmodule.md) interface. The most common options are [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Using faast.js requires writing two modules, one containing the functions to upload to the cloud, and the other that invokes faast.js and calls the resulting cloud functions.
+The main entry point to faast.js is the  function, which returns an object that implements the [FaastModule](./faastjs.faastmodule.md) interface. The most common options are [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Using faast.js requires writing two modules, one containing the functions to upload to the cloud, and the other that invokes faast.js and calls the resulting cloud functions.
 
 ## Classes
 
@@ -30,6 +30,9 @@ The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, 
 |  Function | Description |
 |  --- | --- |
 |  [faast(provider, fmodule, options)](./faastjs.faast.md) | The main entry point for faast with any provider and only common options. |
+|  [faast(provider, fmodule, options)](./faastjs.faast_1.md) |  |
+|  [faast(provider, fmodule, options)](./faastjs.faast_2.md) |  |
+|  [faast(provider, fmodule, options)](./faastjs.faast_3.md) |  |
 |  [faastAws(fmodule, options)](./faastjs.faastaws.md) | The main entry point for faast with AWS provider. |
 |  [faastGoogle(fmodule, options)](./faastjs.faastgoogle.md) | The main entry point for faast with Google provider. |
 |  [faastLocal(fmodule, options)](./faastjs.faastlocal.md) | The main entry point for faast with Local provider. |
@@ -41,8 +44,8 @@ The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, 
 |  --- | --- |
 |  [AwsOptions](./faastjs.awsoptions.md) | AWS-specific options for [faastAws()](./faastjs.faastaws.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. |
 |  [CleanupOptions](./faastjs.cleanupoptions.md) | Options that apply to the [FaastModule.cleanup()](./faastjs.faastmodule.cleanup.md) method. |
-|  [CommonOptions](./faastjs.commonoptions.md) | Options common across all faast.js providers. Used as argument to [faast()](./faastjs.faast.md)<!-- -->. |
-|  [FaastModule](./faastjs.faastmodule.md) | The main interface for invoking, cleaning up, and managing faast.js cloud functions. Returned by [faast()](./faastjs.faast.md)<!-- -->. |
+|  [CommonOptions](./faastjs.commonoptions.md) | Options common across all faast.js providers. Used as argument to . |
+|  [FaastModule](./faastjs.faastmodule.md) | The main interface for invoking, cleaning up, and managing faast.js cloud functions. Returned by . |
 |  [GoogleOptions](./faastjs.googleoptions.md) | Google-specific options for [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. |
 |  [Limits](./faastjs.limits.md) | Specify [throttle()](./faastjs.throttle.md) limits. These limits shape the way throttle invokes the underlying function. |
 |  [LocalOptions](./faastjs.localoptions.md) | Local provider options for [faastLocal()](./faastjs.faastlocal.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. |

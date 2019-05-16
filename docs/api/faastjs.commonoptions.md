@@ -9,7 +9,7 @@ hide_title: true
 
 ## CommonOptions interface
 
-Options common across all faast.js providers. Used as argument to [faast()](./faastjs.faast.md)<!-- -->.
+Options common across all faast.js providers. Used as argument to .
 
 <b>Signature:</b>
 

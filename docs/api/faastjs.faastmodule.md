@@ -9,7 +9,7 @@ hide_title: true
 
 ## FaastModule interface
 
-The main interface for invoking, cleaning up, and managing faast.js cloud functions. Returned by [faast()](./faastjs.faast.md)<!-- -->.
+The main interface for invoking, cleaning up, and managing faast.js cloud functions. Returned by .
 
 <b>Signature:</b>
 

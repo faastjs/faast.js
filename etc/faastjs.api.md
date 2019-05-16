@@ -153,6 +153,15 @@ export class CostSnapshot {
 }
 
 // @public
+export function faast<M extends object>(provider: "aws", fmodule: M, options?: AwsOptions): Promise<FaastModule<M>>;
+
+// @public (undocumented)
+export function faast<M extends object>(provider: "google", fmodule: M, options?: GoogleOptions): Promise<FaastModule<M>>;
+
+// @public (undocumented)
+export function faast<M extends object>(provider: "local", fmodule: M, options?: LocalOptions): Promise<FaastModule<M>>;
+
+// @public (undocumented)
 export function faast<M extends object>(provider: Provider, fmodule: M, options?: CommonOptions): Promise<FaastModule<M>>;
 
 // @public

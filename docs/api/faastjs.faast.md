@@ -14,16 +14,16 @@ The main entry point for faast with any provider and only common options.
 <b>Signature:</b>
 
 ```typescript
-export declare function faast<M extends object>(provider: Provider, fmodule: M, options?: CommonOptions): Promise<FaastModule<M>>;
+export declare function faast<M extends object>(provider: "aws", fmodule: M, options?: AwsOptions): Promise<FaastModule<M>>;
 ```
 
 ## Parameters
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  provider | <code>Provider</code> | One of <code>&quot;aws&quot;</code>, <code>&quot;google&quot;</code>, or <code>&quot;local&quot;</code>. See [Provider](./faastjs.provider.md)<!-- -->. |
+|  provider | <code>&quot;aws&quot;</code> | One of <code>&quot;aws&quot;</code>, <code>&quot;google&quot;</code>, or <code>&quot;local&quot;</code>. See [Provider](./faastjs.provider.md)<!-- -->. |
 |  fmodule | <code>M</code> | A module imported with <code>import * as X from &quot;Y&quot;;</code>. Using <code>require</code> also works but loses type information. |
-|  options | <code>CommonOptions</code> | See [CommonOptions](./faastjs.commonoptions.md)<!-- -->. |
+|  options | <code>AwsOptions</code> | See [CommonOptions](./faastjs.commonoptions.md)<!-- -->. |
 
 <b>Returns:</b>
 
