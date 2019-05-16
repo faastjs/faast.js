@@ -25,7 +25,7 @@ If you need specialized options, you can pass them to the AWS Lambda SDK directl
   const request: aws.Lambda.CreateFunctionRequest = {
       FunctionName,
       Role,
-      Runtime: "nodejs8.10",
+      Runtime: "nodejs10.x",
       Handler: "index.trampoline",
       Code,
       Description: "faast trampoline function",

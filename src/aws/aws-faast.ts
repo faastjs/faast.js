@@ -24,7 +24,6 @@ import {
     commonDefaults,
     CommonOptions,
     FunctionStats,
-    Invocation,
     PollResult,
     ProviderImpl,
     ResponseMessage,
@@ -38,18 +37,24 @@ import {
     uuidv4Pattern
 } from "../shared";
 import { retryOp, throttle } from "../throttle";
-import { FunctionReturn, WrapperOptions } from "../wrapper";
+import {
+    FunctionReturn,
+    WrapperOptions,
+    FunctionCallSerialized,
+    FunctionReturnSerialized
+} from "../wrapper";
 import * as awsNpm from "./aws-npm";
 import { AwsLayerInfo } from "./aws-npm";
 import {
     createSNSTopic,
     createSQSQueue,
     processAwsErrorMessage,
-    publishInvocationMessage,
+    publishFunctionCallMessage,
     receiveMessages
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
+import { serializeMessage } from "../serialize";
 
 export const defaultGcWorker = throttle(
     { concurrency: 5, rate: 5, burst: 2 },
@@ -168,7 +173,7 @@ export interface AwsOptions extends CommonOptions {
      *   const request: aws.Lambda.CreateFunctionRequest = {
      *       FunctionName,
      *       Role,
-     *       Runtime: "nodejs8.10",
+     *       Runtime: "nodejs10.x",
      *       Handler: "index.trampoline",
      *       Code,
      *       Description: "faast trampoline function",
@@ -448,7 +453,8 @@ export const initialize = throttle(
             const request: Lambda.CreateFunctionRequest = {
                 FunctionName,
                 Role,
-                Runtime: "nodejs8.10",
+                Runtime: "nodejs10.x",
+                // Runtime: "nodejs8.10",
                 Handler: "index.trampoline",
                 Code,
                 Description: "faast trampoline function",
@@ -561,20 +567,27 @@ export const initialize = throttle(
                             await invokeHttps(
                                 lambda,
                                 FunctionName,
-                                { callId: "0", body: "" },
+                                {
+                                    callId: "0",
+                                    modulePath: "",
+                                    name: "",
+                                    serializedArgs: ""
+                                },
                                 state.metrics,
                                 new Promise(_ => {})
                             );
                         }
                     } catch (err) {
-                        await lambda
-                            .deleteFunction({ FunctionName })
-                            .promise()
-                            .catch(_ => {});
-                        throw new FaastError(
-                            err,
-                            "New lambda function failed invocation test"
-                        );
+                        /* istanbul ignore next */ {
+                            await lambda
+                                .deleteFunction({ FunctionName })
+                                .promise()
+                                .catch(_ => {});
+                            throw new FaastError(
+                                err,
+                                "New lambda function failed invocation test"
+                            );
+                        }
                     }
                 }
             );
@@ -597,7 +610,7 @@ export const initialize = throttle(
 
 async function invoke(
     state: AwsState,
-    call: Invocation,
+    call: FunctionCallSerialized,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
     const { metrics, services, resources, options } = state;
@@ -615,7 +628,7 @@ async function invoke(
             const { sns } = services;
             const { RequestTopicArn } = resources;
             try {
-                await publishInvocationMessage(sns, RequestTopicArn!, call, metrics);
+                await publishFunctionCallMessage(sns, RequestTopicArn!, call, metrics);
             } catch (err) {
                 throw new FaastError(err, "invoke sns error");
             }
@@ -641,13 +654,13 @@ function responseQueueId(state: AwsState): string | undefined {
 async function invokeHttps(
     lambda: Lambda,
     FunctionName: string,
-    message: Invocation,
+    message: FunctionCallSerialized,
     metrics: AwsMetrics,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
     const request: Lambda.InvocationRequest = {
         FunctionName,
-        Payload: message.body,
+        Payload: serializeMessage(message),
         LogType: "None"
     };
     const awsRequest = lambda.invoke(request);
@@ -662,16 +675,12 @@ async function invokeHttps(
         log.info(Buffer.from(rawResponse.LogResult!, "base64").toString());
     }
 
-    let body: string | FunctionReturn;
+    let body: FunctionReturnSerialized;
     if (rawResponse.FunctionError) {
         const error = processAwsErrorMessage(rawResponse.Payload as string);
-        body = {
-            type: "error",
-            callId: message.callId,
-            value: error
-        };
+        throw error;
     } else {
-        body = rawResponse.Payload! as string;
+        body = JSON.parse(rawResponse.Payload! as string);
     }
     metrics.outboundBytes += computeHttpResponseBytes(
         rawResponse.$response.httpResponse.headers

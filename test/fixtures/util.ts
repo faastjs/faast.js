@@ -82,10 +82,10 @@ export function contains<T extends U, U extends object>(container: T, obj: U) {
 }
 
 export const configs: CommonOptions[] = [
-    { mode: "https", childProcess: false },
-    { mode: "https", childProcess: true },
-    { mode: "queue", childProcess: false },
-    { mode: "queue", childProcess: true }
+    { mode: "https", childProcess: false, validateSerialization: true },
+    { mode: "https", childProcess: true, validateSerialization: true },
+    { mode: "queue", childProcess: false, validateSerialization: true },
+    { mode: "queue", childProcess: true, validateSerialization: true }
 ];
 
 export const noValidateConfigs = configs.map(c => ({

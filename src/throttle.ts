@@ -2,8 +2,8 @@ import * as assert from "assert";
 import { createHash } from "crypto";
 import { PersistentCache } from "./cache";
 import { FaastError } from "./error";
-import { deserialize, serialize } from "./serialize";
 import { sleep } from "./shared";
+import { _serialize, _deserialize } from "./serialize";
 
 export class Deferred<T = void> {
     promise: Promise<T>;
@@ -322,7 +322,7 @@ export function cacheFn<A extends any[], R>(
     fn: (...args: A) => Promise<R>
 ) {
     return async (...args: A) => {
-        const key = serialize({ arg: args, validate: true });
+        const key = _serialize(args, true);
         const hasher = createHash("sha256");
         hasher.update(key);
         const cacheKey = hasher.digest("hex");
@@ -332,10 +332,10 @@ export function cacheFn<A extends any[], R>(
             if (str === "undefined") {
                 return undefined;
             }
-            return deserialize(str);
+            return _deserialize(str);
         }
         const value = await fn(...args);
-        await cache.set(cacheKey, serialize({ arg: value, validate: true }));
+        await cache.set(cacheKey, _serialize(value, true));
         return value;
     };
 }

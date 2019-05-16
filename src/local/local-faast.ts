@@ -20,17 +20,15 @@ import {
     commonDefaults,
     CommonOptions,
     FunctionStats,
-    Invocation,
     PollResult,
     ProviderImpl,
     ReceivableMessage,
     ResponseMessage,
     UUID
 } from "../provider";
-import { deserializeCall } from "../serialize";
 import { hasExpired, uuidv4Pattern } from "../shared";
 import { AsyncQueue } from "../throttle";
-import { FunctionCall, Wrapper, WrapperOptions } from "../wrapper";
+import { FunctionCallSerialized, Wrapper, WrapperOptions } from "../wrapper";
 import * as localTrampolineFactory from "./local-trampoline";
 
 const exec = promisify(sys.exec);
@@ -110,7 +108,7 @@ async function initialize(
 
     log.info(`logURL: ${url}`);
 
-    const { childProcess, memorySize, timeout, env } = options;
+    const { childProcess, memorySize, timeout, env, validateSerialization } = options;
 
     if (!childProcess) {
         process.env = { ...process.env, ...env };
@@ -126,6 +124,8 @@ async function initialize(
             if (logStream.writable) {
                 logStream.write(msg);
                 logStream.write("\n");
+            } else {
+                log.provider(`WARNING: childlog not writable: ${msg}`);
             }
         };
         try {
@@ -138,14 +138,17 @@ async function initialize(
             log.warn(err);
             childlog = console.log;
         }
-        const wrapper = new Wrapper(require(serverModule), {
+        const wrapperOptions: Required<WrapperOptions> = {
             wrapperLog: childlog,
             childProcess,
             childProcessMemoryLimitMb: memorySize,
             childProcessTimeoutMs: timeout * 1000 - (childProcess ? 50 : 0),
             childProcessEnvironment: env,
-            childDir: tempDir
-        });
+            childDir: tempDir,
+            wrapperVerbose: log.provider.enabled,
+            validateSerialization
+        };
+        const wrapper = new Wrapper(require(serverModule), wrapperOptions);
         wrappers.push(wrapper);
         return wrapper;
     };
@@ -205,19 +208,22 @@ export async function localPacker(
 
 async function invoke(
     state: LocalState,
-    request: Invocation,
+    sCall: FunctionCallSerialized,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
     const {} = state;
     const startTime = Date.now();
-    const call: FunctionCall = deserializeCall(request.body);
     const wrapper = state.getWrapper();
-    const promise = wrapper.execute({ call, startTime }, metrics =>
-        state.queue.enqueue({
-            kind: "cpumetrics",
-            metrics,
-            callId: call.callId
-        })
+    const promise = wrapper.execute(
+        { sCall, startTime },
+        {
+            onCpuUsage: metrics =>
+                state.queue.enqueue({
+                    kind: "cpumetrics",
+                    metrics,
+                    callId: sCall.callId
+                })
+        }
     );
     const result = await Promise.race([promise, cancel]);
     if (!result) {
@@ -226,8 +232,8 @@ async function invoke(
     }
     return {
         kind: "response",
-        body: result.returned,
-        callId: request.callId,
+        body: result,
+        callId: sCall.callId,
         rawResponse: undefined,
         timestamp: Date.now()
     };

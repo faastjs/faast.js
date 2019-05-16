@@ -2,12 +2,70 @@ export function test() {
     return "Successfully called test function.";
 }
 
-export function identity(name: string) {
+export function empty() {}
+
+export function identityString(name: string) {
     return name;
 }
-
 export function identityNum(n: number) {
     return n;
+}
+export function identityBool(b: boolean) {
+    return b;
+}
+export function identityUndefined(u: undefined) {
+    return u;
+}
+export function identityNull(n: null) {
+    return n;
+}
+export function identityObject(o: object) {
+    return o;
+}
+export function identityArrayNum(n: number[]) {
+    return n;
+}
+export function identityArrayString(s: string[]) {
+    return s;
+}
+export function identityInt8(a: Int8Array) {
+    return a;
+}
+export function identityUint8(a: Uint8Array) {
+    return a;
+}
+export function identityUint8Clamped(a: Uint8ClampedArray) {
+    return a;
+}
+export function identityInt16(a: Int16Array) {
+    return a;
+}
+export function identityUint16(a: Uint16Array) {
+    return a;
+}
+export function identityInt32(a: Int32Array) {
+    return a;
+}
+export function identityUint32(a: Uint32Array) {
+    return a;
+}
+export function identityFloat32(a: Float32Array) {
+    return a;
+}
+export function identityFloat64(a: Float64Array) {
+    return a;
+}
+export function identityBigInt64(a: BigInt64Array) {
+    return a;
+}
+export function identityBigUint64(a: BigUint64Array) {
+    return a;
+}
+export function identityMap(m: Map<number, number>) {
+    return m;
+}
+export function identitySet(s: Set<number>) {
+    return s;
 }
 
 export const arrow = (str: string) => str;
@@ -161,8 +219,8 @@ export function promiseArg(promise: Promise<any>) {
     return promise;
 }
 
-export function functionArg(fn: () => void) {
-    fn();
+export function identityFunction(fn: () => void) {
+    return fn;
 }
 
 export function functionReturn() {
@@ -171,23 +229,21 @@ export function functionReturn() {
     };
 }
 
-export function bufferArg(_: Buffer) {}
-
-export function bufferReturn() {
-    return Buffer.from("contents");
+export function identityBuffer(buf: Buffer) {
+    return buf;
 }
 
-export function dateArg(_: Date) {}
-
-export function dateReturn() {
-    return new Date();
+export function identityDate(arg: Date) {
+    return arg;
 }
 
 export class Cls {
     constructor() {}
 }
 
-export function classArg(_: Cls) {}
+export function identityClass(arg: Cls) {
+    return arg;
+}
 
 export function classReturn() {
     return new Cls();

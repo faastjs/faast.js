@@ -76,7 +76,7 @@ test(title("aws", "custom role"), async t => {
             RoleName,
             gc: "off"
         });
-        t.is(await faastModule.functions.identity("hello"), "hello");
+        t.is(await faastModule.functions.identityString("hello"), "hello");
     } finally {
         faastModule && (await faastModule.cleanup());
         await deleteRole(RoleName, iam);

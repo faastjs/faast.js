@@ -55,6 +55,9 @@
         "node": ">=8.0"
     },
     "dependencies": {
+        "@types/debug": "^4.1.4",
+        "@types/verror": "^1.10.3",
+        "@types/webpack": "^4.4.27",
         "archiver": "^3.0.0",
         "aws-sdk": "^2.441.0",
         "commander": "^2.20.0",
@@ -70,10 +73,7 @@
         "verror": "^1.10.0",
         "webpack": "^4.30.0",
         "webpack-node-externals": "^1.7.2",
-        "yauzl": "^2.10.0",
-        "@types/verror": "^1.10.3",
-        "@types/debug": "^4.1.4",
-        "@types/webpack": "^4.4.27"
+        "yauzl": "^2.10.0"
     },
     "peerDependencies": {
         "@types/node": ">=8.0"

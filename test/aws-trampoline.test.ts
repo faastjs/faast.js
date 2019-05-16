@@ -5,7 +5,12 @@ import * as uuidv4 from "uuid/v4";
 import { AwsMetrics } from "../src/aws/aws-faast";
 import { receiveMessages } from "../src/aws/aws-queue";
 import { makeTrampoline } from "../src/aws/aws-trampoline";
-import { FunctionCall, FunctionReturn, Wrapper } from "../src/wrapper";
+import {
+    deserializeFunctionReturn,
+    serializeFunctionCall,
+    serializeMessage
+} from "../src/serialize";
+import { FunctionReturnSerialized, Wrapper } from "../src/wrapper";
 import * as funcs from "./fixtures/functions";
 import { title } from "./fixtures/util";
 
@@ -34,16 +39,19 @@ test(title("aws", "trampoline https mode"), async t => {
     const { trampoline } = makeTrampoline(wrapper);
     const arg = "abc123";
     await trampoline(
-        {
-            callId: "42",
-            name: "identity",
-            args: [arg],
-            modulePath: "./fixtures/functions"
-        },
+        serializeFunctionCall(
+            {
+                callId: "42",
+                name: funcs.identityNum.name,
+                args: [arg],
+                modulePath: "./fixtures/functions"
+            },
+            true
+        ),
         lambdaContext,
-        (_: Error | null, obj: FunctionReturn | string) => {
-            const ret = obj as FunctionReturn;
-            t.is(ret.value, arg);
+        (_: Error | null, obj: FunctionReturnSerialized) => {
+            const ret = deserializeFunctionReturn(obj);
+            t.is(ret.value[0], arg);
         }
     );
 });
@@ -59,18 +67,21 @@ test(title("aws", "trampoline queue mode"), async t => {
 
     try {
         const { trampoline } = makeTrampoline(wrapper);
-        const call: FunctionCall = {
-            callId: "42",
-            name: "identity",
-            args: [arg],
-            modulePath: "./fixtures/functions",
-            ResponseQueueId: QueueUrl
-        };
+        const call = serializeFunctionCall(
+            {
+                callId: "42",
+                name: funcs.identityNum.name,
+                args: [arg],
+                modulePath: "./fixtures/functions",
+                ResponseQueueId: QueueUrl
+            },
+            true
+        );
         const event = {
             Records: [
                 {
                     Sns: {
-                        Message: JSON.stringify(call)
+                        Message: serializeMessage(call)
                     }
                 }
             ]
@@ -82,8 +93,8 @@ test(title("aws", "trampoline queue mode"), async t => {
         const msg = result.Messages[0];
         t.is(msg.kind, "response");
         if (msg.kind === "response") {
-            const ret = JSON.parse(msg.body as string) as FunctionReturn;
-            t.is(ret.value, arg);
+            const ret = deserializeFunctionReturn(msg.body);
+            t.is(ret.value[0], arg);
         }
     } finally {
         await sqs.deleteQueue({ QueueUrl }).promise();

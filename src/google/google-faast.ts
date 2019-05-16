@@ -18,12 +18,12 @@ import {
     commonDefaults,
     CommonOptions,
     FunctionStats,
-    Invocation,
     PollResult,
     ProviderImpl,
     ResponseMessage,
     UUID
 } from "../provider";
+import { serializeMessage } from "../serialize";
 import {
     computeHttpResponseBytes,
     hasExpired,
@@ -33,7 +33,11 @@ import {
 } from "../shared";
 import { throttle } from "../throttle";
 import { Mutable } from "../types";
-import { WrapperOptions } from "../wrapper";
+import {
+    FunctionCallSerialized,
+    FunctionReturnSerialized,
+    WrapperOptions
+} from "../wrapper";
 import { publishPubSub, receiveMessages } from "./google-queue";
 import * as googleTrampolineHttps from "./google-trampoline-https";
 import * as googleTrampolineQueue from "./google-trampoline-queue";
@@ -99,7 +103,7 @@ export interface GoogleOptions extends CommonOptions {
      *      timeout,
      *      availableMemoryMb,
      *      sourceUploadUrl,
-     *      runtime: "nodejs8",
+     *      runtime: "nodejs10",
      *      ...googleCloudFunctionOptions
      *  };
      * ```
@@ -344,7 +348,7 @@ export async function initialize(
         );
 
         const uploadResult = await uploadZip(uploadUrlResponse.data.uploadUrl!, archive);
-        log.info(`Upload zip file response: ${uploadResult.statusText}`);
+        log.info(`Upload zip file response: ${uploadResult && uploadResult.statusText}`);
         return uploadUrlResponse.data.uploadUrl;
     }
 
@@ -417,7 +421,7 @@ export async function initialize(
         availableMemoryMb: memorySize,
         sourceUploadUrl,
         environmentVariables: env,
-        runtime: "nodejs8",
+        runtime: "nodejs10",
         ...googleCloudFunctionOptions
     };
     if (mode === "queue") {
@@ -487,7 +491,7 @@ export function getResponseSubscription(project: string, functionName: string) {
 
 async function callFunctionHttps(
     url: string,
-    call: Invocation,
+    call: FunctionCallSerialized,
     metrics: GoogleMetrics,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
@@ -496,13 +500,13 @@ async function callFunctionHttps(
         const axiosConfig: GaxiosOptions = {
             method: "PUT",
             url,
-            headers: { "Content-Type": "text/plain" },
-            body: call.body,
+            headers: { "Content-Type": "application/json" },
+            body: serializeMessage(call),
             signal: source.signal,
             retryConfig: { retry: 3, statusCodesToRetry }
         };
         const rawResponse = await Promise.race([
-            gaxios.request<string>(axiosConfig),
+            gaxios.request<FunctionReturnSerialized>(axiosConfig),
             cancel
         ]);
 
@@ -511,30 +515,45 @@ async function callFunctionHttps(
             source.abort();
             return;
         }
-        const returned: string = rawResponse.data;
-        metrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
-        return {
-            kind: "response",
-            callId: call.callId,
-            body: returned,
-            rawResponse,
-            timestamp: Date.now()
-        };
+        try {
+            metrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
+            return {
+                kind: "response",
+                callId: call.callId,
+                body: rawResponse.data,
+                rawResponse,
+                timestamp: Date.now()
+            };
+        } catch (err) {
+            throw new FaastError(
+                err,
+                `Could not parse ${util.inspect(rawResponse.data)}`
+            );
+        }
     } catch (err) {
         const { response } = err;
-        if (response && response.status === 503) {
-            throw new FaastError(err, "google cloud function: possibly out of memory");
+        if (response) {
+            if (response.status === 503) {
+                throw new FaastError(
+                    err,
+                    "google cloud function: possibly out of memory"
+                );
+            }
+
+            throw new FaastError(
+                err,
+                `when invoking google cloud function: %s %s`,
+                response.statusText,
+                response.data
+            );
         }
-        throw new FaastError(
-            err,
-            `when invoking google cloud function: ${response.statusText} ${response.data}`
-        );
+        throw new FaastError(err, `when invoking google cloud function`);
     }
 }
 
 async function invoke(
     state: GoogleState,
-    call: Invocation,
+    call: FunctionCallSerialized,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
     const { options, resources, services, url, metrics } = state;
@@ -545,7 +564,8 @@ async function invoke(
         case "queue":
             const { requestQueueTopic } = resources;
             const { pubsub } = services;
-            publishPubSub(pubsub, requestQueueTopic!, call.body);
+            const serialized = serializeMessage(call);
+            publishPubSub(pubsub, requestQueueTopic!, serialized);
             return;
         default:
             assertNever(options.mode);

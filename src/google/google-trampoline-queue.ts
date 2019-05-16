@@ -1,6 +1,6 @@
 import { google, pubsub_v1 } from "googleapis";
-import { deserializeCall } from "../serialize";
-import { createErrorResponse, FunctionCall, Wrapper } from "../wrapper";
+import { deserializeMessage } from "../serialize";
+import { createErrorResponse, FunctionCallSerialized, Wrapper } from "../wrapper";
 import { publishResponseMessage } from "./google-queue";
 import { getExecutionLogUrl } from "./google-shared";
 import PubSubApi = pubsub_v1;
@@ -43,9 +43,9 @@ export function makeTrampoline(wrapper: Wrapper) {
         const functionName = process.env["FUNCTION_NAME"]!;
         const logUrl = getExecutionLogUrl(project, functionName, executionId);
         const str = Buffer.from(data.data!, "base64");
-        const call: FunctionCall = deserializeCall(str.toString());
+        const sCall: FunctionCallSerialized = deserializeMessage(str.toString());
 
-        const { callId, ResponseQueueId } = call;
+        const { callId, ResponseQueueId } = sCall;
         const startedMessageTimer = setTimeout(
             () =>
                 publishResponseMessage(pubsub, ResponseQueueId!, {
@@ -56,7 +56,7 @@ export function makeTrampoline(wrapper: Wrapper) {
         );
 
         const callingContext = {
-            call,
+            sCall,
             startTime,
             logUrl,
             executionId
@@ -65,28 +65,27 @@ export function makeTrampoline(wrapper: Wrapper) {
         try {
             const deadline =
                 Date.parse(context.timestamp) + wrapper.options.childProcessTimeoutMs;
-            const result = await wrapper.execute(
-                callingContext,
-                metrics =>
+            const result = await wrapper.execute(callingContext, {
+                onCpuUsage: metrics =>
                     publishResponseMessage(pubsub, ResponseQueueId!, {
                         kind: "cpumetrics",
                         callId,
                         metrics
                     }),
-                deadline - Date.now()
-            );
+                overrideTimeout: deadline - Date.now()
+            });
             clearTimeout(startedMessageTimer);
-            await publishResponseMessage(pubsub, call.ResponseQueueId!, {
+            await publishResponseMessage(pubsub, sCall.ResponseQueueId!, {
                 kind: "response",
                 callId,
-                body: result.serialized || result.returned
+                body: result
             });
         } catch (err) {
             /* istanbul ignore next */
             {
                 console.error(err);
                 if (ResponseQueueId) {
-                    await publishResponseMessage(pubsub, call.ResponseQueueId!, {
+                    await publishResponseMessage(pubsub, sCall.ResponseQueueId!, {
                         kind: "response",
                         callId,
                         body: createErrorResponse(err, callingContext)
