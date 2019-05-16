@@ -23,7 +23,8 @@
         "noEmitHelpers": true,
         "importHelpers": true,
         "allowSyntheticDefaultImports": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "incremental": true
     },
     "exclude": ["node_modules", "dist", "etc", "temp", "examples", "test-release"]
 }
