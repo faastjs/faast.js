@@ -258,7 +258,8 @@ const throttleGoogleWrite = throttle(
                 (message.match(/Build failed/) !== null ||
                     message.match(/Quota/) !== null ||
                     message.match(/load attempt timed out/) !== null ||
-                    message.match(/ECONNRESET/) !== null)
+                    message.match(/ECONNRESET/) !== null ||
+                    message.match(/failed on loading user code/) != null)
             );
         }
     },
