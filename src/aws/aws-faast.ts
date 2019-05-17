@@ -15,7 +15,7 @@ import { createHash } from "crypto";
 import { readFile } from "fs-extra";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
-import { FaastError, assertNever } from "../error";
+import { assertNever, FaastError } from "../error";
 import { faastAws } from "../faast";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
@@ -29,6 +29,7 @@ import {
     ResponseMessage,
     UUID
 } from "../provider";
+import { serializeMessage } from "../serialize";
 import {
     computeHttpResponseBytes,
     defined,
@@ -38,10 +39,9 @@ import {
 } from "../shared";
 import { retryOp, throttle } from "../throttle";
 import {
-    FunctionReturn,
-    WrapperOptions,
     FunctionCallSerialized,
-    FunctionReturnSerialized
+    FunctionReturnSerialized,
+    WrapperOptions
 } from "../wrapper";
 import * as awsNpm from "./aws-npm";
 import { AwsLayerInfo } from "./aws-npm";
@@ -54,7 +54,6 @@ import {
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
-import { serializeMessage } from "../serialize";
 
 export const defaultGcWorker = throttle(
     { concurrency: 5, rate: 5, burst: 2 },
