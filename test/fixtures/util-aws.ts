@@ -1,5 +1,20 @@
 import { AwsFaastModule } from "../../index";
-import { quietly } from "./util";
+
+export function quietly<T>(p: Promise<T>) {
+    return p
+        .then(x => {
+            // Occassionally AWS will return an invalid response with a
+            // ResponseMetadata field when an object is recently destroyed. We
+            // check for this case and return undefined as if the object were
+            // not there. This fixes occassional testsuite failures.
+            const { ResponseMetadata, ...rest } = x as any;
+            if (ResponseMetadata && Object.keys(rest).length === 0) {
+                return;
+            }
+            return x;
+        })
+        .catch(_ => {});
+}
 
 export async function getAWSResources(mod: AwsFaastModule) {
     const { lambda, sns, sqs, s3 } = mod.state.services;

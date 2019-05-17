@@ -1,5 +1,8 @@
 import { GoogleFaastModule } from "../../index";
-import { quietly } from "./util";
+
+export function quietly<T>(p: Promise<T>) {
+    return p.catch(_ => {});
+}
 
 export async function getGoogleResources(mod: GoogleFaastModule) {
     const { cloudFunctions, pubsub } = mod.state.services;

@@ -32,10 +32,6 @@ export async function withClock(fn: (clock: VClock) => Promise<void>) {
     }
 }
 
-export function quietly<T>(p: Promise<T>) {
-    return p.catch(_ => {});
-}
-
 export function checkResourcesCleanedUp<T extends object>(
     t: ExecutionContext,
     resources: T
@@ -43,7 +39,7 @@ export function checkResourcesCleanedUp<T extends object>(
     for (const key of keysOf(resources)) {
         t.is(resources[key], undefined);
         if (resources[key] !== undefined) {
-            console.log(`Resource not cleaned up: %O`, resources[key]);
+            console.log(`Resource '${key}' not cleaned up: %O`, resources[key]);
         }
     }
 }
