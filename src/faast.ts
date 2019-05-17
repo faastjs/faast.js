@@ -619,7 +619,6 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 return false;
             };
 
-            const validate = this.options.validateSerialization;
             const invoke = async () => {
                 const callId = uuidv4();
                 log.calls(`Calling '${fname}' (${callId})`);
