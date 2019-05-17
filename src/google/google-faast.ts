@@ -187,8 +187,11 @@ export async function initializeGoogleServices(): Promise<GoogleServices> {
     google.options({
         auth,
         retryConfig: {
-            retry: 12,
-            statusCodesToRetry
+            retry: 8,
+            statusCodesToRetry,
+            httpMethodsToRetry: ["POST", "PUT", "GET", "HEAD", "OPTIONS", "DELETE"],
+            retryDelay: 250,
+            noResponseRetries: 3
         }
     });
     return {
@@ -504,7 +507,7 @@ async function callFunctionHttps(
             headers: { "Content-Type": "application/json" },
             body: serializeMessage(call),
             signal: source.signal,
-            retryConfig: { retry: 3, statusCodesToRetry }
+            responseType: "json"
         };
         const rawResponse = await Promise.race([
             gaxios.request<FunctionReturnSerialized>(axiosConfig),
@@ -543,7 +546,7 @@ async function callFunctionHttps(
 
             throw new FaastError(
                 err,
-                `when invoking google cloud function: %s\n    Details: %s`,
+                `when invoking google cloud function: %s\nDetails: %s`,
                 response.statusText,
                 response.data
             );
@@ -739,8 +742,7 @@ async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
         headers: {
             "content-type": "application/zip",
             "x-goog-content-length-range": "0,104857600"
-        },
-        retryConfig: { retry: 5, statusCodesToRetry }
+        }
     };
     return gaxios.request(config);
 }
@@ -780,7 +782,6 @@ function ensureGooglePriceCache(cloudBilling: CloudBilling.Cloudbilling) {
         {
             concurrency: 1,
             rate: 3,
-            retry: 3,
             memoize: true,
             cache: caches.googlePrices
         },
