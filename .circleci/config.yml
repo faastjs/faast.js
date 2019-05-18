@@ -43,6 +43,26 @@ jobs:
             - run:
                   command: npm run codecov
                   when: always
+    examples:
+        description: "test examples repository"
+        executor: node10
+        steps:
+            - checkout
+            - restore_cache:
+                  keys:
+                      - <<parameters.nodeVersion>>-{{ checksum "package.json" }}
+                      - <<parameters.nodeVersion>>
+            - run: npm install
+            - save_cache:
+                  paths:
+                      - node_modules
+                  key: <<parameters.nodeVersion>>-{{ checksum "package.json" }}
+            - run: npm run build
+            - run: npm pack
+            - run: mkdir workspace
+            - run: cd workspace && git checkout https://github.com/faastjs/examples
+            - run: npm install -g typescript
+            - run: cd workspace/examples && node test-examples.js
     release:
         description: "semantic release"
         executor: node10
@@ -85,11 +105,13 @@ workflows:
                   nodeVersion: "node10"
                   executor: node10
                   target: "test-google-remote"
+            - examples
             - release:
                   requires:
                       - aws-node10
                       - aws-node8
                       - google-node10
+                      - examples
                   filters:
                       branches:
                           only: master
@@ -115,5 +137,8 @@ workflows:
                   nodeVersion: "node10"
                   executor: node10
                   target: "test-google-remote"
+                  requires:
+                      - cleanup
+            - examples:
                   requires:
                       - cleanup
