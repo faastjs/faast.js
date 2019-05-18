@@ -64,11 +64,11 @@ jobs:
                   key: <<parameters.nodeVersion>>-{{ checksum "package.json" }}
             - run: npm run build
             - run: npm pack
-            - run: mkdir workspace
-            - run: cd workspace && git clone https://github.com/faastjs/examples
+            - run: mkdir ~/tmp
+            - run: cd ~/tmp && git clone https://github.com/faastjs/examples
             - run: sudo npm install -g typescript
-            - run: cp faastjs-0.0.0-semantic-release.tgz workspace/examples
-            - run: cd workspace/examples && node test-examples.js faastjs-0.0.0-semantic-release.tgz
+            - run: cp faastjs-0.0.0-semantic-release.tgz ~/tmp/examples
+            - run: cd ~/tmp/examples && node test-examples.js faastjs-0.0.0-semantic-release.tgz
     release:
         description: "semantic release"
         executor: node10
