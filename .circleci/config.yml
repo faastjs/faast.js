@@ -45,7 +45,12 @@ jobs:
                   when: always
     examples:
         description: "test examples repository"
-        executor: node10
+        parameters:
+            nodeVersion:
+                type: string
+            executor:
+                type: executor
+        executor: << parameters.executor >>
         steps:
             - checkout
             - restore_cache:
@@ -105,7 +110,9 @@ workflows:
                   nodeVersion: "node10"
                   executor: node10
                   target: "test-google-remote"
-            - examples
+            - examples:
+                  nodeVersion: "node10"
+                  executor: node10
             - release:
                   requires:
                       - aws-node10
@@ -140,5 +147,7 @@ workflows:
                   requires:
                       - cleanup
             - examples:
+                  nodeVersion: "node10"
+                  executor: node10
                   requires:
                       - cleanup
