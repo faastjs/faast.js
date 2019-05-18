@@ -66,8 +66,9 @@ jobs:
             - run: npm pack
             - run: mkdir workspace
             - run: cd workspace && git clone https://github.com/faastjs/examples
-            - run: npm install -g typescript
-            - run: cd workspace/examples && node test-examples.js
+            - run: sudo npm install -g typescript
+            - run: cp faastjs-0.0.0-semantic-release.tgz workspace/examples
+            - run: cd workspace/examples && node test-examples.js faastjs-0.0.0-semantic-release.tgz
     release:
         description: "semantic release"
         executor: node10
