@@ -65,7 +65,7 @@ jobs:
             - run: npm run build
             - run: npm pack
             - run: mkdir workspace
-            - run: cd workspace && git checkout https://github.com/faastjs/examples
+            - run: cd workspace && git clone https://github.com/faastjs/examples
             - run: npm install -g typescript
             - run: cd workspace/examples && node test-examples.js
     release:
