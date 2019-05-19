@@ -191,7 +191,10 @@ export async function initializeGoogleServices(): Promise<GoogleServices> {
             statusCodesToRetry,
             httpMethodsToRetry: ["POST", "PUT", "GET", "HEAD", "OPTIONS", "DELETE"],
             retryDelay: 250,
-            noResponseRetries: 3
+            noResponseRetries: 3,
+            onRetryAttempt: err => {
+                console.log(`Retry: ${err}`);
+            }
         }
     });
     return {
