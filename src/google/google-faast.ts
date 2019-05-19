@@ -113,6 +113,14 @@ function shouldRetryRequest(err: GaxiosError) {
         return false;
     }
 
+    log.retry(
+        `google: attempts: ${config.currentRetryAttempt}/${config.retry}, code: ${
+            err.code
+        }, status: ${err.response && err.response.status} name: ${err.name}, message: ${
+            err.message
+        }`
+    );
+
     return true;
 }
 
