@@ -1,5 +1,11 @@
 import { AbortController } from "abort-controller";
-import { Gaxios, GaxiosOptions, GaxiosPromise, GaxiosResponse } from "gaxios";
+import {
+    Gaxios,
+    GaxiosOptions,
+    GaxiosPromise,
+    GaxiosResponse,
+    GaxiosError
+} from "gaxios";
 import {
     cloudbilling_v1,
     cloudfunctions_v1,
@@ -46,7 +52,77 @@ import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
 
-const gaxios = new Gaxios();
+const httpMethodsToRetry = ["POST", "PUT", "GET", "HEAD", "OPTIONS", "DELETE"];
+const statusCodesToRetry = [[100, 199], [429, 429], [405, 405], [500, 599]];
+
+function getGaxiosRetryConfig(err: GaxiosError) {
+    if (err && err.config && err.config.retryConfig) {
+        return err.config.retryConfig;
+    }
+    return;
+}
+
+/**
+ * Determine based on config if we should retry the request.
+ * @param err The GaxiosError passed to the interceptor.
+ */
+function shouldRetryRequest(err: GaxiosError) {
+    const config = getGaxiosRetryConfig(err);
+
+    // If there's no config, or retries are disabled, return.
+    if (!config || config.retry === 0) {
+        return false;
+    }
+
+    // Check if this error has no response (ETIMEDOUT, ENOTFOUND, etc)
+    if (!err.response && (config.currentRetryAttempt || 0) >= config.noResponseRetries!) {
+        return false;
+    }
+
+    if (err.name === "AbortError") {
+        return false;
+    }
+
+    // Only retry with configured HttpMethods.
+    if (
+        !err.config.method ||
+        httpMethodsToRetry.indexOf(err.config.method.toUpperCase()) < 0
+    ) {
+        return false;
+    }
+
+    // If this wasn't in the list of status codes where we want
+    // to automatically retry, return.
+    if (err.response && err.response.status) {
+        let isInRange = false;
+        for (const [min, max] of statusCodesToRetry!) {
+            const status = err.response.status;
+            if (status >= min && status <= max) {
+                isInRange = true;
+                break;
+            }
+        }
+        if (!isInRange) {
+            return false;
+        }
+    }
+
+    // If we are out of retry attempts, return
+    config.currentRetryAttempt = config.currentRetryAttempt || 0;
+    if (config.currentRetryAttempt >= config.retry!) {
+        return false;
+    }
+
+    return true;
+}
+
+const gaxios = new Gaxios({
+    retryConfig: {
+        retry: 3,
+        noResponseRetries: 3,
+        shouldRetry: shouldRetryRequest
+    }
+});
 
 /**
  * Valid Google Cloud
@@ -177,8 +253,6 @@ export const GoogleImpl: ProviderImpl<GoogleOptions, GoogleState> = {
     responseQueueId
 };
 
-const statusCodesToRetry = [[100, 199], [429, 429], [405, 405], [500, 599]];
-
 export async function initializeGoogleServices(): Promise<GoogleServices> {
     const auth = await google.auth.getClient({
         scopes: ["https://www.googleapis.com/auth/cloud-platform"]
@@ -188,13 +262,9 @@ export async function initializeGoogleServices(): Promise<GoogleServices> {
         auth,
         retryConfig: {
             retry: 8,
-            statusCodesToRetry,
-            httpMethodsToRetry: ["POST", "PUT", "GET", "HEAD", "OPTIONS", "DELETE"],
             retryDelay: 250,
             noResponseRetries: 3,
-            onRetryAttempt: err => {
-                console.log(`Retry: ${err}`);
-            }
+            shouldRetry: shouldRetryRequest
         }
     });
     return {
