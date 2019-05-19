@@ -614,6 +614,11 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 if (retries < this.options.maxRetries) {
                     retries++;
                     this._stats.incr(fname, "retries");
+                    log.retry(
+                        `faast: func: ${fname} attempts: ${retries}, err: ${util.inspect(
+                            err
+                        )}`
+                    );
                     return true;
                 }
                 return false;
