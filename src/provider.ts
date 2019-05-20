@@ -305,8 +305,7 @@ export interface CommonOptions {
      * - aws:
      *   {@link https://docs.aws.amazon.com/lambda/latest/dg/limits.html | 15 minutes}
      *
-     * - google:
-     *   {@link https://cloud.google.com/functions/quotas | 9 minutes}
+     * - google: {@link https://cloud.google.com/functions/quotas | 9 minutes}
      *
      * - local: unlimited
      *
@@ -315,8 +314,8 @@ export interface CommonOptions {
      * proactively sends a timeout exception. Faast does this because not all
      * providers reliably send timely feedback when timeouts occur, leaving
      * developers to look through cloud logs. In general faast.js' timeout will
-     * be up to 250ms earlier than the timeout specified, in order to give time
-     * to allow faast.js to send a timeout message. Proactive timeout detection
+     * be up to 1s earlier than the timeout specified, in order to give time to
+     * allow faast.js to send a timeout message. Proactive timeout detection
      * only works with {@link CommonOptions.childProcess} set to `true` (the
      * default).
      */
