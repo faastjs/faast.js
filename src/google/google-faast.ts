@@ -417,7 +417,7 @@ export async function initialize(
     const { timeout } = options;
     async function createCodeBundle() {
         const wrapperOptions = {
-            childProcessTimeoutMs: timeout * 1000 - 250
+            childProcessTimeoutMs: Math.max(1, timeout - 1) * 1000
         };
         const { archive } = await googlePacker(
             fmodule,
