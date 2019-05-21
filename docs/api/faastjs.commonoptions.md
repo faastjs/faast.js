@@ -21,8 +21,8 @@ export interface CommonOptions
 
 |  Property | Type | Description |
 |  --- | --- | --- |
-|  [addDirectory](./faastjs.commonoptions.adddirectory.md) | <code>string &#124; string[]</code> | Add local directories to the code package. |
-|  [addZipFile](./faastjs.commonoptions.addzipfile.md) | <code>string &#124; string[]</code> | Add zip files to the code package. |
+|  [addDirectory](./faastjs.commonoptions.adddirectory.md) | <code>string &#124; AddDirectoryOption &#124; (string &#124; AddDirectoryOption)[]</code> | Add local directories to the code package. See [AddDirectoryOption](./faastjs.adddirectoryoption.md)<!-- -->. |
+|  [addZipFile](./faastjs.commonoptions.addzipfile.md) | <code>string &#124; AddZipFileOption &#124; (string &#124; AddZipFileOption)[]</code> | Add zip files to the code package. See [AddZipFileOption](./faastjs.addzipfileoption.md)<!-- -->. |
 |  [childProcess](./faastjs.commonoptions.childprocess.md) | <code>boolean</code> | If true, create a child process to isolate user code from faast scaffolding. Default: true. |
 |  [concurrency](./faastjs.commonoptions.concurrency.md) | <code>number</code> | The maximum number of concurrent invocations to allow. Default: 100, except for the <code>local</code> provider, where the default is 10. |
 |  [env](./faastjs.commonoptions.env.md) | <code>{</code><br/><code>        [key: string]: string;</code><br/><code>    }</code> | Environment variables available during serverless function execution. Default: {<!-- -->}<!-- -->. |

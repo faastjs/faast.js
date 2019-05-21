@@ -31,7 +31,14 @@ export {
 export { GoogleOptions, GoogleRegion } from "./src/google/google-faast";
 export { LocalOptions } from "./src/local/local-faast";
 export { log } from "./src/log";
-export { CleanupOptions, CommonOptions, FunctionStats, Provider } from "./src/provider";
+export {
+    CleanupOptions,
+    CommonOptions,
+    FunctionStats,
+    Provider,
+    AddDirectoryOption,
+    AddZipFileOption
+} from "./src/provider";
 export { Statistics } from "./src/shared";
 export { Limits, throttle } from "./src/throttle";
 export { Unpacked } from "./src/types";

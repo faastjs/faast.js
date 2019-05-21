@@ -23,6 +23,18 @@ import { VError } from 'verror';
 import * as webpack from 'webpack';
 import { Writable } from 'stream';
 
+// @public
+export interface AddDirectoryOption {
+    localDir: string;
+    remoteDir?: string;
+}
+
+// @public
+export interface AddZipFileOption {
+    localFile: string;
+    remoteDir?: string;
+}
+
 // Warning: (ae-forgotten-export) The symbol "AwsState" needs to be exported by the entry point index.d.ts
 // 
 // @public
@@ -51,8 +63,8 @@ export interface CleanupOptions {
 
 // @public
 export interface CommonOptions {
-    addDirectory?: string | string[];
-    addZipFile?: string | string[];
+    addDirectory?: string | AddDirectoryOption | (string | AddDirectoryOption)[];
+    addZipFile?: string | AddZipFileOption | (string | AddZipFileOption)[];
     childProcess?: boolean;
     concurrency?: number;
     env?: {

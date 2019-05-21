@@ -9,12 +9,12 @@ hide_title: true
 
 ## CommonOptions.addZipFile property
 
-Add zip files to the code package.
+Add zip files to the code package. See [AddZipFileOption](./faastjs.addzipfileoption.md)<!-- -->.
 
 <b>Signature:</b>
 
 ```typescript
-addZipFile?: string | string[];
+addZipFile?: string | AddZipFileOption | (string | AddZipFileOption)[];
 ```
 
 ## Remarks
@@ -24,3 +24,5 @@ Each file is unzipped on the remote side under the current working directory. Zi
 (1) The directory containing the script that imports the `faast` module. Specifically, the value of `__dirname` from that script.
 
 (2) The current working directory of the executing process.
+
+On the remote side, the zip file will be extracted into a directory with the same name as the file except the `".zip"` extension will be omitted. For example, if the zip file is specified as `"foo/bar.zip"`<!-- -->, on the remote side a directory named `./bar` will be created with the contents of the extracted zipfile.

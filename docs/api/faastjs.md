@@ -39,6 +39,8 @@ The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, 
 
 |  Interface | Description |
 |  --- | --- |
+|  [AddDirectoryOption](./faastjs.adddirectoryoption.md) | Add a local directory to the code package. |
+|  [AddZipFileOption](./faastjs.addzipfileoption.md) | Add a local zip file to the code package. |
 |  [AwsOptions](./faastjs.awsoptions.md) | AWS-specific options for [faastAws()](./faastjs.faastaws.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. |
 |  [CleanupOptions](./faastjs.cleanupoptions.md) | Options that apply to the [FaastModule.cleanup()](./faastjs.faastmodule.cleanup.md) method. |
 |  [CommonOptions](./faastjs.commonoptions.md) | Options common across all faast.js providers. Used as argument to [faast()](./faastjs.faast.md)<!-- -->. |

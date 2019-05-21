@@ -17,6 +17,45 @@ export const KIND_ATTR = "__faast_kind__";
 export type Provider = "aws" | "google" | "local";
 
 /**
+ * Add a local directory to the code package.
+ * @public
+ */
+export interface AddDirectoryOption {
+    /** The local directory to recursively add to the code package. */
+    localDir: string;
+    /**
+     * The location where the local directory will be copied to on the remote
+     * side.
+     * @remarks
+     * This should be a relative path from the current working directory of the
+     * remote function. If not specified, it defaults to the `path.basename` of
+     * the local directory. For example, if the local directory is `foo/bar`,
+     * the default remote directory will be `./bar`. If the directory does not
+     * exist, it will be created.
+     */
+    remoteDir?: string;
+}
+
+/**
+ * Add a local zip file to the code package.
+ * @public
+ */
+export interface AddZipFileOption {
+    /** The local zip file to add to the code package */
+    localFile: string;
+    /**
+     * The remote directory where the zip file will be extracted.
+     * @remarks
+     * This should be a relative path from the current working directory of the
+     * remote function. If not specified, it defaults to
+     * `path.basename(zipFileName, ".zip")`. For example, if the local zip file
+     * is `foo/bar.zip`, the zip file will be extracted to `./bar` on the remote
+     * side. If the directory does not exist, it will be created.
+     */
+    remoteDir?: string;
+}
+
+/**
  * Options common across all faast.js providers. Used as argument to {@link faast}.
  * @remarks
  * There are also more specific options for each provider. See
@@ -25,22 +64,25 @@ export type Provider = "aws" | "google" | "local";
  */
 export interface CommonOptions {
     /**
-     * Add local directories to the code package.
+     * Add local directories to the code package. See {@link AddDirectoryOption}.
      * @remarks
-     * Each directory is recursively traversed. On the remote side, the
-     * directories will be available on the file system relative to the current
-     * working directory. Directories can be specified as an absolute path or a
-     * relative path. If the path is relative, it is searched for in the
-     * following order:
+     * Each directory is recursively traversed. Directories can be specified as
+     * an absolute path or a relative path. If the path is relative, it is
+     * searched for in the following order:
      *
      * (1) The directory containing the script that imports the `faast` module.
      * Specifically, the value of `__dirname` from that script.
      *
      * (2) The current working directory of the executing process.
+     *
+     * On the remote side, the directories will be available in the directory
+     * `"./${dir}"`, where `dir` is the basename of the directory specified. For
+     * example, if the directory `"/foo/bar"` is specified, then the remote side
+     * will contain a directory `"./bar"` with the contents of that directory.
      */
-    addDirectory?: string | string[];
+    addDirectory?: string | AddDirectoryOption | (string | AddDirectoryOption)[];
     /**
-     * Add zip files to the code package.
+     * Add zip files to the code package. See {@link AddZipFileOption}.
      * @remarks
      * Each file is unzipped on the remote side under the current working
      * directory. Zip files can be specified as an absolute path or a relative
@@ -50,8 +92,14 @@ export interface CommonOptions {
      * Specifically, the value of `__dirname` from that script.
      *
      * (2) The current working directory of the executing process.
+     *
+     * On the remote side, the zip file will be extracted into a directory with
+     * the same name as the file except the `".zip"` extension will be omitted.
+     * For example, if the zip file is specified as `"foo/bar.zip"`, on the
+     * remote side a directory named `./bar` will be created with the contents of
+     * the extracted zipfile.
      */
-    addZipFile?: string | string[];
+    addZipFile?: string | AddZipFileOption | (string | AddZipFileOption)[];
     /**
      * If true, create a child process to isolate user code from faast
      * scaffolding. Default: true.

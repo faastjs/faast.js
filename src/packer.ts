@@ -8,7 +8,12 @@ import * as yauzl from "yauzl";
 import { FaastError } from "./error";
 import { LoaderOptions } from "./loader";
 import { log } from "./log";
-import { commonDefaults, CommonOptions } from "./provider";
+import {
+    commonDefaults,
+    CommonOptions,
+    AddDirectoryOption,
+    AddZipFileOption
+} from "./provider";
 import { keysOf, streamToBuffer } from "./shared";
 import { TrampolineFactory, WrapperOptionDefaults, WrapperOptions } from "./wrapper";
 
@@ -89,16 +94,41 @@ export async function packer(
         throw new FaastError(`Could not find "${pathName}" or "${relativeDir}"`);
     }
 
-    async function processAddDirectories(archive: Archiver, directories: string[]) {
+    async function processAddDirectories(
+        archive: Archiver,
+        directories: (string | AddDirectoryOption)[]
+    ) {
         for (const dir of directories) {
-            archive.directory(await resolvePath(dir), false);
+            let localDir: string;
+            let remoteDir: string;
+            if (typeof dir === "string") {
+                localDir = dir;
+                remoteDir = path.basename(dir);
+            } else {
+                localDir = dir.localDir;
+                remoteDir = dir.remoteDir || path.basename(localDir);
+            }
+            archive.directory(await resolvePath(localDir), remoteDir);
         }
     }
 
-    async function processAddZips(archive: Archiver, zipFiles: string[]) {
-        for (const zipFile of zipFiles) {
-            await processZip(await resolvePath(zipFile), (filename, contents, mode) => {
-                archive.append(contents, { name: filename, mode });
+    async function processAddZips(
+        archive: Archiver,
+        zipFiles: (string | AddZipFileOption)[]
+    ) {
+        for (const entry of zipFiles) {
+            let localFile: string;
+            let remoteDir: string;
+            if (typeof entry === "string") {
+                localFile = entry;
+                remoteDir = path.basename(localFile, ".zip");
+            } else {
+                localFile = entry.localFile;
+                remoteDir = entry.remoteDir || path.basename(localFile, ".zip");
+            }
+            await processZip(await resolvePath(localFile), (filename, contents, mode) => {
+                const name = join(remoteDir, filename);
+                archive.append(contents, { name, mode });
             });
         }
     }
@@ -108,11 +138,11 @@ export async function packer(
         archive.on("error", err => log.warn(err));
         archive.on("warning", err => log.warn(err));
         addToArchive("/", archive);
-        if (typeof addDirectory === "string") {
+        if (!Array.isArray(addDirectory)) {
             addDirectory = [addDirectory];
         }
         addDirectory && (await processAddDirectories(archive, addDirectory));
-        if (typeof addZipFile === "string") {
+        if (!Array.isArray(addZipFile)) {
             addZipFile = [addZipFile];
         }
         if (addZipFile) {

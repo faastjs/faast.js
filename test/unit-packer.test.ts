@@ -67,12 +67,17 @@ const testPacker: Macro<[Provider, Packer, PackageConfiguration, number]> = asyn
 testPacker.title = (_title = "", provider, _packer, options) =>
     `packer ${provider}-${options.name}`;
 
-async function addedFile(t: ExecutionContext, root: string) {
-    t.true(await pathExists(join(root, "file.txt")), "ensure added files are copied");
-    const { mode } = await stat(join(root, "script"));
-    const { mode: origMode } = await stat("test/fixtures/dir/script");
-    t.is(mode, origMode, "file modes are preserved");
-    t.is(mode & 0o700, 0o700, "executable mode is preserved in added files");
+function added(dir: string) {
+    return async (t: ExecutionContext, root: string) => {
+        t.true(
+            await pathExists(join(root, dir, "file.txt")),
+            "ensure added files are copied"
+        );
+        const { mode } = await stat(join(root, dir, "script"));
+        const { mode: origMode } = await stat("test/fixtures/dir/script");
+        t.is(mode, origMode, "file modes are preserved");
+        t.is(mode & 0o700, 0o700, "executable mode is preserved in added files");
+    };
 }
 
 const configs: PackageConfiguration[] = [
@@ -80,17 +85,27 @@ const configs: PackageConfiguration[] = [
     { name: "queue", mode: "queue" },
     { name: "https-package", mode: "https", packageJson: "test/fixtures/package.json" },
     { name: "queue-package", mode: "queue", packageJson: "test/fixtures/package.json" },
-    { name: "addDirectory", addDirectory: "test/fixtures/dir", check: addedFile },
-    { name: "addZipFile", addZipFile: "test/fixtures/dir.zip", check: addedFile },
+    { name: "addDirectory", addDirectory: "test/fixtures/dir", check: added("dir") },
+    { name: "addZipFile", addZipFile: "test/fixtures/dir.zip", check: added("dir") },
     {
         name: "addDirectory-rel",
         addDirectory: "../../test/fixtures/dir",
-        check: addedFile
+        check: added("dir")
     },
     {
         name: "addZipFile-rel",
         addZipFile: "../../test/fixtures/dir.zip",
-        check: addedFile
+        check: added("dir")
+    },
+    {
+        name: "addDirectory-option",
+        addDirectory: { localDir: "test/fixtures/dir", remoteDir: "otherDir" },
+        check: added("otherDir")
+    },
+    {
+        name: "addZipFile-option",
+        addZipFile: { localFile: "test/fixtures/dir.zip", remoteDir: "otherDir" },
+        check: added("otherDir")
     }
 ];
 

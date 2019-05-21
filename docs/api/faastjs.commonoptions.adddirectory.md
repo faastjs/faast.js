@@ -9,18 +9,20 @@ hide_title: true
 
 ## CommonOptions.addDirectory property
 
-Add local directories to the code package.
+Add local directories to the code package. See [AddDirectoryOption](./faastjs.adddirectoryoption.md)<!-- -->.
 
 <b>Signature:</b>
 
 ```typescript
-addDirectory?: string | string[];
+addDirectory?: string | AddDirectoryOption | (string | AddDirectoryOption)[];
 ```
 
 ## Remarks
 
-Each directory is recursively traversed. On the remote side, the directories will be available on the file system relative to the current working directory. Directories can be specified as an absolute path or a relative path. If the path is relative, it is searched for in the following order:
+Each directory is recursively traversed. Directories can be specified as an absolute path or a relative path. If the path is relative, it is searched for in the following order:
 
 (1) The directory containing the script that imports the `faast` module. Specifically, the value of `__dirname` from that script.
 
 (2) The current working directory of the executing process.
+
+On the remote side, the directories will be available in the directory `"./${dir}"`<!-- -->, where `dir` is the basename of the directory specified. For example, if the directory `"/foo/bar"` is specified, then the remote side will contain a directory `"./bar"` with the contents of that directory.
