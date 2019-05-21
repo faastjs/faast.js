@@ -142,7 +142,7 @@ export async function packer(
         config.externals = [
             ...externalsArray,
             ...dependencies,
-            ...dependencies.map(d => new RegExp(`${d}/.*`))
+            ...dependencies.map(d => new RegExp(`^${d}/.*`))
         ];
         log.webpack(`webpack config: %O`, config);
         const compiler = webpack(config);
