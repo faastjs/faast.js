@@ -571,6 +571,36 @@ test("throttle cache and memoize options work together", async t =>
         t.is(counter, 2);
     }));
 
+test.serial("throttle cancellation", async t =>
+    withClock(async () => {
+        const concurrency = 10;
+        const rate = 100;
+        let counter = 0;
+
+        async function fn(_: number) {
+            return counter++;
+        }
+        const cancel = new Deferred();
+        const throttledFn = throttle(
+            { concurrency, rate, memoize: true, cancel: cancel.promise },
+            fn
+        );
+        throttledFn(1);
+        throttledFn(2);
+        throttledFn(3);
+        await sleep(100);
+        t.is(counter, 3);
+
+        counter = 0;
+        throttledFn(1);
+        throttledFn(2);
+        throttledFn(3);
+        cancel.resolve();
+        await sleep(100);
+        t.is(counter, 0);
+    })
+);
+
 test("async queue works with enqueue before dequeue", async t => {
     const q = new AsyncQueue<number>();
     q.enqueue(42);

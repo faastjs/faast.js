@@ -236,6 +236,10 @@ export class RateLimiter<T = void> {
             this.drainQueue();
         }
     }
+
+    clear() {
+        this.queue.clear();
+    }
 }
 
 /**
@@ -301,10 +305,19 @@ export interface Limits {
      * {@link PersistentCache}.
      */
     cache?: PersistentCache;
+    /**
+     * A promise that, if resolved, causes cancellation of pending throttled
+     * invocations. This is typically created using {@link Deferred}. The idea
+     * is to use the resolving of the promise as an asynchronous signal that any
+     * pending invocations in this throttled function should be cleared.
+     */
+    cancel?: Promise<void>;
 }
 
-export function memoizeFn<A extends any[], R>(fn: (...args: A) => R) {
-    const cache = new Map<string, R>();
+export function memoizeFn<A extends any[], R>(
+    fn: (...args: A) => R,
+    cache: Map<string, R> = new Map()
+) {
     return (...args: A) => {
         const key = JSON.stringify(args);
         const prev = cache.get(key);
@@ -408,15 +421,17 @@ export function cacheFn<A extends any[], R>(
  * @public
  */
 export function throttle<A extends any[], R>(
-    { concurrency, retry, rate, burst, memoize, cache }: Limits,
+    { concurrency, retry, rate, burst, memoize, cache, cancel }: Limits,
     fn: (...args: A) => Promise<R>
-) {
+): (...args: A) => Promise<R> {
     const funnel = new Funnel<R>(concurrency, retry);
+    const cancellationQueue = [() => funnel.clear()];
 
     let conditionedFunc: (...args: A) => Promise<R>;
 
     if (rate) {
         const rateLimiter = new RateLimiter<R>(rate, burst);
+        cancellationQueue.push(() => rateLimiter.clear());
         conditionedFunc = (...args: A) =>
             funnel.push(() => rateLimiter.push(() => fn(...args)));
     } else {
@@ -427,8 +442,11 @@ export function throttle<A extends any[], R>(
         conditionedFunc = cacheFn(cache, conditionedFunc);
     }
     if (memoize) {
-        conditionedFunc = memoizeFn(conditionedFunc);
+        const mcache = new Map<string, Promise<R>>();
+        cancellationQueue.push(() => mcache.clear());
+        conditionedFunc = memoizeFn(conditionedFunc, mcache);
     }
+    cancel && cancel.then(() => cancellationQueue.forEach(cleanupFn => cleanupFn()));
     return conditionedFunc;
 }
 

@@ -134,6 +134,15 @@ export interface CommonOptions {
      */
     concurrency?: number;
     /**
+     * Rate limit invocations (invocations/sec). Default: no rate limit.
+     * @remarks
+     * Some services cannot handle more than a certain number of requests per
+     * second, and it is easy to overwhelm them with a large number of cloud
+     * functions. Specify a rate limit in invocation/second to restrict how
+     * faast.js issues requests.
+     */
+    rate?: number;
+    /**
      * Environment variables available during serverless function execution.
      * Default: \{\}.
      */
@@ -443,6 +452,7 @@ export const commonDefaults: Required<CommonOptions> = {
     addZipFile: [],
     childProcess: true,
     concurrency: 100,
+    rate: 0,
     env: {},
     gc: "auto",
     maxRetries: 2,
