@@ -801,7 +801,6 @@ async function addLogRetentionPolicy(FunctionName: string, cloudwatch: CloudWatc
 
 export async function cleanup(state: AwsState, options: Required<CleanupOptions>) {
     log.info(`aws cleanup starting.`);
-    await addLogRetentionPolicy(state.resources.FunctionName, state.services.cloudwatch);
     if (state.gcPromise) {
         log.info(`Waiting for garbage collection...`);
         await state.gcPromise;
@@ -810,6 +809,10 @@ export async function cleanup(state: AwsState, options: Required<CleanupOptions>
 
     if (options.deleteResources) {
         log.info(`Cleaning up infrastructure for ${state.resources.FunctionName}...`);
+        await addLogRetentionPolicy(
+            state.resources.FunctionName,
+            state.services.cloudwatch
+        );
         // Don't delete cached role. It may be in use by other instances of
         // faast. Don't delete logs. They are often useful. By default log
         // stream retention will be 1 day, and gc will clean out the log group
