@@ -36,12 +36,8 @@ export {
     CommonOptions,
     FunctionStats,
     Provider,
-    AddDirectoryOption,
-    AddZipFileOption
+    IncludeOption
 } from "./src/provider";
 export { Statistics } from "./src/shared";
 export { Limits, throttle } from "./src/throttle";
 export { Unpacked } from "./src/types";
-
-/** @internal */
-export const _parentModule = module.parent;

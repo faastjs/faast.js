@@ -25,7 +25,6 @@ function exec(cmd: string) {
 
 type Packer = (
     functionModule: string,
-    parentDir: string,
     options: CommonOptions,
     wrapperOptions: WrapperOptions,
     FunctionName: string
@@ -46,7 +45,6 @@ const testPacker: Macro<[Provider, Packer, PackageConfiguration, number]> = asyn
 
     const { archive } = await pack(
         require.resolve("./fixtures/functions"),
-        __dirname,
         config,
         {},
         identifier
@@ -69,14 +67,22 @@ testPacker.title = (_title = "", provider, _packer, options) =>
 
 function added(dir: string) {
     return async (t: ExecutionContext, root: string) => {
-        t.true(
-            await pathExists(join(root, dir, "file.txt")),
-            "ensure added files are copied"
-        );
+        const filePath = join(root, dir, "file.txt");
+        t.true(await pathExists(filePath), `file ${filePath} does not exist in package`);
         const { mode } = await stat(join(root, dir, "script"));
         const { mode: origMode } = await stat("test/fixtures/dir/script");
         t.is(mode, origMode, "file modes are preserved");
         t.is(mode & 0o700, 0o700, "executable mode is preserved in added files");
+    };
+}
+
+function excluded(file: string) {
+    return async (t: ExecutionContext, root: string) => {
+        const filePath = join(root, file);
+        t.false(
+            await pathExists(filePath),
+            `file ${file} exists but it should be excluded`
+        );
     };
 }
 
@@ -85,27 +91,37 @@ const configs: PackageConfiguration[] = [
     { name: "queue", mode: "queue" },
     { name: "https-package", mode: "https", packageJson: "test/fixtures/package.json" },
     { name: "queue-package", mode: "queue", packageJson: "test/fixtures/package.json" },
-    { name: "addDirectory", addDirectory: "test/fixtures/dir", check: added("dir") },
-    { name: "addZipFile", addZipFile: "test/fixtures/dir.zip", check: added("dir") },
     {
-        name: "addDirectory-rel",
-        addDirectory: "../../test/fixtures/dir",
+        name: "include",
+        include: ["test/fixtures/dir/**/*"],
+        check: added("test/fixtures/dir")
+    },
+    {
+        name: "include-cwd",
+        include: [{ path: "dir/**/*", cwd: "test/fixtures" }],
         check: added("dir")
     },
     {
-        name: "addZipFile-rel",
-        addZipFile: "../../test/fixtures/dir.zip",
+        name: "include-dir",
+        include: ["test/fixtures/dir"],
+        check: added("test/fixtures/dir")
+    },
+    {
+        name: "include-dir-cwd",
+        include: [{ path: "dir", cwd: "test/fixtures" }],
         check: added("dir")
     },
     {
-        name: "addDirectory-option",
-        addDirectory: { localDir: "test/fixtures/dir", remoteDir: "otherDir" },
-        check: added("otherDir")
+        name: "exclude",
+        include: ["test/fixtures/dir/**/*"],
+        exclude: ["**/*.exc"],
+        check: excluded("test/fixtures/dir/excluded.exc")
     },
     {
-        name: "addZipFile-option",
-        addZipFile: { localFile: "test/fixtures/dir.zip", remoteDir: "otherDir" },
-        check: added("otherDir")
+        name: "exclude-file",
+        include: ["test/fixtures/dir/**/*"],
+        exclude: ["test/fixtures/dir/excluded.exc"],
+        check: excluded("test/fixtures/dir/excluded.exc")
     }
 ];
 

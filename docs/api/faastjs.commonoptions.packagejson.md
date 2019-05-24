@@ -33,6 +33,4 @@ The way the `packageJson` is handled varies by provider:
 
 For AWS, if [CommonOptions.useDependencyCaching](./faastjs.commonoptions.usedependencycaching.md) is `true` (which is the default), then the Lambda Layer created will be reused in future function creation requests if the contents of `packageJson` are the same.
 
-The path specified by `packageJson` is searched for in the same manner as [CommonOptions.addZipFile](./faastjs.commonoptions.addzipfile.md)<!-- -->.
-
 The `FAAST_PACKAGE_DIR` environment variable can be useful for debugging `packageJson` issues.

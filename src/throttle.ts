@@ -307,9 +307,10 @@ export interface Limits {
     cache?: PersistentCache;
     /**
      * A promise that, if resolved, causes cancellation of pending throttled
-     * invocations. This is typically created using {@link Deferred}. The idea
-     * is to use the resolving of the promise as an asynchronous signal that any
+     * invocations. This is typically created using `Deferred`. The idea is to
+     * use the resolving of the promise as an asynchronous signal that any
      * pending invocations in this throttled function should be cleared.
+     * @internal
      */
     cancel?: Promise<void>;
 }

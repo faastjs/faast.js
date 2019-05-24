@@ -429,7 +429,7 @@ export function logUrl(state: AwsState) {
 
 export const initialize = throttle(
     { concurrency: Infinity, rate: 2 },
-    async (fModule: string, nonce: UUID, options: Required<AwsOptions>, dir: string) => {
+    async (fModule: string, nonce: UUID, options: Required<AwsOptions>) => {
         const { region, timeout, memorySize, env } = options;
         log.info(`Creating AWS APIs`);
         const services = await createAwsApis(region);
@@ -476,7 +476,7 @@ export const initialize = throttle(
             const wrapperOptions = {
                 childProcessTimeoutMs: timeout * 1000 - 50
             };
-            const bundle = awsPacker(fModule, dir, options, wrapperOptions, FunctionName);
+            const bundle = awsPacker(fModule, options, wrapperOptions, FunctionName);
             return { ZipFile: await streamToBuffer((await bundle).archive) };
         }
 
@@ -1030,13 +1030,11 @@ function deleteGarbageFunctions(
 
 export async function awsPacker(
     functionModule: string,
-    dir: string,
     options: CommonOptions,
     wrapperOptions: WrapperOptions,
     FunctionName: string
 ): Promise<PackerResult> {
     return packer(
-        dir,
         awsTrampoline,
         functionModule,
         {

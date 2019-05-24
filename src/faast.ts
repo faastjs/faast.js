@@ -1,8 +1,6 @@
 import { EventEmitter } from "events";
-import { dirname } from "path";
 import * as util from "util";
 import * as uuidv4 from "uuid/v4";
-import { _parentModule } from "../index";
 import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
 import { CostMetric, CostSnapshot } from "./cost";
 import { assertNever, FaastError, synthesizeFaastError } from "./error";
@@ -217,12 +215,7 @@ async function createFaastModuleProxy<M extends object, O extends CommonOptions,
         log.provider(`options ${inspectProvider(options)}`);
         return new FaastModuleProxy(
             impl,
-            await impl.initialize(
-                resolvedModule,
-                functionId,
-                options,
-                dirname(_parentModule!.filename)
-            ),
+            await impl.initialize(resolvedModule, functionId, options),
             fmodule,
             resolvedModule,
             options

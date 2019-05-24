@@ -17,42 +17,21 @@ export const KIND_ATTR = "__faast_kind__";
 export type Provider = "aws" | "google" | "local";
 
 /**
- * Add a local directory to the code package.
+ * Options for the {@link CommonOptions.include} option.
  * @public
  */
-export interface AddDirectoryOption {
-    /** The local directory to recursively add to the code package. */
-    localDir: string;
+export interface IncludeOption {
     /**
-     * The location where the local directory will be copied to on the remote
-     * side.
-     * @remarks
-     * This should be a relative path from the current working directory of the
-     * remote function. If not specified, it defaults to the `path.basename` of
-     * the local directory. For example, if the local directory is `foo/bar`,
-     * the default remote directory will be `./bar`. If the directory does not
-     * exist, it will be created.
+     * The path to the directory or glob to add to the cloud function.
      */
-    remoteDir?: string;
-}
-
-/**
- * Add a local zip file to the code package.
- * @public
- */
-export interface AddZipFileOption {
-    /** The local zip file to add to the code package */
-    localFile: string;
+    path: string;
     /**
-     * The remote directory where the zip file will be extracted.
-     * @remarks
-     * This should be a relative path from the current working directory of the
-     * remote function. If not specified, it defaults to
-     * `path.basename(zipFileName, ".zip")`. For example, if the local zip file
-     * is `foo/bar.zip`, the zip file will be extracted to `./bar` on the remote
-     * side. If the directory does not exist, it will be created.
+     * The working directory if `path` is relative. Defaults to `process.cwd()`.
+     * For example, if `cwd` is `"foo"` and `path` is `"bar"`, then the
+     * contents of the directory `foo/bar/` will be added to the remote
+     * function under the path `bar/`.
      */
-    remoteDir?: string;
+    cwd?: string;
 }
 
 /**
@@ -63,43 +42,6 @@ export interface AddZipFileOption {
  * @public
  */
 export interface CommonOptions {
-    /**
-     * Add local directories to the code package. See {@link AddDirectoryOption}.
-     * @remarks
-     * Each directory is recursively traversed. Directories can be specified as
-     * an absolute path or a relative path. If the path is relative, it is
-     * searched for in the following order:
-     *
-     * (1) The directory containing the script that imports the `faast` module.
-     * Specifically, the value of `__dirname` from that script.
-     *
-     * (2) The current working directory of the executing process.
-     *
-     * On the remote side, the directories will be available in the directory
-     * `"./${dir}"`, where `dir` is the basename of the directory specified. For
-     * example, if the directory `"/foo/bar"` is specified, then the remote side
-     * will contain a directory `"./bar"` with the contents of that directory.
-     */
-    addDirectory?: string | AddDirectoryOption | (string | AddDirectoryOption)[];
-    /**
-     * Add zip files to the code package. See {@link AddZipFileOption}.
-     * @remarks
-     * Each file is unzipped on the remote side under the current working
-     * directory. Zip files can be specified as an absolute path or a relative
-     * path. If the path is relative, it is searched for in the following order:
-     *
-     * (1) The directory containing the script that imports the `faast` module.
-     * Specifically, the value of `__dirname` from that script.
-     *
-     * (2) The current working directory of the executing process.
-     *
-     * On the remote side, the zip file will be extracted into a directory with
-     * the same name as the file except the `".zip"` extension will be omitted.
-     * For example, if the zip file is specified as `"foo/bar.zip"`, on the
-     * remote side a directory named `./bar` will be created with the contents of
-     * the extracted zipfile.
-     */
-    addZipFile?: string | AddZipFileOption | (string | AddZipFileOption)[];
     /**
      * If true, create a child process to isolate user code from faast
      * scaffolding. Default: true.
@@ -133,6 +75,13 @@ export interface CommonOptions {
      * Infinity. A value of 1 ensures mutually exclusive invocations.
      */
     concurrency?: number;
+    /**
+     * Exclude a subset of files included by {@link CommonOptions.include}.
+     * @remarks
+     * The exclusion can be a file, directory, or glob. Excludes apply to all
+     * included entries.
+     */
+    exclude?: string[];
     /**
      * Rate limit invocations (invocations/sec). Default: no rate limit.
      * @remarks
@@ -175,6 +124,24 @@ export interface CommonOptions {
      * Also see {@link CommonOptions.retentionInDays}.
      */
     gc?: "auto" | "force" | "off";
+    /**
+     * Include files to make available in the remote function. See
+     * {@link IncludeOption}.
+     * @remarks
+     * Each include entry is a directory or glob pattern. Paths can be specified
+     * as relative or absolute paths. Relative paths are resolved relative to
+     * the current working directory, or relative to the `cwd` option.
+     *
+     * If the include entry is a directory `"foo/bar"`, the directory
+     * `"./foo/bar"` will be available in the cloud function. Directories are
+     * recursively added.
+     *
+     * Glob patterns use the syntax of
+     * {@link https://github.com/isaacs/node-glob | node glob}.
+     *
+     * Also see {@link CommonOptions.exclude} for file exclusions.
+     */
+    include?: (string | IncludeOption)[];
     /**
      * Maximum number of times that faast will retry each invocation. Default: 2
      * (invocations can therefore be attemped 3 times in total).
@@ -274,9 +241,6 @@ export interface CommonOptions {
      * For AWS, if {@link CommonOptions.useDependencyCaching} is `true` (which
      * is the default), then the Lambda Layer created will be reused in future
      * function creation requests if the contents of `packageJson` are the same.
-     *
-     * The path specified by `packageJson` is searched for in the same manner as
-     * {@link CommonOptions.addZipFile}.
      *
      * The `FAAST_PACKAGE_DIR` environment variable can be useful for debugging
      * `packageJson` issues.
@@ -448,10 +412,10 @@ export interface CommonOptions {
 }
 
 export const commonDefaults: Required<CommonOptions> = {
-    addDirectory: [],
-    addZipFile: [],
     childProcess: true,
     concurrency: 100,
+    exclude: [],
+    include: [],
     rate: 0,
     env: {},
     gc: "auto",
@@ -686,14 +650,7 @@ export type UUID = string;
 export interface ProviderImpl<O extends CommonOptions, S> {
     name: Provider;
     defaults: Required<O>;
-
-    initialize(
-        serverModule: string,
-        nonce: UUID,
-        options: Required<O>,
-        parentDir: string
-    ): Promise<S>;
-
+    initialize(serverModule: string, nonce: UUID, options: Required<O>): Promise<S>;
     costSnapshot(state: S, stats: FunctionStats): Promise<CostSnapshot>;
     cleanup(state: S, options: Required<CleanupOptions>): Promise<void>;
     logUrl(state: S): string;

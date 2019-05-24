@@ -23,18 +23,6 @@ import { VError } from 'verror';
 import * as webpack from 'webpack';
 import { Writable } from 'stream';
 
-// @public
-export interface AddDirectoryOption {
-    localDir: string;
-    remoteDir?: string;
-}
-
-// @public
-export interface AddZipFileOption {
-    localFile: string;
-    remoteDir?: string;
-}
-
 // Warning: (ae-forgotten-export) The symbol "AwsState" needs to be exported by the entry point index.d.ts
 // 
 // @public
@@ -63,18 +51,19 @@ export interface CleanupOptions {
 
 // @public
 export interface CommonOptions {
-    addDirectory?: string | AddDirectoryOption | (string | AddDirectoryOption)[];
-    addZipFile?: string | AddZipFileOption | (string | AddZipFileOption)[];
     childProcess?: boolean;
     concurrency?: number;
     env?: {
         [key: string]: string;
     };
+    exclude?: string[];
     gc?: "auto" | "force" | "off";
+    include?: (string | IncludeOption)[];
     maxRetries?: number;
     memorySize?: number;
     mode?: "https" | "queue" | "auto";
     packageJson?: string | object;
+    rate?: number;
     retentionInDays?: number;
     // @beta
     speculativeRetryThreshold?: number;
@@ -273,9 +262,17 @@ export interface GoogleOptions extends CommonOptions {
 export type GoogleRegion = "asia-east1" | "asia-east2" | "asia-northeast1" | "asia-south1" | "asia-southeast1" | "australia-southeast1" | "europe-north1" | "europe-west1" | "europe-west2" | "europe-west3" | "europe-west4" | "europe-west6" | "northamerica-northeast1" | "southamerica-east1" | "us-central1" | "us-east1" | "us-east4" | "us-west1" | "us-west2";
 
 // @public
+export interface IncludeOption {
+    cwd?: string;
+    path: string;
+}
+
+// @public
 export interface Limits {
     burst?: number;
     cache?: PersistentCache;
+    // @internal
+    cancel?: Promise<void>;
     concurrency: number;
     memoize?: boolean;
     rate?: number;
@@ -305,9 +302,6 @@ export const log: {
     awssdk: debug.Debugger;
     retry: debug.Debugger;
 };
-
-// @internal (undocumented)
-export const _parentModule: NodeModule | null;
 
 // @public
 export class PersistentCache {
@@ -358,7 +352,7 @@ export class Statistics {
 }
 
 // @public
-export function throttle<A extends any[], R>({ concurrency, retry, rate, burst, memoize, cache }: Limits, fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;
+export function throttle<A extends any[], R>({ concurrency, retry, rate, burst, memoize, cache, cancel }: Limits, fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;
 
 // @public
 export type Unpacked<T> = T extends Promise<infer D> ? D : T;

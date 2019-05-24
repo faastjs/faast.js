@@ -21,16 +21,17 @@ export interface CommonOptions
 
 |  Property | Type | Description |
 |  --- | --- | --- |
-|  [addDirectory](./faastjs.commonoptions.adddirectory.md) | <code>string &#124; AddDirectoryOption &#124; (string &#124; AddDirectoryOption)[]</code> | Add local directories to the code package. See [AddDirectoryOption](./faastjs.adddirectoryoption.md)<!-- -->. |
-|  [addZipFile](./faastjs.commonoptions.addzipfile.md) | <code>string &#124; AddZipFileOption &#124; (string &#124; AddZipFileOption)[]</code> | Add zip files to the code package. See [AddZipFileOption](./faastjs.addzipfileoption.md)<!-- -->. |
 |  [childProcess](./faastjs.commonoptions.childprocess.md) | <code>boolean</code> | If true, create a child process to isolate user code from faast scaffolding. Default: true. |
 |  [concurrency](./faastjs.commonoptions.concurrency.md) | <code>number</code> | The maximum number of concurrent invocations to allow. Default: 100, except for the <code>local</code> provider, where the default is 10. |
 |  [env](./faastjs.commonoptions.env.md) | <code>{</code><br/><code>        [key: string]: string;</code><br/><code>    }</code> | Environment variables available during serverless function execution. Default: {<!-- -->}<!-- -->. |
+|  [exclude](./faastjs.commonoptions.exclude.md) | <code>string[]</code> | Exclude a subset of files included by [CommonOptions.include](./faastjs.commonoptions.include.md)<!-- -->. |
 |  [gc](./faastjs.commonoptions.gc.md) | <code>&quot;auto&quot; &#124; &quot;force&quot; &#124; &quot;off&quot;</code> | Garbage collector mode. Default: <code>&quot;auto&quot;</code>. |
+|  [include](./faastjs.commonoptions.include.md) | <code>(string &#124; IncludeOption)[]</code> | Include files to make available in the remote function. See [IncludeOption](./faastjs.includeoption.md)<!-- -->. |
 |  [maxRetries](./faastjs.commonoptions.maxretries.md) | <code>number</code> | Maximum number of times that faast will retry each invocation. Default: 2 (invocations can therefore be attemped 3 times in total). |
 |  [memorySize](./faastjs.commonoptions.memorysize.md) | <code>number</code> | Memory limit for each function in MB. This setting has an effect on pricing. Default varies by provider. |
 |  [mode](./faastjs.commonoptions.mode.md) | <code>&quot;https&quot; &#124; &quot;queue&quot; &#124; &quot;auto&quot;</code> | Specify invocation mode. Default: <code>&quot;auto&quot;</code>. |
 |  [packageJson](./faastjs.commonoptions.packagejson.md) | <code>string &#124; object</code> | Specify a package.json file to include with the code package. |
+|  [rate](./faastjs.commonoptions.rate.md) | <code>number</code> | Rate limit invocations (invocations/sec). Default: no rate limit. |
 |  [retentionInDays](./faastjs.commonoptions.retentionindays.md) | <code>number</code> | Specify how many days to wait before reclaiming cloud garbage. Default: 1. |
 |  [speculativeRetryThreshold](./faastjs.commonoptions.speculativeretrythreshold.md) | <code>number</code> | <b><i>(BETA)</i></b> Reduce tail latency by retrying invocations that take substantially longer than other invocations of the same function. Default: 3. |
 |  [timeout](./faastjs.commonoptions.timeout.md) | <code>number</code> | Execution time limit for each invocation, in seconds. Default: 60. |

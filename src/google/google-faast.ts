@@ -403,8 +403,7 @@ async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) 
 export async function initialize(
     fmodule: string,
     nonce: UUID,
-    options: Required<GoogleOptions>,
-    parentDir: string
+    options: Required<GoogleOptions>
 ): Promise<GoogleState> {
     log.info(`Create google cloud function`);
     const services = await initializeGoogleServices();
@@ -421,7 +420,6 @@ export async function initialize(
         };
         const { archive } = await googlePacker(
             fmodule,
-            parentDir,
             options,
             wrapperOptions,
             functionName
@@ -830,7 +828,6 @@ async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
 
 export async function googlePacker(
     functionModule: string,
-    parentDir: string,
     options: CommonOptions,
     wrapperOptions: WrapperOptions,
     FunctionName: string
@@ -839,7 +836,6 @@ export async function googlePacker(
     const trampolineModule =
         mode === "queue" ? googleTrampolineQueue : googleTrampolineHttps;
     return packer(
-        parentDir,
         trampolineModule,
         functionModule,
         options,
