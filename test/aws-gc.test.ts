@@ -53,7 +53,6 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
         );
         await deleteRetentionPolicy();
 
-        let setLogRetention = false;
         let deletedLayer = false;
         const { layer, FunctionName } = mod.state.resources;
         const mod2 = await faastAws(functions, {
@@ -62,11 +61,9 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
             _gcWorker: async (work, services) => {
                 switch (work.type) {
                     case "SetLogRetention":
-                        if (work.logGroupName === logGroupName) {
-                            log.gc(`setting log retention for ${logGroupName}`);
-                            await defaultGcWorker(work, services);
-                            setLogRetention = true;
-                        }
+                        // checkResourcesCleanedUp will verify the log group is
+                        // deleted.
+                        await defaultGcWorker(work, services);
                         break;
                     case "DeleteLayerVersion":
                         if (work.LayerName === layer!.LayerName) {
@@ -85,7 +82,6 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
         });
 
         await mod2.cleanup();
-        t.true(setLogRetention, "Set log retention is true");
         t.true(deletedLayer, "Deleted layer is true");
         await checkResourcesCleanedUp(t, await getAWSResources(mod));
     } finally {

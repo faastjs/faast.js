@@ -17,7 +17,7 @@ export function quietly<T>(p: Promise<T>) {
 }
 
 export async function getAWSResources(mod: AwsFaastModule) {
-    const { lambda, sns, sqs, s3 } = mod.state.services;
+    const { lambda, sns, sqs, s3, cloudwatch } = mod.state.services;
     const {
         FunctionName,
         RoleName,
@@ -62,17 +62,18 @@ export async function getAWSResources(mod: AwsFaastModule) {
 
     const s3Result = Bucket && (await quietly(s3.listObjectsV2({ Bucket }).promise()));
 
-    if (
-        logGroupName ||
-        RoleName ||
-        SNSLambdaSubscriptionArn ||
-        region ||
-        ResponseQueueArn
-    ) {
+    const logGroupResult =
+        logGroupName &&
+        (await quietly(
+            cloudwatch.describeLogGroups({ logGroupNamePrefix: logGroupName }).promise()
+        ));
+
+    if (RoleName || SNSLambdaSubscriptionArn || region || ResponseQueueArn) {
         // ignore
     }
 
     return {
+        logGroupResult: logGroupResult && logGroupResult.logGroups![0],
         functionResult,
         snsResult,
         sqsResult,
