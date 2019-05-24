@@ -71,20 +71,23 @@
       "api/faastjs.cleanupoptions": {
         "title": "CleanupOptions interface"
       },
-      "api/faastjs.commonoptions.adddirectory": {
-        "title": "CommonOptions.addDirectory property"
-      },
-      "api/faastjs.commonoptions.addzipfile": {
-        "title": "CommonOptions.addZipFile property"
-      },
       "api/faastjs.commonoptions.childprocess": {
         "title": "CommonOptions.childProcess property"
       },
       "api/faastjs.commonoptions.concurrency": {
         "title": "CommonOptions.concurrency property"
       },
+      "api/faastjs.commonoptions.env": {
+        "title": "CommonOptions.env property"
+      },
+      "api/faastjs.commonoptions.exclude": {
+        "title": "CommonOptions.exclude property"
+      },
       "api/faastjs.commonoptions.gc": {
         "title": "CommonOptions.gc property"
+      },
+      "api/faastjs.commonoptions.include": {
+        "title": "CommonOptions.include property"
       },
       "api/faastjs.commonoptions.maxretries": {
         "title": "CommonOptions.maxRetries property"
@@ -101,6 +104,9 @@
       "api/faastjs.commonoptions.packagejson": {
         "title": "CommonOptions.packageJson property"
       },
+      "api/faastjs.commonoptions.rate": {
+        "title": "CommonOptions.rate property"
+      },
       "api/faastjs.commonoptions.retentionindays": {
         "title": "CommonOptions.retentionInDays property"
       },
@@ -112,6 +118,9 @@
       },
       "api/faastjs.commonoptions.usedependencycaching": {
         "title": "CommonOptions.useDependencyCaching property"
+      },
+      "api/faastjs.commonoptions.validateserialization": {
+        "title": "CommonOptions.validateSerialization property"
       },
       "api/faastjs.commonoptions.webpackoptions": {
         "title": "CommonOptions.webpackOptions property"
@@ -415,6 +424,15 @@
       },
       "api/faastjs.googleregion": {
         "title": "GoogleRegion type"
+      },
+      "api/faastjs.includeoption.cwd": {
+        "title": "IncludeOption.cwd property"
+      },
+      "api/faastjs.includeoption": {
+        "title": "IncludeOption interface"
+      },
+      "api/faastjs.includeoption.path": {
+        "title": "IncludeOption.path property"
       },
       "api/faastjs.limits.burst": {
         "title": "Limits.burst property"
