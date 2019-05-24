@@ -17,6 +17,24 @@ export const KIND_ATTR = "__faast_kind__";
 export type Provider = "aws" | "google" | "local";
 
 /**
+ * Options for the {@link CommonOptions.include} option.
+ * @public
+ */
+export interface IncludeOption {
+    /**
+     * The path to the directory or glob to add to the cloud function.
+     */
+    path: string;
+    /**
+     * The working directory if `path` is relative. Defaults to `process.cwd()`.
+     * For example, if `cwd` is `"foo"` and `path` is `"bar"`, then the
+     * contents of the directory `foo/bar/` will be added to the remote
+     * function under the path `bar/`.
+     */
+    cwd?: string;
+}
+
+/**
  * Options common across all faast.js providers. Used as argument to {@link faast}.
  * @remarks
  * There are also more specific options for each provider. See
@@ -24,34 +42,6 @@ export type Provider = "aws" | "google" | "local";
  * @public
  */
 export interface CommonOptions {
-    /**
-     * Add local directories to the code package.
-     * @remarks
-     * Each directory is recursively traversed. On the remote side, the
-     * directories will be available on the file system relative to the current
-     * working directory. Directories can be specified as an absolute path or a
-     * relative path. If the path is relative, it is searched for in the
-     * following order:
-     *
-     * (1) The directory containing the script that imports the `faast` module.
-     * Specifically, the value of `__dirname` from that script.
-     *
-     * (2) The current working directory of the executing process.
-     */
-    addDirectory?: string | string[];
-    /**
-     * Add zip files to the code package.
-     * @remarks
-     * Each file is unzipped on the remote side under the current working
-     * directory. Zip files can be specified as an absolute path or a relative
-     * path. If the path is relative, it is searched for in the following order:
-     *
-     * (1) The directory containing the script that imports the `faast` module.
-     * Specifically, the value of `__dirname` from that script.
-     *
-     * (2) The current working directory of the executing process.
-     */
-    addZipFile?: string | string[];
     /**
      * If true, create a child process to isolate user code from faast
      * scaffolding. Default: true.
@@ -86,6 +76,22 @@ export interface CommonOptions {
      */
     concurrency?: number;
     /**
+     * Exclude a subset of files included by {@link CommonOptions.include}.
+     * @remarks
+     * The exclusion can be a file, directory, or glob. Excludes apply to all
+     * included entries.
+     */
+    exclude?: string[];
+    /**
+     * Rate limit invocations (invocations/sec). Default: no rate limit.
+     * @remarks
+     * Some services cannot handle more than a certain number of requests per
+     * second, and it is easy to overwhelm them with a large number of cloud
+     * functions. Specify a rate limit in invocation/second to restrict how
+     * faast.js issues requests.
+     */
+    rate?: number;
+    /**
      * Environment variables available during serverless function execution.
      * Default: \{\}.
      */
@@ -118,6 +124,24 @@ export interface CommonOptions {
      * Also see {@link CommonOptions.retentionInDays}.
      */
     gc?: "auto" | "force" | "off";
+    /**
+     * Include files to make available in the remote function. See
+     * {@link IncludeOption}.
+     * @remarks
+     * Each include entry is a directory or glob pattern. Paths can be specified
+     * as relative or absolute paths. Relative paths are resolved relative to
+     * the current working directory, or relative to the `cwd` option.
+     *
+     * If the include entry is a directory `"foo/bar"`, the directory
+     * `"./foo/bar"` will be available in the cloud function. Directories are
+     * recursively added.
+     *
+     * Glob patterns use the syntax of
+     * {@link https://github.com/isaacs/node-glob | node glob}.
+     *
+     * Also see {@link CommonOptions.exclude} for file exclusions.
+     */
+    include?: (string | IncludeOption)[];
     /**
      * Maximum number of times that faast will retry each invocation. Default: 2
      * (invocations can therefore be attemped 3 times in total).
@@ -217,9 +241,6 @@ export interface CommonOptions {
      * For AWS, if {@link CommonOptions.useDependencyCaching} is `true` (which
      * is the default), then the Lambda Layer created will be reused in future
      * function creation requests if the contents of `packageJson` are the same.
-     *
-     * The path specified by `packageJson` is searched for in the same manner as
-     * {@link CommonOptions.addZipFile}.
      *
      * The `FAAST_PACKAGE_DIR` environment variable can be useful for debugging
      * `packageJson` issues.
@@ -391,10 +412,11 @@ export interface CommonOptions {
 }
 
 export const commonDefaults: Required<CommonOptions> = {
-    addDirectory: [],
-    addZipFile: [],
     childProcess: true,
     concurrency: 100,
+    exclude: [],
+    include: [],
+    rate: 0,
     env: {},
     gc: "auto",
     maxRetries: 2,
@@ -628,14 +650,7 @@ export type UUID = string;
 export interface ProviderImpl<O extends CommonOptions, S> {
     name: Provider;
     defaults: Required<O>;
-
-    initialize(
-        serverModule: string,
-        nonce: UUID,
-        options: Required<O>,
-        parentDir: string
-    ): Promise<S>;
-
+    initialize(serverModule: string, nonce: UUID, options: Required<O>): Promise<S>;
     costSnapshot(state: S, stats: FunctionStats): Promise<CostSnapshot>;
     cleanup(state: S, options: Required<CleanupOptions>): Promise<void>;
     logUrl(state: S): string;

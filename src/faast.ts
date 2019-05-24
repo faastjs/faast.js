@@ -1,8 +1,6 @@
 import { EventEmitter } from "events";
-import { dirname } from "path";
 import * as util from "util";
 import * as uuidv4 from "uuid/v4";
-import { _parentModule } from "../index";
 import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
 import { CostMetric, CostSnapshot } from "./cost";
 import { assertNever, FaastError, synthesizeFaastError } from "./error";
@@ -31,7 +29,7 @@ import {
     serializeFunctionCall
 } from "./serialize";
 import { ExponentiallyDecayingAverageValue, roundTo100ms, sleep } from "./shared";
-import { Deferred, Funnel, Pump } from "./throttle";
+import { Deferred, Funnel, Pump, RateLimiter } from "./throttle";
 import { Unpacked } from "./types";
 import {
     CpuMeasurement,
@@ -217,12 +215,7 @@ async function createFaastModuleProxy<M extends object, O extends CommonOptions,
         log.provider(`options ${inspectProvider(options)}`);
         return new FaastModuleProxy(
             impl,
-            await impl.initialize(
-                resolvedModule,
-                functionId,
-                options,
-                dirname(_parentModule!.filename)
-            ),
+            await impl.initialize(resolvedModule, functionId, options),
             fmodule,
             resolvedModule,
             options
@@ -475,6 +468,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
     );
     private _memoryLeakDetector: MemoryLeakDetector;
     private _funnel: Funnel<any>;
+    private _rateLimiter?: RateLimiter<any>;
     private _skew = new ExponentiallyDecayingAverageValue(0.3);
     private _statsTimer?: NodeJS.Timer;
     private _cleanupHooks: Set<Deferred> = new Set();
@@ -501,6 +495,9 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
         log.info(`Log url: ${impl.logUrl(state)}`);
 
         this._funnel = new Funnel<any>(options.concurrency);
+        if (options.rate) {
+            this._rateLimiter = new RateLimiter(options.rate, 1);
+        }
         this._memoryLeakDetector = new MemoryLeakDetector(options.memorySize);
         const functions: any = {};
         for (const name of Object.keys(fmodule)) {
@@ -520,6 +517,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             this._stats.clear();
             this._memoryLeakDetector.clear();
             this._funnel.clear();
+            this._rateLimiter && this._rateLimiter.clear();
             this._cleanupHooks.forEach(hook => hook.resolve());
             this._cleanupHooks.clear();
             this._emitter.removeAllListeners();
@@ -713,7 +711,14 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 );
             };
 
-            return this._funnel.push(invoke, shouldRetry);
+            if (this._rateLimiter) {
+                return this._funnel.push(
+                    () => this._rateLimiter!.push(invoke),
+                    shouldRetry
+                );
+            } else {
+                return this._funnel.push(invoke, shouldRetry);
+            }
         };
     }
 

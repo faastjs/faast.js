@@ -429,7 +429,7 @@ export function logUrl(state: AwsState) {
 
 export const initialize = throttle(
     { concurrency: Infinity, rate: 2 },
-    async (fModule: string, nonce: UUID, options: Required<AwsOptions>, dir: string) => {
+    async (fModule: string, nonce: UUID, options: Required<AwsOptions>) => {
         const { region, timeout, memorySize, env } = options;
         log.info(`Creating AWS APIs`);
         const services = await createAwsApis(region);
@@ -476,7 +476,7 @@ export const initialize = throttle(
             const wrapperOptions = {
                 childProcessTimeoutMs: timeout * 1000 - 50
             };
-            const bundle = awsPacker(fModule, dir, options, wrapperOptions, FunctionName);
+            const bundle = awsPacker(fModule, options, wrapperOptions, FunctionName);
             return { ZipFile: await streamToBuffer((await bundle).archive) };
         }
 
@@ -801,7 +801,6 @@ async function addLogRetentionPolicy(FunctionName: string, cloudwatch: CloudWatc
 
 export async function cleanup(state: AwsState, options: Required<CleanupOptions>) {
     log.info(`aws cleanup starting.`);
-    await addLogRetentionPolicy(state.resources.FunctionName, state.services.cloudwatch);
     if (state.gcPromise) {
         log.info(`Waiting for garbage collection...`);
         await state.gcPromise;
@@ -810,6 +809,10 @@ export async function cleanup(state: AwsState, options: Required<CleanupOptions>
 
     if (options.deleteResources) {
         log.info(`Cleaning up infrastructure for ${state.resources.FunctionName}...`);
+        await addLogRetentionPolicy(
+            state.resources.FunctionName,
+            state.services.cloudwatch
+        );
         // Don't delete cached role. It may be in use by other instances of
         // faast. Don't delete logs. They are often useful. By default log
         // stream retention will be 1 day, and gc will clean out the log group
@@ -1030,13 +1033,11 @@ function deleteGarbageFunctions(
 
 export async function awsPacker(
     functionModule: string,
-    dir: string,
     options: CommonOptions,
     wrapperOptions: WrapperOptions,
     FunctionName: string
 ): Promise<PackerResult> {
     return packer(
-        dir,
         awsTrampoline,
         functionModule,
         {

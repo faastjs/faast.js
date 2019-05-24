@@ -88,8 +88,7 @@ export const LocalImpl: ProviderImpl<LocalOptions, LocalState> = {
 async function initialize(
     serverModule: string,
     nonce: UUID,
-    options: Required<LocalOptions>,
-    parentDir: string
+    options: Required<LocalOptions>
 ): Promise<LocalState> {
     const wrappers: Wrapper[] = [];
     const logStreams: Writable[] = [];
@@ -153,13 +152,7 @@ async function initialize(
         return wrapper;
     };
 
-    const packerResult = await localPacker(
-        serverModule,
-        parentDir,
-        options,
-        {},
-        `faast-${nonce}`
-    );
+    const packerResult = await localPacker(serverModule, options, {}, `faast-${nonce}`);
 
     await unzipInDir(tempDir, packerResult.archive);
     if (options.packageJson) {
@@ -191,13 +184,11 @@ export function logUrl(state: LocalState) {
 
 export async function localPacker(
     functionModule: string,
-    parentDir: string,
     options: CommonOptions,
     wrapperOptions: WrapperOptions,
     FunctionName: string
 ): Promise<PackerResult> {
     return packer(
-        parentDir,
         localTrampolineFactory,
         functionModule,
         options,

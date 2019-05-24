@@ -1,5 +1,12 @@
 import { Archiver } from "archiver";
-import { createWriteStream, ensureDir, mkdirp, pathExists, readFile } from "fs-extra";
+import {
+    createWriteStream,
+    ensureDir,
+    mkdirp,
+    pathExists,
+    readFile,
+    stat
+} from "fs-extra";
 import * as path from "path";
 import { join } from "path";
 import { PassThrough, Readable } from "stream";
@@ -8,7 +15,7 @@ import * as yauzl from "yauzl";
 import { FaastError } from "./error";
 import { LoaderOptions } from "./loader";
 import { log } from "./log";
-import { commonDefaults, CommonOptions } from "./provider";
+import { commonDefaults, CommonOptions, IncludeOption } from "./provider";
 import { keysOf, streamToBuffer } from "./shared";
 import { TrampolineFactory, WrapperOptionDefaults, WrapperOptions } from "./wrapper";
 
@@ -29,7 +36,6 @@ function getUrlEncodedQueryParameters(options: LoaderOptions) {
 }
 
 export async function packer(
-    parentDir: string,
     trampolineFactory: TrampolineFactory,
     functionModule: string,
     userOptions: CommonOptions,
@@ -38,20 +44,20 @@ export async function packer(
 ): Promise<PackerResult> {
     const options = { ...commonDefaults, ...userOptions };
     const wrapperOptions = { ...WrapperOptionDefaults, ...userWrapperOptions };
-    let { webpackOptions, packageJson, addDirectory, addZipFile } = options;
+    const { webpackOptions, packageJson } = options;
 
     log.info(`Running webpack`);
     const mfs = new MemoryFileSystem();
 
     function addToArchive(root: string, archive: Archiver) {
         function addEntry(entry: string) {
-            const stat = mfs.statSync(entry);
-            if (stat.isDirectory()) {
+            const statEntry = mfs.statSync(entry);
+            if (statEntry.isDirectory()) {
                 for (const subEntry of mfs.readdirSync(entry)) {
                     const subEntryPath = path.join(entry, subEntry);
                     addEntry(subEntryPath);
                 }
-            } else if (stat.isFile()) {
+            } else if (statEntry.isFile()) {
                 log.info(`Adding file: ${entry}`);
                 archive.append((mfs as any).createReadStream(entry), {
                     name: path.relative(root, entry)
@@ -77,29 +83,34 @@ export async function packer(
     }
 
     async function resolvePath(pathName: string) {
-        if (path.isAbsolute(pathName)) {
+        if (await pathExists(pathName)) {
             return pathName;
         }
-        const relativeDir = path.join(parentDir, pathName);
-        if (await pathExists(relativeDir)) {
-            return relativeDir;
-        } else if (await pathExists(pathName)) {
-            return pathName;
-        }
-        throw new FaastError(`Could not find "${pathName}" or "${relativeDir}"`);
+        throw new FaastError(`Could not find "${pathName}"`);
     }
 
-    async function processAddDirectories(archive: Archiver, directories: string[]) {
-        for (const dir of directories) {
-            archive.directory(await resolvePath(dir), false);
-        }
-    }
-
-    async function processAddZips(archive: Archiver, zipFiles: string[]) {
-        for (const zipFile of zipFiles) {
-            await processZip(await resolvePath(zipFile), (filename, contents, mode) => {
-                archive.append(contents, { name: filename, mode });
-            });
+    async function processIncludeExclude(
+        archive: Archiver,
+        include: (string | IncludeOption)[],
+        exclude: string[]
+    ) {
+        for (const name of include) {
+            let cwd = ".";
+            let entry;
+            if (typeof name === "string") {
+                entry = name;
+            } else {
+                cwd = name.cwd || ".";
+                entry = name.path;
+            }
+            try {
+                const resolvedPath = path.resolve(cwd, entry);
+                const entryStat = await stat(resolvedPath);
+                if (entryStat.isDirectory) {
+                    entry = join(entry, "/**/*");
+                }
+            } catch {}
+            archive.glob(entry, { ignore: exclude, cwd });
         }
     }
 
@@ -108,16 +119,8 @@ export async function packer(
         archive.on("error", err => log.warn(err));
         archive.on("warning", err => log.warn(err));
         addToArchive("/", archive);
-        if (typeof addDirectory === "string") {
-            addDirectory = [addDirectory];
-        }
-        addDirectory && (await processAddDirectories(archive, addDirectory));
-        if (typeof addZipFile === "string") {
-            addZipFile = [addZipFile];
-        }
-        if (addZipFile) {
-            await processAddZips(archive, addZipFile);
-        }
+        const { include, exclude } = options;
+        await processIncludeExclude(archive, include, exclude);
         archive.finalize();
         return { archive };
     }
@@ -142,7 +145,7 @@ export async function packer(
         config.externals = [
             ...externalsArray,
             ...dependencies,
-            ...dependencies.map(d => new RegExp(`${d}/.*`))
+            ...dependencies.map(d => new RegExp(`^${d}/.*`))
         ];
         log.webpack(`webpack config: %O`, config);
         const compiler = webpack(config);

@@ -98,12 +98,12 @@ await faast("aws", funcs, {
 });
 ```
 
-Add a local directory or zipfile (which will be unzipped on the remote side) to the code package:
+Include local files in the code package:
 
 ```typescript
 await faast("aws", funcs, {
-    addDirectory: "path/to/directory",
-    addZipFile: "path/to/file.zip"
+    include: ["path/to/directory", "**/*.ext"],
+    exclude: ["**/node_modules/**"]
 });
 ```
 
