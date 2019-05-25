@@ -19,4 +19,4 @@ exclude?: string[];
 
 ## Remarks
 
-The exclusion can be a file, directory, or glob. Excludes apply to all included entries.
+The exclusion can be a directory or glob. Exclusions apply to all included entries.

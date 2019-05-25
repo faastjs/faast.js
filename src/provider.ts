@@ -78,8 +78,8 @@ export interface CommonOptions {
     /**
      * Exclude a subset of files included by {@link CommonOptions.include}.
      * @remarks
-     * The exclusion can be a file, directory, or glob. Excludes apply to all
-     * included entries.
+     * The exclusion can be a directory or glob. Exclusions apply to all included
+     * entries.
      */
     exclude?: string[];
     /**
