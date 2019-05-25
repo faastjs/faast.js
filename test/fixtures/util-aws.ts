@@ -16,7 +16,7 @@ export function quietly<T>(p: Promise<T>) {
         .catch(_ => {});
 }
 
-export async function getAWSResources(mod: AwsFaastModule) {
+export async function getAWSResources(mod: AwsFaastModule, includeLogGroup = false) {
     const { lambda, sns, sqs, s3, cloudwatch } = mod.state.services;
     const {
         FunctionName,
@@ -63,6 +63,7 @@ export async function getAWSResources(mod: AwsFaastModule) {
     const s3Result = Bucket && (await quietly(s3.listObjectsV2({ Bucket }).promise()));
 
     const logGroupResult =
+        includeLogGroup &&
         logGroupName &&
         (await quietly(
             cloudwatch.describeLogGroups({ logGroupNamePrefix: logGroupName }).promise()
@@ -73,7 +74,7 @@ export async function getAWSResources(mod: AwsFaastModule) {
     }
 
     return {
-        logGroupResult: logGroupResult && logGroupResult.logGroups![0],
+        logGroupResult: (logGroupResult && logGroupResult.logGroups![0]) || undefined,
         functionResult,
         snsResult,
         sqsResult,

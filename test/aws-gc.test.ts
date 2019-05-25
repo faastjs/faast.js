@@ -83,7 +83,7 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
 
         await mod2.cleanup();
         t.true(deletedLayer, "Deleted layer is true");
-        await checkResourcesCleanedUp(t, await getAWSResources(mod));
+        await checkResourcesCleanedUp(t, await getAWSResources(mod, true));
     } finally {
         await mod.cleanup({ deleteResources: true, deleteCaches: true });
     }
@@ -109,7 +109,7 @@ test.serial(title("aws", "garbage collects functions that are never called"), as
         });
 
         await mod2.cleanup();
-        await checkResourcesCleanedUp(t, await getAWSResources(mod));
+        await checkResourcesCleanedUp(t, await getAWSResources(mod, true));
     } finally {
         await mod.cleanup({ deleteResources: true, deleteCaches: true });
     }
