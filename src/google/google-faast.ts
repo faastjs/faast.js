@@ -227,6 +227,9 @@ export interface GoogleServices {
     readonly cloudBilling: CloudBilling.Cloudbilling;
 }
 
+/**
+ * @internal
+ */
 export interface GoogleState {
     resources: GoogleResources;
     services: GoogleServices;

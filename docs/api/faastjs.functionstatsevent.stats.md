@@ -9,6 +9,8 @@ hide_title: true
 
 ## FunctionStatsEvent.stats property
 
+See [FunctionStats](./faastjs.functionstats.md)<!-- -->.
+
 <b>Signature:</b>
 
 ```typescript

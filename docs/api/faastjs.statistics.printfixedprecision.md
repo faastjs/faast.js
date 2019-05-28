@@ -9,6 +9,8 @@ hide_title: true
 
 ## Statistics.printFixedPrecision property
 
+The number of decimal places to print in [Statistics.toString()](./faastjs.statistics.tostring.md)
+
 <b>Signature:</b>
 
 ```typescript

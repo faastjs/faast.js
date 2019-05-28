@@ -36,7 +36,7 @@ export declare class FunctionStats
 
 |  Method | Modifiers | Description |
 |  --- | --- | --- |
-|  [toString()](./faastjs.functionstats.tostring.md) |  |  |
+|  [toString()](./faastjs.functionstats.tostring.md) |  | Summarize the function stats as a string. |
 
 ## Remarks
 

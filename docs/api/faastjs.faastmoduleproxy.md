@@ -22,9 +22,8 @@ export declare class FaastModuleProxy<M extends object, O, S> implements FaastMo
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
 |  [functions](./faastjs.faastmoduleproxy.functions.md) |  | <code>Promisified&lt;M&gt;</code> | Each call of a cloud function creates a separate remote invocation. |
-|  [options](./faastjs.faastmoduleproxy.options.md) |  | <code>Required&lt;CommonOptions&gt;</code> |  |
-|  [provider](./faastjs.faastmoduleproxy.provider.md) |  | <code>Provider</code> |  |
-|  [state](./faastjs.faastmoduleproxy.state.md) |  | <code>S</code> |  |
+|  [options](./faastjs.faastmoduleproxy.options.md) |  | <code>Required&lt;CommonOptions&gt;</code> | The options set for this instance, which includes default values. |
+|  [provider](./faastjs.faastmoduleproxy.provider.md) |  | <code>Provider</code> | The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" or "google". |
 
 ## Methods
 

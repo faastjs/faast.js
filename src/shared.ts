@@ -21,7 +21,10 @@ export class Statistics {
      * @param printFixedPrecision - The number of decimal places to print in
      * {@link Statistics.toString}.
      */
-    constructor(protected printFixedPrecision: number = 1) {}
+    constructor(
+        /** The number of decimal places to print in {@link Statistics.toString} */
+        protected printFixedPrecision: number = 1
+    ) {}
 
     /** @internal */
     clone() {

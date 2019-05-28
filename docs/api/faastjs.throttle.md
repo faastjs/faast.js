@@ -14,19 +14,21 @@ A decorator for rate limiting, concurrency limiting, retry, memoization, and on-
 <b>Signature:</b>
 
 ```typescript
-export declare function throttle<A extends any[], R>({ concurrency, retry, rate, burst, memoize, cache, cancel }: Limits, fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;
+export declare function throttle<A extends any[], R>(limits: Limits, fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;
 ```
 
 ## Parameters
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  { concurrency, retry, rate, burst, memoize, cache, cancel } | <code>Limits</code> |  |
+|  limits | <code>Limits</code> | see [Limits](./faastjs.limits.md)<!-- -->. |
 |  fn | <code>(...args: A) =&gt; Promise&lt;R&gt;</code> | The function to throttle. It can take any arguments, but must return a Promise (which includes <code>async</code> functions). |
 
 <b>Returns:</b>
 
 `(...args: A) => Promise<R>`
+
+Returns a throttled function with the same signature as the argument `fn`<!-- -->.
 
 ## Remarks
 

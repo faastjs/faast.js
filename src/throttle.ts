@@ -417,14 +417,18 @@ export function cacheFn<A extends any[], R>(
  * supports retrying failed invocations, memoizing calls, and on-disk caching.
  * See {@link Limits} for details.
  *
+ * @param limits - see {@link Limits}.
  * @param fn - The function to throttle. It can take any arguments, but must
  * return a Promise (which includes `async` functions).
+ * @returns Returns a throttled function with the same signature as the argument
+ * `fn`.
  * @public
  */
 export function throttle<A extends any[], R>(
-    { concurrency, retry, rate, burst, memoize, cache, cancel }: Limits,
+    limits: Limits,
     fn: (...args: A) => Promise<R>
 ): (...args: A) => Promise<R> {
+    const { concurrency, retry, rate, burst, memoize, cache, cancel } = limits;
     const funnel = new Funnel<R>(concurrency, retry);
     const cancellationQueue = [() => funnel.clear()];
 

@@ -38,14 +38,13 @@ Example of usage:
 ```typescript
 import { faast } from "faastjs";
 import * as mod from "./path/to/module";
-async function main() {
+(async () => {
     const faastModule = await faast("aws", mod);
     try {
         const result = await faastModule.functions.func("arg");
     } finally {
         await faastModule.cleanup();
     }
-}
-main();
+})();
 
 ```

@@ -579,6 +579,7 @@ export class FunctionStats {
      */
     errors = 0;
     /**
+     * Summarize the function stats as a string.
      * @returns a string showing the value of completed, retries, errors, and
      * mean execution time. This string excludes invocations by default because
      * it is often fixed.

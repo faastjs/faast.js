@@ -137,14 +137,13 @@ export class CostMetric {
 // @public
 export class CostSnapshot {
     // @internal
-    constructor(provider: string, 
+    constructor(
+    provider: string, 
     options: CommonOptions | AwsOptions | GoogleOptions, stats: FunctionStats, costMetrics?: CostMetric[]);
     readonly costMetrics: CostMetric[];
     csv(): string;
-    // (undocumented)
     find(name: string): CostMetric | undefined;
     readonly options: CommonOptions | AwsOptions | GoogleOptions;
-    // (undocumented)
     readonly provider: string;
     // @internal (undocumented)
     push(metric: CostMetric): void;
@@ -198,18 +197,18 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
     // Warning: (ae-forgotten-export) The symbol "ProviderImpl" needs to be exported by the entry point index.d.ts
     // 
     // @internal
-    constructor(impl: ProviderImpl<O, S>, state: S, fmodule: M, modulePath: string, options: Required<CommonOptions>);
+    constructor(impl: ProviderImpl<O, S>, 
+    state: S, fmodule: M, modulePath: string, 
+    options: Required<CommonOptions>);
     cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
     costSnapshot(): Promise<CostSnapshot>;
     functions: Promisified<M>;
     logUrl(): string;
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
-    // (undocumented)
     readonly options: Required<CommonOptions>;
-    // (undocumented)
     provider: Provider;
-    // (undocumented)
+    // @internal (undocumented)
     readonly state: S;
     stats(functionName?: string): FunctionStats;
     }
@@ -228,16 +227,16 @@ export class FunctionStats {
     retries: number;
     returnLatency: Statistics;
     sendResponseLatency: Statistics;
-    // (undocumented)
     toString(): string;
 }
 
 // @public
 export class FunctionStatsEvent {
-    constructor(fn: string, stats: FunctionStats);
-    // (undocumented)
+    // @internal
+    constructor(
+    fn: string, 
+    stats: FunctionStats);
     readonly fn: string;
-    // (undocumented)
     readonly stats: FunctionStats;
     toString(): string;
 }
@@ -336,13 +335,13 @@ export const providers: Provider[];
 
 // @public
 export class Statistics {
-    constructor(printFixedPrecision?: number);
+    constructor(
+    printFixedPrecision?: number);
     // @internal (undocumented)
     clone(): Statistics & this;
     max: number;
     mean: number;
     min: number;
-    // (undocumented)
     protected printFixedPrecision: number;
     samples: number;
     stdev: number;
@@ -352,7 +351,7 @@ export class Statistics {
 }
 
 // @public
-export function throttle<A extends any[], R>({ concurrency, retry, rate, burst, memoize, cache, cancel }: Limits, fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;
+export function throttle<A extends any[], R>(limits: Limits, fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;
 
 // @public
 export type Unpacked<T> = T extends Promise<infer D> ? D : T;

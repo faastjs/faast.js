@@ -9,6 +9,8 @@ hide_title: true
 
 ## FaastModuleProxy.options property
 
+The options set for this instance, which includes default values.
+
 <b>Signature:</b>
 
 ```typescript

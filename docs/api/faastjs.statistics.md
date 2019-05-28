@@ -17,6 +17,12 @@ Incrementally updated statistics on a set of values.
 export declare class Statistics 
 ```
 
+## Constructors
+
+|  Constructor | Modifiers | Description |
+|  --- | --- | --- |
+|  [(constructor)(printFixedPrecision)](./faastjs.statistics.(constructor).md) |  | Incrementally track mean, stdev, min, max, of a sequence of values. |
+
 ## Properties
 
 |  Property | Modifiers | Type | Description |
@@ -24,7 +30,7 @@ export declare class Statistics
 |  [max](./faastjs.statistics.max.md) |  | <code>number</code> | The maximum value observed. Initialized to <code>Number.NEGATIVE_INFINITY</code>. |
 |  [mean](./faastjs.statistics.mean.md) |  | <code>number</code> | The mean (average) of the values observed. |
 |  [min](./faastjs.statistics.min.md) |  | <code>number</code> | The minimum value observed. Initialized to <code>Number.POSITIVE_INFINITY</code>. |
-|  [printFixedPrecision](./faastjs.statistics.printfixedprecision.md) |  | <code>number</code> |  |
+|  [printFixedPrecision](./faastjs.statistics.printfixedprecision.md) |  | <code>number</code> | The number of decimal places to print in [Statistics.toString()](./faastjs.statistics.tostring.md) |
 |  [samples](./faastjs.statistics.samples.md) |  | <code>number</code> | Number of values observed. |
 |  [stdev](./faastjs.statistics.stdev.md) |  | <code>number</code> | The standard deviation of the values observed. |
 |  [variance](./faastjs.statistics.variance.md) |  | <code>number</code> | The variance of the values observed. |

@@ -23,7 +23,7 @@ export declare class CostSnapshot
 |  --- | --- | --- | --- |
 |  [costMetrics](./faastjs.costsnapshot.costmetrics.md) |  | <code>CostMetric[]</code> | The cost metric components for this cost snapshot. See [CostMetric](./faastjs.costmetric.md)<!-- -->. |
 |  [options](./faastjs.costsnapshot.options.md) |  | <code>CommonOptions &#124; AwsOptions &#124; GoogleOptions</code> | The options used to initialize the faast.js module where this cost snapshot was generated. |
-|  [provider](./faastjs.costsnapshot.provider.md) |  | <code>string</code> |  |
+|  [provider](./faastjs.costsnapshot.provider.md) |  | <code>string</code> | The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" or "google" |
 |  [stats](./faastjs.costsnapshot.stats.md) |  | <code>FunctionStats</code> | The function statistics that were used to compute prices. |
 
 ## Methods
@@ -31,7 +31,7 @@ export declare class CostSnapshot
 |  Method | Modifiers | Description |
 |  --- | --- | --- |
 |  [csv()](./faastjs.costsnapshot.csv.md) |  | Comma separated value output for a cost snapshot. |
-|  [find(name)](./faastjs.costsnapshot.find.md) |  |  |
+|  [find(name)](./faastjs.costsnapshot.find.md) |  | Find a specific cost metric by name. |
 |  [toString()](./faastjs.costsnapshot.tostring.md) |  | A summary of all cost metrics and prices in this cost snapshot. |
 |  [total()](./faastjs.costsnapshot.total.md) |  | Sum of cost metrics. |
 

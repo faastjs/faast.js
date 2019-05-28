@@ -21,11 +21,15 @@ export declare class FunctionStatsEvent
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [fn](./faastjs.functionstatsevent.fn.md) |  | <code>string</code> |  |
-|  [stats](./faastjs.functionstatsevent.stats.md) |  | <code>FunctionStats</code> |  |
+|  [fn](./faastjs.functionstatsevent.fn.md) |  | <code>string</code> | The name of the cloud function the statistics are about. |
+|  [stats](./faastjs.functionstatsevent.stats.md) |  | <code>FunctionStats</code> | See [FunctionStats](./faastjs.functionstats.md)<!-- -->. |
 
 ## Methods
 
 |  Method | Modifiers | Description |
 |  --- | --- | --- |
 |  [toString()](./faastjs.functionstatsevent.tostring.md) |  | Returns a string summarizing the statistics event. |
+
+## Remarks
+
+The constructor for this class is marked as internal. Third-party code should not call the constructor directly or create subclasses that extend the `FunctionStatsEvent` class.

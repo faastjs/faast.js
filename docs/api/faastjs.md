@@ -33,7 +33,7 @@ The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, 
 |  [faastAws(fmodule, options)](./faastjs.faastaws.md) | The main entry point for faast with AWS provider. |
 |  [faastGoogle(fmodule, options)](./faastjs.faastgoogle.md) | The main entry point for faast with Google provider. |
 |  [faastLocal(fmodule, options)](./faastjs.faastlocal.md) | The main entry point for faast with Local provider. |
-|  [throttle({ concurrency, retry, rate, burst, memoize, cache, cancel }, fn)](./faastjs.throttle.md) | A decorator for rate limiting, concurrency limiting, retry, memoization, and on-disk caching. See [Limits](./faastjs.limits.md)<!-- -->. |
+|  [throttle(limits, fn)](./faastjs.throttle.md) | A decorator for rate limiting, concurrency limiting, retry, memoization, and on-disk caching. See [Limits](./faastjs.limits.md)<!-- -->. |
 
 ## Interfaces
 

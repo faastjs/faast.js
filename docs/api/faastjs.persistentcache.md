@@ -17,6 +17,12 @@ A simple persistent key-value store. Used to implement [Limits.cache](./faastjs.
 export declare class PersistentCache 
 ```
 
+## Constructors
+
+|  Constructor | Modifiers | Description |
+|  --- | --- | --- |
+|  [(constructor)(dirRelativeToHomeDir, expiration)](./faastjs.persistentcache.(constructor).md) |  | Construct a new persistent cache, typically used with [Limits](./faastjs.limits.md) as part of the arguments to [throttle()](./faastjs.throttle.md)<!-- -->. |
+
 ## Properties
 
 |  Property | Modifiers | Type | Description |

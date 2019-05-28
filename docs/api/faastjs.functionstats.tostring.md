@@ -9,6 +9,8 @@ hide_title: true
 
 ## FunctionStats.toString() method
 
+Summarize the function stats as a string.
+
 <b>Signature:</b>
 
 ```typescript

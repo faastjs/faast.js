@@ -9,6 +9,8 @@ hide_title: true
 
 ## FunctionStatsEvent.fn property
 
+The name of the cloud function the statistics are about.
+
 <b>Signature:</b>
 
 ```typescript

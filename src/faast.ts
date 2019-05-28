@@ -230,12 +230,15 @@ async function createFaastModuleProxy<M extends object, O extends CommonOptions,
  * @public
  */
 export class FunctionStatsEvent {
-    readonly stats: FunctionStats;
     /**
-     * @param fn - The name of the cloud function the statistics are about.
-     * @param stats - See {@link FunctionStats}
+     * @internal
      */
-    constructor(readonly fn: string, stats: FunctionStats) {
+    constructor(
+        /** The name of the cloud function the statistics are about. */
+        readonly fn: string,
+        /** See {@link FunctionStats}. */
+        readonly stats: FunctionStats
+    ) {
         this.stats = stats.clone();
     }
 
@@ -458,6 +461,7 @@ export interface FaastModule<M extends object> {
  * @public
  */
 export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> {
+    /** The {@link Provider}, e.g. "aws" or "google". */
     provider = this.impl.name;
     /** {@inheritdoc FaastModule.functions} */
     functions: Promisified<M>;
@@ -483,9 +487,11 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
      */
     constructor(
         private impl: ProviderImpl<O, S>,
+        /** @internal */
         readonly state: S,
         private fmodule: M,
         private modulePath: string,
+        /** The options set for this instance, which includes default values. */
         readonly options: Required<CommonOptions>
     ) {
         log.info(`Node version: ${process.version}`);
@@ -924,15 +930,14 @@ function resolve(fmodule: object) {
  * ```typescript
  * import { faast } from "faastjs";
  * import * as mod from "./path/to/module";
- * async function main() {
+ * (async () => {
  *     const faastModule = await faast("aws", mod);
  *     try {
  *         const result = await faastModule.functions.func("arg");
  *     } finally {
  *         await faastModule.cleanup();
  *     }
- * }
- * main();
+ * })();
  * ```
  * @public
  */

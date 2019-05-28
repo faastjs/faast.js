@@ -43,12 +43,15 @@ export interface LocalState {
     getWrapper: () => Wrapper;
     /** @internal */
     logStreams: Writable[];
+    /** The temporary directory where the local function is deployed. */
     tempDir: string;
+    /** The file:// URL for the local function log file directory.  */
     logUrl: string;
     /** @internal */
     gcPromise?: Promise<void>;
     /** @internal */
     queue: AsyncQueue<ReceivableMessage>;
+    /** Options used to initialize the local function. */
     options: Required<LocalOptions>;
 }
 

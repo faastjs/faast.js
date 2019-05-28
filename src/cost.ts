@@ -205,6 +205,7 @@ export class CostSnapshot {
     readonly costMetrics: CostMetric[] = [];
     /** @internal */
     constructor(
+        /** The {@link Provider}, e.g. "aws" or "google" */
         readonly provider: string,
         /**
          * The options used to initialize the faast.js module where this cost
@@ -287,7 +288,7 @@ export class CostSnapshot {
         this.costMetrics.push(metric);
     }
 
-    /*
+    /**
      * Find a specific cost metric by name.
      * @returns a {@link CostMetric} if found, otherwise `undefined`.
      */

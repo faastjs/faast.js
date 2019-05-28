@@ -241,13 +241,18 @@ export interface AwsServices {
 }
 
 /**
- * @internal
+ * @public
  */
 export interface AwsState {
+    /** @internal */
     resources: AwsResources;
+    /** @internal */
     services: AwsServices;
+    /** @internal */
     options: Required<AwsOptions>;
+    /** @internal */
     metrics: AwsMetrics;
+    /** @internal */
     gcPromise?: Promise<"done" | "skipped">;
 }
 

@@ -9,6 +9,8 @@ hide_title: true
 
 ## CostSnapshot.find() method
 
+Find a specific cost metric by name.
+
 <b>Signature:</b>
 
 ```typescript
@@ -24,3 +26,5 @@ find(name: string): CostMetric | undefined;
 <b>Returns:</b>
 
 `CostMetric | undefined`
+
+a [CostMetric](./faastjs.costmetric.md) if found, otherwise `undefined`<!-- -->.

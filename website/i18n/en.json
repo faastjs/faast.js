@@ -467,6 +467,9 @@
       "api/faastjs": {
         "title": "faastjs package"
       },
+      "api/faastjs.persistentcache.(constructor)": {
+        "title": "PersistentCache.(constructor)"
+      },
       "api/faastjs.persistentcache.clear": {
         "title": "PersistentCache.clear() method"
       },
@@ -502,6 +505,9 @@
       },
       "api/faastjs.providers": {
         "title": "providers variable"
+      },
+      "api/faastjs.statistics.(constructor)": {
+        "title": "Statistics.(constructor)"
       },
       "api/faastjs.statistics.max": {
         "title": "Statistics.max property"
