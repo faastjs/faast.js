@@ -80,6 +80,7 @@ jobs:
                       - node10
             - run: npm install
             - run: npm run build
+            - run: npm run test-git-status
             - run: npm run test-release
             - run: npm run semantic-release
     cleanup:
