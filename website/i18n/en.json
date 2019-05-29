@@ -356,9 +356,6 @@
       "api/faastjs.faastmoduleproxy.provider": {
         "title": "FaastModuleProxy.provider property"
       },
-      "api/faastjs.faastmoduleproxy.state": {
-        "title": "FaastModuleProxy.state property"
-      },
       "api/faastjs.faastmoduleproxy.stats": {
         "title": "FaastModuleProxy.stats() method"
       },

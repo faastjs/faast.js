@@ -1,14 +1,16 @@
 {
-  "scripts": {
-    "examples": "docusaurus-examples",
-    "start": "docusaurus-start",
-    "build": "docusaurus-build",
-    "publish-gh-pages": "docusaurus-publish",
-    "write-translations": "docusaurus-write-translations",
-    "version": "docusaurus-version",
-    "rename-version": "docusaurus-rename-version"
-  },
-  "devDependencies": {
-    "docusaurus": "1.10.0"
-  }
+    "scripts": {
+        "examples": "docusaurus-examples",
+        "tailwind": "tailwind build static/css/tailwind.src.css -o static/css/tailwind.css",
+        "start": "npm run tailwind && docusaurus-start",
+        "build": "npm run tailwind && docusaurus-build",
+        "publish-gh-pages": "docusaurus-publish",
+        "write-translations": "docusaurus-write-translations",
+        "version": "docusaurus-version",
+        "rename-version": "docusaurus-rename-version"
+    },
+    "devDependencies": {
+        "docusaurus": "1.10.0",
+        "tailwindcss": "1.0.2"
+    }
 }

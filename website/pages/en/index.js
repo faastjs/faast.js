@@ -9,7 +9,6 @@ const React = require("react");
 const CompLibrary = require("../../core/CompLibrary.js");
 
 const MarkdownBlock = CompLibrary.MarkdownBlock; /* Used to read markdown */
-const Container = CompLibrary.Container;
 const GridBlock = CompLibrary.GridBlock;
 
 class HomeSplash extends React.Component {
@@ -20,71 +19,42 @@ class HomeSplash extends React.Component {
         const langPart = `${language ? `${language}/` : ""}`;
         const docUrl = doc => `${baseUrl}${docsPart}${langPart}${doc}`;
 
-        const SplashContainer = props => (
-            <div className="homeContainer">
-                <div className="homeSplashFade">
-                    <div className="wrapper heroWrapper">{props.children}</div>
-                </div>
-            </div>
-        );
-
-        const Logo = props => (
-            <div className="faastLogo">
-                <img src={props.img_src} alt="Project Logo" />
-            </div>
-        );
-
-        const ProjectTitle = () => (
-            <h2 className="projectTitle">
-                <small>{siteConfig.tagline}</small>
-            </h2>
-        );
-
-        const PromoSection = props => (
-            <div className="section promoSection">
-                <div className="promoRow">
-                    <div className="pluginRowBlock">{props.children}</div>
-                </div>
-            </div>
-        );
-
         const Button = props => (
-            <div className="pluginWrapper buttonWrapper">
-                <a
-                    className="button"
-                    href={props.href}
-                    target={props.target}
-                    rel={props.rel}
-                >
+            <div className="border border-solid border-blue-400 rounded p-2 m-2 w-32 inline-block hover:bg-blue-700 center">
+                <a href={props.href} target={props.target} rel={props.rel}>
                     {props.children}
                 </a>
             </div>
         );
 
         return (
-            <SplashContainer>
-                <Logo img_src={`${baseUrl}img/faastjs-blue.svg`} />
-                <div className="inner">
-                    <ProjectTitle siteConfig={siteConfig} />
-                    <PromoSection>
-                        <Button
-                            href="https://github.com/faastjs/faast.js"
-                            target="_blank"
-                            rel="noreferrer noopener"
-                        >
-                            GitHub
-                        </Button>
-                        <Button href={docUrl("introduction")}>Docs</Button>
-                        <Button
-                            href="https://github.com/faastjs/examples"
-                            target="_blank"
-                            rel="noreferrer noopener"
-                        >
-                            Examples
-                        </Button>
-                    </PromoSection>
+            <div className="bg-blue-100 py-32 px-4 flex flex-col items-center">
+                <img
+                    className="max-w-2xl"
+                    src={`${baseUrl}img/faastjs-blue.svg`}
+                    alt="Project Logo"
+                />
+                <h2 className="text-gray-700 text-lg md:text-3xl py-8">
+                    {siteConfig.tagline}
+                </h2>
+                <div>
+                    <Button
+                        href="https://github.com/faastjs/faast.js"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                    >
+                        GitHub
+                    </Button>
+                    <Button href={docUrl("introduction")}>Docs</Button>
+                    <Button
+                        href="https://github.com/faastjs/examples"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                    >
+                        Examples
+                    </Button>
                 </div>
-            </SplashContainer>
+            </div>
         );
     }
 }
@@ -96,7 +66,7 @@ class Index extends React.Component {
 
         const Block = props => (
             <div className="feature">
-                <Container
+                <div
                     padding={props.padding || ["top"]}
                     id={props.id}
                     background={props.background}
@@ -106,7 +76,7 @@ class Index extends React.Component {
                         contents={props.children}
                         layout={props.layout}
                     />
-                </Container>
+                </div>
             </div>
         );
 
@@ -235,7 +205,7 @@ class Index extends React.Component {
         );
 
         const Features = props => [
-            <Container id="features">
+            <Block id="features">
                 <h1>The development features you'd expect.</h1>
                 <GridBlock
                     layout="threeColumn"
@@ -262,8 +232,8 @@ class Index extends React.Component {
                         }
                     ]}
                 />
-            </Container>,
-            <Container padding={["top", "bottom"]} background={props.background}>
+            </Block>,
+            <Block padding={["top", "bottom"]} background={props.background}>
                 <GridBlock
                     layout="threeColumn"
                     align="center"
@@ -290,7 +260,7 @@ class Index extends React.Component {
                         }
                     ]}
                 />
-            </Container>
+            </Block>
         ];
 
         const Showcase = () => {
