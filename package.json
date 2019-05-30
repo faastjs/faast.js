@@ -103,7 +103,7 @@
         "nyc": "14.1.1",
         "papaparse": "5.0.0",
         "semantic-release": "15.13.12",
-        "tslint": "5.16.0",
+        "tslint": "5.17.0",
         "tslint-config-prettier": "1.18.0",
         "typescript": "3.4.5",
         "webpack-cli": "3.3.2"
