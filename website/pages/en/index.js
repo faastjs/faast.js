@@ -9,7 +9,6 @@ const React = require("react");
 const CompLibrary = require("../../core/CompLibrary.js");
 
 const MarkdownBlock = CompLibrary.MarkdownBlock; /* Used to read markdown */
-const GridBlock = CompLibrary.GridBlock;
 
 class HomeSplash extends React.Component {
     render() {
@@ -64,202 +63,155 @@ class Index extends React.Component {
         const { config: siteConfig, language = "" } = this.props;
         const { baseUrl } = siteConfig;
 
-        const Block = props => (
-            <div className="feature">
-                <div
-                    padding={props.padding || ["top"]}
-                    id={props.id}
-                    background={props.background}
-                >
-                    <GridBlock
-                        align="center"
-                        contents={props.children}
-                        layout={props.layout}
-                    />
+        const Section = props => (
+            <div id={props.id} className="flex items-center my-6 mx-48">
+                <div className="flex-1 mr-8">
+                    <h3 className="text-2xl font-semibold my-4">{props.title}</h3>
+                    <p>{props.children}</p>
                 </div>
-            </div>
-        );
-
-        const Why = () => (
-            <div class="wrapper">
-                <div class="question">
-                    <h2>Faast.js makes serverless functions:</h2>
-                    <img
-                        class="prefix"
-                        src={`${baseUrl}img/icons8-source_code.svg`}
-                        height="40px"
-                    />
-                    <span class="emphasize">Easy to program</span> using regular async
-                    functions.
-                    <p />
-                    <img
-                        class="prefix"
-                        src={`${baseUrl}img/icons8-broadcasting.svg`}
-                        height="40px"
-                    />
-                    <span class="emphasize">Scalable</span> to a thousand cores and
-                    beyond.
-                    <p />
-                    <img
-                        class="prefix"
-                        src={`${baseUrl}img/icons8-do_not_drop.svg`}
-                        height="40px"
-                    />
-                    <span class="emphasize">Productive</span> with support for npm
-                    packages, type safety, and local development.
-                    <p />
-                    <img
-                        class="prefix"
-                        src={`${baseUrl}img/icons8-cheap_2.svg`}
-                        height="40px"
-                    />
-                    <span class="emphasize">Cost-optimized</span> with real-time estimates
-                    and workload optimization. <p />
-                    <img
-                        class="prefix"
-                        src={`${baseUrl}img/icons8-virus_free.svg`}
-                        height="40px"
-                    />
-                    <span class="emphasize">Zero-Ops</span> with infrastructure
-                    ephemerality as core design principle.
-                    <p />
-                    Today, faast.js is ready for rapid iteration on embarrassingly
-                    parallel problems. <br />
-                    Tomorrow, faast.js will grow more capable as serverless function
-                    platforms mature. <br />
-                    Read on to learn more.
-                </div>
+                <a href={props.imageLink} className="flex-1">
+                    <img src={props.image} className="p-12" />
+                </a>
             </div>
         );
 
         const Example = () => (
-            <Block id="example">
-                {[
-                    {
-                        title: "Invoke serverless functions like regular functions.",
-                        content: `Serverless function architectures are optimized for event-driven systems. Faast.js simplifies serverless  batch applications by automating infrastructure, code packaging, invocation, and cleanup. Combine the power of scalable serverless functions with the ease-of-use and familiarity of ordinary async functions.`,
-                        image: `${baseUrl}img/hello-world.png`,
-                        imageLink: `/docs/introduction#usage`,
-                        imageAlign: "right"
-                    }
-                ]}
-            </Block>
+            <Section
+                id="example"
+                title="Invoke serverless functions like regular functions."
+                image={`${baseUrl}img/hello-world.png`}
+                imageLink={`/docs/introduction#usage`}
+            >
+                Serverless function architectures are optimized for event-driven systems.
+                Faast.js simplifies serverless batch applications by automating
+                infrastructure, code packaging, invocation, and cleanup. Combine the power
+                of scalable serverless functions with the ease-of-use and familiarity of
+                ordinary async functions.
+            </Section>
         );
 
         const ScaleUp = () => (
-            <Block id="scaleup">
-                {[
-                    {
-                        title: "Scale up. Scale down.",
-                        content: `Go from zero to a thousand cores in seconds. Scale back down to zero just as quickly. Faast.js delivers the brute force power of the cloud with the convenience and familiarity of asynchronous function calls.`,
-                        image: `${baseUrl}img/invoke-1000.png`,
-                        imageLink: `/docs/introduction#scaling-up`,
-                        imageAlign: "right"
-                    }
-                ]}
-            </Block>
+            <Section
+                id="scaleup"
+                title="Scale up. Scale down."
+                image={`${baseUrl}img/invoke-1000.png`}
+                imageLink="/docs/introduction#scaling-up"
+            >
+                Go from zero to a thousand cores in seconds. Scale back down to zero just
+                as quickly. Faast.js delivers the brute force power of the cloud with the
+                convenience and familiarity of asynchronous function calls.
+            </Section>
         );
 
         const Dependencies = () => (
-            <Block id="dependencies">
-                {[
-                    {
-                        title: "Automate bundling and dependencies.",
-                        content:
-                            "Deploy without zip files. Zero-configuration support for bundling dependencies with built-in webpack support. Use native dependencies, even on AWS Lambda. Faast.js eliminates the friction of using packages with serverless functions. ",
-                        image: `${baseUrl}img/packageJson.png`,
-                        imageLink: `/docs/introduction#package-dependencies`,
-                        imageAlign: "right"
-                    }
-                ]}
-            </Block>
+            <Section
+                id="dependencies"
+                title="Automate bundling and dependencies."
+                image={`${baseUrl}img/packageJson.png`}
+                imageLink="/docs/introduction#package-dependencies"
+            >
+                Deploy without zip files. Zero-configuration support for bundling
+                dependencies with built-in webpack support. Use native dependencies, even
+                on AWS Lambda. Faast.js eliminates the friction of using packages with
+                serverless functions.
+            </Section>
         );
 
         const Cost = () => (
-            <Block id="cost">
-                {[
-                    {
-                        title: "Estimate costs in real time.",
-                        content:
-                            "Cost snapshots estimate the cost of your serverless function invocations in real time. For deeper analysis, use the Cost Analyzer to estimate the cost of workloads against multiple serverless configurations in parallel.",
-                        image: `${baseUrl}img/cost-estimate.png`,
-                        imageLink: `/docs/cost-estimates`,
-                        imageAlign: "right"
-                    }
-                ]}
-            </Block>
+            <Section
+                id="cost"
+                title="Estimate costs in real time."
+                image={`${baseUrl}img/cost-estimate.png`}
+                imageLink="/docs/cost-estimates"
+            >
+                Cost snapshots estimate the cost of your serverless function invocations
+                in real time. For deeper analysis, use the Cost Analyzer to estimate the
+                cost of workloads against multiple serverless configurations in parallel.
+            </Section>
         );
 
+        const zeroStyle = {
+            backgroundImage: "url(../../img/trianglify.svg)"
+        };
+
         const ZeroOps = () => (
-            <Block id="zeroops" padding={["top", "bottom"]}>
-                {[
-                    {
-                        image: `${baseUrl}img/zero.svg`,
-                        imageAlign: "left",
-                        title: "Develop faster with Zero-Ops.",
-                        content:
-                            "Serverless function calls are, by nature, ephemeral. Faast.js takes this a step further by making serverless function *infrastructure* ephemeral too. Welcome to infrastructure that's deployed only as long as it's needed, and cleaned up when it's not. <br><br>No servers to manage.<br>No containers to build.<br>No infrastructure to monitor.<br><br>That's zero ops."
-                    }
-                ]}
-            </Block>
+            <div
+                id="zeroops"
+                className="flex items-center py-12 px-48 bg-fixed text-white"
+                style={zeroStyle}
+            >
+                <img src={`${baseUrl}img/zero.svg`} className="mr-32 flex-1" />
+                <div className="flex-1 mr-8">
+                    <h3 className="text-2xl font-semibold my-4">
+                        Develop faster with Zero-Ops.
+                    </h3>
+                    <p>
+                        Serverless function calls are, by nature, ephemeral. Faast.js
+                        takes this a step further by making serverless function
+                        infrastructure ephemeral too. Welcome to infrastructure that's
+                        deployed only as long as it's needed, and cleaned up when it's
+                        not. <br />
+                        <br />
+                        No servers to manage.
+                        <br />
+                        No containers to build.
+                        <br />
+                        No infrastructure to monitor.
+                        <br />
+                        <br />
+                        That's zero ops.
+                    </p>
+                </div>
+            </div>
+        );
+
+        const Block = props => (
+            <div className="px-24 py-8 center" id={props.id}>
+                {props.children}
+            </div>
+        );
+
+        const Feature = props => (
+            <div className="flex-1 flex flex-col items-center px-12">
+                <img className="w-20 resize-none" src={props.image} />
+                <h3 className="text-lg my-4">{props.title}</h3>
+                <p className="mt-4">{props.children}</p>
+            </div>
         );
 
         const Features = props => [
             <Block id="features">
-                <h1>The development features you'd expect.</h1>
-                <GridBlock
-                    layout="threeColumn"
-                    align="center"
-                    contents={[
-                        {
-                            image: `${baseUrl}img/lightning.svg`,
-                            imageAlign: "top",
-                            title: "Get started faast",
-                            content:
-                                "No setup steps required.<br>Works from a bare cloud account."
-                        },
-                        {
-                            image: `${baseUrl}img/cloud-plug.svg`,
-                            imageAlign: "top",
-                            title: "Multi-cloud",
-                            content: "AWS and Google Cloud support built-in."
-                        },
-                        {
-                            image: `${baseUrl}img/logs.svg`,
-                            imageAlign: "top",
-                            title: "Logging",
-                            content: "Precise links to filtered cloud logs."
-                        }
-                    ]}
-                />
+                <h1 className="text-4xl mb-12">The development features you'd expect.</h1>
+                <div className="flex mx-12 items-center justify-center">
+                    <Feature
+                        image={`${baseUrl}img/lightning.svg`}
+                        title="Get started faast"
+                    >
+                        No setup steps required.
+                        <br />
+                        Works from a bare cloud account.
+                    </Feature>
+                    <Feature image={`${baseUrl}img/cloud-plug.svg`} title="Multi-cloud">
+                        AWS and Google Cloud support built-in.
+                    </Feature>
+                    <Feature image={`${baseUrl}img/logs.svg`} title="Logging">
+                        Precise links to filtered cloud logs.
+                    </Feature>
+                </div>
             </Block>,
-            <Block padding={["top", "bottom"]} background={props.background}>
-                <GridBlock
-                    layout="threeColumn"
-                    align="center"
-                    contents={[
-                        {
-                            image: `${baseUrl}img/ts.png`,
-                            imageAlign: "top",
-                            title: "Type Safe",
-                            content:
-                                "First class support for TypeScript. <br>Retain type safety across cloud function calls."
-                        },
-                        {
-                            image: `${baseUrl}img/bug.svg`,
-                            imageAlign: "top",
-                            title: "Debugging",
-                            content:
-                                "Switch to local mode to use standard debugging tools."
-                        },
-                        {
-                            image: `${baseUrl}img/tested.svg`,
-                            imageAlign: "top",
-                            title: "Tested",
-                            content: "Comprehensive testsuite and examples."
-                        }
-                    ]}
-                />
+            <Block>
+                <div className="flex mx-12 items-center justify-center">
+                    <Feature image={`${baseUrl}img/ts.png`} title="Type Safe">
+                        First class support for TypeScript. <br />
+                        Retain type safety across cloud function calls.
+                    </Feature>
+                    <Feature image={`${baseUrl}img/bug.svg`} title="Debugging">
+                        Switch to local mode to use standard debugging tools.
+                    </Feature>
+                    <Feature image={`${baseUrl}img/tested.svg`} title="Tested">
+                        Comprehensive testsuite and examples.
+                    </Feature>
+                </div>
             </Block>
         ];
 
