@@ -9,7 +9,8 @@ import {
     S3,
     SNS,
     SQS,
-    STS
+    STS,
+    DynamoDB
 } from "aws-sdk";
 import { createHash } from "crypto";
 import { readFile } from "fs-extra";
@@ -238,6 +239,8 @@ export interface AwsServices {
     readonly pricing: Pricing;
     readonly sts: STS;
     readonly s3: S3;
+    readonly ddb: DynamoDB;
+    readonly ddbdoc: DynamoDB.DocumentClient;
 }
 
 /**
@@ -256,7 +259,7 @@ export interface AwsState {
     gcPromise?: Promise<"done" | "skipped">;
 }
 
-export type AwsGcWork =
+type AwsGcWork =
     | {
           type: "SetLogRetention";
           logGroupName: string;
@@ -272,7 +275,7 @@ export type AwsGcWork =
           VersionNumber: number;
       };
 
-export async function carefully<U>(arg: Request<U, AWSError>) {
+async function carefully<U>(arg: Request<U, AWSError>) {
     try {
         return await arg.promise();
     } catch (err) {
@@ -281,7 +284,7 @@ export async function carefully<U>(arg: Request<U, AWSError>) {
     }
 }
 
-export async function quietly<U>(arg: Request<U, AWSError>) {
+async function quietly<U>(arg: Request<U, AWSError>) {
     try {
         return await arg.promise();
     } catch (err) {
@@ -294,6 +297,7 @@ export const createAwsApis = throttle(
     async (region: AwsRegion) => {
         const logger = log.awssdk.enabled ? { log: log.awssdk } : undefined;
         awsconfig.update({ correctClockSkew: true, maxRetries: 6, logger });
+        const ddb = new DynamoDB({ apiVersion: "2012-08-10" });
         const services = {
             iam: new IAM({ apiVersion: "2010-05-08", region }),
             lambda: new Lambda({ apiVersion: "2015-03-31", region }),
@@ -302,7 +306,12 @@ export const createAwsApis = throttle(
             sns: new SNS({ apiVersion: "2010-03-31", region }),
             pricing: new Pricing({ region: "us-east-1" }),
             sts: new STS({ apiVersion: "2011-06-15", region }),
-            s3: new S3({ apiVersion: "2006-03-01", region })
+            s3: new S3({ apiVersion: "2006-03-01", region }),
+            ddb,
+            ddbdoc: new DynamoDB.DocumentClient({
+                apiVersion: "2012-08-10",
+                service: ddb
+            })
         };
         return services;
     }
@@ -362,7 +371,7 @@ export const ensureRole = throttle(
     ensureRoleRaw
 );
 
-export async function createLayer(
+async function createLayer(
     lambda: Lambda,
     packageJson: string | object | undefined,
     useDependencyCaching: boolean,
@@ -428,6 +437,40 @@ export async function createLayer(
     }
 }
 
+async function createDynamoDb(
+    ddb: DynamoDB,
+    ddbdoc: DynamoDB.DocumentClient,
+    TableName: string
+) {
+    log.info(`Creating DynamoDB table: ${TableName}`);
+    const req: DynamoDB.CreateTableInput = {
+        AttributeDefinitions: [],
+        BillingMode: "PAY_PER_REQUEST",
+        TableName,
+        KeySchema: [],
+        StreamSpecification: { StreamEnabled: true, StreamViewType: "NEW_IMAGE" }
+    };
+    const response = await ddb.createTable(req).promise();
+    await ddb
+        .updateTimeToLive({
+            TableName,
+            TimeToLiveSpecification: { Enabled: true, AttributeName: "TTL" }
+        })
+        .promise();
+    await ddb.waitFor("tableExists", { TableName }).promise();
+    await ddb.putItem({ TableName, Item: { key: { S: "value" } } }).promise();
+    await ddb.getItem({ TableName, Key: { keyName: { S: "keyValue" } } }).promise();
+
+    const putResult = await ddbdoc.put({ TableName, Item: { key: "value" } }).promise();
+    ddbdoc.get({ TableName, Key: { key: "value" } });
+
+    // dynamodb.query({});
+
+    // const deleteResponse = await dynamodb
+    //     .deleteTable({ TableName })
+    //     .promise();
+}
+
 export function logUrl(state: AwsState) {
     const { region, FunctionName } = state.resources;
     return getLogUrl(region, FunctionName);
@@ -439,9 +482,8 @@ export const initialize = throttle(
         const { region, timeout, memorySize, env } = options;
         log.info(`Creating AWS APIs`);
         const services = await createAwsApis(region);
-        const { lambda, sts } = services;
+        const { lambda } = services;
         const FunctionName = `faast-${nonce}`;
-        const accountId = await getAccountId(sts);
 
         const { packageJson, useDependencyCaching } = options;
 
@@ -507,7 +549,6 @@ export const initialize = throttle(
                 gcWorker,
                 services,
                 region,
-                accountId,
                 retentionInDays,
                 gc
             ).catch(err => {
@@ -874,7 +915,6 @@ export async function collectGarbage(
     executor: typeof defaultGcWorker,
     services: AwsServices,
     region: AwsRegion,
-    accountId: string,
     retentionInDays: number,
     mode: "auto" | "force"
 ): Promise<"done" | "skipped"> {
@@ -911,7 +951,7 @@ export async function collectGarbage(
         promises.push(executor(work, services));
     }
     const functionsWithLogGroups = new Set();
-
+    const accountId = await getAccountId(services.sts);
     const logGroupRequest = services.cloudwatch.describeLogGroups({
         logGroupNamePrefix: "/aws/lambda/faast-"
     });
