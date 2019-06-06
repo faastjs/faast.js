@@ -70,7 +70,7 @@ async function rampUp(t: ExecutionContext, provider: Provider, options: CommonOp
 const rampUpConfigurations = [
     { memorySize: 1024, mode: "https", concurrency: 500 },
     { memorySize: 1024, mode: "queue", concurrency: 500 }
-];
+] as const;
 
 for (const provider of providers) {
     for (const config of rampUpConfigurations) {
@@ -81,7 +81,7 @@ for (const provider of providers) {
 const throughputConfigurations = [
     { memorySize: 2048, mode: "https", concurrency: 500, duration: 180 * 1000 },
     { memorySize: 2048, mode: "queue", concurrency: 500, duration: 180 * 1000 }
-];
+] as const;
 
 for (const provider of providers) {
     for (const config of throughputConfigurations) {
@@ -94,4 +94,4 @@ for (const provider of providers) {
     }
 }
 
-test.serial(throughput, "local", 60 * 1000, 16, { memorySize: 64 });
+test.serial(throughput, "local", { memorySize: 64, duration: 60 * 1000 });

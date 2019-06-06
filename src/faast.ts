@@ -211,14 +211,14 @@ async function createFaastModuleProxy<M extends object, O extends CommonOptions,
     try {
         const resolvedModule = resolve(fmodule);
         const functionId = uuidv4() as UUID;
-        const options = { ...impl.defaults, ...userOptions };
+        const options: Required<O> = { ...impl.defaults, ...userOptions };
         log.provider(`options ${inspectProvider(options)}`);
         return new FaastModuleProxy(
             impl,
             await impl.initialize(resolvedModule, functionId, options),
             fmodule,
             resolvedModule,
-            options
+            options as Required<CommonOptions>
         );
     } catch (err) {
         throw new FaastError(err, "could not initialize cloud function");
