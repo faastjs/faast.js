@@ -78,7 +78,7 @@ jobs:
                   keys:
                       - node10-{{ checksum "package.json" }}
                       - node10
-            - run: npm install
+            - run: npm install --no-save
             - run: npm run build
             - run: npm run test-git-status
             - run: npm run test-release
