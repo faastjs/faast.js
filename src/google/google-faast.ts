@@ -1,11 +1,5 @@
 import { AbortController } from "abort-controller";
-import {
-    Gaxios,
-    GaxiosOptions,
-    GaxiosPromise,
-    GaxiosResponse,
-    GaxiosError
-} from "gaxios";
+import { Gaxios, GaxiosOptions, GaxiosPromise, GaxiosResponse } from "gaxios";
 import {
     cloudbilling_v1,
     cloudfunctions_v1,
@@ -45,6 +39,7 @@ import {
     WrapperOptions
 } from "../wrapper";
 import { publishPubSub, receiveMessages } from "./google-queue";
+import { shouldRetryRequest } from "./google-shared";
 import * as googleTrampolineHttps from "./google-trampoline-https";
 import * as googleTrampolineQueue from "./google-trampoline-queue";
 
@@ -52,83 +47,11 @@ import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
 
-const httpMethodsToRetry = ["POST", "PUT", "GET", "HEAD", "OPTIONS", "DELETE"];
-const statusCodesToRetry = [[100, 199], [429, 429], [405, 405], [500, 599]];
-
-function getGaxiosRetryConfig(err: GaxiosError) {
-    if (err && err.config && err.config.retryConfig) {
-        return err.config.retryConfig;
-    }
-    return;
-}
-
-/**
- * Determine based on config if we should retry the request.
- * @param err The GaxiosError passed to the interceptor.
- */
-function shouldRetryRequest(err: GaxiosError) {
-    const config = getGaxiosRetryConfig(err);
-
-    // If there's no config, or retries are disabled, return.
-    if (!config || config.retry === 0) {
-        return false;
-    }
-
-    // Check if this error has no response (ETIMEDOUT, ENOTFOUND, etc)
-    if (!err.response && (config.currentRetryAttempt || 0) >= config.noResponseRetries!) {
-        return false;
-    }
-
-    if (err.name === "AbortError") {
-        return false;
-    }
-
-    // Only retry with configured HttpMethods.
-    if (
-        !err.config.method ||
-        httpMethodsToRetry.indexOf(err.config.method.toUpperCase()) < 0
-    ) {
-        return false;
-    }
-
-    // If this wasn't in the list of status codes where we want
-    // to automatically retry, return.
-    if (err.response && err.response.status) {
-        let isInRange = false;
-        for (const [min, max] of statusCodesToRetry!) {
-            const status = err.response.status;
-            if (status >= min && status <= max) {
-                isInRange = true;
-                break;
-            }
-        }
-        if (!isInRange) {
-            return false;
-        }
-    }
-
-    // If we are out of retry attempts, return
-    config.currentRetryAttempt = config.currentRetryAttempt || 0;
-    if (config.currentRetryAttempt >= config.retry!) {
-        return false;
-    }
-
-    log.retry(
-        `google: attempts: ${config.currentRetryAttempt}/${config.retry}, code: ${
-            err.code
-        }, status: ${err.response && err.response.status} name: ${err.name}, message: ${
-            err.message
-        }`
-    );
-
-    return true;
-}
-
 const gaxios = new Gaxios({
     retryConfig: {
         retry: 3,
         noResponseRetries: 3,
-        shouldRetry: shouldRetryRequest
+        shouldRetry: shouldRetryRequest(log.retry)
     }
 });
 
@@ -275,7 +198,7 @@ export async function initializeGoogleServices(): Promise<GoogleServices> {
             retry: 8,
             retryDelay: 250,
             noResponseRetries: 3,
-            shouldRetry: shouldRetryRequest
+            shouldRetry: shouldRetryRequest(log.retry)
         }
     });
     return {

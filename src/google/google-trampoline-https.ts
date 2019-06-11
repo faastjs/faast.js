@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { google, pubsub_v1 } from "googleapis";
 import { createErrorResponse, FunctionCallSerialized, Wrapper } from "../wrapper";
 import { publishResponseMessage } from "./google-queue";
-import { getExecutionLogUrl } from "./google-shared";
+import { getExecutionLogUrl, shouldRetryRequest } from "./google-shared";
 import PubSubApi = pubsub_v1;
 
 export const filename = module.filename;
@@ -14,7 +14,14 @@ async function initialize() {
         const auth = await google.auth.getClient({
             scopes: ["https://www.googleapis.com/auth/cloud-platform"]
         });
-        google.options({ auth });
+        google.options({
+            auth,
+            retryConfig: {
+                retry: 3,
+                noResponseRetries: 3,
+                shouldRetry: shouldRetryRequest(console.log)
+            }
+        });
         pubsub = google.pubsub("v1");
     }
 }

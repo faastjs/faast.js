@@ -57,7 +57,7 @@ const testPacker: Macro<[Provider, Packer, PackageConfiguration, number]> = asyn
     await Promise.all([writePromise, unzipPromise]);
     const zipFile = path.join("tmp", identifier + ".zip");
     const bytes = (await stat(zipFile)).size;
-    t.true(bytes < size);
+    t.true(bytes < size, `package size ${bytes} exceeded maximum ${size}`);
     t.is(exec(`cd ${tmpDir} && node index.js`), "faast: successful cold start.\n");
     config.check && (await config.check(t, tmpDir));
 };
@@ -135,7 +135,7 @@ for (const name of providers) {
     for (const config of configs) {
         let size = 130 * kb;
         if (name === "google" && !config.packageJson) {
-            size = 750 * kb;
+            size = 800 * kb;
         }
         test(testPacker, name, packers[name], config, size);
     }
