@@ -476,10 +476,11 @@ export const initialize = throttle(
             );
             return func;
         }
-
+        const { wrapperVerbose } = options.debugOptions;
         async function createCodeBundle() {
             const wrapperOptions = {
-                childProcessTimeoutMs: timeout * 1000 - 50
+                childProcessTimeoutMs: timeout * 1000 - 50,
+                wrapperVerbose
             };
             const bundle = awsPacker(fModule, options, wrapperOptions, FunctionName);
             return { ZipFile: await streamToBuffer((await bundle).archive) };

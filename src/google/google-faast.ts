@@ -340,9 +340,11 @@ export async function initialize(
     const functionName = "faast-" + nonce;
 
     const { timeout } = options;
+    const { wrapperVerbose } = options.debugOptions;
     async function createCodeBundle() {
         const wrapperOptions = {
-            childProcessTimeoutMs: Math.max(1, timeout - 1) * 1000
+            childProcessTimeoutMs: Math.max(1000, (timeout - 1) * 1000),
+            wrapperVerbose
         };
         const { archive } = await googlePacker(
             fmodule,

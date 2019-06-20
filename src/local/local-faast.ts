@@ -115,7 +115,7 @@ async function initialize(
     if (!childProcess) {
         process.env = { ...process.env, ...env };
     }
-
+    const { wrapperVerbose } = options.debugOptions;
     const getWrapper = () => {
         const idleWrapper = wrappers.find(w => w.executing === false);
         if (idleWrapper) {
@@ -140,22 +140,27 @@ async function initialize(
             log.warn(err);
             childlog = console.log;
         }
-        const wrapperOptions: Required<WrapperOptions> = {
+        const wrapperOptions2: Required<WrapperOptions> = {
             wrapperLog: childlog,
             childProcess,
             childProcessMemoryLimitMb: memorySize,
             childProcessTimeoutMs: timeout * 1000 - (childProcess ? 50 : 0),
             childProcessEnvironment: env,
             childDir: tempDir,
-            wrapperVerbose: log.provider.enabled,
+            wrapperVerbose: wrapperVerbose || log.provider.enabled,
             validateSerialization
         };
-        const wrapper = new Wrapper(require(serverModule), wrapperOptions);
+        const wrapper = new Wrapper(require(serverModule), wrapperOptions2);
         wrappers.push(wrapper);
         return wrapper;
     };
 
-    const packerResult = await localPacker(serverModule, options, {}, `faast-${nonce}`);
+    const packerResult = await localPacker(
+        serverModule,
+        options,
+        { wrapperVerbose },
+        `faast-${nonce}`
+    );
 
     await unzipInDir(tempDir, packerResult.archive);
     if (options.packageJson) {

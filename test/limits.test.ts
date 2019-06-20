@@ -9,12 +9,18 @@ async function testTimeout(
     provider: Provider,
     options: CommonOptions
 ) {
+    let wrapperVerbose = false;
+    if (t.title.match(/.*google.*queue.*/)) {
+        wrapperVerbose = true;
+    }
     const lambda = await faast(provider, funcs, {
         ...options,
         timeout: 5,
         maxRetries: 0,
-        gc: "off"
+        gc: "off",
+        debugOptions: { wrapperVerbose }
     });
+    t.log(`${lambda.logUrl()}`);
     try {
         await t.throwsAsync(lambda.functions.spin(30 * 1000), /time/i);
     } finally {
@@ -29,6 +35,7 @@ async function memoryLimitOk(
 ) {
     const lambda = await faast(provider, funcs, {
         ...options,
+
         timeout: 200,
         memorySize: 512,
         maxRetries: 0,
@@ -51,6 +58,7 @@ async function memoryLimitFail(
 ) {
     const lambda = await faast(provider, funcs, {
         ...options,
+
         timeout: 200,
         memorySize: 512,
         maxRetries: 0,

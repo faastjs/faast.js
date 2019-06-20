@@ -53,6 +53,10 @@ export interface CleanupOptions {
 export interface CommonOptions {
     childProcess?: boolean;
     concurrency?: number;
+    // @internal
+    debugOptions?: {
+        [key: string]: boolean;
+    };
     env?: {
         [key: string]: string;
     };

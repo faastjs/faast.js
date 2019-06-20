@@ -409,6 +409,11 @@ export interface CommonOptions {
      * values are large.
      */
     validateSerialization?: boolean;
+    /**
+     * Debugging output options.
+     * @internal
+     */
+    debugOptions?: { [key: string]: boolean };
 }
 
 export const commonDefaults: Required<CommonOptions> = {
@@ -428,7 +433,8 @@ export const commonDefaults: Required<CommonOptions> = {
     speculativeRetryThreshold: 3,
     timeout: 60,
     webpackOptions: {},
-    validateSerialization: true
+    validateSerialization: true,
+    debugOptions: {}
 };
 
 /**

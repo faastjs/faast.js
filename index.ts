@@ -35,8 +35,8 @@ export {
     CleanupOptions,
     CommonOptions,
     FunctionStats,
-    Provider,
-    IncludeOption
+    IncludeOption,
+    Provider
 } from "./src/provider";
 export { Statistics } from "./src/shared";
 export { Limits, throttle } from "./src/throttle";
