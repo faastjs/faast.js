@@ -343,7 +343,7 @@ export async function initialize(
     const { wrapperVerbose } = options.debugOptions;
     async function createCodeBundle() {
         const wrapperOptions = {
-            childProcessTimeoutMs: Math.max(1000, (timeout - 1) * 1000),
+            childProcessTimeoutMs: Math.max(1000, (timeout - 5) * 1000),
             wrapperVerbose
         };
         const { archive } = await googlePacker(

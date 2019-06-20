@@ -15,7 +15,7 @@ async function testTimeout(
     }
     const lambda = await faast(provider, funcs, {
         ...options,
-        timeout: 5,
+        timeout: 10,
         maxRetries: 0,
         gc: "off",
         debugOptions: { wrapperVerbose }
