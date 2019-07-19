@@ -98,7 +98,7 @@
         "ava": "2.2.0",
         "codecov": "3.5.0",
         "commitizen": "4.0.2",
-        "cz-conventional-changelog": "2.1.0",
+        "cz-conventional-changelog": "3.0.1",
         "lolex": "4.1.0",
         "nyc": "14.1.1",
         "papaparse": "5.0.0",
