@@ -21,7 +21,7 @@ export declare class Statistics
 
 |  Constructor | Modifiers | Description |
 |  --- | --- | --- |
-|  [(constructor)(printFixedPrecision)](./faastjs.statistics.(constructor).md) |  | Incrementally track mean, stdev, min, max, of a sequence of values. |
+|  [(constructor)(printFixedPrecision)](./faastjs.statistics._constructor_.md) |  | Incrementally track mean, stdev, min, max, of a sequence of values. |
 
 ## Properties
 

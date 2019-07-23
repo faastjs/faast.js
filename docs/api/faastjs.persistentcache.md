@@ -21,7 +21,7 @@ export declare class PersistentCache
 
 |  Constructor | Modifiers | Description |
 |  --- | --- | --- |
-|  [(constructor)(dirRelativeToHomeDir, expiration)](./faastjs.persistentcache.(constructor).md) |  | Construct a new persistent cache, typically used with [Limits](./faastjs.limits.md) as part of the arguments to [throttle()](./faastjs.throttle.md)<!-- -->. |
+|  [(constructor)(dirRelativeToHomeDir, expiration)](./faastjs.persistentcache._constructor_.md) |  | Construct a new persistent cache, typically used with [Limits](./faastjs.limits.md) as part of the arguments to [throttle()](./faastjs.throttle.md)<!-- -->. |
 
 ## Properties
 
