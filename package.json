@@ -101,7 +101,7 @@
         "cz-conventional-changelog": "3.0.2",
         "lolex": "4.1.0",
         "nyc": "14.1.1",
-        "papaparse": "5.0.0",
+        "papaparse": "5.0.1",
         "semantic-release": "15.13.18",
         "tslint": "5.18.0",
         "tslint-config-prettier": "1.18.0",
