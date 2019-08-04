@@ -99,7 +99,7 @@
         "codecov": "3.5.0",
         "commitizen": "4.0.3",
         "cz-conventional-changelog": "3.0.2",
-        "lolex": "4.1.0",
+        "lolex": "4.2.0",
         "nyc": "14.1.1",
         "papaparse": "5.0.1",
         "semantic-release": "15.13.19",
