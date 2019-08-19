@@ -367,7 +367,7 @@ export async function createLayer(
     packageJson: string | object | undefined,
     useDependencyCaching: boolean,
     FunctionName: string,
-    region: string
+    region: AwsRegion
 ): Promise<AwsLayerInfo | undefined> {
     if (!packageJson) {
         return;
@@ -398,6 +398,7 @@ export async function createLayer(
 
     try {
         const faastModule = await faastAws(awsNpm, {
+            region,
             timeout: 300,
             memorySize: 2048,
             mode: "https",
