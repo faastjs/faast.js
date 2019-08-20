@@ -291,7 +291,7 @@ export async function quietly<U>(arg: Request<U, AWSError>) {
 
 export const createAwsApis = throttle(
     { concurrency: 1, memoize: true },
-    async (region: string) => {
+    async (region: AwsRegion) => {
         const logger = log.awssdk.enabled ? { log: log.awssdk } : undefined;
         awsconfig.update({ correctClockSkew: true, maxRetries: 6, logger });
         const services = {
@@ -1063,7 +1063,7 @@ function getSNSTopicName(FunctionName: string) {
     return `${FunctionName}-Requests`;
 }
 
-function getSNSTopicArn(region: string, accountId: string, FunctionName: string) {
+function getSNSTopicArn(region: AwsRegion, accountId: string, FunctionName: string) {
     const TopicName = getSNSTopicName(FunctionName);
     return `arn:aws:sns:${region}:${accountId}:${TopicName}`;
 }
@@ -1072,7 +1072,7 @@ function getSQSName(FunctionName: string) {
     return `${FunctionName}-Responses`;
 }
 
-function getResponseQueueUrl(region: string, accountId: string, FunctionName: string) {
+function getResponseQueueUrl(region: AwsRegion, accountId: string, FunctionName: string) {
     const queueName = getSQSName(FunctionName);
     return `https://sqs.${region}.amazonaws.com/${accountId}/${queueName}`;
 }

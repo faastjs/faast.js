@@ -73,7 +73,7 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
     let nResources = 0;
     const output = (msg: string) => !execute && log(msg);
     const { cloudwatch, iam, lambda, sns, sqs, s3 } = await awsFaast.createAwsApis(
-        region!
+        region! as awsFaast.AwsRegion
     );
 
     function listAWSResource<T, U>(
