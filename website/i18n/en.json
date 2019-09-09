@@ -356,9 +356,6 @@
       "api/faastjs.faastmoduleproxy.provider": {
         "title": "FaastModuleProxy.provider property"
       },
-      "api/faastjs.faastmoduleproxy.state": {
-        "title": "FaastModuleProxy.state property"
-      },
       "api/faastjs.faastmoduleproxy.stats": {
         "title": "FaastModuleProxy.stats() method"
       },
@@ -467,7 +464,7 @@
       "api/faastjs": {
         "title": "faastjs package"
       },
-      "api/faastjs.persistentcache.(constructor)": {
+      "api/faastjs.persistentcache._constructor_": {
         "title": "PersistentCache.(constructor)"
       },
       "api/faastjs.persistentcache.clear": {
@@ -506,7 +503,7 @@
       "api/faastjs.providers": {
         "title": "providers variable"
       },
-      "api/faastjs.statistics.(constructor)": {
+      "api/faastjs.statistics._constructor_": {
         "title": "Statistics.(constructor)"
       },
       "api/faastjs.statistics.max": {
@@ -544,6 +541,9 @@
       },
       "api/faastjs.unpacked": {
         "title": "Unpacked type"
+      },
+      "api/index": {
+        "title": "API Reference"
       }
     },
     "links": {
