@@ -67,7 +67,7 @@
         "googleapis": "^43.0.0",
         "listr": "^0.14.3",
         "memory-fs": "^0.4.1",
-        "ora": "^3.4.0",
+        "ora": "^4.0.0",
         "process-doctor": "^1.0.0",
         "tslib": "^1.9.1",
         "uuid": "^3.2.1",
