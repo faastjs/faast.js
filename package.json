@@ -80,7 +80,7 @@
         "@types/node": ">=8.0"
     },
     "devDependencies": {
-        "@microsoft/api-documenter": "7.4.4",
+        "@microsoft/api-documenter": "7.4.5",
         "@microsoft/api-extractor": "7.4.2",
         "@types/archiver": "3.0.0",
         "@types/aws-lambda": "8.10.31",
