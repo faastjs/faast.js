@@ -17,6 +17,10 @@ Summarize statistics about cloud function invocations.
 export declare class FunctionStatsEvent 
 ```
 
+## Remarks
+
+The constructor for this class is marked as internal. Third-party code should not call the constructor directly or create subclasses that extend the `FunctionStatsEvent` class.
+
 ## Properties
 
 |  Property | Modifiers | Type | Description |
@@ -29,7 +33,3 @@ export declare class FunctionStatsEvent
 |  Method | Modifiers | Description |
 |  --- | --- | --- |
 |  [toString()](./faastjs.functionstatsevent.tostring.md) |  | Returns a string summarizing the statistics event. |
-
-## Remarks
-
-The constructor for this class is marked as internal. Third-party code should not call the constructor directly or create subclasses that extend the `FunctionStatsEvent` class.

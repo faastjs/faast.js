@@ -17,27 +17,6 @@ Summary statistics for function invocations.
 export declare class FunctionStats 
 ```
 
-## Properties
-
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [completed](./faastjs.functionstats.completed.md) |  | <code>number</code> | The number of invocations that were successfully completed. |
-|  [errors](./faastjs.functionstats.errors.md) |  | <code>number</code> | The number of invocations that resulted in an error. If an invocation is retried, an error is only counted once, no matter how many retries were attempted. |
-|  [estimatedBilledTime](./faastjs.functionstats.estimatedbilledtime.md) |  | <code>Statistics</code> | Statistics for amount of time billed. This is similar to [FunctionStats.executionTime](./faastjs.functionstats.executiontime.md) except each sampled time is rounded up to the next 100ms. |
-|  [executionTime](./faastjs.functionstats.executiontime.md) |  | <code>Statistics</code> | Statistics for function execution time in milliseconds. This is measured as wall clock time inside the cloud function, and does not include the time taken to send the response to the response queue. Note that most cloud providers round up to the next 100ms for pricing. |
-|  [invocations](./faastjs.functionstats.invocations.md) |  | <code>number</code> | The number of invocations attempted. If an invocation is retried, this only counts the invocation once. |
-|  [localStartLatency](./faastjs.functionstats.localstartlatency.md) |  | <code>Statistics</code> | Statistics for how long invocations stay in the local queue before being sent to the cloud provider. |
-|  [remoteStartLatency](./faastjs.functionstats.remotestartlatency.md) |  | <code>Statistics</code> | Statistics for how long requests take to start execution after being sent to the cloud provider. This typically includes remote queueing and cold start times. Because this measurement requires comparing timestamps from different machines, it is subject to clock skew and other effects, and should not be considered highly accurate. It can be useful for detecting excessively high latency problems. Faast.js attempt to correct for clock skew heuristically. |
-|  [retries](./faastjs.functionstats.retries.md) |  | <code>number</code> | The number of invocation retries attempted. This counts retries attempted by faast.js to recover from transient errors, but does not count retries by the cloud provider. |
-|  [returnLatency](./faastjs.functionstats.returnlatency.md) |  | <code>Statistics</code> | Statistics for how long it takes to return a response from the end of execution time to the receipt of the response locally. This measurement requires comparing timestamps from different machines, and is subject to clock skew and other effects. It should not be considered highly accurate. It can be useful for detecting excessively high latency problems. Faast.js attempts to correct for clock skew heuristically. |
-|  [sendResponseLatency](./faastjs.functionstats.sendresponselatency.md) |  | <code>Statistics</code> | Statistics for how long it takes to send the response to the response queue. |
-
-## Methods
-
-|  Method | Modifiers | Description |
-|  --- | --- | --- |
-|  [toString()](./faastjs.functionstats.tostring.md) |  | Summarize the function stats as a string. |
-
 ## Remarks
 
 
@@ -73,3 +52,24 @@ export declare class FunctionStats
 `localStartLatency` and `executionTime` are measured on one machine and are free of clock skew. `remoteStartLatency` and `returnLatency` are measured as time differences between machines and are subject to much more uncertainty, and effects like clock skew.
 
 All times are in milliseconds.
+
+## Properties
+
+|  Property | Modifiers | Type | Description |
+|  --- | --- | --- | --- |
+|  [completed](./faastjs.functionstats.completed.md) |  | <code>number</code> | The number of invocations that were successfully completed. |
+|  [errors](./faastjs.functionstats.errors.md) |  | <code>number</code> | The number of invocations that resulted in an error. If an invocation is retried, an error is only counted once, no matter how many retries were attempted. |
+|  [estimatedBilledTime](./faastjs.functionstats.estimatedbilledtime.md) |  | <code>Statistics</code> | Statistics for amount of time billed. This is similar to [FunctionStats.executionTime](./faastjs.functionstats.executiontime.md) except each sampled time is rounded up to the next 100ms. |
+|  [executionTime](./faastjs.functionstats.executiontime.md) |  | <code>Statistics</code> | Statistics for function execution time in milliseconds. This is measured as wall clock time inside the cloud function, and does not include the time taken to send the response to the response queue. Note that most cloud providers round up to the next 100ms for pricing. |
+|  [invocations](./faastjs.functionstats.invocations.md) |  | <code>number</code> | The number of invocations attempted. If an invocation is retried, this only counts the invocation once. |
+|  [localStartLatency](./faastjs.functionstats.localstartlatency.md) |  | <code>Statistics</code> | Statistics for how long invocations stay in the local queue before being sent to the cloud provider. |
+|  [remoteStartLatency](./faastjs.functionstats.remotestartlatency.md) |  | <code>Statistics</code> | Statistics for how long requests take to start execution after being sent to the cloud provider. This typically includes remote queueing and cold start times. Because this measurement requires comparing timestamps from different machines, it is subject to clock skew and other effects, and should not be considered highly accurate. It can be useful for detecting excessively high latency problems. Faast.js attempt to correct for clock skew heuristically. |
+|  [retries](./faastjs.functionstats.retries.md) |  | <code>number</code> | The number of invocation retries attempted. This counts retries attempted by faast.js to recover from transient errors, but does not count retries by the cloud provider. |
+|  [returnLatency](./faastjs.functionstats.returnlatency.md) |  | <code>Statistics</code> | Statistics for how long it takes to return a response from the end of execution time to the receipt of the response locally. This measurement requires comparing timestamps from different machines, and is subject to clock skew and other effects. It should not be considered highly accurate. It can be useful for detecting excessively high latency problems. Faast.js attempts to correct for clock skew heuristically. |
+|  [sendResponseLatency](./faastjs.functionstats.sendresponselatency.md) |  | <code>Statistics</code> | Statistics for how long it takes to send the response to the response queue. |
+
+## Methods
+
+|  Method | Modifiers | Description |
+|  --- | --- | --- |
+|  [toString()](./faastjs.functionstats.tostring.md) |  | Summarize the function stats as a string. |

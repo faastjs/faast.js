@@ -17,6 +17,10 @@ Options common across all faast.js providers. Used as argument to [faast()](./fa
 export interface CommonOptions 
 ```
 
+## Remarks
+
+There are also more specific options for each provider. See [AwsOptions](./faastjs.awsoptions.md)<!-- -->, [GoogleOptions](./faastjs.googleoptions.md)<!-- -->, and [LocalOptions](./faastjs.localoptions.md)<!-- -->.
+
 ## Properties
 
 |  Property | Type | Description |
@@ -38,7 +42,3 @@ export interface CommonOptions
 |  [useDependencyCaching](./faastjs.commonoptions.usedependencycaching.md) | <code>boolean</code> | Cache installed dependencies from [CommonOptions.packageJson](./faastjs.commonoptions.packagejson.md)<!-- -->. Only applies to AWS. Default: true. |
 |  [validateSerialization](./faastjs.commonoptions.validateserialization.md) | <code>boolean</code> | Check arguments and return values from cloud functions are serializable without losing information. Default: true. |
 |  [webpackOptions](./faastjs.commonoptions.webpackoptions.md) | <code>webpack.Configuration</code> | Extra webpack options to use to bundle the code package. |
-
-## Remarks
-
-There are also more specific options for each provider. See [AwsOptions](./faastjs.awsoptions.md)<!-- -->, [GoogleOptions](./faastjs.googleoptions.md)<!-- -->, and [LocalOptions](./faastjs.localoptions.md)<!-- -->.

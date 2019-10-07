@@ -17,24 +17,6 @@ A summary of the costs incurred by a faast.js module at a point in time. Output 
 export declare class CostSnapshot 
 ```
 
-## Properties
-
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [costMetrics](./faastjs.costsnapshot.costmetrics.md) |  | <code>CostMetric[]</code> | The cost metric components for this cost snapshot. See [CostMetric](./faastjs.costmetric.md)<!-- -->. |
-|  [options](./faastjs.costsnapshot.options.md) |  | <code>CommonOptions &#124; AwsOptions &#124; GoogleOptions</code> | The options used to initialize the faast.js module where this cost snapshot was generated. |
-|  [provider](./faastjs.costsnapshot.provider.md) |  | <code>string</code> | The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" or "google" |
-|  [stats](./faastjs.costsnapshot.stats.md) |  | <code>FunctionStats</code> | The function statistics that were used to compute prices. |
-
-## Methods
-
-|  Method | Modifiers | Description |
-|  --- | --- | --- |
-|  [csv()](./faastjs.costsnapshot.csv.md) |  | Comma separated value output for a cost snapshot. |
-|  [find(name)](./faastjs.costsnapshot.find.md) |  | Find a specific cost metric by name. |
-|  [toString()](./faastjs.costsnapshot.tostring.md) |  | A summary of all cost metrics and prices in this cost snapshot. |
-|  [total()](./faastjs.costsnapshot.total.md) |  | Sum of cost metrics. |
-
 ## Remarks
 
 Cost information provided by faast.js is an estimate. It is derived from internal faast.js measurements and not by consulting data provided by your cloud provider.
@@ -104,3 +86,21 @@ Prices are retrieved dynamically from AWS and Google and cached locally. Cached 
 Cost estimates do not take free tiers into account.
 
 The constructor for this class is marked as internal. Third-party code should not call the constructor directly or create subclasses that extend the `CostSnapshot` class.
+
+## Properties
+
+|  Property | Modifiers | Type | Description |
+|  --- | --- | --- | --- |
+|  [costMetrics](./faastjs.costsnapshot.costmetrics.md) |  | <code>CostMetric[]</code> | The cost metric components for this cost snapshot. See [CostMetric](./faastjs.costmetric.md)<!-- -->. |
+|  [options](./faastjs.costsnapshot.options.md) |  | <code>CommonOptions &#124; AwsOptions &#124; GoogleOptions</code> | The options used to initialize the faast.js module where this cost snapshot was generated. |
+|  [provider](./faastjs.costsnapshot.provider.md) |  | <code>string</code> | The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" or "google" |
+|  [stats](./faastjs.costsnapshot.stats.md) |  | <code>FunctionStats</code> | The function statistics that were used to compute prices. |
+
+## Methods
+
+|  Method | Modifiers | Description |
+|  --- | --- | --- |
+|  [csv()](./faastjs.costsnapshot.csv.md) |  | Comma separated value output for a cost snapshot. |
+|  [find(name)](./faastjs.costsnapshot.find.md) |  | Find a specific cost metric by name. |
+|  [toString()](./faastjs.costsnapshot.tostring.md) |  | A summary of all cost metrics and prices in this cost snapshot. |
+|  [total()](./faastjs.costsnapshot.total.md) |  | Sum of cost metrics. |

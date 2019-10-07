@@ -17,6 +17,14 @@ A subclass of Error that is thrown by faast.js APIs and cloud function invocatio
 export declare class FaastError extends VError 
 ```
 
+## Remarks
+
+`FaastError` is a subclass of [VError](https://github.com/joyent/node-verror)<!-- -->, which provides an API for nested error handling. The main API is the same as the standard Error class, namely the [FaastError.message](./faastjs.faasterror.message.md)<!-- -->, [FaastError.name](./faastjs.faasterror.name.md)<!-- -->, and [FaastError.stack](./faastjs.faasterror.stack.md) properties. In addition, the [FaastError.fullStack](./faastjs.faasterror.fullstack.md) property provides a more detailed stack trace.
+
+`FaastError` can be returned in two situations. In the first situation, faast.js itself is reporting an error when it encounters a situation it cannot handle. In the second situation, the user's cloud function is throwing an error (or returning a rejected `Promise`<!-- -->). In the second situation, the original error class is not re-created on the client side because faast.js cannot reliably instantiate foreign subclasses of `Error`<!-- -->. Instead, all of the properties of the `Error` on the remote side are serialized and sent to the local side. These properties are available on the [FaastError.info](./faastjs.faasterror.info.md) object. In addition, [FaastError.functionName](./faastjs.faasterror.functionname.md) is the name of the function that was invoked, and [FaastError.args](./faastjs.faasterror.args.md) are the arguments used to invoke the function that caused the error.
+
+If available, [FaastError.logUrl](./faastjs.faasterror.logurl.md) will be a URL pointing to the logs for the specific invocation that caused the error. The `logUrl` will be appended to the end of [FaastError.message](./faastjs.faasterror.message.md) and [FaastError.fullStack](./faastjs.faasterror.fullstack.md) as well. `logUrl` be surrounded by whilespace on both sides to ease parsing as a URL by IDEs.
+
 ## Properties
 
 |  Property | Modifiers | Type | Description |
@@ -36,11 +44,3 @@ export declare class FaastError extends VError
 |  Method | Modifiers | Description |
 |  --- | --- | --- |
 |  [cause()](./faastjs.faasterror.cause.md) |  | The underlying cause of the error, if any. This cause is also reflected in [FaastError.message](./faastjs.faasterror.message.md) and [FaastError.fullStack](./faastjs.faasterror.fullstack.md)<!-- -->. |
-
-## Remarks
-
-`FaastError` is a subclass of [VError](https://github.com/joyent/node-verror)<!-- -->, which provides an API for nested error handling. The main API is the same as the standard Error class, namely the [FaastError.message](./faastjs.faasterror.message.md)<!-- -->, [FaastError.name](./faastjs.faasterror.name.md)<!-- -->, and [FaastError.stack](./faastjs.faasterror.stack.md) properties. In addition, the [FaastError.fullStack](./faastjs.faasterror.fullstack.md) property provides a more detailed stack trace.
-
-`FaastError` can be returned in two situations. In the first situation, faast.js itself is reporting an error when it encounters a situation it cannot handle. In the second situation, the user's cloud function is throwing an error (or returning a rejected `Promise`<!-- -->). In the second situation, the original error class is not re-created on the client side because faast.js cannot reliably instantiate foreign subclasses of `Error`<!-- -->. Instead, all of the properties of the `Error` on the remote side are serialized and sent to the local side. These properties are available on the [FaastError.info](./faastjs.faasterror.info.md) object. In addition, [FaastError.functionName](./faastjs.faasterror.functionname.md) is the name of the function that was invoked, and [FaastError.args](./faastjs.faasterror.args.md) are the arguments used to invoke the function that caused the error.
-
-If available, [FaastError.logUrl](./faastjs.faasterror.logurl.md) will be a URL pointing to the logs for the specific invocation that caused the error. The `logUrl` will be appended to the end of [FaastError.message](./faastjs.faasterror.message.md) and [FaastError.fullStack](./faastjs.faasterror.fullstack.md) as well. `logUrl` be surrounded by whilespace on both sides to ease parsing as a URL by IDEs.

@@ -17,6 +17,10 @@ A line item in the cost estimate, including the resource usage metric measured a
 export declare class CostMetric 
 ```
 
+## Remarks
+
+The constructor for this class is marked as internal. Third-party code should not call the constructor directly or create subclasses that extend the `CostMetric` class.
+
 ## Properties
 
 |  Property | Modifiers | Type | Description |
@@ -36,7 +40,3 @@ export declare class CostMetric
 |  [cost()](./faastjs.costmetric.cost.md) |  | The cost contribution of this cost metric. Equal to [CostMetric.pricing](./faastjs.costmetric.pricing.md) \* [CostMetric.measured](./faastjs.costmetric.measured.md)<!-- -->. |
 |  [describeCostOnly()](./faastjs.costmetric.describecostonly.md) |  | Return a string with the cost estimate for this metric, omitting comments. |
 |  [toString()](./faastjs.costmetric.tostring.md) |  | Describe this cost metric, including comments. |
-
-## Remarks
-
-The constructor for this class is marked as internal. Third-party code should not call the constructor directly or create subclasses that extend the `CostMetric` class.

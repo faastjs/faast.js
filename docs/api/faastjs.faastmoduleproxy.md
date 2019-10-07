@@ -17,6 +17,12 @@ Implementation of [FaastModule](./faastjs.faastmodule.md)<!-- -->.
 export declare class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
 ```
 
+## Remarks
+
+`FaastModuleProxy` provides a unified developer experience for faast.js modules on top of provider-specific runtime APIs. Most users will not create `FaastModuleProxy` instances themselves; instead use [faast()](./faastjs.faast.md)<!-- -->, or [faastAws()](./faastjs.faastaws.md)<!-- -->, [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->, or [faastLocal()](./faastjs.faastlocal.md)<!-- -->. `FaastModuleProxy` implements the [FaastModule](./faastjs.faastmodule.md) interface, which is the preferred public interface for faast modules. `FaastModuleProxy` can be used to access provider-specific details and state, and is useful for deeper testing.
+
+The constructor for this class is marked as internal. Third-party code should not call the constructor directly or create subclasses that extend the `FaastModuleProxy` class.
+
 ## Properties
 
 |  Property | Modifiers | Type | Description |
@@ -35,9 +41,3 @@ export declare class FaastModuleProxy<M extends object, O, S> implements FaastMo
 |  [off(name, listener)](./faastjs.faastmoduleproxy.off.md) |  | Deregister a callback for statistics events. |
 |  [on(name, listener)](./faastjs.faastmoduleproxy.on.md) |  | Register a callback for statistics events. |
 |  [stats(functionName)](./faastjs.faastmoduleproxy.stats.md) |  | Statistics for a specific function or the entire faast.js module. |
-
-## Remarks
-
-`FaastModuleProxy` provides a unified developer experience for faast.js modules on top of provider-specific runtime APIs. Most users will not create `FaastModuleProxy` instances themselves; instead use [faast()](./faastjs.faast.md)<!-- -->, or [faastAws()](./faastjs.faastaws.md)<!-- -->, [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->, or [faastLocal()](./faastjs.faastlocal.md)<!-- -->. `FaastModuleProxy` implements the [FaastModule](./faastjs.faastmodule.md) interface, which is the preferred public interface for faast modules. `FaastModuleProxy` can be used to access provider-specific details and state, and is useful for deeper testing.
-
-The constructor for this class is marked as internal. Third-party code should not call the constructor directly or create subclasses that extend the `FaastModuleProxy` class.
