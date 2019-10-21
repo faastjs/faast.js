@@ -10,7 +10,11 @@ import { inspect } from "util";
 export function exec(log: (_: string) => void, cmds: string[]) {
     let rv = "";
     for (const cmd of cmds) {
-        rv += sys.execSync(cmd).toString();
+        try {
+            rv += sys.execSync(cmd).toString();
+        } catch (err) {
+            rv += err.message;
+        }
     }
     log(rv);
     return rv;
@@ -80,6 +84,7 @@ export async function npmInstall({
 
     log("NOT CACHED, running npm install");
     const npmQuiet = quiet ? "-s" : "";
+    installLog += exec(log, [`echo "hello world"`]);
     installLog += exec(log, [
         `export HOME=/tmp; npm install --prefix=${buildDir} --no-package-lock ${npmQuiet}`
     ]);
