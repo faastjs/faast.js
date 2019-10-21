@@ -80,7 +80,7 @@
         "@types/node": ">=8.0"
     },
     "devDependencies": {
-        "@microsoft/api-documenter": "7.5.0",
+        "@microsoft/api-documenter": "7.5.1",
         "@microsoft/api-extractor": "7.4.2",
         "@types/archiver": "3.0.0",
         "@types/aws-lambda": "8.10.31",
@@ -102,7 +102,7 @@
         "lolex": "5.1.0",
         "nyc": "14.1.1",
         "papaparse": "5.1.0",
-        "semantic-release": "15.13.24",
+        "semantic-release": "15.13.27",
         "tslint": "5.20.0",
         "tslint-config-prettier": "1.18.0",
         "typescript": "3.6.3",
