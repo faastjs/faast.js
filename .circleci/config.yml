@@ -9,10 +9,6 @@ executors:
         docker:
             - image: circleci/node:10
         working_directory: ~/repo
-    node8:
-        docker:
-            - image: circleci/node:8
-        working_directory: ~/repo
 
 jobs:
     build_and_test:
@@ -103,11 +99,6 @@ workflows:
                   executor: node10
                   target: "test-aws"
             - build_and_test:
-                  name: "aws-node8"
-                  nodeVersion: "node8"
-                  executor: node8
-                  target: "test-aws"
-            - build_and_test:
                   name: "google-node10"
                   nodeVersion: "node10"
                   executor: node10
@@ -118,7 +109,6 @@ workflows:
             - release:
                   requires:
                       - aws-node10
-                      - aws-node8
                       - google-node10
                       - examples
                   filters:

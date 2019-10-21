@@ -459,7 +459,6 @@ export const initialize = throttle(
                 FunctionName,
                 Role,
                 Runtime: "nodejs10.x",
-                // Runtime: "nodejs8.10",
                 Handler: "index.trampoline",
                 Code,
                 Description: "faast trampoline function",
