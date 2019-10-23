@@ -10,11 +10,7 @@ import { inspect } from "util";
 export function exec(log: (_: string) => void, cmds: string[]) {
     let rv = "";
     for (const cmd of cmds) {
-        try {
-            rv += sys.execSync(cmd).toString();
-        } catch (err) {
-            rv += err.message;
-        }
+        rv += sys.execSync(cmd).toString();
     }
     log(rv);
     return rv;
