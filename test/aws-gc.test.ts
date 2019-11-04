@@ -115,7 +115,7 @@ test.serial(title("aws", "garbage collects functions that are never called"), as
     }
 });
 
-test.serial(title("aws", "garbage collection caching"), async t => {
+test.skip(title("aws", "garbage collection caching"), async t => {
     {
         // Run a real gc so the build account doesn't accumulate garbage.
         const mod = await faastAws(functions, { gc: "force" });
