@@ -166,14 +166,15 @@ export function faastAws<M extends object>(fmodule: M, options?: AwsOptions): Pr
 export class FaastError extends VError {
     args?: any[];
     cause(): Error | undefined;
+    get message(): string;
+    set message(value: string);
     code?: string;
-    readonly fullStack: string;
     functionName?: string;
-    readonly info: {
+    get fullStack(): string;
+    get info(): {
         [key: string]: any;
     };
     logUrl?: string;
-    message: string;
     name: string;
     stack: string | undefined;
 }
@@ -318,7 +319,7 @@ export class PersistentCache {
     readonly dirRelativeToHomeDir: string;
     entries(): Promise<string[]>;
     readonly expiration: number;
-    get(key: string): Promise<void | Buffer>;
+    get(key: string): Promise<Buffer | undefined>;
     // Warning: (ae-forgotten-export) The symbol "Blob" needs to be exported by the entry point index.d.ts
     set(key: string, value: Buffer | string | Uint8Array | Readable | Blob): Promise<void>;
 }

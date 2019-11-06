@@ -76,7 +76,7 @@ export function printHooks() {
 }
 
 export function stopAsyncTracing() {
-    hook && hook();
+    hook?.();
 }
 
 export function onAsyncHook(stackTraces: boolean) {

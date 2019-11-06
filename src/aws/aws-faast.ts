@@ -15,7 +15,7 @@ import { createHash } from "crypto";
 import { readFile } from "fs-extra";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
-import { assertNever, FaastError } from "../error";
+import { FaastError } from "../error";
 import { faastAws } from "../faast";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
@@ -86,8 +86,6 @@ export const defaultGcWorker = throttle(
                     log.gc(`deleted layer %O`, work);
                 }
                 break;
-            default:
-                assertNever(work);
         }
     }
 );
@@ -386,8 +384,8 @@ export async function createLayer(
         const cacheKey = hasher.digest("hex");
         LayerName = `faast-${cacheKey}`;
         const layers = await quietly(lambda.listLayerVersions({ LayerName }));
-        if (layers && layers.LayerVersions && layers.LayerVersions.length > 0) {
-            const [{ Version, LayerVersionArn }] = layers.LayerVersions;
+        if (layers?.LayerVersions?.length ?? 0 > 0) {
+            const [{ Version, LayerVersionArn }] = layers?.LayerVersions ?? [];
             if (Version && LayerVersionArn) {
                 return { Version, LayerVersionArn, LayerName };
             }
@@ -638,8 +636,6 @@ async function invoke(
                 throw new FaastError(err, "invoke sns error");
             }
             return;
-        default:
-            assertNever(options.mode);
     }
 }
 
@@ -701,15 +697,14 @@ async function invokeHttps(
 
 export async function deleteRole(RoleName: string, iam: IAM) {
     const policies = await carefully(iam.listAttachedRolePolicies({ RoleName }));
-    const AttachedPolicies = (policies && policies.AttachedPolicies) || [];
+    const AttachedPolicies = policies?.AttachedPolicies ?? [];
     await Promise.all(
         AttachedPolicies.map(p => p.PolicyArn!).map(PolicyArn =>
             carefully(iam.detachRolePolicy({ RoleName, PolicyArn }))
         )
     ).catch(log.warn);
     const rolePolicyListResponse = await carefully(iam.listRolePolicies({ RoleName }));
-    const RolePolicies =
-        (rolePolicyListResponse && rolePolicyListResponse.PolicyNames) || [];
+    const RolePolicies = rolePolicyListResponse?.PolicyNames ?? [];
     await Promise.all(
         RolePolicies.map(PolicyName =>
             carefully(iam.deleteRolePolicy({ RoleName, PolicyName }))

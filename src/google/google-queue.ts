@@ -1,6 +1,5 @@
 import { AbortController } from "abort-controller";
 import { pubsub_v1 } from "googleapis";
-import { assertNever } from "../error";
 import { log } from "../log";
 import {
     CALLID_ATTR,
@@ -20,8 +19,7 @@ import PubSubMessage = pubsub_v1.Schema$PubsubMessage;
 import { deserializeMessage, serializeMessage } from "../serialize";
 
 function pubsubMessageAttribute(message: PubSubMessage, attr: string) {
-    const attributes = message && message.attributes;
-    return attributes && (attributes[attr] as string);
+    return message?.attributes?.[attr];
 }
 
 export async function receiveMessages(
@@ -98,7 +96,6 @@ function processMessage(m: PubSubMessage): ReceivableMessage | void {
         case "cpumetrics":
             return deserializeMessage(raw);
     }
-    assertNever(kind);
 }
 
 export async function publishPubSub(
@@ -138,5 +135,4 @@ export function publishResponseMessage(
         case "cpumetrics":
             return publishPubSub(pubsub, ResponseQueue, JSON.stringify(message), kind);
     }
-    assertNever(message);
 }

@@ -25,20 +25,13 @@ export function getExecutionLogUrl(
 export const httpMethodsToRetry = ["POST", "PUT", "GET", "HEAD", "OPTIONS", "DELETE"];
 export const statusCodesToRetry = [[100, 199], [429, 429], [405, 405], [500, 599]];
 
-function getGaxiosRetryConfig(err: GaxiosError) {
-    if (err && err.config && err.config.retryConfig) {
-        return err.config.retryConfig;
-    }
-    return;
-}
-
 /**
  * Determine based on config if we should retry the request.
  * @param err The GaxiosError passed to the interceptor.
  */
 export function shouldRetryRequest(log: (msg: string) => void) {
     return (err: GaxiosError) => {
-        const config = getGaxiosRetryConfig(err);
+        const config = err?.config?.retryConfig;
 
         // If there's no config, or retries are disabled, return.
         if (!config || config.retry === 0) {
@@ -68,10 +61,10 @@ export function shouldRetryRequest(log: (msg: string) => void) {
 
         // If this wasn't in the list of status codes where we want
         // to automatically retry, return.
-        if (err.response && err.response.status) {
+        if (err.response?.status) {
             let isInRange = false;
+            const status = err.response.status;
             for (const [min, max] of statusCodesToRetry!) {
-                const status = err.response.status;
                 if (status >= min && status <= max) {
                     isInRange = true;
                     break;
@@ -91,7 +84,7 @@ export function shouldRetryRequest(log: (msg: string) => void) {
         log(
             `google: attempts: ${config.currentRetryAttempt}/${config.retry}, code: ${
                 err.code
-            }, status: ${err.response && err.response.status} name: ${
+            }, status: ${err.response?.status} name: ${
                 err.name
             }, message: ${err.message}`
         );

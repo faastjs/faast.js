@@ -272,23 +272,14 @@
       "api/faastjs.faasterror.code": {
         "title": "FaastError.code property"
       },
-      "api/faastjs.faasterror.fullstack": {
-        "title": "FaastError.fullStack property"
-      },
       "api/faastjs.faasterror.functionname": {
         "title": "FaastError.functionName property"
-      },
-      "api/faastjs.faasterror.info": {
-        "title": "FaastError.info property"
       },
       "api/faastjs.faasterror.logurl": {
         "title": "FaastError.logUrl property"
       },
       "api/faastjs.faasterror": {
         "title": "FaastError class"
-      },
-      "api/faastjs.faasterror.message": {
-        "title": "FaastError.message property"
       },
       "api/faastjs.faasterror.name": {
         "title": "FaastError.name property"

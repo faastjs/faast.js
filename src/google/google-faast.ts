@@ -10,7 +10,7 @@ import {
 import * as util from "util";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
-import { assertNever, FaastError } from "../error";
+import { FaastError } from "../error";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import {
@@ -359,7 +359,7 @@ export async function initialize(
         );
 
         const uploadResult = await uploadZip(uploadUrlResponse.data.uploadUrl!, archive);
-        log.info(`Upload zip file response: ${uploadResult && uploadResult.statusText}`);
+        log.info(`Upload zip file response: ${uploadResult?.statusText}`);
         return uploadUrlResponse.data.uploadUrl;
     }
 
@@ -578,8 +578,6 @@ async function invoke(
             const serialized = serializeMessage(call);
             publishPubSub(pubsub, requestQueueTopic!, serialized);
             return;
-        default:
-            assertNever(options.mode);
     }
 }
 
@@ -772,12 +770,14 @@ export async function googlePacker(
     );
 }
 
-let getGooglePrice: (
-    region: string,
-    serviceName: string,
-    description: string,
-    conversionFactor: number
-) => Promise<number>;
+let getGooglePrice:
+    | undefined
+    | ((
+          region: string,
+          serviceName: string,
+          description: string,
+          conversionFactor: number
+      ) => Promise<number>);
 
 function ensureGooglePriceCache(cloudBilling: CloudBilling.Cloudbilling) {
     if (getGooglePrice) {
@@ -807,13 +807,13 @@ function ensureGooglePriceCache(cloudBilling: CloudBilling.Cloudbilling) {
                 );
 
                 const regionOrGlobalSku =
-                    matchingSkus.find(sku => sku.serviceRegions![0] === region) ||
+                    matchingSkus.find(sku => sku.serviceRegions![0] === region) ??
                     matchingSkus.find(sku => sku.serviceRegions![0] === "global");
 
                 const pexp = regionOrGlobalSku!.pricingInfo![0].pricingExpression!;
                 const prices = pexp.tieredRates!.map(
                     rate =>
-                        Number(rate.unitPrice!.units || "0") +
+                        Number(rate.unitPrice!.units ?? "0") +
                         rate.unitPrice!.nanos! / 1e9
                 );
                 const price =
@@ -860,7 +860,7 @@ async function getGoogleCloudFunctionsPricing(
         conversionFactor: number = 1
     ) => {
         const service = services.find(s => s.displayName === serviceName)!;
-        return getGooglePrice(region, service.name!, description, conversionFactor);
+        return getGooglePrice!(region, service.name!, description, conversionFactor);
     };
 
     return {

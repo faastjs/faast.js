@@ -14,7 +14,7 @@ Retrieves the value previously set for the given key, or undefined if the key is
 <b>Signature:</b>
 
 ```typescript
-get(key: string): Promise<void | Buffer>;
+get(key: string): Promise<Buffer | undefined>;
 ```
 
 ## Parameters
@@ -25,4 +25,4 @@ get(key: string): Promise<void | Buffer>;
 
 <b>Returns:</b>
 
-`Promise<void | Buffer>`
+`Promise<Buffer | undefined>`

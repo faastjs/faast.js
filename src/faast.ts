@@ -3,7 +3,7 @@ import * as util from "util";
 import * as uuidv4 from "uuid/v4";
 import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
 import { CostMetric, CostSnapshot } from "./cost";
-import { assertNever, FaastError, synthesizeFaastError } from "./error";
+import { FaastError, synthesizeFaastError } from "./error";
 import { GoogleImpl, GoogleOptions, GoogleState } from "./google/google-faast";
 import { LocalImpl, LocalOptions, LocalState } from "./local/local-faast";
 import { inspectProvider, log } from "./log";
@@ -90,7 +90,7 @@ export type PromisifiedFunction<A extends any[], R> = (
 export type Promisified<M> = {
     [K in keyof M]: M[K] extends (...args: infer A) => infer R
         ? PromisifiedFunction<A, R>
-        : never
+        : never;
 };
 
 /**
@@ -523,7 +523,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             this._stats.clear();
             this._memoryLeakDetector.clear();
             this._funnel.clear();
-            this._rateLimiter && this._rateLimiter.clear();
+            this._rateLimiter?.clear();
             this._cleanupHooks.forEach(hook => hook.resolve());
             this._cleanupHooks.clear();
             this._emitter.removeAllListeners();
@@ -838,8 +838,6 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                     secondMetrics.utime.update(metrics.utime);
                     secondMetrics.cpuTime.update(metrics.stime + metrics.utime);
                     break;
-                default:
-                    assertNever(m);
             }
         }
     }

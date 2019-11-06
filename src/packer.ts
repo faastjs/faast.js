@@ -106,7 +106,7 @@ export async function packer(
             try {
                 const resolvedPath = path.resolve(cwd, entry);
                 const entryStat = await stat(resolvedPath);
-                if (entryStat.isDirectory) {
+                if (entryStat.isDirectory()) {
                     entry = join(entry, "/**/*");
                 }
             } catch {}

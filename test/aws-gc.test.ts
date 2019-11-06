@@ -14,7 +14,7 @@ async function waitForLogGroupCreation(cloudwatch: CloudWatchLogs, logGroupName:
             const logResult = await cloudwatch
                 .filterLogEvents({ logGroupName })
                 .promise();
-            const events = (logResult && logResult.events) || [];
+            const events = logResult.events ?? [];
             for (const event of events) {
                 if (event.message!.match(/REPORT RequestId/)) {
                     return;

@@ -25,7 +25,7 @@ export class DeferredWorker<T = void> extends Deferred<T> {
         super();
     }
     async execute() {
-        const cancelMessage = this.cancel && this.cancel();
+        const cancelMessage = this.cancel?.();
         if (cancelMessage) {
             this.reject(new FaastError(cancelMessage));
         } else {
@@ -451,7 +451,7 @@ export function throttle<A extends any[], R>(
         cancellationQueue.push(() => mcache.clear());
         conditionedFunc = memoizeFn(conditionedFunc, mcache);
     }
-    cancel && cancel.then(() => cancellationQueue.forEach(cleanupFn => cleanupFn()));
+    cancel?.then(() => cancellationQueue.forEach(cleanupFn => cleanupFn()));
     return conditionedFunc;
 }
 

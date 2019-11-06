@@ -1,6 +1,6 @@
 import { SNSEvent } from "aws-lambda";
 import { SNS, SQS } from "aws-sdk";
-import { assertNever, FaastError } from "../error";
+import { FaastError } from "../error";
 import { log } from "../log";
 import {
     CALLID_ATTR,
@@ -19,7 +19,7 @@ import { AwsMetrics } from "./aws-faast";
 
 function sqsMessageAttribute(message: SQS.Message, attr: string) {
     const a = message.MessageAttributes;
-    return a && a[attr] && a[attr].StringValue;
+    return a?.[attr]?.StringValue;
 }
 
 export async function createSNSTopic(sns: SNS, Name: string) {
@@ -77,7 +77,6 @@ export function sendResponseQueueMessage(
         case "cpumetrics":
             return publishSQS(sqs, QueueUrl, serializeMessage(message), kind);
     }
-    assertNever(message);
 }
 
 export function publishFunctionCallMessage(
@@ -108,7 +107,7 @@ export async function createSQSQueue(QueueName: string, VTimeout: number, sqs: S
     const arnResponse = await sqs
         .getQueueAttributes({ QueueUrl, AttributeNames: ["QueueArn"] })
         .promise();
-    const QueueArn = arnResponse.Attributes && arnResponse.Attributes.QueueArn;
+    const QueueArn = arnResponse.Attributes?.QueueArn;
     return { QueueUrl, QueueArn };
 }
 
@@ -116,7 +115,7 @@ export async function createSQSQueue(QueueName: string, VTimeout: number, sqs: S
 export function processAwsErrorMessage(message: string): Error {
     let err = new FaastError(message);
     err = new FaastError(err, "lambda execution error");
-    if (message && message.match(/Process exited before completing/)) {
+    if (message?.match(/Process exited before completing/)) {
         err = new FaastError(err, "possibly out of memory");
     }
     return err;
@@ -149,7 +148,7 @@ export async function receiveMessages(
     metrics.outboundBytes += receivedBytes;
     const inferredSqsRequestsReceived = countRequests(receivedBytes);
     const inferredSqsRequestsSent = sum(
-        Messages.map(m => (m.Body && countRequests(m.Body.length)) || 1)
+        Messages.map(m => countRequests(m.Body?.length ?? 1))
     );
     metrics.sqs64kRequests += inferredSqsRequestsSent + inferredSqsRequestsReceived;
     if (Messages.length > 0) {
@@ -221,5 +220,4 @@ function processIncomingQueueMessage(m: SQS.Message): ReceivableMessage | void {
         case "cpumetrics":
             return deserializeMessage(m.Body!);
     }
-    return assertNever(kind);
 }

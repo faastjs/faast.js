@@ -34,7 +34,7 @@ test("persistent cache can set and get cache entries", async t => {
         }
         try {
             const result = await cache.get("foo");
-            t.is(result && result.toString(), "bar");
+            t.is(result?.toString(), "bar");
         } catch (err) {
             console.log(`persistent cache get error ${err}`);
             throw err;
@@ -48,10 +48,10 @@ test("persistent cache ignores entries after they expire", async t => {
     const cache2 = new PersistentCache(t.context.cache.dirRelativeToHomeDir, 100);
     await cache2.set("foo", "bar");
     let result = await cache2.get("foo");
-    t.is(result && result.toString(), "bar");
+    t.is(result?.toString(), "bar");
     await sleep(101);
     result = await cache2.get("foo");
-    t.falsy(result && result.toString());
+    t.falsy(result?.toString());
 });
 
 test("persistent cache keys can be sha256 hashes", async t => {
@@ -61,14 +61,14 @@ test("persistent cache keys can be sha256 hashes", async t => {
     const { cache } = t.context;
     await cache.set(hash, "value");
     const result = await cache.get(hash);
-    t.is(result && result.toString(), "value");
+    t.is(result?.toString(), "value");
 });
 
 test("persistent cache value can be a Buffer", async t => {
     const { cache } = t.context;
     await cache.set("key", Buffer.from("value"));
     const result = await cache.get("key");
-    t.is(result && result.toString(), "value");
+    t.is(result?.toString(), "value");
 });
 
 test("persistent cache values are persistent", async t => {
@@ -76,14 +76,14 @@ test("persistent cache values are persistent", async t => {
     await cache.set("persistentKey", "persistent");
     const cache2 = new PersistentCache(cache.dirRelativeToHomeDir);
     const result2 = await cache2.get("persistentKey");
-    t.is(result2 && result2.toString(), "persistent");
+    t.is(result2?.toString(), "persistent");
 });
 
 test("persistent cache clearing", async t => {
     const { cache } = t.context;
     await cache.set("key", "value");
     const value = await cache.get("key");
-    t.is(value && value.toString(), "value");
+    t.is(value?.toString(), "value");
     await cache.clear();
     t.falsy(await cache.get("key"));
 });

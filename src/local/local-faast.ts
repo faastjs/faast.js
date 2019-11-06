@@ -264,7 +264,7 @@ async function cleanup(state: LocalState, options: CleanupOptions): Promise<void
     if (options.deleteResources) {
         const { tempDir } = state;
         const pattern = new RegExp(`/faast/${uuidv4Pattern}$`);
-        if (tempDir && tempDir.match(pattern) && (await pathExists(tempDir))) {
+        if (tempDir.match(pattern) && (await pathExists(tempDir))) {
             log.info(`Deleting temp dir ${tempDir}`);
             await remove(tempDir);
         }

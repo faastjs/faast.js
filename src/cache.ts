@@ -83,7 +83,7 @@ export class PersistentCache {
             if (Date.now() - statEntry.mtimeMs > this.expiration) {
                 return undefined;
             }
-            return readFile(entry).catch(_ => {});
+            return readFile(entry).catch(_ => undefined);
         }
         return undefined;
     }

@@ -65,10 +65,10 @@ export async function npmInstall({
     const cached = await lambda
         .listLayerVersions({ LayerName, CompatibleRuntime: "nodejs" })
         .promise()
-        .catch(_ => {});
+        .catch(_ => undefined);
 
-    if (cached && cached.LayerVersions && cached.LayerVersions.length > 0) {
-        const layerVersion = cached.LayerVersions[0];
+    const layerVersion = cached?.LayerVersions?.[0];
+    if(layerVersion) {
         const layerInfo = {
             LayerName,
             Version: layerVersion.Version!,
@@ -132,7 +132,7 @@ export async function npmInstall({
             zipSize
         };
     } finally {
-        if (Content && Content.S3Bucket) {
+        if (Content?.S3Bucket) {
             try {
                 await s3.deleteObject({ Bucket, Key: LayerName }).promise();
                 await s3.deleteBucket({ Bucket }).promise();
