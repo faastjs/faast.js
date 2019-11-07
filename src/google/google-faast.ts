@@ -298,7 +298,7 @@ async function waitFor(
                     }
                     /* istanbul ignore if */
                     if (result.error) {
-                        const underlying = new FaastError(result.error.message);
+                        const underlying = new FaastError(result.error.message ?? undefined);
                         underlying.stack = "";
                         throw new FaastError(underlying, "Error polling operation");
                     }
@@ -400,7 +400,7 @@ export async function initialize(
             name: getResponseQueueTopic(project, functionName)
         });
 
-        resources.responseQueueTopic = topic.data.name;
+        resources.responseQueueTopic = topic.data.name ?? undefined;
         resources.responseSubscription = getResponseSubscription(project, functionName);
         log.info(`Creating response queue subscription`);
         await pubsub.projects.subscriptions.create({
@@ -718,7 +718,7 @@ async function collectGarbage(
                 }
             );
 
-            pageToken = funcListResponse.data.nextPageToken;
+            pageToken = funcListResponse.data.nextPageToken ?? undefined;
             const garbageFunctions = (funcListResponse.data.functions || [])
                 .filter(fn => hasExpired(fn.updateTime, retentionInDays))
                 .filter(fn => fn.name!.match(fnPattern));

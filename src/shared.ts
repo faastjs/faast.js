@@ -139,7 +139,10 @@ export function computeHttpResponseBytes(
     return Math.max(contentLength + headerLength + otherLength, opts.min);
 }
 
-export function hasExpired(date: string | number | undefined, retentionInDays: number) {
+export function hasExpired(
+    date: string | number | undefined | null,
+    retentionInDays: number
+) {
     const timestamp = typeof date === "string" ? Date.parse(date) : date || 0;
     return timestamp < Date.now() - retentionInDays * 24 * 60 * 60 * 1000;
 }

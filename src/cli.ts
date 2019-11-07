@@ -319,7 +319,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
                 parent: `projects/${project}/locations/-`
             }),
         page => page.functions,
-        func => func.name,
+        func => func.name ?? undefined,
         name => cloudFunctions.projects.locations.functions.delete({ name })
     );
 
@@ -333,7 +333,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
                 project: `projects/${project}`
             }),
         page => page.subscriptions,
-        subscription => subscription.name,
+        subscription => subscription.name ?? undefined,
         subscriptionName =>
             pubsub.projects.subscriptions.delete({ subscription: subscriptionName })
     );
@@ -345,7 +345,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
         pageToken =>
             pubsub.projects.topics.list({ pageToken, project: `projects/${project}` }),
         page => page.topics,
-        topic => topic.name,
+        topic => topic.name ?? undefined,
         topicName => pubsub.projects.topics.delete({ topic: topicName })
     );
 

@@ -72,7 +72,7 @@ test(title("google", "trampoline queue mode"), async t => {
     const topic = await pubsub.projects.topics.create({
         name: getResponseQueueTopic(project, FunctionName)
     });
-    const topicName = topic.data.name;
+    const topicName = topic.data.name ?? undefined;
 
     const subscriptionName = getResponseSubscription(project, FunctionName);
     const subscription = await pubsub.projects.subscriptions.create({
