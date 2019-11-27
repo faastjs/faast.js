@@ -160,8 +160,8 @@ export function consoleInfo(str: string) {
     console.info(str);
 }
 
-export function processExit() {
-    process.exit();
+export function processExit(code?: number) {
+    process.exit(code);
 }
 
 class CustomError extends Error {

@@ -33,16 +33,20 @@ import * as localTrampolineFactory from "./local-trampoline";
 
 const exec = promisify(sys.exec);
 
+interface Executor {
+    wrapper: Wrapper;
+    logUrl: string;
+    logStream?: Writable;
+}
+
 /**
  * @public
  */
 export interface LocalState {
     /** @internal */
-    wrappers: Wrapper[];
+    executors: Executor[];
     /** @internal */
-    getWrapper: () => Wrapper;
-    /** @internal */
-    logStreams: Writable[];
+    getExecutor: () => Executor;
     /** The temporary directory where the local function is deployed. */
     tempDir: string;
     /** The file:// URL for the local function log file directory.  */
@@ -93,7 +97,7 @@ async function initialize(
     nonce: UUID,
     options: Required<LocalOptions>
 ): Promise<LocalState> {
-    const wrappers: Wrapper[] = [];
+    const wrappers: Executor[] = [];
     const logStreams: Writable[] = [];
     const { gc, retentionInDays, _gcWorker: gcWorker } = options;
 
@@ -116,12 +120,12 @@ async function initialize(
         process.env = { ...process.env, ...env };
     }
     const { wrapperVerbose } = options.debugOptions;
-    const getWrapper = () => {
-        const idleWrapper = wrappers.find(w => w.executing === false);
+    const getWrapperInfo = () => {
+        const idleWrapper = wrappers.find(w => w.wrapper.executing === false);
         if (idleWrapper) {
             return idleWrapper;
         }
-        let logStream: Writable;
+        let logStream!: Writable;
         let childlog = (msg: string) => {
             if (logStream.writable) {
                 logStream.write(msg);
@@ -130,11 +134,11 @@ async function initialize(
                 log.provider(`WARNING: childlog not writable: ${msg}`);
             }
         };
+        const logFile = join(logDir, `${wrappers.length}.log`);
+
         try {
-            const logFile = join(logDir, `${wrappers.length}.log`);
             log.info(`Creating write stream ${logFile}`);
             logStream = createWriteStream(logFile);
-            logStreams.push(logStream);
         } catch (err) {
             log.warn(`ERROR: Could not create log`);
             log.warn(err);
@@ -151,8 +155,9 @@ async function initialize(
             validateSerialization
         };
         const wrapper = new Wrapper(require(serverModule), wrapperOptions2);
-        wrappers.push(wrapper);
-        return wrapper;
+        const rv = { wrapper, logUrl: `file://${logFile}`, logStream };
+        wrappers.push(rv);
+        return rv;
     };
 
     const packerResult = await localPacker(
@@ -175,9 +180,8 @@ async function initialize(
     }
 
     return {
-        wrappers,
-        getWrapper,
-        logStreams,
+        executors: wrappers,
+        getExecutor: getWrapperInfo,
         tempDir,
         logUrl: url,
         gcPromise,
@@ -212,9 +216,9 @@ async function invoke(
 ): Promise<ResponseMessage | void> {
     const {} = state;
     const startTime = Date.now();
-    const wrapper = state.getWrapper();
+    const { wrapper, logUrl: url } = state.getExecutor();
     const promise = wrapper.execute(
-        { sCall, startTime },
+        { sCall, startTime, logUrl: url },
         {
             onCpuUsage: metrics =>
                 state.queue.enqueue({
@@ -251,12 +255,11 @@ function responseQueueId(_state: LocalState): string | void {}
 async function cleanup(state: LocalState, options: CleanupOptions): Promise<void> {
     log.info(`local cleanup starting.`);
 
-    await Promise.all(state.wrappers.map(wrapper => wrapper.stop()));
+    await Promise.all(state.executors.map(e => e.wrapper.stop()));
     await Promise.all(
-        state.logStreams.map(stream => new Promise(resolve => stream.end(resolve)))
+        state.executors.map(e => new Promise(resolve => e.logStream?.end(resolve)))
     );
-    state.logStreams = [];
-    state.wrappers = [];
+    state.executors = [];
     if (state.gcPromise) {
         await state.gcPromise;
     }

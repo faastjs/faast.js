@@ -149,6 +149,40 @@ test("local provider log files should be appended, not truncated, after child pr
     }
 });
 
+test("local provider child process exceptions should result in errors with logUrl", async t => {
+    const faastModule = await faastLocal(funcs, {
+        childProcess: true,
+        concurrency: 1,
+        maxRetries: 1,
+        gc: "off"
+    });
+    t.plan(1);
+    try {
+        await faastModule.functions.error("synthetic error");
+    } catch (err) {
+        t.true(typeof err.logUrl === "string" && err.logUrl.startsWith(" file:///"));
+    } finally {
+        await faastModule.cleanup();
+    }
+});
+
+test("local provider child process crashes should result in errors with logUrl", async t => {
+    const faastModule = await faastLocal(funcs, {
+        childProcess: true,
+        concurrency: 1,
+        maxRetries: 1,
+        gc: "off"
+    });
+    t.plan(1);
+    try {
+        await faastModule.functions.processExit(-1);
+    } catch (err) {
+        t.true(typeof err.logUrl === "string" && err.logUrl.startsWith(" file:///"));
+    } finally {
+        await faastModule.cleanup();
+    }
+});
+
 test("local provider concurrent executions with child processes", async t => {
     await testConcurrency(t, {
         options: {
@@ -177,13 +211,13 @@ test("local provider cleanup waits for all child processes to exit", async t => 
     faastModule.functions.spin(5000).catch(_ => {});
     while (true) {
         await sleep(100);
-        if (faastModule.state.wrappers.length > 0) {
+        if (faastModule.state.executors.length > 0) {
             break;
         }
     }
-    t.is(faastModule.state.wrappers.length, 1);
+    t.is(faastModule.state.executors.length, 1);
     await faastModule.cleanup();
-    t.is(faastModule.state.wrappers.length, 0);
+    t.is(faastModule.state.executors.length, 0);
 });
 
 test("local unresolved module", async t => {

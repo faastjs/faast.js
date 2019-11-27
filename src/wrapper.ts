@@ -290,6 +290,7 @@ export class Wrapper {
                     log.provider(`deferred promise returned`);
                     this.verbose &&
                         this.log(`returned from child process: ${inspect(rv)}`);
+                    rv.logUrl = logUrl;
                     return rv;
                 } finally {
                     this.stopCpuMonitoring();
