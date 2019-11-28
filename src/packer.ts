@@ -155,6 +155,23 @@ export async function packer(
                 if (err) {
                     reject(err);
                 } else {
+                    if (stats.hasErrors() || stats.hasWarnings()) {
+                        const c = stats.compilation;
+                        const messages = [];
+                        if (c.warnings.length > 0) {
+                            messages.push(`${c.warnings.length} warning(s)`);
+                        }
+                        if (c.errors.length > 0) {
+                            messages.push(`${c.errors.length} error(s)`);
+                        }
+                        log.warn(`webpack had ${messages.join(" and ")}`);
+                        log.warn(
+                            `set environment variable DEBUG=faast:webpack for details`
+                        );
+                        log.warn(
+                            `see https://faastjs.org/docs/api/faastjs.commonoptions.packagejson`
+                        );
+                    }
                     if (log.webpack.enabled) {
                         log.webpack(stats.toString());
                         log.webpack(`Memory filesystem: `);
