@@ -174,6 +174,10 @@ export function customError() {
     throw new CustomError("custom error message", "custom value");
 }
 
+export function returnsError() {
+    return new Error("a returned non-thrown error");
+}
+
 export async function allocate(bytes: number) {
     const array = new Array(bytes / 8);
     const elems = array.length;

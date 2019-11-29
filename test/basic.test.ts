@@ -84,7 +84,10 @@ async function testBasic(
         t.deepEqual(await remote.identityFloat32(float32), float32);
         const float64 = Float64Array.of(0, 0.3, 100.042, -1);
         t.deepEqual(await remote.identityFloat64(float64), float64);
-        const m = new Map([[1, 2], [42, 10]]);
+        const m = new Map([
+            [1, 2],
+            [42, 10]
+        ]);
         t.deepEqual(await remote.identityMap(m), m);
         const s = new Set([1, 42, 100]);
         t.deepEqual(await remote.identitySet(s), s);
@@ -111,6 +114,7 @@ async function testBasic(
         }
         t.is(await remote.getEnv("faastEnvironmentVariable"), "the_answer_is_42");
         t.is(await remote.getEnv("faastNonexistent"), undefined);
+        t.deepEqual(await remote.returnsError(), funcs.returnsError());
     } finally {
         await faastModule.cleanup();
     }

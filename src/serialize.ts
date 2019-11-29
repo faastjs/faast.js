@@ -1,12 +1,12 @@
 import { deepStrictEqual } from "assert";
+import { inspect } from "util";
+import { FaastError } from "./error";
 import {
     FunctionCall,
+    FunctionCallSerialized,
     FunctionReturn,
-    FunctionReturnSerialized,
-    FunctionCallSerialized
+    FunctionReturnSerialized
 } from "./wrapper";
-import { FaastError } from "./error";
-import { inspect } from "util";
 
 export const ESERIALIZE = "ESERIALIZE";
 
@@ -57,6 +57,15 @@ function replacer(this: any, key: any, value: any) {
                 return { [FJS_TYPE]: type, value: "NaN" };
             }
             return value;
+        case "Error": {
+            const errObj: any = {};
+            Object.getOwnPropertyNames(value).forEach(name => {
+                if (typeof (value as any)[name] === "string") {
+                    errObj[name] = (value as any)[name];
+                }
+            });
+            return { [FJS_TYPE]: type, value: errObj };
+        }
         case "Date":
             return { [FJS_TYPE]: type, value };
         case "Int8Array":
@@ -96,6 +105,14 @@ function reviver(this: any, _: any, value: any) {
                         return new Date(value["value"]);
                     case "Buffer":
                         return Buffer.from(value["value"]);
+                    case "Error": {
+                        const sErr = value["value"];
+                        const err = new Error(sErr.message);
+                        for (const key of Object.keys(sErr)) {
+                            (err as any)[key] = sErr[key];
+                        }
+                        return err;
+                    }
                     case "Int8Array":
                         return new Int8Array(value["value"]);
                     case "Uint8Array":
@@ -161,9 +178,7 @@ export function serializeFunctionCall(
     } catch (err) {
         const error = new FaastError(
             err,
-            `faast: Detected '${
-                call.name
-            }' is unsupported because one of its arguments cannot be serialized by JSON.stringify`
+            `faast: Detected '${call.name}' argument cannot be serialized by JSON.stringify`
         );
         error.code = ESERIALIZE;
         throw error;
@@ -185,9 +200,7 @@ export function serializeFunctionReturn(
     } catch (err) {
         const error = new FaastError(
             err,
-            `faast: Detected callId ${
-                returned.callId
-            } returns an unsupported value that cannot be serialized by JSON.stringify`
+            `faast: Detected callId ${returned.callId} returns a value that cannot be serialized by JSON.stringify`
         );
         error.code = ESERIALIZE;
         throw error;
