@@ -9,7 +9,7 @@ hide_title: true
 
 ## FaastError.stack property
 
-The stack trace for the error without include traces for underlying errors. A more complete stack trace is available under .
+The stack trace for the error without include traces for underlying errors. A more complete stack trace is available under [FaastError.fullStack](./faastjs.faasterror.fullstack.md)<!-- -->.
 
 <b>Signature:</b>
 

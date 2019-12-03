@@ -24,7 +24,7 @@ import * as webpack from 'webpack';
 import { Writable } from 'stream';
 
 // Warning: (ae-forgotten-export) The symbol "AwsState" needs to be exported by the entry point index.d.ts
-// 
+//
 // @public
 export type AwsFaastModule<M extends object = object> = FaastModuleProxy<M, AwsOptions, AwsState>;
 
@@ -33,7 +33,7 @@ export interface AwsOptions extends CommonOptions {
     awsLambdaOptions?: Partial<Lambda.CreateFunctionRequest>;
     // Warning: (ae-forgotten-export) The symbol "AwsGcWork" needs to be exported by the entry point index.d.ts
     // Warning: (ae-forgotten-export) The symbol "AwsServices" needs to be exported by the entry point index.d.ts
-    // 
+    //
     // @internal (undocumented)
     _gcWorker?: (work: AwsGcWork, services: AwsServices) => Promise<void>;
     region?: AwsRegion;
@@ -97,7 +97,7 @@ export namespace CostAnalyzer {
     export class Result<T extends object, A extends string> {
         // @internal
         constructor(
-        workload: Required<Workload<T, A>>, 
+        workload: Required<Workload<T, A>>,
         estimates: Estimate<A>[]);
         csv(): string;
         readonly estimates: Estimate<A>[];
@@ -123,7 +123,7 @@ export namespace CostAnalyzer {
 export class CostMetric {
     // Warning: (ae-forgotten-export) The symbol "PropertiesExcept" needs to be exported by the entry point index.d.ts
     // Warning: (ae-forgotten-export) The symbol "AnyFunction" needs to be exported by the entry point index.d.ts
-    // 
+    //
     // @internal
     constructor(arg: PropertiesExcept<CostMetric, AnyFunction>);
     readonly comment?: string;
@@ -142,7 +142,7 @@ export class CostMetric {
 export class CostSnapshot {
     // @internal
     constructor(
-    provider: string, 
+    provider: string,
     options: CommonOptions | AwsOptions | GoogleOptions, stats: FunctionStats, costMetrics?: CostMetric[]);
     readonly costMetrics: CostMetric[];
     csv(): string;
@@ -166,15 +166,15 @@ export function faastAws<M extends object>(fmodule: M, options?: AwsOptions): Pr
 export class FaastError extends VError {
     args?: any[];
     cause(): Error | undefined;
-    get message(): string;
-    set message(value: string);
     code?: string;
-    functionName?: string;
     get fullStack(): string;
+    functionName?: string;
     get info(): {
         [key: string]: any;
     };
     logUrl?: string;
+    get message(): string;
+    set message(value: string);
     name: string;
     stack: string | undefined;
 }
@@ -200,10 +200,10 @@ export interface FaastModule<M extends object> {
 // @public
 export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> {
     // Warning: (ae-forgotten-export) The symbol "ProviderImpl" needs to be exported by the entry point index.d.ts
-    // 
+    //
     // @internal
-    constructor(impl: ProviderImpl<O, S>, 
-    state: S, fmodule: M, modulePath: string, 
+    constructor(impl: ProviderImpl<O, S>,
+    state: S, fmodule: M, modulePath: string,
     options: Required<CommonOptions>);
     cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
     costSnapshot(): Promise<CostSnapshot>;
@@ -239,7 +239,7 @@ export class FunctionStats {
 export class FunctionStatsEvent {
     // @internal
     constructor(
-    fn: string, 
+    fn: string,
     stats: FunctionStats);
     readonly fn: string;
     readonly stats: FunctionStats;
@@ -247,7 +247,7 @@ export class FunctionStatsEvent {
 }
 
 // Warning: (ae-forgotten-export) The symbol "GoogleState" needs to be exported by the entry point index.d.ts
-// 
+//
 // @public
 export type GoogleFaastModule<M extends object = object> = FaastModuleProxy<M, GoogleOptions, GoogleState>;
 
@@ -255,7 +255,7 @@ export type GoogleFaastModule<M extends object = object> = FaastModuleProxy<M, G
 export interface GoogleOptions extends CommonOptions {
     // Warning: (ae-forgotten-export) The symbol "GoogleResources" needs to be exported by the entry point index.d.ts
     // Warning: (ae-forgotten-export) The symbol "GoogleServices" needs to be exported by the entry point index.d.ts
-    // 
+    //
     // @internal (undocumented)
     _gcWorker?: (resources: GoogleResources, services: GoogleServices) => Promise<void>;
     googleCloudFunctionOptions?: cloudfunctions_v1.Schema$CloudFunction;
@@ -284,7 +284,7 @@ export interface Limits {
 }
 
 // Warning: (ae-forgotten-export) The symbol "LocalState" needs to be exported by the entry point index.d.ts
-// 
+//
 // @public
 export type LocalFaastModule<M extends object = object> = FaastModuleProxy<M, LocalOptions, LocalState>;
 
@@ -310,7 +310,7 @@ export const log: {
 // @public
 export class PersistentCache {
     constructor(
-    dirRelativeToHomeDir: string, 
+    dirRelativeToHomeDir: string,
     expiration?: number);
     clear({ leaveEmptyDir }?: {
         leaveEmptyDir?: boolean | undefined;

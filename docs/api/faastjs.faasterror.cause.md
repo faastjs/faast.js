@@ -9,7 +9,7 @@ hide_title: true
 
 ## FaastError.cause() method
 
-The underlying cause of the error, if any. This cause is also reflected in  and .
+The underlying cause of the error, if any. This cause is also reflected in [FaastError.message](./faastjs.faasterror.message.md) and [FaastError.fullStack](./faastjs.faasterror.fullstack.md)<!-- -->.
 
 <b>Signature:</b>
 
