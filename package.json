@@ -106,7 +106,7 @@
         "semantic-release": "15.13.31",
         "tslint": "5.20.1",
         "tslint-config-prettier": "1.18.0",
-        "typescript": "3.7.3",
+        "typescript": "3.7.4",
         "webpack-cli": "3.3.10"
     },
     "ava": {
