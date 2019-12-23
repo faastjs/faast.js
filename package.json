@@ -101,7 +101,7 @@
         "commitizen": "4.0.3",
         "cz-conventional-changelog": "3.0.2",
         "lolex": "5.1.2",
-        "nyc": "14.1.1",
+        "nyc": "15.0.0",
         "papaparse": "5.1.1",
         "semantic-release": "15.14.0",
         "tslint": "5.20.1",
