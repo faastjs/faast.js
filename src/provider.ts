@@ -360,6 +360,7 @@ export interface CommonOptions {
      *   },
      *   target: "node",
      *   resolveLoader: { modules: [__dirname, `${__dirname}/dist}`] },
+     *   node: { global: true, __dirname: false, __filename: false },
      *   ...webpackOptions
      * };
      * ```
@@ -591,9 +592,7 @@ export class FunctionStats {
      * it is often fixed.
      */
     toString() {
-        return `completed: ${this.completed}, retries: ${this.retries}, errors: ${
-            this.errors
-        }, executionTime.mean: ${this.executionTime.mean}ms`;
+        return `completed: ${this.completed}, retries: ${this.retries}, errors: ${this.errors}, executionTime.mean: ${this.executionTime.mean}ms`;
     }
     /** @internal */
     clone(): FunctionStats {

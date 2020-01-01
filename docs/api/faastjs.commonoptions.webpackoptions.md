@@ -32,6 +32,7 @@ const config: webpack.Configuration = {
   },
   target: "node",
   resolveLoader: { modules: [__dirname, `${__dirname}/dist}`] },
+  node: { global: true, __dirname: false, __filename: false },
   ...webpackOptions
 };
 
