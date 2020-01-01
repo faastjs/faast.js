@@ -5,9 +5,9 @@
 version: 2.1
 
 executors:
-    node10:
+    node12:
         docker:
-            - image: circleci/node:10
+            - image: circleci/node:12
         working_directory: ~/repo
 
 jobs:
@@ -67,13 +67,13 @@ jobs:
             - run: cd ~/tmp/examples && node test-examples.js faastjs-0.0.0-semantic-release.tgz
     release:
         description: "semantic release"
-        executor: node10
+        executor: node12
         steps:
             - checkout
             - restore_cache:
                   keys:
-                      - node10-{{ checksum "package.json" }}
-                      - node10
+                      - node12-{{ checksum "package.json" }}
+                      - node12
             - run: npm install --no-save
             - run: npm run build
             - run: npm run test-git-status
@@ -81,7 +81,7 @@ jobs:
             - run: npm run semantic-release
     cleanup:
         description: "cleanup cloud accounts"
-        executor: node10
+        executor: node12
         steps:
             - checkout
             - run: npm install
@@ -94,22 +94,22 @@ workflows:
     faastjs:
         jobs:
             - build_and_test:
-                  name: "aws-node10"
-                  nodeVersion: "node10"
-                  executor: node10
+                  name: "aws-node12"
+                  nodeVersion: "node12"
+                  executor: node12
                   target: "test-aws"
             - build_and_test:
-                  name: "google-node10"
-                  nodeVersion: "node10"
-                  executor: node10
+                  name: "google-node12"
+                  nodeVersion: "node12"
+                  executor: node12
                   target: "test-google-remote"
             - examples:
-                  nodeVersion: "node10"
-                  executor: node10
+                  nodeVersion: "node12"
+                  executor: node12
             - release:
                   requires:
-                      - aws-node10
-                      - google-node10
+                      - aws-node12
+                      - google-node12
                       - examples
                   filters:
                       branches:
@@ -125,21 +125,21 @@ workflows:
         jobs:
             - cleanup
             - build_and_test:
-                  name: "aws-node10"
-                  nodeVersion: "node10"
-                  executor: node10
+                  name: "aws-node12"
+                  nodeVersion: "node12"
+                  executor: node12
                   target: "test-aws"
                   requires:
                       - cleanup
             - build_and_test:
-                  name: "google-node10"
-                  nodeVersion: "node10"
-                  executor: node10
+                  name: "google-node12"
+                  nodeVersion: "node12"
+                  executor: node12
                   target: "test-google-remote"
                   requires:
                       - cleanup
             - examples:
-                  nodeVersion: "node10"
-                  executor: node10
+                  nodeVersion: "node12"
+                  executor: node12
                   requires:
                       - cleanup
