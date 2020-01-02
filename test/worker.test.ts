@@ -9,7 +9,7 @@ async function testWorker(
     options: CommonOptions
 ) {
     const opts: CommonOptions = {
-        timeout: 30,
+        timeout: 10,
         gc: "off",
         ...options
     };
