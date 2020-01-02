@@ -58,7 +58,6 @@ async function memoryLimitFail(
 ) {
     const lambda = await faast(provider, funcs, {
         ...options,
-
         timeout: 200,
         memorySize: 512,
         maxRetries: 0,
@@ -84,8 +83,9 @@ const configurations: [Provider, CommonOptions][] = [
 for (const [provider, config] of configurations) {
     const opts = inspect(config);
     test(title(provider, `memory under limit ${opts}`), memoryLimitOk, provider, config);
-    if (provider === "google" && config.mode === "queue") {
+    if ((provider === "google" && config.mode === "queue") || provider === "local") {
         // Google in queue mode cannot detect OOM errors.
+        // Memory limit setting isn't reliable on local mode.
     } else {
         test(title(provider, `out of memory`, config), memoryLimitFail, provider, config);
     }

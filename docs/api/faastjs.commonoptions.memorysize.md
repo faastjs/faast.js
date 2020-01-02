@@ -25,4 +25,4 @@ Each provider has different settings for memory size, and performance varies dep
 
 - google: 1024MB
 
-- local: 512MB
+- local: 512MB (however, memory size limits aren't reliable in local mode.)

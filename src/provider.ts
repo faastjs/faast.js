@@ -166,7 +166,7 @@ export interface CommonOptions {
      *
      * - google: 1024MB
      *
-     * - local: 512MB
+     * - local: 512MB (however, memory size limits aren't reliable in local mode.)
      */
     memorySize?: number;
     /**
