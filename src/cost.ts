@@ -613,15 +613,15 @@ export namespace CostAnalyzer {
      *
      * // cost-analyzer-example.ts
      * import { writeFileSync } from "fs";
-     * import { costAnalyzer, FaastModule } from "faastjs";
-     * import * as mod from "./functions";
+     * import { CostAnalyzer, FaastModule } from "faastjs";
+     * import * as funcs from "./functions";
      *
-     * async function work(faastModule: FaastModule<typeof mod>) {
+     * async function work(faastModule: FaastModule<typeof funcs>) {
      *     await faastModule.functions.randomNumbers(100000000);
      * }
      *
      * async function main() {
-     *     const results = await costAnalyzer({ mod, work });
+     *     const results = await CostAnalyzer.analyze({ funcs, work });
      *     writeFileSync("cost.csv", results.csv());
      * }
      *
