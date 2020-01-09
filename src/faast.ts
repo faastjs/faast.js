@@ -645,6 +645,9 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                     this.options.validateSerialization
                 );
                 this._callResultsPending.set(callId, pending);
+                if (this._collectorPump.stopped) {
+                    this._collectorPump.start();
+                }
 
                 const invokeCloudFunction = () => {
                     this._stats.incr(fname, "invocations");
@@ -705,6 +708,9 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 });
 
                 this._callResultsPending.delete(rv.callId);
+                if (this._callResultsPending.size === 0) {
+                    this._collectorPump.stop();
+                }
                 log.calls(`Returning '${fname}' (${callId}): ${util.inspect(rv)}`);
 
                 return processResponse<R>(
