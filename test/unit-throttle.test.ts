@@ -247,7 +247,7 @@ test("funnel processed and error counts", async t => {
 test.serial("pump works for concurrency level 1", t =>
     withClock(async () => {
         let executed = 0;
-        const pump = new Pump(1, () => {
+        const pump = new Pump({ concurrency: 1 }, () => {
             executed++;
             return sleep(100);
         });
@@ -262,7 +262,7 @@ test.serial("pump works for concurrency level 1", t =>
 test.serial("pump works for concurrency level 10", t =>
     withClock(async () => {
         let executed = 0;
-        const pump = new Pump(10, () => {
+        const pump = new Pump({ concurrency: 10 }, () => {
             executed++;
             return sleep(100);
         });
@@ -276,7 +276,7 @@ test.serial("pump works for concurrency level 10", t =>
 test.serial("pump handles promise rejections without losing concurrency", t =>
     withClock(async () => {
         let executed = 0;
-        const pump = new Pump(1, () => {
+        const pump = new Pump({ concurrency: 1, verbose: false }, () => {
             executed++;
             return sleep(100).then(_ => Promise.reject("hi"));
         });
@@ -293,7 +293,7 @@ test.serial("pump drain", t =>
         let finished = 0;
         const N = 5;
 
-        const pump = new Pump(N, async () => {
+        const pump = new Pump({ concurrency: N }, async () => {
             started++;
             await sleep(100);
             finished++;

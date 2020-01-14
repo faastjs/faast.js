@@ -15,7 +15,7 @@ async function throughput(
     try {
         let completed = 0;
         const nSamplesPerFunction = 100000000;
-        const pump = new Pump(options.concurrency!, () =>
+        const pump = new Pump({ concurrency: options.concurrency! }, () =>
             lambda.functions.monteCarloPI(nSamplesPerFunction).then(() => completed++)
         );
         pump.start();

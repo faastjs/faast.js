@@ -512,7 +512,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             }
         }
         this.functions = functions;
-        this._collectorPump = new Pump(2, () => this.resultCollector());
+        this._collectorPump = new Pump({ concurrency: 2 }, () => this.resultCollector());
         this._collectorPump.start();
     }
 
@@ -792,13 +792,6 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
 
         for (const m of Messages) {
             switch (m.kind) {
-                case "deadletter":
-                    const callRequest = callResultsPending.get(m.callId);
-                    if (callRequest) {
-                        const error = new FaastError(`dead letter message: ${m.message}`);
-                        callRequest.reject(error);
-                    }
-                    break;
                 case "functionstarted": {
                     const deferred = callResultsPending.get(m.callId);
                     if (deferred) {

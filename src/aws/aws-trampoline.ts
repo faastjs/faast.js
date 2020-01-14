@@ -54,7 +54,6 @@ export function makeTrampoline(wrapper: Wrapper) {
         if (CallIdAttribute in event) {
             const sCall = event as FunctionCallSerialized;
             const { callId, ResponseQueueId: Queue } = sCall;
-            const timeout = context.getRemainingTimeInMillis() - 100;
             const result = await wrapper.execute(
                 { sCall, ...callingContext },
                 {
@@ -64,7 +63,6 @@ export function makeTrampoline(wrapper: Wrapper) {
                             callId,
                             metrics
                         }),
-                    overrideTimeout: timeout,
                     errorCallback
                 }
             );
@@ -85,7 +83,6 @@ export function makeTrampoline(wrapper: Wrapper) {
                     2 * 1000
                 );
                 const cc: CallingContext = { sCall, ...callingContext };
-                const timeout = context.getRemainingTimeInMillis() - 100;
                 const result = await wrapper.execute(cc, {
                     onCpuUsage: metrics =>
                         sendResponseQueueMessage(sqs, Queue!, {
@@ -93,7 +90,6 @@ export function makeTrampoline(wrapper: Wrapper) {
                             callId,
                             metrics
                         }),
-                    overrideTimeout: timeout,
                     errorCallback
                 });
                 clearTimeout(startedMessageTimer);

@@ -31,7 +31,6 @@ If you need specialized options, you can pass them to the AWS Lambda SDK directl
       Description: "faast trampoline function",
       Timeout,
       MemorySize,
-      DeadLetterConfig: { TargetArn: responseQueueArn },
       ...awsLambdaOptions
   };
 

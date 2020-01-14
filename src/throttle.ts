@@ -140,10 +140,18 @@ export class Funnel<T = void> {
 /**
  * @internal
  */
+export interface PumpOptions {
+    concurrency: number;
+    verbose?: boolean;
+}
+
+/**
+ * @internal
+ */
 export class Pump<T = void> extends Funnel<T | void> {
     stopped: boolean = false;
-    constructor(maxConcurrency: number, protected worker: () => Promise<T>) {
-        super(maxConcurrency);
+    constructor(protected options: PumpOptions, protected worker: () => Promise<T>) {
+        super(options.concurrency);
     }
 
     start() {
@@ -156,6 +164,7 @@ export class Pump<T = void> extends Funnel<T | void> {
                     try {
                         return await this.worker();
                     } catch (err) {
+                        this.options.verbose && console.error(err);
                         return;
                     } finally {
                         setImmediate(restart);

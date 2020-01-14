@@ -21,7 +21,7 @@ childProcess?: boolean;
 
 If a child process is not created, faast runs in the same node instance as the user code and may not execute in a timely fashion because user code may [block the event loop](https://nodejs.org/en/docs/guides/dont-block-the-event-loop/)<!-- -->. Creating a child process for user code allows faast.js to continue executing even if user code never yields. This provides better reliability and functionality:
 
-- Detect timeout errors immediately instead of waiting for the provider's dead letter queue messages, which may take several minutes. See [CommonOptions.timeout](./faastjs.commonoptions.timeout.md)<!-- -->.
+- Detect timeout errors more reliably, even if the function doesn't relinquish the CPU. Not applicable to AWS, which sends separate failure messages in case of timeout. See [CommonOptions.timeout](./faastjs.commonoptions.timeout.md)<!-- -->.
 
 - CPU metrics used for detecting invocations with high latency, which can be used for automatically retrying calls to reduce tail latency.
 

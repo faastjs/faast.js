@@ -176,7 +176,6 @@ export interface AwsOptions extends CommonOptions {
      *       Description: "faast trampoline function",
      *       Timeout,
      *       MemorySize,
-     *       DeadLetterConfig: { TargetArn: responseQueueArn },
      *       ...awsLambdaOptions
      *   };
      * ```
@@ -463,7 +462,6 @@ export const initialize = throttle(
                 Timeout: timeout,
                 MemorySize: memorySize,
                 Environment: { Variables: env },
-                DeadLetterConfig: { TargetArn: responseQueueArn },
                 Layers,
                 ...rest
             };
@@ -472,12 +470,23 @@ export const initialize = throttle(
             log.info(
                 `Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`
             );
+            const config = await lambda
+                .putFunctionEventInvokeConfig({
+                    FunctionName,
+                    MaximumRetryAttempts: 0,
+                    MaximumEventAgeInSeconds: 120,
+                    DestinationConfig: {
+                        OnFailure: { Destination: responseQueueArn }
+                    }
+                })
+                .promise();
+            log.info(`Function event invocation config: %O`, config);
             return func;
         }
         const { wrapperVerbose } = options.debugOptions;
         async function createCodeBundle() {
             const wrapperOptions = {
-                childProcessTimeoutMs: timeout * 1000 - 50,
+                // childProcessTimeoutMs: timeout * 1000 - 50,
                 wrapperVerbose
             };
             const bundle = awsPacker(fModule, options, wrapperOptions, FunctionName);

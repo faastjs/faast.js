@@ -54,9 +54,9 @@ export interface CommonOptions {
      * executing even if user code never yields. This provides better
      * reliability and functionality:
      *
-     * - Detect timeout errors immediately instead of waiting for the provider's
-     *   dead letter queue messages, which may take several minutes. See
-     *   {@link CommonOptions.timeout}.
+     * - Detect timeout errors more reliably, even if the function doesn't
+     *   relinquish the CPU. Not applicable to AWS, which sends separate failure
+     *   messages in case of timeout. See {@link CommonOptions.timeout}.
      *
      * - CPU metrics used for detecting invocations with high latency, which can
      *   be used for automatically retrying calls to reduce tail latency.
@@ -620,12 +620,6 @@ export interface ResponseMessage {
     timestamp?: number; // timestamp when response message was sent according to cloud service, this is optional and used to provide more accurate metrics.
 }
 
-export interface DeadLetterMessage {
-    kind: "deadletter";
-    callId: CallId;
-    message?: string;
-}
-
 export interface FunctionStartedMessage {
     kind: "functionstarted";
     callId: CallId;
@@ -643,7 +637,6 @@ export interface PollResult {
 }
 
 export type ReceivableMessage =
-    | DeadLetterMessage
     | ResponseMessage
     | FunctionStartedMessage
     | CpuMetricsMessage;

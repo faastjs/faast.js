@@ -72,10 +72,12 @@ async function memoryLimitFail(
     }
 }
 
+// Memory limit setting isn't reliable on local mode.
 const configurations: [Provider, CommonOptions][] = [
-    ["aws", { mode: "https" }],
-    ["aws", { mode: "queue" }],
-    ["local", { childProcess: true }],
+    ["aws", { mode: "https", childProcess: true }],
+    ["aws", { mode: "queue", childProcess: true }],
+    ["aws", { mode: "https", childProcess: false }],
+    ["aws", { mode: "queue", childProcess: false }],
     ["google", { mode: "https" }],
     ["google", { mode: "queue" }]
 ];
@@ -83,9 +85,8 @@ const configurations: [Provider, CommonOptions][] = [
 for (const [provider, config] of configurations) {
     const opts = inspect(config);
     test(title(provider, `memory under limit ${opts}`), memoryLimitOk, provider, config);
-    if ((provider === "google" && config.mode === "queue") || provider === "local") {
+    if (provider === "google" && config.mode === "queue") {
         // Google in queue mode cannot detect OOM errors.
-        // Memory limit setting isn't reliable on local mode.
     } else {
         test(title(provider, `out of memory`, config), memoryLimitFail, provider, config);
     }

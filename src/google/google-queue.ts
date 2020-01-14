@@ -3,7 +3,6 @@ import { pubsub_v1 } from "googleapis";
 import { log } from "../log";
 import {
     CALLID_ATTR,
-    DeadLetterMessage,
     KIND_ATTR,
     Message,
     PollResult,
@@ -77,10 +76,6 @@ function processMessage(m: PubSubMessage): ReceivableMessage | void {
     const raw = Buffer.from(data, "base64").toString();
 
     switch (kind) {
-        /* istanbul ignore next  */
-        case "deadletter":
-            log.warn("Not expecting deadletter message from google queue");
-            return;
         case "functionstarted":
             if (!callId) {
                 return;
@@ -117,7 +112,7 @@ export async function publishPubSub(
 export function publishResponseMessage(
     pubsub: PubSubApi.Pubsub,
     ResponseQueue: string,
-    message: Exclude<Message, DeadLetterMessage>
+    message: Message
 ) {
     const kind = { [KIND_ATTR]: message.kind };
     switch (message.kind) {
