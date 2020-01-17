@@ -1,11 +1,7 @@
 import * as webpack from "webpack";
 import { CostSnapshot } from "./cost";
 import { keysOf, Statistics } from "./shared";
-import {
-    CpuMeasurement,
-    FunctionCallSerialized,
-    FunctionReturnSerialized
-} from "./wrapper";
+import { CpuMeasurement, FunctionCall, FunctionReturn } from "./wrapper";
 
 export const CALLID_ATTR = "__faast_callid__";
 export const KIND_ATTR = "__faast_kind__";
@@ -615,7 +611,7 @@ export type CallId = string;
 export interface ResponseMessage {
     kind: "response";
     callId: CallId;
-    body: FunctionReturnSerialized;
+    body: FunctionReturn;
     rawResponse?: any;
     timestamp?: number; // timestamp when response message was sent according to cloud service, this is optional and used to provide more accurate metrics.
 }
@@ -632,17 +628,12 @@ export interface CpuMetricsMessage {
 }
 
 export interface PollResult {
-    Messages: ReceivableMessage[];
+    Messages: Message[];
     isFullMessageBatch?: boolean;
 }
 
-export type ReceivableMessage =
-    | ResponseMessage
-    | FunctionStartedMessage
-    | CpuMetricsMessage;
+export type Message = ResponseMessage | FunctionStartedMessage | CpuMetricsMessage;
 
-export type Message = ReceivableMessage;
-export type ReceivableKind = ReceivableMessage["kind"];
 export type Kind = Message["kind"];
 export type UUID = string;
 
@@ -655,7 +646,7 @@ export interface ProviderImpl<O extends CommonOptions, S> {
     logUrl(state: S): string;
     invoke(
         state: S,
-        request: FunctionCallSerialized,
+        request: FunctionCall,
         cancel: Promise<void>
     ): Promise<ResponseMessage | void>;
     poll(state: S, cancel: Promise<void>): Promise<PollResult>;

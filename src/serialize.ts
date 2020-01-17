@@ -1,12 +1,6 @@
 import { deepStrictEqual } from "assert";
-import { inspect } from "util";
 import { FaastError } from "./error";
-import {
-    FunctionCall,
-    FunctionCallSerialized,
-    FunctionReturn,
-    FunctionReturnSerialized
-} from "./wrapper";
+import { inspect } from "util";
 
 export const ESERIALIZE = "ESERIALIZE";
 
@@ -85,10 +79,10 @@ function replacer(this: any, key: any, value: any) {
     }
 }
 
-export function _serialize(arg: any, validate: boolean) {
+export function serialize(arg: any, validate: boolean = false) {
     const str = JSON.stringify(arg, replacer);
     if (validate) {
-        const deserialized = _deserialize(str);
+        const deserialized = deserialize(str);
         deepCopyUndefined(deserialized, arg);
         deepStrictEqual(deserialized, arg);
     }
@@ -156,68 +150,42 @@ function reviver(this: any, _: any, value: any) {
     return value;
 }
 
-export function _deserialize(str: string) {
+export function deserialize<T = any>(str: string): T {
     return JSON.parse(str, reviver);
 }
 
-function deserializeArgs(s: string): any[] {
-    const args = _deserialize(s);
-    if (!Array.isArray(args)) {
-        throw new FaastError(`deserialized arguments not an array: ${inspect(args)}`);
-    }
-    return args;
-}
-
-export function serializeFunctionCall(
-    call: FunctionCall,
+export function serializeFunctionArgs(
+    name: string,
+    args: any[],
     validate: boolean
-): FunctionCallSerialized {
-    const { args, ...rest } = call;
+): string {
     try {
-        return { ...rest, serializedArgs: _serialize(call.args, validate) };
+        return serialize(args, validate);
     } catch (err) {
         const error = new FaastError(
             err,
-            `faast: Detected '${call.name}' argument cannot be serialized by JSON.stringify`
+            `faast: Detected '${name}' argument cannot be serialized by JSON.stringify`
         );
         error.code = ESERIALIZE;
         throw error;
     }
-}
-
-export function deserializeFunctionCall(sCall: FunctionCallSerialized): FunctionCall {
-    const { serializedArgs, ...rest } = sCall;
-    return { ...rest, args: deserializeArgs(sCall.serializedArgs) };
 }
 
 export function serializeFunctionReturn(
-    returned: FunctionReturn,
+    name: string,
+    returned: any,
     validate: boolean
-): FunctionReturnSerialized {
-    const { value, ...rest } = returned;
+): string {
     try {
-        return { ...rest, serializedValue: _serialize(returned.value, validate) };
+        return serialize(returned, validate);
     } catch (err) {
         const error = new FaastError(
             err,
-            `faast: Detected callId ${returned.callId} returns a value that cannot be serialized by JSON.stringify`
+            `faast: Detected return value from ${name} cannot be serialized by JSON.stringify: ${inspect(
+                returned
+            )}`
         );
         error.code = ESERIALIZE;
         throw error;
     }
-}
-
-export function deserializeFunctionReturn(
-    returned: FunctionReturnSerialized
-): FunctionReturn {
-    const { serializedValue, ...rest } = returned;
-    return { ...rest, value: _deserialize(serializedValue) };
-}
-
-export function serializeMessage(msg: any): string {
-    return _serialize(msg, false);
-}
-
-export function deserializeMessage(msg: string): any {
-    return _deserialize(msg);
 }

@@ -21,9 +21,10 @@ import {
     PollResult,
     ProviderImpl,
     ResponseMessage,
-    UUID
+    UUID,
+    Message
 } from "../provider";
-import { serializeMessage } from "../serialize";
+import { serialize } from "../serialize";
 import {
     computeHttpResponseBytes,
     hasExpired,
@@ -33,11 +34,7 @@ import {
 } from "../shared";
 import { throttle } from "../throttle";
 import { Mutable } from "../types";
-import {
-    FunctionCallSerialized,
-    FunctionReturnSerialized,
-    WrapperOptions
-} from "../wrapper";
+import { FunctionCall, FunctionReturn, WrapperOptions } from "../wrapper";
 import { publishPubSub, receiveMessages } from "./google-queue";
 import { shouldRetryRequest } from "./google-shared";
 import * as googleTrampolineHttps from "./google-trampoline-https";
@@ -298,7 +295,9 @@ async function waitFor(
                     }
                     /* istanbul ignore if */
                     if (result.error) {
-                        const underlying = new FaastError(result.error.message ?? undefined);
+                        const underlying = new FaastError(
+                            result.error.message ?? undefined
+                        );
                         underlying.stack = "";
                         throw new FaastError(underlying, "Error polling operation");
                     }
@@ -502,7 +501,7 @@ export function getResponseSubscription(project: string, functionName: string) {
 
 async function callFunctionHttps(
     url: string,
-    call: FunctionCallSerialized,
+    call: FunctionCall,
     metrics: GoogleMetrics,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
@@ -512,12 +511,12 @@ async function callFunctionHttps(
             method: "POST",
             url,
             headers: { "Content-Type": "application/json" },
-            body: serializeMessage(call),
+            body: serialize(call),
             signal: source.signal,
             responseType: "json"
         };
         const rawResponse = await Promise.race([
-            gaxios.request<FunctionReturnSerialized>(axiosConfig),
+            gaxios.request<Message[]>(axiosConfig),
             cancel
         ]);
 
@@ -529,9 +528,8 @@ async function callFunctionHttps(
         try {
             metrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
             return {
-                kind: "response",
-                callId: call.callId,
-                body: rawResponse.data,
+                // TODO: Handle async generators
+                ...(rawResponse.data[0] as ResponseMessage),
                 rawResponse,
                 timestamp: Date.now()
             };
@@ -564,7 +562,7 @@ async function callFunctionHttps(
 
 async function invoke(
     state: GoogleState,
-    call: FunctionCallSerialized,
+    call: FunctionCall,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
     const { options, resources, services, url, metrics } = state;
@@ -575,7 +573,7 @@ async function invoke(
         case "queue":
             const { requestQueueTopic } = resources;
             const { pubsub } = services;
-            const serialized = serializeMessage(call);
+            const serialized = serialize(call);
             publishPubSub(pubsub, requestQueueTopic!, serialized);
             return;
     }

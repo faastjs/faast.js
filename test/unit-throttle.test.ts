@@ -604,53 +604,53 @@ test.serial("throttle cancellation", async t =>
 test("async queue works with enqueue before dequeue", async t => {
     const q = new AsyncQueue<number>();
     q.enqueue(42);
-    t.is(await q.dequeue(), 42);
+    t.is((await q.next()).value, 42);
 });
 
 test("async queue works with dequeue before enqueue", async t => {
     const q = new AsyncQueue<number>();
-    const promise = q.dequeue();
+    const promise = q.next();
     q.enqueue(42);
-    t.is(await promise, 42);
+    t.is((await promise).value, 42);
 });
 
 test("async queue transition from more enqueues to more dequeues", async t => {
     const q = new AsyncQueue<number>();
     q.enqueue(42);
-    t.is(await q.dequeue(), 42);
-    const promise = q.dequeue();
+    t.is((await q.next()).value, 42);
+    const promise = q.next();
     q.enqueue(100);
-    t.is(await promise, 100);
+    t.is((await promise).value, 100);
 });
 
 test("async queue transition from more dequeues to more enqueues", async t => {
     const q = new AsyncQueue<number>();
-    const promise = q.dequeue();
+    const promise = q.next();
     q.enqueue(42);
     q.enqueue(100);
-    t.is(await promise, 42);
-    t.is(await q.dequeue(), 100);
+    t.is((await promise).value, 42);
+    t.is((await q.next()).value, 100);
 });
 
 test("async queue handles multiple dequeues before enqueues", async t => {
     const q = new AsyncQueue<number>();
-    const p1 = q.dequeue();
-    const p2 = q.dequeue();
-    const p3 = q.dequeue();
+    const p1 = q.next();
+    const p2 = q.next();
+    const p3 = q.next();
 
     q.enqueue(42);
-    t.is(await p1, 42);
+    t.is((await p1).value, 42);
     q.enqueue(100);
-    t.is(await p2, 100);
+    t.is((await p2).value, 100);
     q.enqueue(0);
-    t.is(await p3, 0);
+    t.is((await p3).value, 0);
 });
 
 test("async queue handles async enqueueing", async t => {
     const q = new AsyncQueue<number>();
-    const promise = q.dequeue();
+    const promise = q.next();
     setTimeout(() => q.enqueue(99), 100);
-    t.is(await promise, 99);
+    t.is((await promise).value, 99);
 });
 
 test("async queue handles async dequeueing", async t => {
@@ -659,7 +659,7 @@ test("async queue handles async dequeueing", async t => {
     q.enqueue(88);
     await new Promise(resolve =>
         setTimeout(async () => {
-            t.is(await q.dequeue(), 88);
+            t.is((await q.next()).value, 88);
             resolve();
         }, 100)
     );
@@ -670,11 +670,29 @@ test("async queue clear", async t => {
     q.enqueue(1);
     q.clear();
     q.enqueue(2);
-    t.is(await q.dequeue(), 2);
+    t.is((await q.next()).value, 2);
 
-    const p1 = q.dequeue();
+    const p1 = q.next();
     q.clear();
-    const p2 = q.dequeue();
+    const p2 = q.next();
     q.enqueue(3);
-    t.is(await p2, 3);
+    t.is((await p2).value, 3);
+});
+
+test("async queue done function finishes iterator", async t => {
+    const q = new AsyncQueue<number>();
+    q.enqueue(10);
+    q.done();
+
+    for await (const result of q) {
+        t.is(result, 10);
+    }
+    // test times out if the done function doesn't work.
+});
+
+test("async queue done function finishes iterator with pending dequeus", async t => {
+    const q = new AsyncQueue<number>();
+    const value = q.next();
+    q.done();
+    t.is((await value).done, true);
 });

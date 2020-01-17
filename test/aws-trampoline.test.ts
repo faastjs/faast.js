@@ -5,12 +5,9 @@ import * as uuidv4 from "uuid/v4";
 import { AwsMetrics } from "../src/aws/aws-faast";
 import { receiveMessages } from "../src/aws/aws-queue";
 import { makeTrampoline } from "../src/aws/aws-trampoline";
-import {
-    deserializeFunctionReturn,
-    serializeFunctionCall,
-    serializeMessage
-} from "../src/serialize";
-import { FunctionReturnSerialized, Wrapper } from "../src/wrapper";
+import { Message } from "../src/provider";
+import { deserialize, serialize, serializeFunctionArgs } from "../src/serialize";
+import { Wrapper } from "../src/wrapper";
 import * as funcs from "./fixtures/functions";
 import { title } from "./fixtures/util";
 
@@ -38,20 +35,20 @@ test(title("aws", "trampoline https mode"), async t => {
     const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
     const { trampoline } = makeTrampoline(wrapper);
     const arg = "abc123";
+    const name = funcs.identityNum.name;
     await trampoline(
-        serializeFunctionCall(
-            {
-                callId: "42",
-                name: funcs.identityNum.name,
-                args: [arg],
-                modulePath: "./fixtures/functions"
-            },
-            true
-        ),
+        {
+            callId: "42",
+            name,
+            args: serializeFunctionArgs(name, [arg], true),
+            modulePath: "./fixtures/functions"
+        },
         lambdaContext,
-        (_: Error | null, obj: FunctionReturnSerialized) => {
-            const ret = deserializeFunctionReturn(obj);
-            t.is(ret.value[0], arg);
+        (_: Error | null, obj: Message[]) => {
+            if (obj[0].kind === "response") {
+                const [ret] = deserialize(obj[0].body.value);
+                t.is(ret, arg);
+            }
         }
     );
 });
@@ -67,21 +64,19 @@ test(title("aws", "trampoline queue mode"), async t => {
 
     try {
         const { trampoline } = makeTrampoline(wrapper);
-        const call = serializeFunctionCall(
-            {
-                callId: "42",
-                name: funcs.identityNum.name,
-                args: [arg],
-                modulePath: "./fixtures/functions",
-                ResponseQueueId: QueueUrl
-            },
-            true
-        );
+        const name = funcs.identityNum.name;
+        const call = {
+            callId: "42",
+            name,
+            args: serializeFunctionArgs(name, [arg], true),
+            modulePath: "./fixtures/functions",
+            ResponseQueueId: QueueUrl
+        };
         const event = {
             Records: [
                 {
                     Sns: {
-                        Message: serializeMessage(call)
+                        Message: serialize(call)
                     }
                 }
             ]
@@ -93,8 +88,8 @@ test(title("aws", "trampoline queue mode"), async t => {
         const msg = result.Messages[0];
         t.is(msg.kind, "response");
         if (msg.kind === "response") {
-            const ret = deserializeFunctionReturn(msg.body);
-            t.is(ret.value[0], arg);
+            const [ret] = deserialize(msg.body.value);
+            t.is(ret, arg);
         }
     } finally {
         await sqs.deleteQueue({ QueueUrl }).promise();

@@ -3,11 +3,11 @@ import { createHash } from "crypto";
 import { PersistentCache } from "./cache";
 import { FaastError } from "./error";
 import { sleep } from "./shared";
-import { _serialize, _deserialize } from "./serialize";
+import { serialize, deserialize } from "./serialize";
 
 export class Deferred<T = void> {
     promise: Promise<T>;
-    resolve!: (arg: T) => void;
+    resolve!: (arg: T | PromiseLike<T>) => void;
     reject!: (err?: any) => void;
     constructor() {
         this.promise = new Promise<T>((resolve, reject) => {
@@ -152,6 +152,7 @@ export class Pump<T = void> extends Funnel<T | void> {
     stopped: boolean = false;
     constructor(protected options: PumpOptions, protected worker: () => Promise<T>) {
         super(options.concurrency);
+        options.verbose = options.verbose ?? true;
     }
 
     start() {
@@ -345,7 +346,7 @@ export function cacheFn<A extends any[], R>(
     fn: (...args: A) => Promise<R>
 ) {
     return async (...args: A) => {
-        const key = _serialize(args, true);
+        const key = serialize(args, true);
         const hasher = createHash("sha256");
         hasher.update(key);
         const cacheKey = hasher.digest("hex");
@@ -355,10 +356,10 @@ export function cacheFn<A extends any[], R>(
             if (str === "undefined") {
                 return undefined;
             }
-            return _deserialize(str);
+            return deserialize(str);
         }
         const value = await fn(...args);
-        await cache.set(cacheKey, _serialize(value, true));
+        await cache.set(cacheKey, serialize(value, true));
         return value;
     };
 }
@@ -464,27 +465,46 @@ export function throttle<A extends any[], R>(
     return conditionedFunc;
 }
 
-export class AsyncQueue<T> {
-    protected deferred: Array<Deferred<T>> = [];
-    protected enqueued: T[] = [];
+export class AsyncQueue<T> implements AsyncIterableIterator<T> {
+    protected deferred: Array<Deferred<IteratorResult<T>>> = [];
+    protected enqueued: Promise<IteratorResult<T>>[] = [];
 
-    enqueue(value: T) {
+    enqueue(value: T | Promise<T>) {
         if (this.deferred.length > 0) {
             const d = this.deferred.shift();
-            d!.resolve(value);
+            d!.resolve(Promise.resolve(value).then(value => ({ done: false, value })));
         } else {
-            this.enqueued.push(value);
+            this.enqueued.push(
+                Promise.resolve(value).then(value => ({ done: false, value }))
+            );
         }
     }
 
-    dequeue(): Promise<T> {
+    done() {
+        if (this.deferred.length > 0) {
+            const d = this.deferred.shift();
+            d!.resolve(Promise.resolve({ done: true, value: undefined }));
+        } else {
+            this.enqueued.push(Promise.resolve({ done: true, value: undefined }));
+        }
+    }
+
+    next(): Promise<IteratorResult<T, undefined>> {
         if (this.enqueued.length > 0) {
             const value = this.enqueued.shift()!;
-            return Promise.resolve(value);
+            return value;
         }
-        const d = new Deferred<T>();
+        const d = new Deferred<IteratorResult<T>>();
         this.deferred.push(d);
         return d.promise;
+    }
+
+    [Symbol.asyncIterator]() {
+        return this;
+    }
+
+    pending() {
+        return this.deferred.length;
     }
 
     clear() {

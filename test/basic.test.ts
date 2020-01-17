@@ -50,7 +50,6 @@ async function testBasic(
         const buffer = Buffer.from("contents");
         t.deepEqual(await remote.identityBuffer(buffer), buffer);
         t.deepEqual(await remote.identityArrayNum([42, 8, 10]), [42, 8, 10]);
-
         const inf = [Infinity, -Infinity];
         t.deepEqual(await remote.identityArrayNum(inf), inf);
         if (nodeMajorVersion() >= 10) {
@@ -115,6 +114,8 @@ async function testBasic(
         t.is(await remote.getEnv("faastEnvironmentVariable"), "the_answer_is_42");
         t.is(await remote.getEnv("faastNonexistent"), undefined);
         t.deepEqual(await remote.returnsError(), funcs.returnsError());
+        // const g = remote.generator("bar");
+        // const ag = remote.asyncGenerator("foo");
     } finally {
         await faastModule.cleanup();
     }

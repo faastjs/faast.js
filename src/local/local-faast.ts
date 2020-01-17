@@ -22,13 +22,13 @@ import {
     FunctionStats,
     PollResult,
     ProviderImpl,
-    ReceivableMessage,
+    Message,
     ResponseMessage,
     UUID
 } from "../provider";
 import { hasExpired, uuidv4Pattern } from "../shared";
 import { AsyncQueue } from "../throttle";
-import { FunctionCallSerialized, Wrapper, WrapperOptions } from "../wrapper";
+import { FunctionCall, Wrapper, WrapperOptions } from "../wrapper";
 import * as localTrampolineFactory from "./local-trampoline";
 
 const exec = promisify(sys.exec);
@@ -54,7 +54,7 @@ export interface LocalState {
     /** @internal */
     gcPromise?: Promise<void>;
     /** @internal */
-    queue: AsyncQueue<ReceivableMessage>;
+    queue: AsyncQueue<Message>;
     /** Options used to initialize the local function. */
     options: Required<LocalOptions>;
 }
@@ -211,43 +211,33 @@ export async function localPacker(
 
 async function invoke(
     state: LocalState,
-    sCall: FunctionCallSerialized,
-    cancel: Promise<void>
+    call: FunctionCall,
+    _cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
     const {} = state;
     const startTime = Date.now();
     const { wrapper, logUrl: url } = state.getExecutor();
-    const promise = wrapper.execute(
-        { sCall, startTime, logUrl: url },
+    for await (const result of wrapper.execute(
+        { call, startTime, logUrl: url },
         {
             onCpuUsage: metrics =>
                 state.queue.enqueue({
                     kind: "cpumetrics",
                     metrics,
-                    callId: sCall.callId
+                    callId: call.callId
                 })
         }
-    );
-    const result = await Promise.race([promise, cancel]);
-    if (!result) {
-        wrapper.stop();
-        return;
+    )) {
+        state.queue.enqueue(result);
     }
-    return {
-        kind: "response",
-        body: result,
-        callId: sCall.callId,
-        rawResponse: undefined,
-        timestamp: Date.now()
-    };
 }
 
 async function poll(state: LocalState, cancel: Promise<void>): Promise<PollResult> {
-    const message = await Promise.race([state.queue.dequeue(), cancel]);
-    if (!message) {
+    const message = await Promise.race([state.queue.next(), cancel]);
+    if (!message || !message.value) {
         return { Messages: [] };
     }
-    return { Messages: [message] };
+    return { Messages: [message.value] };
 }
 
 function responseQueueId(_state: LocalState): string | void {}

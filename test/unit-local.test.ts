@@ -122,7 +122,8 @@ test("local provider console.log, console.warn, and console.error with child pro
         t.truthy(messages.find(s => s === "[$pid]: Remote console.warn output"));
         t.truthy(messages.find(s => s === "[$pid]: Remote console.error output"));
     } finally {
-        await faastModule.cleanup();
+        console.log(faastModule.logUrl());
+        await faastModule.cleanup({ deleteResources: false });
     }
 });
 

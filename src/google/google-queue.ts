@@ -1,21 +1,13 @@
 import { AbortController } from "abort-controller";
 import { pubsub_v1 } from "googleapis";
-import { log } from "../log";
-import {
-    CALLID_ATTR,
-    KIND_ATTR,
-    Message,
-    PollResult,
-    ReceivableKind,
-    ReceivableMessage
-} from "../provider";
+import { CALLID_ATTR, Kind, KIND_ATTR, Message, PollResult } from "../provider";
+import { deserialize, serialize } from "../serialize";
 import { computeHttpResponseBytes, defined } from "../shared";
 import { retryOp } from "../throttle";
 import { Attributes } from "../types";
 import { GoogleMetrics } from "./google-faast";
 import PubSubApi = pubsub_v1;
 import PubSubMessage = pubsub_v1.Schema$PubsubMessage;
-import { deserializeMessage, serializeMessage } from "../serialize";
 
 function pubsubMessageAttribute(message: PubSubMessage, attr: string) {
     return message?.attributes?.[attr];
@@ -68,8 +60,8 @@ function parseTimestamp(timestampStr: string | undefined) {
     return Date.parse(timestampStr || "") || 0;
 }
 
-function processMessage(m: PubSubMessage): ReceivableMessage | void {
-    const kind = pubsubMessageAttribute(m, KIND_ATTR) as ReceivableKind;
+function processMessage(m: PubSubMessage): Message | void {
+    const kind = pubsubMessageAttribute(m, KIND_ATTR) as Kind;
     const callId = pubsubMessageAttribute(m, CALLID_ATTR);
     const timestamp = parseTimestamp(m.publishTime!);
     const data = m.data || "";
@@ -85,11 +77,11 @@ function processMessage(m: PubSubMessage): ReceivableMessage | void {
             if (!callId || !m.data) {
                 return;
             }
-            const body = deserializeMessage(raw);
-            return { kind, callId, body, rawResponse: m, timestamp };
+            const body = deserialize(raw);
+            return { ...body, rawResponse: m, timestamp };
         }
         case "cpumetrics":
-            return deserializeMessage(raw);
+            return deserialize(raw);
     }
 }
 
@@ -122,7 +114,7 @@ export function publishResponseMessage(
                 [CALLID_ATTR]: message.callId
             });
         case "response":
-            const body = serializeMessage(message.body);
+            const body = serialize(message);
             return publishPubSub(pubsub, ResponseQueue, body, {
                 ...kind,
                 [CALLID_ATTR]: message.callId

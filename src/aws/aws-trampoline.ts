@@ -2,15 +2,9 @@ import { Context, SNSEvent } from "aws-lambda";
 import { SQS } from "aws-sdk";
 import { env } from "process";
 import { FaastError } from "../error";
-import { ResponseMessage } from "../provider";
-import { deserializeMessage } from "../serialize";
-import {
-    CallingContext,
-    createErrorResponse,
-    FunctionCallSerialized,
-    FunctionReturnSerialized,
-    Wrapper
-} from "../wrapper";
+import { Message } from "../provider";
+import { deserialize } from "../serialize";
+import { CallingContext, FunctionCall, Wrapper } from "../wrapper";
 import { sendResponseQueueMessage } from "./aws-queue";
 import { getExecutionLogUrl } from "./aws-shared";
 
@@ -18,7 +12,7 @@ const sqs = new SQS();
 
 export const filename = module.filename;
 
-const CallIdAttribute: Extract<keyof FunctionCallSerialized, "callId"> = "callId";
+const CallIdAttribute: Extract<keyof FunctionCall, "callId"> = "callId";
 
 function errorCallback(err: Error) {
     if (err.message.match(/SIGKILL/)) {
@@ -29,9 +23,9 @@ function errorCallback(err: Error) {
 
 export function makeTrampoline(wrapper: Wrapper) {
     async function trampoline(
-        event: FunctionCallSerialized | SNSEvent,
+        event: FunctionCall | SNSEvent,
         context: Context,
-        callback: (err: Error | null, obj: FunctionReturnSerialized) => void
+        callback: (err: Error | null, obj: Message[]) => void
     ) {
         const startTime = Date.now();
         const region = env.AWS_REGION!;
@@ -52,10 +46,11 @@ export function makeTrampoline(wrapper: Wrapper) {
             instanceId: logStreamName
         };
         if (CallIdAttribute in event) {
-            const sCall = event as FunctionCallSerialized;
-            const { callId, ResponseQueueId: Queue } = sCall;
-            const result = await wrapper.execute(
-                { sCall, ...callingContext },
+            const call = event as FunctionCall;
+            const { callId, ResponseQueueId: Queue } = call;
+            const results = [];
+            for await (const result of wrapper.execute(
+                { call, ...callingContext },
                 {
                     onCpuUsage: metrics =>
                         sendResponseQueueMessage(sqs, Queue!, {
@@ -65,16 +60,16 @@ export function makeTrampoline(wrapper: Wrapper) {
                         }),
                     errorCallback
                 }
-            );
-            callback(null, result);
+            )) {
+                results.push(result);
+            }
+            callback(null, results);
         } else {
             const snsEvent = event as SNSEvent;
             for (const record of snsEvent.Records) {
-                const sCall: FunctionCallSerialized = deserializeMessage(
-                    record.Sns.Message
-                );
-                const { callId, ResponseQueueId: Queue } = sCall;
-                const startedMessageTimer = setTimeout(
+                const call: FunctionCall = deserialize(record.Sns.Message);
+                const { callId, ResponseQueueId: Queue } = call;
+                let startedMessageTimer: NodeJS.Timeout | undefined = setTimeout(
                     () =>
                         sendResponseQueueMessage(sqs, Queue!, {
                             kind: "functionstarted",
@@ -82,8 +77,8 @@ export function makeTrampoline(wrapper: Wrapper) {
                         }),
                     2 * 1000
                 );
-                const cc: CallingContext = { sCall, ...callingContext };
-                const result = await wrapper.execute(cc, {
+                const cc: CallingContext = { call, ...callingContext };
+                for await (const result of wrapper.execute(cc, {
                     onCpuUsage: metrics =>
                         sendResponseQueueMessage(sqs, Queue!, {
                             kind: "cpumetrics",
@@ -91,22 +86,13 @@ export function makeTrampoline(wrapper: Wrapper) {
                             metrics
                         }),
                     errorCallback
-                });
-                clearTimeout(startedMessageTimer);
-                const response: ResponseMessage = {
-                    kind: "response",
-                    callId,
-                    body: result
-                };
-                return sendResponseQueueMessage(sqs, Queue!, response).catch(err => {
-                    console.error(err);
-                    const errResponse: ResponseMessage = {
-                        kind: "response",
-                        callId,
-                        body: createErrorResponse(err, cc)
-                    };
-                    sendResponseQueueMessage(sqs, Queue!, errResponse).catch(_ => {});
-                });
+                })) {
+                    if (startedMessageTimer) {
+                        clearTimeout(startedMessageTimer);
+                        startedMessageTimer = undefined;
+                    }
+                    await sendResponseQueueMessage(sqs, Queue!, result);
+                }
             }
         }
     }

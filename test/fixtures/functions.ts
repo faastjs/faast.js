@@ -214,6 +214,14 @@ export function monteCarloPI(samples: number): MonteCarloReturn {
     };
 }
 
+export function* generator(str: string) {
+    yield str;
+}
+
+export async function* asyncGenerator(str: string) {
+    yield str;
+}
+
 /**
  * Not supported.
  * @remarks

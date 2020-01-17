@@ -1,6 +1,6 @@
 import { google, pubsub_v1 } from "googleapis";
-import { deserializeMessage } from "../serialize";
-import { createErrorResponse, FunctionCallSerialized, Wrapper } from "../wrapper";
+import { deserialize } from "../serialize";
+import { createErrorResponse, FunctionCall, Wrapper } from "../wrapper";
 import { publishResponseMessage } from "./google-queue";
 import { getExecutionLogUrl, shouldRetryRequest } from "./google-shared";
 import PubSubApi = pubsub_v1;
@@ -44,10 +44,10 @@ export function makeTrampoline(wrapper: Wrapper) {
         const functionName = process.env["FUNCTION_NAME"]!;
         const logUrl = getExecutionLogUrl(project, functionName, executionId);
         const str = Buffer.from(data.data!, "base64");
-        const sCall: FunctionCallSerialized = deserializeMessage(str.toString());
+        const call: FunctionCall = deserialize(str.toString());
 
-        const { callId, ResponseQueueId } = sCall;
-        const startedMessageTimer = setTimeout(
+        const { callId, ResponseQueueId } = call;
+        let startedMessageTimer: NodeJS.Timer | undefined = setTimeout(
             () =>
                 publishResponseMessage(pubsub, ResponseQueueId!, {
                     kind: "functionstarted",
@@ -57,7 +57,7 @@ export function makeTrampoline(wrapper: Wrapper) {
         );
 
         const callingContext = {
-            sCall,
+            call,
             startTime,
             logUrl,
             executionId
@@ -65,7 +65,7 @@ export function makeTrampoline(wrapper: Wrapper) {
 
         try {
             const timeout = wrapper.options.childProcessTimeoutMs;
-            const result = await wrapper.execute(callingContext, {
+            for await (const result of wrapper.execute(callingContext, {
                 onCpuUsage: metrics =>
                     publishResponseMessage(pubsub, ResponseQueueId!, {
                         kind: "cpumetrics",
@@ -73,19 +73,19 @@ export function makeTrampoline(wrapper: Wrapper) {
                         metrics
                     }),
                 overrideTimeout: timeout
-            });
-            clearTimeout(startedMessageTimer);
-            await publishResponseMessage(pubsub, sCall.ResponseQueueId!, {
-                kind: "response",
-                callId,
-                body: result
-            });
+            })) {
+                if (startedMessageTimer) {
+                    clearTimeout(startedMessageTimer);
+                    startedMessageTimer = undefined;
+                }
+                await publishResponseMessage(pubsub, call.ResponseQueueId!, result);
+            }
         } catch (err) {
             /* istanbul ignore next */
             {
                 console.error(err);
                 if (ResponseQueueId) {
-                    await publishResponseMessage(pubsub, sCall.ResponseQueueId!, {
+                    await publishResponseMessage(pubsub, call.ResponseQueueId!, {
                         kind: "response",
                         callId,
                         body: createErrorResponse(err, callingContext)

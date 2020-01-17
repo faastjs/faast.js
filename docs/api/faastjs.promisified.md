@@ -15,7 +15,7 @@ hide_title: true
 
 ```typescript
 export declare type Promisified<M> = {
-    [K in keyof M]: M[K] extends (...args: infer A) => infer R ? PromisifiedFunction<A, R> : never;
+    [K in keyof M]: M[K] extends (...args: infer A) => AsyncIterator<infer R> ? AsyncifiedGenerator<A, R> : M[K] extends (...args: infer A) => Iterator<infer R> ? AsyncifiedGenerator<A, R> : M[K] extends (...args: infer A) => infer R ? PromisifiedFunction<A, R> : never;
 };
 ```
 

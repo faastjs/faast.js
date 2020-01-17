@@ -324,9 +324,11 @@ export class PersistentCache {
     set(key: string, value: Buffer | string | Uint8Array | Readable | Blob): Promise<void>;
 }
 
+// Warning: (ae-forgotten-export) The symbol "AsyncifiedGenerator" needs to be exported by the entry point index.d.ts
+//
 // @public
 export type Promisified<M> = {
-    [K in keyof M]: M[K] extends (...args: infer A) => infer R ? PromisifiedFunction<A, R> : never;
+    [K in keyof M]: M[K] extends (...args: infer A) => AsyncIterator<infer R> ? AsyncifiedGenerator<A, R> : M[K] extends (...args: infer A) => Iterator<infer R> ? AsyncifiedGenerator<A, R> : M[K] extends (...args: infer A) => infer R ? PromisifiedFunction<A, R> : never;
 };
 
 // @public

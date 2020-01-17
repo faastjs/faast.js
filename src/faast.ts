@@ -23,20 +23,11 @@ import {
     ProviderImpl,
     UUID
 } from "./provider";
-import {
-    deserializeFunctionReturn,
-    ESERIALIZE,
-    serializeFunctionCall
-} from "./serialize";
+import { deserialize, ESERIALIZE, serializeFunctionArgs, serialize } from "./serialize";
 import { ExponentiallyDecayingAverageValue, roundTo100ms, sleep } from "./shared";
-import { Deferred, Funnel, Pump, RateLimiter } from "./throttle";
+import { Deferred, Funnel, Pump, RateLimiter, AsyncQueue } from "./throttle";
 import { Unpacked } from "./types";
-import {
-    CpuMeasurement,
-    FunctionCall,
-    FunctionCallSerialized,
-    FunctionReturn
-} from "./wrapper";
+import { CpuMeasurement, FunctionCall, FunctionReturn } from "./wrapper";
 import Module = require("module");
 
 /**
@@ -79,6 +70,8 @@ export type PromisifiedFunction<A extends any[], R> = (
     ...args: A
 ) => Promise<Unpacked<R>>;
 
+export type AsyncifiedGenerator<A extends any[], R> = (...args: A) => AsyncIterator<R>;
+
 /**
  * `Promisified<M>` is the type of {@link FaastModule.functions}.
  * @remarks
@@ -88,7 +81,11 @@ export type PromisifiedFunction<A extends any[], R> = (
  * @public
  */
 export type Promisified<M> = {
-    [K in keyof M]: M[K] extends (...args: infer A) => infer R
+    [K in keyof M]: M[K] extends (...args: infer A) => AsyncIterator<infer R>
+        ? AsyncifiedGenerator<A, R>
+        : M[K] extends (...args: infer A) => Iterator<infer R>
+        ? AsyncifiedGenerator<A, R>
+        : M[K] extends (...args: infer A) => infer R
         ? PromisifiedFunction<A, R>
         : never;
 };
@@ -98,7 +95,9 @@ export type Promisified<M> = {
  */
 type ResponsifiedFunction<A extends any[], R> = (...args: A) => Promise<Response<R>>;
 
-interface FunctionReturnWithMetrics extends FunctionReturn {
+interface FunctionReturnWithMetrics {
+    response: FunctionReturn;
+    value: any;
     rawResponse: any;
     localRequestSentTime: number;
     localEndTime: number;
@@ -113,12 +112,13 @@ function processResponse<R>(
     prevSkew: ExponentiallyDecayingAverageValue,
     memoryLeakDetector: MemoryLeakDetector
 ) {
-    const { executionId, logUrl, instanceId, memoryUsage } = returned;
+    const { response } = returned;
+    const { executionId, logUrl, instanceId, memoryUsage } = response;
     let value: Promise<Unpacked<R>>;
     const fn = callRequest.name;
-    if (returned.type === "error") {
-        const error = returned.isErrorObject
-            ? synthesizeFaastError(returned.value, logUrl, fn, callRequest.args)
+    if (response.type === "error") {
+        const error = response.isErrorObject
+            ? synthesizeFaastError(returned.value, logUrl, fn)
             : returned.value;
         value = Promise.reject(error);
         value.catch(_silenceWarningLackOfSynchronousCatch => {});
@@ -137,7 +137,7 @@ function processResponse<R>(
         logUrl,
         rawResponse
     };
-    const { remoteExecutionStartTime, remoteExecutionEndTime } = returned;
+    const { remoteExecutionStartTime, remoteExecutionEndTime } = response;
 
     if (remoteExecutionStartTime && remoteExecutionEndTime) {
         const localStartLatency = localRequestSentTime - localStartTime;
@@ -180,7 +180,7 @@ function processResponse<R>(
         };
     }
 
-    if (returned.type === "error") {
+    if (response.type === "error") {
         fstats.incr(fn, "errors");
     } else {
         fstats.incr(fn, "completed");
@@ -257,15 +257,12 @@ export class FunctionStatsEvent {
     }
 }
 
-class PendingRequest extends Deferred<FunctionReturnWithMetrics> {
+class PendingRequest {
+    queue: AsyncQueue<FunctionReturnWithMetrics> = new AsyncQueue();
     created: number = Date.now();
     executing?: boolean;
-    serialized: FunctionCallSerialized;
 
-    constructor(readonly call: FunctionCall, validate: boolean) {
-        super();
-        this.serialized = serializeFunctionCall(call, validate);
-    }
+    constructor(readonly call: FunctionCall) {}
 }
 
 /**
@@ -635,15 +632,16 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                     this.impl.responseQueueId(this.state) || undefined;
                 const callObject: FunctionCall = {
                     name: fname,
-                    args,
+                    args: serializeFunctionArgs(
+                        fname,
+                        args,
+                        this.options.validateSerialization
+                    ),
                     callId,
                     modulePath: this.modulePath,
                     ResponseQueueId
                 };
-                const pending = new PendingRequest(
-                    callObject,
-                    this.options.validateSerialization
-                );
+                const pending = new PendingRequest(callObject);
                 this._callResultsPending.set(callId, pending);
                 if (this._collectorPump.stopped) {
                     this._collectorPump.start();
@@ -651,28 +649,31 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
 
                 const invokeCloudFunction = () => {
                     this._stats.incr(fname, "invocations");
-                    log.provider(`invoke ${inspectProvider(pending.serialized)}`);
+                    log.provider(`invoke ${inspectProvider(pending.call)}`);
+
                     this.withCancellation(async cancel => {
                         const message = await this.impl
-                            .invoke(this.state, pending.serialized, cancel)
-                            .catch(err => pending.reject(err));
+                            .invoke(this.state, pending.call, cancel)
+                            .catch(err => pending.queue.enqueue(Promise.reject(err)));
                         if (message) {
                             log.provider(`invoke returned ${inspectProvider(message)}`);
-                            const returned = deserializeFunctionReturn(message.body);
-                            log.provider(`deserialized return: %O`, returned);
-                            const response: FunctionReturnWithMetrics = {
-                                ...returned,
-                                callId,
+                            const value = deserialize(message.body.value);
+                            log.provider(`deserialized return: %O`, value);
+                            const rv: FunctionReturnWithMetrics = {
+                                response: message.body,
+                                value,
                                 rawResponse: message.rawResponse,
                                 localRequestSentTime: pending.created,
                                 localEndTime: Date.now()
                             };
-                            pending.resolve(response);
+                            pending.queue.enqueue(rv);
                         }
                     });
                 };
 
                 const fnStats = this._stats.fAggregate.getOrCreate(fname);
+
+                const responsePromise = pending.queue.next();
 
                 this.withCancellation(cancel =>
                     retryFunctionIfNeededToReduceTailLatency(
@@ -687,34 +688,43 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                             ),
                         async () => {
                             invokeCloudFunction();
-                            await pending.promise;
+                            await responsePromise;
                         },
                         () => shouldRetry(undefined),
                         cancel
                     )
                 );
 
-                const rv = await pending.promise.catch<FunctionReturnWithMetrics>(err => {
+                const rv = await responsePromise.catch<
+                    IteratorYieldResult<FunctionReturnWithMetrics>
+                >(err => {
                     log.provider(`invoke promise rejection: ${err}`);
                     return {
-                        type: "error",
-                        callId,
-                        isErrorObject: typeof err === "object" && err instanceof Error,
-                        value: err,
-                        rawResponse: err,
-                        localEndTime: Date.now(),
-                        localRequestSentTime: pending.created
+                        done: false,
+                        value: {
+                            response: {
+                                type: "error",
+                                callId,
+                                isErrorObject:
+                                    typeof err === "object" && err instanceof Error,
+                                value: serialize(err)
+                            },
+                            value: err,
+                            rawResponse: err,
+                            localEndTime: Date.now(),
+                            localRequestSentTime: pending.created
+                        }
                     };
                 });
 
-                this._callResultsPending.delete(rv.callId);
+                this._callResultsPending.delete(rv.value!.response.callId);
                 if (this._callResultsPending.size === 0) {
                     this._collectorPump.stop();
                 }
                 log.calls(`Returning '${fname}' (${callId}): ${util.inspect(rv)}`);
 
                 return processResponse<R>(
-                    rv,
+                    rv.value!,
                     callObject,
                     startTime,
                     this._stats,
@@ -793,31 +803,30 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
         for (const m of Messages) {
             switch (m.kind) {
                 case "functionstarted": {
-                    const deferred = callResultsPending.get(m.callId);
-                    if (deferred) {
-                        deferred!.executing = true;
+                    const pending = callResultsPending.get(m.callId);
+                    if (pending) {
+                        pending!.executing = true;
                     }
                     break;
                 }
                 case "response":
                     try {
                         const { body, timestamp } = m;
-                        const returned = deserializeFunctionReturn(body);
-                        const deferred = callResultsPending.get(m.callId);
-                        if (deferred) {
+                        const value = deserialize(body.value);
+                        const pending = callResultsPending.get(body.callId);
+                        if (pending) {
                             const rv: FunctionReturnWithMetrics = {
-                                ...returned,
+                                response: body,
+                                value,
                                 rawResponse: m,
                                 remoteResponseSentTime: timestamp,
-                                localRequestSentTime: deferred.created,
+                                localRequestSentTime: pending.created,
                                 localEndTime
                             };
-                            log.provider(`returned ${inspectProvider(returned)}`);
-                            deferred.resolve(rv);
+                            log.provider(`returned ${inspectProvider(value)}`);
+                            pending.queue.enqueue(rv);
                         } else {
-                            log.info(
-                                `Deferred promise not found for CallId: ${m.callId}`
-                            );
+                            log.info(`Pending promise not found for CallId: ${m.callId}`);
                         }
                     } catch (err) {
                         log.warn(err);

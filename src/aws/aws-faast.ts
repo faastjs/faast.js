@@ -29,7 +29,7 @@ import {
     ResponseMessage,
     UUID
 } from "../provider";
-import { serializeMessage } from "../serialize";
+import { serialize } from "../serialize";
 import {
     computeHttpResponseBytes,
     defined,
@@ -38,11 +38,7 @@ import {
     uuidv4Pattern
 } from "../shared";
 import { retryOp, throttle } from "../throttle";
-import {
-    FunctionCallSerialized,
-    FunctionReturnSerialized,
-    WrapperOptions
-} from "../wrapper";
+import { FunctionCall, WrapperOptions, FunctionReturn } from "../wrapper";
 import * as awsNpm from "./aws-npm";
 import { AwsLayerInfo } from "./aws-npm";
 import {
@@ -438,8 +434,6 @@ export const initialize = throttle(
         const services = await createAwsApis(region);
         const { lambda, sts } = services;
         const FunctionName = `faast-${nonce}`;
-        const accountId = await getAccountId(sts);
-
         const { packageJson, useDependencyCaching } = options;
 
         async function createFunctionRequest(
@@ -513,7 +507,6 @@ export const initialize = throttle(
                 gcWorker,
                 services,
                 region,
-                accountId,
                 retentionInDays,
                 gc
             ).catch(err => {
@@ -583,7 +576,7 @@ export const initialize = throttle(
                                     callId: "0",
                                     modulePath: "",
                                     name: "",
-                                    serializedArgs: ""
+                                    args: ""
                                 },
                                 state.metrics,
                                 new Promise(_ => {})
@@ -622,7 +615,7 @@ export const initialize = throttle(
 
 async function invoke(
     state: AwsState,
-    call: FunctionCallSerialized,
+    call: FunctionCall,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
     const { metrics, services, resources, options } = state;
@@ -664,13 +657,13 @@ function responseQueueId(state: AwsState): string | undefined {
 async function invokeHttps(
     lambda: Lambda,
     FunctionName: string,
-    message: FunctionCallSerialized,
+    message: FunctionCall,
     metrics: AwsMetrics,
     cancel: Promise<void>
 ): Promise<ResponseMessage | void> {
     const request: Lambda.InvocationRequest = {
         FunctionName,
-        Payload: serializeMessage(message),
+        Payload: serialize(message),
         LogType: "None"
     };
     const awsRequest = lambda.invoke(request);
@@ -680,28 +673,23 @@ async function invokeHttps(
         awsRequest.abort();
         return;
     }
+    metrics.outboundBytes += computeHttpResponseBytes(
+        rawResponse.$response.httpResponse.headers
+    );
 
     if (rawResponse.LogResult) {
         log.info(Buffer.from(rawResponse.LogResult!, "base64").toString());
     }
 
-    let body: FunctionReturnSerialized;
+    let body: ResponseMessage;
     if (rawResponse.FunctionError) {
         const error = processAwsErrorMessage(rawResponse.Payload as string);
         throw error;
     } else {
-        body = JSON.parse(rawResponse.Payload! as string);
+        // TODO: handle generators, which return many messages.
+        [body] = JSON.parse(rawResponse.Payload! as string);
     }
-    metrics.outboundBytes += computeHttpResponseBytes(
-        rawResponse.$response.httpResponse.headers
-    );
-    return {
-        kind: "response",
-        callId: message.callId,
-        body,
-        rawResponse,
-        timestamp: Date.now()
-    };
+    return { ...body, timestamp: Date.now(), rawResponse };
 }
 
 export async function deleteRole(RoleName: string, iam: IAM) {
@@ -877,7 +865,6 @@ export async function collectGarbage(
     executor: typeof defaultGcWorker,
     services: AwsServices,
     region: AwsRegion,
-    accountId: string,
     retentionInDays: number,
     mode: "auto" | "force"
 ): Promise<"done" | "skipped"> {
@@ -918,6 +905,7 @@ export async function collectGarbage(
     const logGroupRequest = services.cloudwatch.describeLogGroups({
         logGroupNamePrefix: "/aws/lambda/faast-"
     });
+    const accountId = await getAccountId(services.sts);
     await forEachPage("log groups", logGroupRequest, async ({ logGroups = [] }) => {
         logGroups.forEach(g => {
             const FunctionName = functionNameFromLogGroup(g.logGroupName!);
