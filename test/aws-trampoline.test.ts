@@ -11,7 +11,7 @@ import { Wrapper } from "../src/wrapper";
 import * as funcs from "./fixtures/functions";
 import { title } from "./fixtures/util";
 
-const sqs = new SQS({ region: "us-west-2" });
+const sqs = new SQS({ apiVersion: "2012-11-05", region: "us-west-2" });
 
 const lambdaContext: Context = {
     callbackWaitsForEmptyEventLoop: true,

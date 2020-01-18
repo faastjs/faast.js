@@ -8,7 +8,7 @@ import { CallingContext, FunctionCall, Wrapper } from "../wrapper";
 import { sendResponseQueueMessage } from "./aws-queue";
 import { getExecutionLogUrl } from "./aws-shared";
 
-const sqs = new SQS();
+const sqs = new SQS({ apiVersion: "2012-11-05" });
 
 export const filename = module.filename;
 
