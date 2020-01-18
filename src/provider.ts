@@ -3,9 +3,6 @@ import { CostSnapshot } from "./cost";
 import { keysOf, Statistics } from "./shared";
 import { CpuMeasurement, FunctionCall } from "./wrapper";
 
-export const CALLID_ATTR = "__faast_callid__";
-export const KIND_ATTR = "__faast_kind__";
-
 /**
  * The type of all supported cloud providers.
  * @public
@@ -620,7 +617,6 @@ export interface ResponseMessage {
     instanceId?: string;
     executionId?: string;
     memoryUsage?: NodeJS.MemoryUsage;
-    rawResponse?: any;
     timestamp?: number; // timestamp when response message was sent according to cloud service, this is optional and used to provide more accurate metrics.
 }
 

@@ -20,7 +20,7 @@ async function testTimeout(
         gc: "off",
         debugOptions: { wrapperVerbose }
     });
-    t.log(`${lambda.logUrl()}`);
+    // t.log(`${lambda.logUrl()}`);
     try {
         await t.throwsAsync(lambda.functions.spin(30 * 1000), /time/i);
     } finally {

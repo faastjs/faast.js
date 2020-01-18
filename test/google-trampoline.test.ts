@@ -1,11 +1,11 @@
 import test from "ava";
 import { Request, Response } from "express";
-import { google } from "googleapis";
 import * as uuidv4 from "uuid/v4";
 import {
     getResponseQueueTopic,
     getResponseSubscription,
-    GoogleMetrics
+    GoogleMetrics,
+    initializeGoogleServices
 } from "../src/google/google-faast";
 import { receiveMessages } from "../src/google/google-queue";
 import { makeTrampoline as makeTrampolineHttps } from "../src/google/google-trampoline-https";
@@ -55,12 +55,8 @@ test(title("google", "trampoline queue mode"), async t => {
     const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
     const FunctionName = `faast-${uuidv4()}`;
 
-    const auth = await google.auth.getClient({
-        scopes: ["https://www.googleapis.com/auth/cloud-platform"]
-    });
-
-    google.options({ auth });
-    const pubsub = google.pubsub("v1");
+    const services = await initializeGoogleServices();
+    const { pubsub, google } = services;
     const project = await google.auth.getProjectId();
 
     process.env.GCP_PROJECT = project;

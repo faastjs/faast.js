@@ -530,7 +530,6 @@ async function callFunctionHttps(
             return {
                 // TODO: Handle async generators
                 ...(rawResponse.data[0] as ResponseMessage),
-                rawResponse,
                 timestamp: Date.now()
             };
         } catch (err) {
@@ -805,8 +804,12 @@ function ensureGooglePriceCache(cloudBilling: CloudBilling.Cloudbilling) {
                 );
 
                 const regionOrGlobalSku =
-                    matchingSkus.find(sku => sku.serviceRegions![0] === region) ??
-                    matchingSkus.find(sku => sku.serviceRegions![0] === "global");
+                    matchingSkus.find(sku =>
+                        sku.serviceRegions!.find(r => r === region)
+                    ) ??
+                    matchingSkus.find(sku =>
+                        sku.serviceRegions!.find(r => r === "global")
+                    );
 
                 const pexp = regionOrGlobalSku!.pricingInfo![0].pricingExpression!;
                 const prices = pexp.tieredRates!.map(

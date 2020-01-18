@@ -42,7 +42,6 @@ export const providers: Provider[] = ["aws", "google", "local"];
  */
 export interface ResponseDetails<D> {
     value: Promise<D>;
-    rawResponse: any;
     executionId?: string;
     logUrl?: string;
     localStartLatency?: number;
@@ -129,8 +128,7 @@ function processResponse<R>(
     let rv: Response<R> = {
         value,
         executionId,
-        logUrl,
-        rawResponse: returned.response.rawResponse
+        logUrl
     };
     const { remoteExecutionStartTime, remoteExecutionEndTime } = response;
 
@@ -652,6 +650,11 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                             .catch(err => pending.queue.enqueue(Promise.reject(err)));
                         if (message) {
                             log.provider(`invoke returned ${inspectProvider(message)}`);
+                            if (message.value === undefined) {
+                                console.log(
+                                    `Bad message: ${util.inspect(message, undefined, 9)}`
+                                );
+                            }
                             const value = deserialize(message.value);
                             log.provider(`deserialized return: %O`, value);
                             const rv: FunctionReturnWithMetrics = {
@@ -706,7 +709,6 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                                 value: serialize(err)
                             },
                             value: err,
-                            rawResponse: err,
                             localEndTime: Date.now(),
                             localRequestSentTime: pending.created
                         }

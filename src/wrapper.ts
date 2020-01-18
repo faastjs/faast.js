@@ -255,7 +255,6 @@ export class Wrapper {
                 if (timeout) {
                     timer = setTimeout(() => {
                         this.stop();
-                        this.child = undefined;
                         const error = new Error(
                             `Request exceeded timeout of ${timeout}ms`
                         );

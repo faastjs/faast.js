@@ -50,6 +50,7 @@ import {
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
+import { inspect } from "util";
 
 export const defaultGcWorker = throttle(
     { concurrency: 5, rate: 5, burst: 2 },
@@ -546,11 +547,9 @@ export const initialize = throttle(
             await retryOp(
                 (err, n) =>
                     n < 5 &&
-                    err &&
-                    err.message &&
-                    (err.message.match(/role/) !== null ||
-                        err.message.match(/KMS Exception/) !== null ||
-                        err.message.match(/internal service error/) !== null),
+                    (err?.message?.match(/role/) ||
+                        err?.message?.match(/KMS Exception/) ||
+                        err?.message?.match(/internal service error/)),
                 async () => {
                     try {
                         const lambdaFn = await createFunctionRequest(
@@ -558,7 +557,12 @@ export const initialize = throttle(
                             role.Arn,
                             responseQueueArn,
                             layer
-                        );
+                        ).catch(err => {
+                            if (err?.message?.match(/Function already exist/)) {
+                                // ignore
+                            }
+                            throw err;
+                        });
 
                         lambdaFnArn = lambdaFn.FunctionArn!;
 
@@ -569,17 +573,19 @@ export const initialize = throttle(
                         // to ensure successful lambda creation when an IAM role
                         // is recently created.
                         if (Date.now() - role.CreateDate.getTime() < 120 * 1000) {
-                            await invokeHttps(
-                                lambda,
-                                FunctionName,
-                                {
-                                    callId: "0",
-                                    modulePath: "",
-                                    name: "",
-                                    args: ""
-                                },
-                                state.metrics,
-                                new Promise(_ => {})
+                            await retryOp(1, () =>
+                                invokeHttps(
+                                    lambda,
+                                    FunctionName,
+                                    {
+                                        callId: "0",
+                                        modulePath: "",
+                                        name: "",
+                                        args: ""
+                                    },
+                                    state.metrics,
+                                    new Promise(_ => {})
+                                )
                             );
                         }
                     } catch (err) {
@@ -635,7 +641,10 @@ async function invoke(
             try {
                 await publishFunctionCallMessage(sns, RequestTopicArn!, call, metrics);
             } catch (err) {
-                throw new FaastError(err, "invoke sns error");
+                throw new FaastError(
+                    err,
+                    `invoke sns error ${inspect(call, undefined, 9)}`
+                );
             }
             return;
     }
@@ -689,7 +698,7 @@ async function invokeHttps(
         // TODO: handle generators, which return many messages.
         [body] = JSON.parse(rawResponse.Payload! as string);
     }
-    return { ...body, timestamp: Date.now(), rawResponse };
+    return { ...body, timestamp: Date.now() };
 }
 
 export async function deleteRole(RoleName: string, iam: IAM) {
