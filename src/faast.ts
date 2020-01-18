@@ -21,13 +21,14 @@ import {
     FunctionStats,
     Provider,
     ProviderImpl,
-    UUID
+    UUID,
+    ResponseMessage
 } from "./provider";
 import { deserialize, ESERIALIZE, serializeFunctionArgs, serialize } from "./serialize";
 import { ExponentiallyDecayingAverageValue, roundTo100ms, sleep } from "./shared";
 import { Deferred, Funnel, Pump, RateLimiter, AsyncQueue } from "./throttle";
 import { Unpacked } from "./types";
-import { CpuMeasurement, FunctionCall, FunctionReturn } from "./wrapper";
+import { CpuMeasurement, FunctionCall } from "./wrapper";
 import Module = require("module");
 
 /**
@@ -96,9 +97,8 @@ export type Promisified<M> = {
 type ResponsifiedFunction<A extends any[], R> = (...args: A) => Promise<Response<R>>;
 
 interface FunctionReturnWithMetrics {
-    response: FunctionReturn;
+    response: ResponseMessage;
     value: any;
-    rawResponse: any;
     localRequestSentTime: number;
     localEndTime: number;
     remoteResponseSentTime?: number;
@@ -125,17 +125,12 @@ function processResponse<R>(
     } else {
         value = Promise.resolve(returned.value[0]);
     }
-    const {
-        localRequestSentTime,
-        remoteResponseSentTime,
-        localEndTime,
-        rawResponse
-    } = returned;
+    const { localRequestSentTime, remoteResponseSentTime, localEndTime } = returned;
     let rv: Response<R> = {
         value,
         executionId,
         logUrl,
-        rawResponse
+        rawResponse: returned.response.rawResponse
     };
     const { remoteExecutionStartTime, remoteExecutionEndTime } = response;
 
@@ -657,12 +652,11 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                             .catch(err => pending.queue.enqueue(Promise.reject(err)));
                         if (message) {
                             log.provider(`invoke returned ${inspectProvider(message)}`);
-                            const value = deserialize(message.body.value);
+                            const value = deserialize(message.value);
                             log.provider(`deserialized return: %O`, value);
                             const rv: FunctionReturnWithMetrics = {
-                                response: message.body,
+                                response: message,
                                 value,
-                                rawResponse: message.rawResponse,
                                 localRequestSentTime: pending.created,
                                 localEndTime: Date.now()
                             };
@@ -702,7 +696,9 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                     return {
                         done: false,
                         value: {
+                            kind: "response",
                             response: {
+                                kind: "response",
                                 type: "error",
                                 callId,
                                 isErrorObject:
@@ -811,14 +807,13 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 }
                 case "response":
                     try {
-                        const { body, timestamp } = m;
-                        const value = deserialize(body.value);
-                        const pending = callResultsPending.get(body.callId);
+                        const { timestamp } = m;
+                        const value = deserialize(m.value);
+                        const pending = callResultsPending.get(m.callId);
                         if (pending) {
                             const rv: FunctionReturnWithMetrics = {
-                                response: body,
+                                response: m,
                                 value,
-                                rawResponse: m,
                                 remoteResponseSentTime: timestamp,
                                 localRequestSentTime: pending.created,
                                 localEndTime

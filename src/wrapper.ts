@@ -2,8 +2,8 @@ import * as childProcess from "child_process";
 import * as process from "process";
 import * as proctor from "process-doctor";
 import { inspect } from "util";
-import { Message } from "./provider";
-import { deserialize, serializeFunctionReturn } from "./serialize";
+import { Message, ResponseMessage } from "./provider";
+import { deserialize, serializeReturnValue } from "./serialize";
 import { AsyncQueue } from "./throttle";
 import { AnyFunction } from "./types";
 
@@ -29,18 +29,6 @@ export interface FunctionCall extends CallId {
     ResponseQueueId?: string;
 }
 
-export interface FunctionReturn extends CallId {
-    type: "yield" | "returned" | "error";
-    value: string;
-    isErrorObject?: boolean;
-    remoteExecutionStartTime?: number;
-    remoteExecutionEndTime?: number;
-    logUrl?: string;
-    instanceId?: string;
-    executionId?: string;
-    memoryUsage?: NodeJS.MemoryUsage;
-}
-
 export interface CallingContext {
     call: FunctionCall;
     startTime: number;
@@ -56,7 +44,7 @@ export interface ModuleType {
 export function createErrorResponse(
     err: any,
     { call, startTime, logUrl, executionId }: CallingContext
-): FunctionReturn {
+): ResponseMessage {
     let errObj: any = err;
     if (err instanceof Error) {
         errObj = {};
@@ -67,8 +55,9 @@ export function createErrorResponse(
         });
     }
     return {
+        kind: "response",
         type: "error",
-        value: serializeFunctionReturn(call.name, errObj, false),
+        value: serializeReturnValue(call.name, errObj, false),
         isErrorObject: typeof err === "object" && err instanceof Error,
         callId: call.callId,
         remoteExecutionStartTime: startTime,
@@ -278,7 +267,7 @@ export class Wrapper {
                     for await (const result of this.queue) {
                         this.log(`Dequeuing ${inspect(result)}`);
                         if (result.kind === "response") {
-                            result.body.logUrl = logUrl;
+                            result.logUrl = logUrl;
                         }
                         yield result;
                     }
@@ -321,18 +310,15 @@ export class Wrapper {
                 //             yield {
                 //                 kind: "response",
                 //                 callId,
-                //                 body: {
                 //                     type: "yield",
-                //                     value: serializeFunctionReturn(
+                //                     value: serializeReturnValue(
                 //                         call.name,
                 //                         [next],
                 //                         validate
                 //                     ),
-                //                     callId,
                 //                     logUrl,
                 //                     executionId,
                 //                     instanceId
-                //                 }
                 //             };
                 //         }
                 //         value = undefined;
@@ -342,21 +328,18 @@ export class Wrapper {
                 yield {
                     kind: "response",
                     callId,
-                    body: {
-                        type: "returned",
-                        value: serializeFunctionReturn(
-                            callingContext.call.name,
-                            [value],
-                            validate
-                        ),
-                        callId,
-                        remoteExecutionStartTime: startTime,
-                        remoteExecutionEndTime: Date.now(),
-                        logUrl,
-                        executionId,
-                        memoryUsage,
-                        instanceId
-                    }
+                    type: "returned",
+                    value: serializeReturnValue(
+                        callingContext.call.name,
+                        [value],
+                        validate
+                    ),
+                    remoteExecutionStartTime: startTime,
+                    remoteExecutionEndTime: Date.now(),
+                    logUrl,
+                    executionId,
+                    memoryUsage,
+                    instanceId
                 };
             }
         } catch (origError) {
@@ -365,11 +348,7 @@ export class Wrapper {
                     ? errorCallback(origError)
                     : origError;
             this.log(`faast: wrapped function exception or promise rejection: ${err}`);
-            yield {
-                kind: "response",
-                callId: callingContext.call.callId,
-                body: createErrorResponse(err, callingContext)
-            };
+            yield createErrorResponse(err, callingContext);
         } finally {
             this.log(`Exiting execute`);
             this.executing = false;

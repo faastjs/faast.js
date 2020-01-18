@@ -1,21 +1,14 @@
 import { SNSEvent } from "aws-lambda";
 import { SNS, SQS } from "aws-sdk";
+import { inspect } from "util";
 import { FaastError } from "../error";
 import { log } from "../log";
-import {
-    CALLID_ATTR,
-    KIND_ATTR,
-    Message,
-    PollResult,
-    Kind,
-    ResponseMessage
-} from "../provider";
+import { CALLID_ATTR, Kind, KIND_ATTR, Message, PollResult } from "../provider";
 import { deserialize, serialize } from "../serialize";
 import { computeHttpResponseBytes, defined, sum } from "../shared";
 import { Attributes } from "../types";
-import { FunctionCall, createErrorResponse } from "../wrapper";
+import { createErrorResponse, FunctionCall } from "../wrapper";
 import { AwsMetrics } from "./aws-faast";
-import { inspect } from "util";
 
 function sqsMessageAttribute(message: SQS.Message, attr: string) {
     const a = message.MessageAttributes;
@@ -65,7 +58,7 @@ export function sendResponseQueueMessage(sqs: SQS, QueueUrl: string, message: Me
                 [CALLID_ATTR]: message.callId
             });
         case "response":
-            const body = serialize(message.body);
+            const body = serialize(message);
             return publishSQS(sqs, QueueUrl, body, {
                 ...kind,
                 [CALLID_ATTR]: message.callId
@@ -208,9 +201,7 @@ function processIncomingQueueMessage(m: SQS.Message): Message | void {
             error.stack = destinationError.stackTrace?.join("\n");
             const executionId = body.requestContext.requestId;
             return {
-                kind: "response",
-                callId: sCall.callId,
-                body: createErrorResponse(error, {
+                ...createErrorResponse(error, {
                     call: sCall,
                     startTime: new Date(record.Sns.Timestamp).getTime(),
                     executionId
@@ -223,19 +214,14 @@ function processIncomingQueueMessage(m: SQS.Message): Message | void {
         }
     }
 
+    // TODO: Simplify logic for deserialization...
     const callId = sqsMessageAttribute(m, CALLID_ATTR);
     switch (kind) {
         case "response":
             if (!callId || !m.Body) {
                 return;
             }
-            return {
-                kind,
-                callId,
-                body: deserialize(m.Body),
-                rawResponse: m,
-                timestamp
-            };
+            return deserialize(m.Body);
         case "functionstarted":
             if (!callId) {
                 return;

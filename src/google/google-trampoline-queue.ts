@@ -85,11 +85,11 @@ export function makeTrampoline(wrapper: Wrapper) {
             {
                 console.error(err);
                 if (ResponseQueueId) {
-                    await publishResponseMessage(pubsub, call.ResponseQueueId!, {
-                        kind: "response",
-                        callId,
-                        body: createErrorResponse(err, callingContext)
-                    });
+                    await publishResponseMessage(
+                        pubsub,
+                        call.ResponseQueueId!,
+                        createErrorResponse(err, callingContext)
+                    );
                 }
             }
         }

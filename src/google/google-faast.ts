@@ -18,11 +18,11 @@ import {
     commonDefaults,
     CommonOptions,
     FunctionStats,
+    Message,
     PollResult,
     ProviderImpl,
     ResponseMessage,
-    UUID,
-    Message
+    UUID
 } from "../provider";
 import { serialize } from "../serialize";
 import {
@@ -34,7 +34,7 @@ import {
 } from "../shared";
 import { throttle } from "../throttle";
 import { Mutable } from "../types";
-import { FunctionCall, FunctionReturn, WrapperOptions } from "../wrapper";
+import { FunctionCall, WrapperOptions } from "../wrapper";
 import { publishPubSub, receiveMessages } from "./google-queue";
 import { shouldRetryRequest } from "./google-shared";
 import * as googleTrampolineHttps from "./google-trampoline-https";

@@ -122,7 +122,6 @@ test("local provider console.log, console.warn, and console.error with child pro
         t.truthy(messages.find(s => s === "[$pid]: Remote console.warn output"));
         t.truthy(messages.find(s => s === "[$pid]: Remote console.error output"));
     } finally {
-        console.log(faastModule.logUrl());
         await faastModule.cleanup({ deleteResources: false });
     }
 });
@@ -141,12 +140,14 @@ test("local provider log files should be appended, not truncated, after child pr
         } catch (err) {}
         await faastModule.functions.consoleWarn("output 2");
 
+        // Wait for flush
+        await sleep(500);
         const messages = await readFirstLogfile(faastModule.logUrl());
 
         t.truthy(messages.find(s => s === "[$pid]: output 1"));
         t.truthy(messages.find(s => s === "[$pid]: output 2"));
     } finally {
-        await faastModule.cleanup();
+        await faastModule.cleanup({ deleteResources: false });
     }
 });
 

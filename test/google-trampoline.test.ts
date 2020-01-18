@@ -41,7 +41,7 @@ test(title("google", "trampoline https mode"), async t => {
     const response = {
         send: (obj: Message[]) => {
             if (obj[0].kind === "response") {
-                const [ret] = deserialize(obj[0].body.value);
+                const [ret] = deserialize(obj[0].value);
                 t.is(ret, arg);
             }
         }
@@ -111,7 +111,7 @@ test(title("google", "trampoline queue mode"), async t => {
         const msg = result.Messages[0];
         t.is(msg.kind, "response");
         if (msg.kind === "response") {
-            const [ret] = deserialize(msg.body.value);
+            const [ret] = deserialize(msg.value);
             t.is(ret, arg);
         }
     } finally {

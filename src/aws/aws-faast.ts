@@ -38,7 +38,7 @@ import {
     uuidv4Pattern
 } from "../shared";
 import { retryOp, throttle } from "../throttle";
-import { FunctionCall, WrapperOptions, FunctionReturn } from "../wrapper";
+import { FunctionCall, WrapperOptions } from "../wrapper";
 import * as awsNpm from "./aws-npm";
 import { AwsLayerInfo } from "./aws-npm";
 import {

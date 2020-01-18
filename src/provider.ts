@@ -1,7 +1,7 @@
 import * as webpack from "webpack";
 import { CostSnapshot } from "./cost";
 import { keysOf, Statistics } from "./shared";
-import { CpuMeasurement, FunctionCall, FunctionReturn } from "./wrapper";
+import { CpuMeasurement, FunctionCall } from "./wrapper";
 
 export const CALLID_ATTR = "__faast_callid__";
 export const KIND_ATTR = "__faast_kind__";
@@ -610,8 +610,16 @@ export type CallId = string;
 
 export interface ResponseMessage {
     kind: "response";
+    type: "yield" | "returned" | "error";
+    value: string;
     callId: CallId;
-    body: FunctionReturn;
+    isErrorObject?: boolean;
+    remoteExecutionStartTime?: number;
+    remoteExecutionEndTime?: number;
+    logUrl?: string;
+    instanceId?: string;
+    executionId?: string;
+    memoryUsage?: NodeJS.MemoryUsage;
     rawResponse?: any;
     timestamp?: number; // timestamp when response message was sent according to cloud service, this is optional and used to provide more accurate metrics.
 }

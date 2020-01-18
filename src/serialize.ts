@@ -171,7 +171,7 @@ export function serializeFunctionArgs(
     }
 }
 
-export function serializeFunctionReturn(
+export function serializeReturnValue(
     name: string,
     returned: any,
     validate: boolean
