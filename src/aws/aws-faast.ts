@@ -35,7 +35,8 @@ import {
     defined,
     hasExpired,
     streamToBuffer,
-    uuidv4Pattern
+    uuidv4Pattern,
+    sleep
 } from "../shared";
 import { retryOp, throttle } from "../throttle";
 import { FunctionCall, WrapperOptions } from "../wrapper";
@@ -343,6 +344,7 @@ export async function ensureRoleRaw(
         return roleResponse.Role;
     } catch (err) {
         if (err.code === "EntityAlreadyExists") {
+            await sleep(5000);
             const roleResponse = await iam.getRole({ RoleName }).promise();
             await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
             return roleResponse.Role;
@@ -461,22 +463,36 @@ export const initialize = throttle(
                 ...rest
             };
             log.info(`createFunctionRequest: %O`, request);
-            const func = await lambda.createFunction(request).promise();
-            log.info(
-                `Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`
-            );
-            const config = await lambda
-                .putFunctionEventInvokeConfig({
-                    FunctionName,
-                    MaximumRetryAttempts: 0,
-                    MaximumEventAgeInSeconds: 120,
-                    DestinationConfig: {
-                        OnFailure: { Destination: responseQueueArn }
+            try {
+                let func;
+                try {
+                    func = await lambda.createFunction(request).promise();
+                } catch (err) {
+                    if (err?.message?.match(/Function already exist/)) {
+                        func = (await lambda.getFunction({ FunctionName }).promise())
+                            .Configuration!;
+                    } else {
+                        throw err;
                     }
-                })
-                .promise();
-            log.info(`Function event invocation config: %O`, config);
-            return func;
+                }
+                log.info(
+                    `Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`
+                );
+                const config = await lambda
+                    .putFunctionEventInvokeConfig({
+                        FunctionName,
+                        MaximumRetryAttempts: 0,
+                        MaximumEventAgeInSeconds: 120,
+                        DestinationConfig: {
+                            OnFailure: { Destination: responseQueueArn }
+                        }
+                    })
+                    .promise();
+                log.info(`Function event invocation config: %O`, config);
+                return func;
+            } catch (err) {
+                throw new FaastError(err, "Create function request failure");
+            }
         }
         const { wrapperVerbose } = options.debugOptions;
         async function createCodeBundle() {
@@ -557,12 +573,7 @@ export const initialize = throttle(
                             role.Arn,
                             responseQueueArn,
                             layer
-                        ).catch(err => {
-                            if (err?.message?.match(/Function already exist/)) {
-                                // ignore
-                            }
-                            throw err;
-                        });
+                        );
 
                         lambdaFnArn = lambdaFn.FunctionArn!;
 
@@ -708,14 +719,14 @@ export async function deleteRole(RoleName: string, iam: IAM) {
         AttachedPolicies.map(p => p.PolicyArn!).map(PolicyArn =>
             carefully(iam.detachRolePolicy({ RoleName, PolicyArn }))
         )
-    ).catch(log.warn);
+    );
     const rolePolicyListResponse = await carefully(iam.listRolePolicies({ RoleName }));
     const RolePolicies = rolePolicyListResponse?.PolicyNames ?? [];
     await Promise.all(
         RolePolicies.map(PolicyName =>
             carefully(iam.deleteRolePolicy({ RoleName, PolicyName }))
         )
-    ).catch(log.warn);
+    );
     await carefully(iam.deleteRole({ RoleName }));
 }
 
