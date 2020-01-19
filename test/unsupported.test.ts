@@ -13,17 +13,15 @@ async function testUnsupported(
     const remote = faastModule.functions;
 
     try {
-        await t.throwsAsync(remote.promiseArg(Promise.resolve()), /cannot be serialized/);
+        const expected = { message: /cannot be serialized/ };
+        await t.throwsAsync(remote.promiseArg(Promise.resolve()), expected);
         await t.throwsAsync(
             remote.identityFunction(() => {}),
-            /cannot be serialized/
+            expected
         );
-        await t.throwsAsync(remote.functionReturn(), /cannot be serialized/);
-        await t.throwsAsync(
-            remote.identityClass(new funcs.Cls()),
-            /cannot be serialized/
-        );
-        await t.throwsAsync(remote.classReturn(), /cannot be serialized/);
+        await t.throwsAsync(remote.functionReturn(), expected);
+        await t.throwsAsync(remote.identityClass(new funcs.Cls()), expected);
+        await t.throwsAsync(remote.classReturn(), expected);
     } finally {
         await faastModule.cleanup();
     }

@@ -39,7 +39,9 @@ async function testBasic(
         t.is(await remote.asyncArrow("asyncArrow"), "asyncArrow");
         t.is(await remote.fact(5), 120);
         t.is(await remote.concat("abc", "def"), "abcdef");
-        await t.throwsAsync(() => remote.error("hey"), /Expected error. Arg: hey/);
+        await t.throwsAsync(() => remote.error("hey"), {
+            message: /Expected error. Arg: hey/
+        });
         t.is(await remote.noargs(), "called function with no args.");
         t.is(await remote.async(), "async function: success");
         t.is(typeof (await remote.path()), "string");

@@ -154,7 +154,7 @@ test("funnel handles promise rejections without losing concurrency", async t => 
     let executed = false;
     await t.throwsAsync(
         funnel.push(() => Promise.reject(new Error("message"))),
-        "message"
+        { message: "message" }
     );
     await funnel.push(async () => {
         executed = true;

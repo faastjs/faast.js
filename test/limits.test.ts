@@ -22,7 +22,7 @@ async function testTimeout(
     });
     // t.log(`${lambda.logUrl()}`);
     try {
-        await t.throwsAsync(lambda.functions.spin(30 * 1000), /time/i);
+        await t.throwsAsync(lambda.functions.spin(30 * 1000), { message: /time/i });
     } finally {
         await lambda.cleanup();
     }
@@ -66,7 +66,7 @@ async function memoryLimitFail(
 
     try {
         const bytes = 512 * 1024 * 1024;
-        await t.throwsAsync(lambda.functions.allocate(bytes), /memory/i);
+        await t.throwsAsync(lambda.functions.allocate(bytes), { message: /memory/i });
     } finally {
         lambda && (await lambda.cleanup());
     }

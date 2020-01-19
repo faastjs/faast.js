@@ -110,12 +110,12 @@ test("MaxHeap basics", t => {
     t.is(h.extractMax(), 10);
     t.is(h.extractMax(), 5);
     t.is(h.extractMax(), 1);
-    t.throws(() => h.extractMax(), /empty/);
+    t.throws(() => h.extractMax(), { message: /empty/ });
 });
 
 test("MaxHeap empty", t => {
     const h = new MaxHeap();
-    t.throws(() => h.extractMax(), /empty/);
+    t.throws(() => h.extractMax(), { message: /empty/ });
 });
 
 test("MaxHeap sorting", t => {
@@ -190,7 +190,14 @@ test("SmallestN saves smallest N values", t => {
     s.update(0, "0");
     s.update(4, "4");
     s.update(1000, "1000");
-    t.deepEqual([...s], [[-1, "-1"], [0, "0"], [4, "4"]]);
+    t.deepEqual(
+        [...s],
+        [
+            [-1, "-1"],
+            [0, "0"],
+            [4, "4"]
+        ]
+    );
 });
 
 test("SmallestN duplicate values", t => {
@@ -209,7 +216,13 @@ test("SmallestN duplicate values", t => {
     s.update(88, "88.8");
     t.deepEqual(
         [...s],
-        [[88, "88.1"], [88, "88.2"], [42, "42"], [10, "10.1"], [10, "10.2"]]
+        [
+            [88, "88.1"],
+            [88, "88.2"],
+            [42, "42"],
+            [10, "10.1"],
+            [10, "10.2"]
+        ]
     );
 });
 
