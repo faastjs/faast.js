@@ -20,7 +20,7 @@ import { FaastError } from "../src/error";
  */
 test(title("aws", "custom role"), async t => {
     t.plan(1);
-    const iam = new IAM({ maxRetries: 0 });
+    const iam = new IAM();
     const uuid = uuidv4();
     const RoleName = `faast-test-custom-role-${uuid}`;
     let faastModule;
