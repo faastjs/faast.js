@@ -309,15 +309,11 @@ export class Wrapper {
                 //             yield {
                 //                 kind: "response",
                 //                 callId,
-                //                     type: "yield",
-                //                     value: serializeReturnValue(
-                //                         call.name,
-                //                         [next],
-                //                         validate
-                //                     ),
-                //                     logUrl,
-                //                     executionId,
-                //                     instanceId
+                //                 type: "yield",
+                //                 value: serializeReturnValue(call.name, [next], validate),
+                //                 logUrl,
+                //                 executionId,
+                //                 instanceId
                 //             };
                 //         }
                 //         value = undefined;
@@ -328,11 +324,7 @@ export class Wrapper {
                     kind: "response",
                     callId,
                     type: "returned",
-                    value: serializeReturnValue(
-                        callingContext.call.name,
-                        [value],
-                        validate
-                    ),
+                    value: serializeReturnValue(call.name, [value], validate),
                     remoteExecutionStartTime: startTime,
                     remoteExecutionEndTime: Date.now(),
                     logUrl,

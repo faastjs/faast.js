@@ -66,6 +66,7 @@ export function makeTrampoline(wrapper: Wrapper) {
             callback(null, results);
         } else {
             const snsEvent = event as SNSEvent;
+            const promises = [];
             for (const record of snsEvent.Records) {
                 const call: FunctionCall = deserialize(record.Sns.Message);
                 const { callId, ResponseQueueId: Queue } = call;
@@ -91,9 +92,10 @@ export function makeTrampoline(wrapper: Wrapper) {
                         clearTimeout(startedMessageTimer);
                         startedMessageTimer = undefined;
                     }
-                    await sendResponseQueueMessage(sqs, Queue!, result);
+                    promises.push(sendResponseQueueMessage(sqs, Queue!, result));
                 }
             }
+            await Promise.all(promises);
         }
     }
     return { trampoline };

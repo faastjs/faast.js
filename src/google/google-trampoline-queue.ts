@@ -64,6 +64,7 @@ export function makeTrampoline(wrapper: Wrapper) {
         };
 
         try {
+            const promises = [];
             const timeout = wrapper.options.childProcessTimeoutMs;
             for await (const result of wrapper.execute(callingContext, {
                 onCpuUsage: metrics =>
@@ -78,8 +79,11 @@ export function makeTrampoline(wrapper: Wrapper) {
                     clearTimeout(startedMessageTimer);
                     startedMessageTimer = undefined;
                 }
-                await publishResponseMessage(pubsub, call.ResponseQueueId!, result);
+                promises.push(
+                    publishResponseMessage(pubsub, call.ResponseQueueId!, result)
+                );
             }
+            await Promise.all(promises);
         } catch (err) {
             /* istanbul ignore next */
             {
