@@ -605,9 +605,8 @@ export class FunctionExecutionMetrics {
 
 export type CallId = string;
 
-export interface ResponseMessage {
-    kind: "response";
-    type: "yield" | "returned" | "error";
+export interface ResponseContext {
+    type: "fulfill" | "reject";
     value: string;
     callId: CallId;
     isErrorObject?: boolean;
@@ -618,6 +617,15 @@ export interface ResponseMessage {
     executionId?: string;
     memoryUsage?: NodeJS.MemoryUsage;
     timestamp?: number; // timestamp when response message was sent according to cloud service, this is optional and used to provide more accurate metrics.
+}
+
+export interface PromiseResponseMessage extends ResponseContext {
+    kind: "promise";
+}
+
+export interface IteratorResponseMessage extends ResponseContext {
+    kind: "iterator";
+    sequence: number;
 }
 
 export interface FunctionStartedMessage {
@@ -636,7 +644,11 @@ export interface PollResult {
     isFullMessageBatch?: boolean;
 }
 
-export type Message = ResponseMessage | FunctionStartedMessage | CpuMetricsMessage;
+export type Message =
+    | PromiseResponseMessage
+    | IteratorResponseMessage
+    | FunctionStartedMessage
+    | CpuMetricsMessage;
 
 export type Kind = Message["kind"];
 export type UUID = string;
@@ -652,7 +664,7 @@ export interface ProviderImpl<O extends CommonOptions, S> {
         state: S,
         request: FunctionCall,
         cancel: Promise<void>
-    ): Promise<ResponseMessage | void>;
+    ): Promise<PromiseResponseMessage | void>;
     poll(state: S, cancel: Promise<void>): Promise<PollResult>;
     responseQueueId(state: S): string | void;
 }

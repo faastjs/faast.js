@@ -22,7 +22,8 @@ import {
     Provider,
     ProviderImpl,
     UUID,
-    ResponseMessage
+    PromiseResponseMessage,
+    IteratorResponseMessage
 } from "./provider";
 import { deserialize, ESERIALIZE, serializeFunctionArgs, serialize } from "./serialize";
 import { ExponentiallyDecayingAverageValue, roundTo100ms, sleep } from "./shared";
@@ -96,7 +97,7 @@ export type Promisified<M> = {
 type ResponsifiedFunction<A extends any[], R> = (...args: A) => Promise<Response<R>>;
 
 interface FunctionReturnWithMetrics {
-    response: ResponseMessage;
+    response: PromiseResponseMessage | IteratorResponseMessage;
     value: any;
     localRequestSentTime: number;
     localEndTime: number;
@@ -115,7 +116,7 @@ function processResponse<R>(
     const { executionId, logUrl, instanceId, memoryUsage } = response;
     let value: Promise<Unpacked<R>>;
     const fn = callRequest.name;
-    if (response.type === "error") {
+    if (response.type === "reject") {
         const error = response.isErrorObject
             ? synthesizeFaastError(returned.value, logUrl, fn)
             : returned.value;
@@ -173,7 +174,7 @@ function processResponse<R>(
         };
     }
 
-    if (response.type === "error") {
+    if (response.type === "reject") {
         fstats.incr(fn, "errors");
     } else {
         fstats.incr(fn, "completed");
@@ -699,10 +700,9 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                     return {
                         done: false,
                         value: {
-                            kind: "response",
                             response: {
-                                kind: "response",
-                                type: "error",
+                                kind: "promise",
+                                type: "reject",
                                 callId,
                                 isErrorObject:
                                     typeof err === "object" && err instanceof Error,
@@ -807,7 +807,8 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                     }
                     break;
                 }
-                case "response":
+                case "promise":
+                case "iterator":
                     try {
                         const { timestamp } = m;
                         const value = deserialize(m.value);

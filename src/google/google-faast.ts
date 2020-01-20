@@ -21,7 +21,7 @@ import {
     Message,
     PollResult,
     ProviderImpl,
-    ResponseMessage,
+    PromiseResponseMessage,
     UUID
 } from "../provider";
 import { serialize } from "../serialize";
@@ -504,7 +504,7 @@ async function callFunctionHttps(
     call: FunctionCall,
     metrics: GoogleMetrics,
     cancel: Promise<void>
-): Promise<ResponseMessage | void> {
+): Promise<PromiseResponseMessage | void> {
     const source = new AbortController();
     try {
         const axiosConfig: GaxiosOptions = {
@@ -529,7 +529,7 @@ async function callFunctionHttps(
             metrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
             return {
                 // TODO: Handle async generators
-                ...(rawResponse.data[0] as ResponseMessage),
+                ...(rawResponse.data[0] as PromiseResponseMessage),
                 timestamp: Date.now()
             };
         } catch (err) {
@@ -563,7 +563,7 @@ async function invoke(
     state: GoogleState,
     call: FunctionCall,
     cancel: Promise<void>
-): Promise<ResponseMessage | void> {
+): Promise<PromiseResponseMessage | void> {
     const { options, resources, services, url, metrics } = state;
     switch (options.mode) {
         case "auto":

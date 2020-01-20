@@ -23,7 +23,7 @@ import {
     PollResult,
     ProviderImpl,
     Message,
-    ResponseMessage,
+    PromiseResponseMessage,
     UUID
 } from "../provider";
 import { hasExpired, uuidv4Pattern } from "../shared";
@@ -213,7 +213,7 @@ async function invoke(
     state: LocalState,
     call: FunctionCall,
     _cancel: Promise<void>
-): Promise<ResponseMessage | void> {
+): Promise<PromiseResponseMessage | void> {
     const {} = state;
     const startTime = Date.now();
     const { wrapper, logUrl: url } = state.getExecutor();

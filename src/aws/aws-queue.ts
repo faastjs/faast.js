@@ -200,7 +200,7 @@ function processIncomingQueueMessage(m: SQS.Message): Message | void {
         };
     } else {
         const message = raw as Message;
-        if (message.kind === "response") {
+        if (message.kind === "promise" || message.kind === "iterator") {
             message.timestamp = Number(m.Attributes!.SentTimestamp);
         }
         return raw;

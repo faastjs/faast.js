@@ -2,7 +2,7 @@ import * as childProcess from "child_process";
 import * as process from "process";
 import * as proctor from "process-doctor";
 import { inspect } from "util";
-import { Message, ResponseMessage } from "./provider";
+import { Message, PromiseResponseMessage } from "./provider";
 import { deserialize, serializeReturnValue } from "./serialize";
 import { AsyncQueue } from "./throttle";
 import { AnyFunction } from "./types";
@@ -44,7 +44,7 @@ export interface ModuleType {
 export function createErrorResponse(
     err: any,
     { call, startTime, logUrl, executionId }: CallingContext
-): ResponseMessage {
+): PromiseResponseMessage {
     let errObj: any = err;
     if (err instanceof Error) {
         errObj = {};
@@ -55,8 +55,8 @@ export function createErrorResponse(
         });
     }
     return {
-        kind: "response",
-        type: "error",
+        kind: "promise",
+        type: "reject",
         value: serializeReturnValue(call.name, errObj, false),
         isErrorObject: typeof err === "object" && err instanceof Error,
         callId: call.callId,
@@ -265,7 +265,7 @@ export class Wrapper {
                 try {
                     for await (const result of this.queue) {
                         this.log(`Dequeuing ${inspect(result)}`);
-                        if (result.kind === "response") {
+                        if (result.kind === "promise" || result.kind === "iterator") {
                             result.logUrl = logUrl;
                         }
                         yield result;
@@ -298,41 +298,45 @@ export class Wrapper {
                     this.log(`returned value: ${inspect(value)}, type: ${typeof value}`);
 
                 const validate = this.options.validateSerialization;
-
+                const context = {
+                    type: "fulfill",
+                    callId,
+                    logUrl,
+                    executionId,
+                    instanceId
+                } as const;
                 // Check for iterable.
-                // let isIterator = false;
-                // if (value !== null && value !== undefined) {
-                //     if (
-                //         typeof value === "object" &&
-                //         typeof value["next"] === "function"
-                //     ) {
-                //         isIterator = true;
-                //         for await (const next of value) {
-                //             yield {
-                //                 kind: "response",
-                //                 callId,
-                //                 type: "yield",
-                //                 value: serializeReturnValue(call.name, [next], validate),
-                //                 logUrl,
-                //                 executionId,
-                //                 instanceId
-                //             };
-                //         }
-                //         value = undefined;
-                //     }
-                // }
+                // TODO: What if the async iterable throws? Is this a rejection or a rejected promise on next()?
+                if (value !== null && value !== undefined) {
+                    if (
+                        typeof value === "object" &&
+                        typeof value["next"] === "function"
+                    ) {
+                        let next = await value.next();
+                        let sequence = 0;
+                        while (true) {
+                            yield {
+                                ...context,
+                                kind: "iterator",
+                                value: serializeReturnValue(call.name, [next], validate),
+                                sequence
+                            };
+                            if (next.done) {
+                                return;
+                            }
+                            sequence++;
+                            next = await value.next();
+                        }
+                    }
+                }
 
                 yield {
-                    kind: "response",
-                    callId,
-                    type: "returned",
+                    ...context,
+                    kind: "promise",
                     value: serializeReturnValue(call.name, [value], validate),
                     remoteExecutionStartTime: startTime,
                     remoteExecutionEndTime: Date.now(),
-                    logUrl,
-                    executionId,
-                    memoryUsage,
-                    instanceId
+                    memoryUsage
                 };
             }
         } catch (origError) {

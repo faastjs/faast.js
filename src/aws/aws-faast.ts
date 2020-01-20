@@ -26,7 +26,7 @@ import {
     FunctionStats,
     PollResult,
     ProviderImpl,
-    ResponseMessage,
+    PromiseResponseMessage,
     UUID
 } from "../provider";
 import { serialize } from "../serialize";
@@ -634,7 +634,7 @@ async function invoke(
     state: AwsState,
     call: FunctionCall,
     cancel: Promise<void>
-): Promise<ResponseMessage | void> {
+): Promise<PromiseResponseMessage | void> {
     const { metrics, services, resources, options } = state;
     switch (options.mode) {
         case "auto":
@@ -680,7 +680,7 @@ async function invokeHttps(
     message: FunctionCall,
     metrics: AwsMetrics,
     cancel: Promise<void>
-): Promise<ResponseMessage | void> {
+): Promise<PromiseResponseMessage | void> {
     const request: Lambda.InvocationRequest = {
         FunctionName,
         Payload: serialize(message),
@@ -701,7 +701,7 @@ async function invokeHttps(
         log.info(Buffer.from(rawResponse.LogResult!, "base64").toString());
     }
 
-    let body: ResponseMessage;
+    let body: PromiseResponseMessage;
     if (rawResponse.FunctionError) {
         const error = processAwsErrorMessage(rawResponse.Payload as string);
         throw error;
