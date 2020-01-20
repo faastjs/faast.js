@@ -300,11 +300,13 @@ export class Wrapper {
                 const validate = this.options.validateSerialization;
 
                 // Check for iterable.
+                // let isIterator = false;
                 // if (value !== null && value !== undefined) {
                 //     if (
                 //         typeof value === "object" &&
                 //         typeof value["next"] === "function"
                 //     ) {
+                //         isIterator = true;
                 //         for await (const next of value) {
                 //             yield {
                 //                 kind: "response",
@@ -411,7 +413,7 @@ export class Wrapper {
         child.on("exit", (code, signal) => {
             this.log(`child exit: code: ${code}, signal: ${signal}`);
             this.child = undefined;
-            if (code !== null) {
+            if (code) {
                 this.queue.enqueue(
                     Promise.reject(new Error(`Exited with error code ${code}`))
                 );
