@@ -404,4 +404,34 @@ This occurs sometimes when running the cost-analyzer-aws example:
 (node:58286) [DEP0018] DeprecationWarning: Unhandled promise rejections are deprecated. In the future, promise rejections that are not handled will terminate the Node.js process with a non-zero exit code.
 ```
 
-The cause is unknown.
+This was caused by the following line of code:
+
+```typescript
+sqs.deleteMessageBatch({
+    QueueUrl: ResponseQueueUrl!,
+    Entries: Messages.map(m => ({
+        Id: m.MessageId!,
+        ReceiptHandle: m.ReceiptHandle!
+    }))
+}).promise();
+```
+
+The issue is the `.promise()` does not have a `catch()` handler for the error case. This line was deliberately not `await`ed, because it occurs when acknowledging received messages from the response queue. There is no reason to hold up the response messages being sent back to the caller while the messages are being acknowledged (deleted) from the queue. So there was a naked promise with no await, and no catch.
+
+This is actually ok - but there is a potential race condition where the faast.js instance is deleted, causing the response queue to be deleted, while the ack is still executing. In this case, the promise might reject with the observed error: the queue is indeed nonexistent, because we deleted it!
+
+IT is harmless to ignore this error because queue deletion also deletes any messages left in the queue, so we suppress with an empty catch clause:
+
+```typescript
+sqs.deleteMessageBatch({
+    QueueUrl: ResponseQueueUrl!,
+    Entries: Messages.map(m => ({
+        Id: m.MessageId!,
+        ReceiptHandle: m.ReceiptHandle!
+    }))
+})
+    .promise()
+    .catch(_ => {});
+```
+
+This closes a longstanding mysterious error message that occurs in the testsuite.

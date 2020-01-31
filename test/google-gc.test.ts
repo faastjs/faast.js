@@ -2,7 +2,7 @@ import test from "ava";
 import { faastGoogle } from "../index";
 import { defaultGcWorker } from "../src/google/google-faast";
 import * as functions from "./fixtures/functions";
-import { checkResourcesCleanedUp, contains } from "./fixtures/util";
+import { checkResourcesCleanedUp } from "./fixtures/util";
 import { getGoogleResources } from "./fixtures/util-google";
 
 test("remote google garbage collector works for functions that are called", async t => {
@@ -22,7 +22,7 @@ test("remote google garbage collector works for functions that are called", asyn
         gc: "force",
         retentionInDays: 0,
         _gcWorker: async (work, services) => {
-            if (contains(work, mod.state.resources)) {
+            if (work.trampoline === mod.state.resources.trampoline) {
                 await defaultGcWorker(work, services);
             }
         }
@@ -43,7 +43,7 @@ test("remote google garbage collector works for functions that are never called"
         gc: "force",
         retentionInDays: 0,
         _gcWorker: async (work, services) => {
-            if (contains(work, mod.state.resources)) {
+            if (work.trampoline === mod.state.resources.trampoline) {
                 await defaultGcWorker(work, services);
             }
         }

@@ -44,6 +44,9 @@
       "errors": {
         "title": "Errors"
       },
+      "api/faastjs.async": {
+        "title": "Async type"
+      },
       "api/faastjs.awsfaastmodule": {
         "title": "AwsFaastModule type"
       },
@@ -272,14 +275,23 @@
       "api/faastjs.faasterror.code": {
         "title": "FaastError.code property"
       },
+      "api/faastjs.faasterror.fullstack": {
+        "title": "FaastError.fullStack property"
+      },
       "api/faastjs.faasterror.functionname": {
         "title": "FaastError.functionName property"
+      },
+      "api/faastjs.faasterror.info": {
+        "title": "FaastError.info property"
       },
       "api/faastjs.faasterror.logurl": {
         "title": "FaastError.logUrl property"
       },
       "api/faastjs.faasterror": {
         "title": "FaastError class"
+      },
+      "api/faastjs.faasterror.message": {
+        "title": "FaastError.message property"
       },
       "api/faastjs.faasterror.name": {
         "title": "FaastError.name property"
@@ -482,17 +494,14 @@
       "api/faastjs.persistentcache.set": {
         "title": "PersistentCache.set() method"
       },
-      "api/faastjs.promisified": {
-        "title": "Promisified type"
-      },
-      "api/faastjs.promisifiedfunction": {
-        "title": "PromisifiedFunction type"
-      },
       "api/faastjs.provider": {
         "title": "Provider type"
       },
       "api/faastjs.providers": {
         "title": "providers variable"
+      },
+      "api/faastjs.proxymodule": {
+        "title": "ProxyModule type"
       },
       "api/faastjs.statistics._constructor_": {
         "title": "Statistics.(constructor)"
@@ -529,9 +538,6 @@
       },
       "api/faastjs.throttle": {
         "title": "throttle() function"
-      },
-      "api/faastjs.unpacked": {
-        "title": "Unpacked type"
       },
       "api/index": {
         "title": "API Reference"

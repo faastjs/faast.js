@@ -27,7 +27,7 @@ The constructor for this class is marked as internal. Third-party code should no
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [functions](./faastjs.faastmoduleproxy.functions.md) |  | <code>Promisified&lt;M&gt;</code> | Each call of a cloud function creates a separate remote invocation. |
+|  [functions](./faastjs.faastmoduleproxy.functions.md) |  | <code>ProxyModule&lt;M&gt;</code> | Each call of a cloud function creates a separate remote invocation. |
 |  [options](./faastjs.faastmoduleproxy.options.md) |  | <code>Required&lt;CommonOptions&gt;</code> | The options set for this instance, which includes default values. |
 |  [provider](./faastjs.faastmoduleproxy.provider.md) |  | <code>Provider</code> | The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" or "google". |
 

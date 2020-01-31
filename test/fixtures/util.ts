@@ -2,6 +2,8 @@ import { ExecutionContext } from "ava";
 import * as lolex from "lolex";
 import { inspect } from "util";
 import { CommonOptions, log, Provider } from "../../index";
+import { IteratorResponseMessage, Message } from "../../src/provider";
+import { deserialize } from "../../src/serialize";
 import { keysOf } from "../../src/shared";
 import { Timing } from "./functions";
 export { keysOf };
@@ -67,16 +69,6 @@ export function record<A extends any[], R>(fn: (...args: A) => R) {
     return func;
 }
 
-export function contains<T extends U, U extends object>(container: T, obj: U) {
-    for (const key of keysOf(obj)) {
-        if (!(key in container) || container[key] !== obj[key]) {
-            return false;
-        }
-    }
-    log.gc(`Contains: %O, %O`, container, obj);
-    return true;
-}
-
 export const configs: CommonOptions[] = [
     { mode: "https", childProcess: false, validateSerialization: true },
     { mode: "https", childProcess: true, validateSerialization: true },
@@ -98,4 +90,43 @@ export function title(provider: Provider, msg: string, options?: object) {
 
 export function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export async function toArray<T>(gen: AsyncIterable<T> | Iterable<T>) {
+    const result = [];
+    for await (const elem of gen) {
+        result.push(elem);
+    }
+    return result;
+}
+
+export function expectMessage<T>(
+    t: ExecutionContext<unknown>,
+    msg: Message,
+    kind: "promise" | "iterator",
+    expected: T
+) {
+    t.is(msg.kind, kind);
+    if (msg.kind === kind) {
+        const [value] = deserialize(msg.value);
+        t.deepEqual(value, expected);
+    }
+}
+
+export function checkIteratorMessages(
+    t: ExecutionContext<unknown>,
+    rawMessages: IteratorResponseMessage[],
+    arg: string[]
+) {
+    const messages = [];
+    t.is(rawMessages.length, arg.length + 1);
+    for (const msg of rawMessages) {
+        messages[msg.sequence] = msg;
+    }
+
+    let i = 0;
+    for (; i < arg.length; i++) {
+        expectMessage(t, messages[i], "iterator", { done: false, value: arg[i] });
+    }
+    expectMessage(t, messages[i], "iterator", { done: true });
 }

@@ -214,12 +214,12 @@ export function monteCarloPI(samples: number): MonteCarloReturn {
     };
 }
 
-export function* generator(str: string) {
-    yield str;
+export function* generator(args: string[]) {
+    yield* args;
 }
 
-export async function* asyncGenerator(str: string) {
-    yield str;
+export async function* asyncGenerator(args: string[]) {
+    yield* args;
 }
 
 /**

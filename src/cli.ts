@@ -7,7 +7,7 @@ import * as commander from "commander";
 import { readdir, remove } from "fs-extra";
 import { GaxiosPromise, GaxiosResponse } from "gaxios";
 import { google } from "googleapis";
-import ora from "ora";
+import * as ora from "ora";
 import { tmpdir } from "os";
 import * as path from "path";
 import * as awsFaast from "./aws/aws-faast";

@@ -14,18 +14,22 @@ Each call of a cloud function creates a separate remote invocation.
 <b>Signature:</b>
 
 ```typescript
-functions: Promisified<M>;
+functions: ProxyModule<M>;
 ```
 
 ## Remarks
 
-The module passed into [faast()](./faastjs.faast.md) or its provider-specific variants ([faastAws()](./faastjs.faastaws.md)<!-- -->, [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->, and [faastLocal()](./faastjs.faastlocal.md)<!-- -->) is mapped to a [Promisified](./faastjs.promisified.md) version of the module, which performs the following mapping:
+The module passed into [faast()](./faastjs.faast.md) or its provider-specific variants ([faastAws()](./faastjs.faastaws.md)<!-- -->, [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->, and [faastLocal()](./faastjs.faastlocal.md)<!-- -->) is mapped to a [ProxyModule](./faastjs.proxymodule.md) version of the module, which performs the following mapping:
+
+- All function exports that return iterables are mapped to async iterables.
+
+- All function exports that return async iterables are preserved as-is.
 
 - All function exports that return promises have their type signatures preserved as-is.
 
-- All function exports that return type T where T is not a Promise, are mapped to functions that return Promise<T>. Argument types are preserved as-is.
+- All function exports that return type T, where T is not a Promise, Iterable, or AsyncIterable, are mapped to functions that return Promise<T>. Argument types are preserved as-is.
 
-- All non-function exports are omitted in the Promisified module.
+- All non-function exports are omitted in the remote module.
 
 Arguments and return values are serialized with `JSON.stringify` when cloud functions are called, therefore what is received on the remote side might not match what was sent. Faast.js attempts to detect nonsupported arguments on a best effort basis.
 

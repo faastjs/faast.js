@@ -23,7 +23,6 @@ log: {
     webpack: debug.Debugger;
     provider: debug.Debugger;
     awssdk: debug.Debugger;
-    retry: debug.Debugger;
 }
 ```
 

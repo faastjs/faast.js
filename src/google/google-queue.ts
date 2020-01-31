@@ -37,12 +37,14 @@ export async function receiveMessages(
         computeHttpResponseBytes(response.headers, { httpHeaders: false, min: 1024 }) * 2;
     const Messages = response.data.receivedMessages || [];
     if (Messages.length > 0) {
-        pubsub.projects.subscriptions.acknowledge({
-            subscription,
-            requestBody: {
-                ackIds: Messages.map(m => m.ackId || "").filter(m => m !== "")
-            }
-        });
+        pubsub.projects.subscriptions
+            .acknowledge({
+                subscription,
+                requestBody: {
+                    ackIds: Messages.map(m => m.ackId || "").filter(m => m !== "")
+                }
+            })
+            .catch(_ => {});
     }
     return {
         Messages: Messages.map(m => m.message!)

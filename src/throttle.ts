@@ -2,8 +2,8 @@ import * as assert from "assert";
 import { createHash } from "crypto";
 import { PersistentCache } from "./cache";
 import { FaastError } from "./error";
+import { deserialize, serialize } from "./serialize";
 import { sleep } from "./shared";
-import { serialize, deserialize } from "./serialize";
 
 export class Deferred<T = void> {
     promise: Promise<T>;
@@ -465,50 +465,100 @@ export function throttle<A extends any[], R>(
     return conditionedFunc;
 }
 
-export class AsyncQueue<T> implements AsyncIterableIterator<T> {
-    protected deferred: Array<Deferred<IteratorResult<T>>> = [];
-    protected enqueued: Promise<IteratorResult<T>>[] = [];
+function iteratorResult<T>(value: T | Promise<T>) {
+    return Promise.resolve(value).then(v => ({ done: false, value: v } as const));
+}
+
+const done = Promise.resolve({ done: true, value: undefined } as const);
+
+export class AsyncQueue<T> {
+    protected deferred: Array<Deferred<T>> = [];
+    protected enqueued: Promise<T>[] = [];
 
     enqueue(value: T | Promise<T>) {
         if (this.deferred.length > 0) {
             const d = this.deferred.shift();
-            d!.resolve(Promise.resolve(value).then(value => ({ done: false, value })));
+            d!.resolve(value);
         } else {
-            this.enqueued.push(
-                Promise.resolve(value).then(value => ({ done: false, value }))
-            );
+            this.enqueued.push(Promise.resolve(value));
         }
     }
 
+    next(): Promise<T> {
+        if (this.enqueued.length > 0) {
+            return this.enqueued.shift()!;
+        }
+        const d = new Deferred<T>();
+        this.deferred.push(d);
+        return d.promise;
+    }
+
+    clear() {
+        this.deferred = [];
+        this.enqueued = [];
+    }
+}
+
+export class AsyncIterableQueue<T> extends AsyncQueue<IteratorResult<T>> {
+    push(value: T | Promise<T>) {
+        super.enqueue(iteratorResult(value));
+    }
+
     done() {
-        if (this.deferred.length > 0) {
-            const d = this.deferred.shift();
-            d!.resolve(Promise.resolve({ done: true, value: undefined }));
-        } else {
-            this.enqueued.push(Promise.resolve({ done: true, value: undefined }));
+        super.enqueue(done);
+    }
+
+    [Symbol.asyncIterator]() {
+        return this;
+    }
+}
+
+export class AsyncOrderedQueue<T> implements AsyncIterableIterator<T> {
+    protected queue = new AsyncQueue<IteratorResult<T>>();
+    protected arrived: Map<number, Promise<IteratorResult<T>>> = new Map();
+    protected current = 0;
+
+    push(value: T | Promise<T>, sequence: number) {
+        this.enqueueIteratorResult(iteratorResult(value), sequence);
+    }
+
+    pushImmediate(value: T | Promise<T>) {
+        this.queue.enqueue(iteratorResult(value));
+    }
+
+    done(sequence: number) {
+        this.enqueueIteratorResult(done, sequence);
+    }
+
+    doneImmediate() {
+        this.queue.enqueue(done);
+    }
+
+    enqueueIteratorResult(value: Promise<IteratorResult<T>>, sequence: number) {
+        if (sequence < this.current) {
+            return;
+        }
+        if (!this.arrived.has(sequence)) {
+            this.arrived.set(sequence, value);
+        }
+        while (this.arrived.has(this.current)) {
+            this.queue.enqueue(this.arrived.get(this.current)!);
+            this.arrived.delete(this.current);
+            this.current++;
         }
     }
 
     next(): Promise<IteratorResult<T, undefined>> {
-        if (this.enqueued.length > 0) {
-            const value = this.enqueued.shift()!;
-            return value;
-        }
-        const d = new Deferred<IteratorResult<T>>();
-        this.deferred.push(d);
-        return d.promise;
+        return this.queue.next();
     }
 
     [Symbol.asyncIterator]() {
         return this;
     }
 
-    pending() {
-        return this.deferred.length;
-    }
-
     clear() {
-        this.deferred = [];
-        this.enqueued = [];
+        this.arrived.clear();
+        this.queue.clear();
+        this.current = 0;
     }
 }

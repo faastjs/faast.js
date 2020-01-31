@@ -21,7 +21,6 @@ import {
     Message,
     PollResult,
     ProviderImpl,
-    PromiseResponseMessage,
     UUID
 } from "../provider";
 import { serialize } from "../serialize";
@@ -33,7 +32,6 @@ import {
     uuidv4Pattern
 } from "../shared";
 import { throttle } from "../throttle";
-import { Mutable } from "../types";
 import { FunctionCall, WrapperOptions } from "../wrapper";
 import { publishPubSub, receiveMessages } from "./google-queue";
 import { shouldRetryRequest } from "./google-shared";
@@ -48,7 +46,7 @@ const gaxios = new Gaxios({
     retryConfig: {
         retry: 3,
         noResponseRetries: 3,
-        shouldRetry: shouldRetryRequest(log.retry)
+        shouldRetry: shouldRetryRequest(log.info)
     }
 });
 
@@ -195,7 +193,7 @@ export async function initializeGoogleServices(): Promise<GoogleServices> {
             retry: 8,
             retryDelay: 250,
             noResponseRetries: 3,
-            shouldRetry: shouldRetryRequest(log.retry)
+            shouldRetry: shouldRetryRequest(log.info)
         }
     });
     return {
@@ -364,7 +362,7 @@ export async function initialize(
 
     const trampoline = `projects/${project}/locations/${region}/functions/${functionName}`;
 
-    const resources: Mutable<GoogleResources> = {
+    const resources: GoogleResources = {
         trampoline,
         region
     };
@@ -504,7 +502,7 @@ async function callFunctionHttps(
     call: FunctionCall,
     metrics: GoogleMetrics,
     cancel: Promise<void>
-): Promise<PromiseResponseMessage | void> {
+): Promise<void> {
     const source = new AbortController();
     try {
         const axiosConfig: GaxiosOptions = {
@@ -527,11 +525,6 @@ async function callFunctionHttps(
         }
         try {
             metrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
-            return {
-                // TODO: Handle async generators
-                ...(rawResponse.data[0] as PromiseResponseMessage),
-                timestamp: Date.now()
-            };
         } catch (err) {
             throw new FaastError(
                 err,
@@ -563,7 +556,7 @@ async function invoke(
     state: GoogleState,
     call: FunctionCall,
     cancel: Promise<void>
-): Promise<PromiseResponseMessage | void> {
+): Promise<void> {
     const { options, resources, services, url, metrics } = state;
     switch (options.mode) {
         case "auto":
@@ -573,8 +566,7 @@ async function invoke(
             const { requestQueueTopic } = resources;
             const { pubsub } = services;
             const serialized = serialize(call);
-            publishPubSub(pubsub, requestQueueTopic!, serialized);
-            return;
+            return publishPubSub(pubsub, requestQueueTopic!, serialized);
     }
 }
 
@@ -587,8 +579,8 @@ function poll(state: GoogleState, cancel: Promise<void>): Promise<PollResult> {
     );
 }
 
-function responseQueueId(state: GoogleState): string | undefined {
-    return state.resources.responseQueueTopic;
+function responseQueueId(state: GoogleState) {
+    return state.resources.responseQueueTopic!;
 }
 
 async function deleteResources(

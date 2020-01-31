@@ -41,27 +41,19 @@ export function makeTrampoline(wrapper: Wrapper) {
             logUrl,
             executionId
         };
-        try {
-            const results = [];
-            for await (const result of wrapper.execute(callingContext, {
-                onCpuUsage: metrics =>
-                    publishResponseMessage(pubsub, call.ResponseQueueId!, {
-                        kind: "cpumetrics",
-                        callId: call.callId,
-                        metrics
-                    })
-            })) {
-                results.push(result);
-            }
-
-            response.send(results);
-        } catch (err) {
-            /* istanbul ignore next */
-            {
-                console.error(err);
-                response.send(createErrorResponse(err, callingContext));
-            }
+        const promises = [];
+        for await (const result of wrapper.execute(callingContext, {
+            onCpuUsage: metrics =>
+                publishResponseMessage(pubsub, call.ResponseQueueId!, {
+                    kind: "cpumetrics",
+                    callId: call.callId,
+                    metrics
+                })
+        })) {
+            promises.push(publishResponseMessage(pubsub, call.ResponseQueueId!, result));
         }
+        await Promise.all(promises);
+        response.send();
     }
     return { trampoline };
 }

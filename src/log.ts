@@ -57,8 +57,7 @@ export const log = {
     calls: debug("faast:calls"),
     webpack: debug("faast:webpack"),
     provider: debug("faast:provider"),
-    awssdk: debug("faast:awssdk"),
-    retry: debug("faast:retry")
+    awssdk: debug("faast:awssdk")
 };
 
 /* istanbul ignore next  */

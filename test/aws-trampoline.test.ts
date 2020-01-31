@@ -1,3 +1,8 @@
+/**
+ * The purpose of this test is to check that the trampoline function on AWS can
+ * route calls, invoke the wrapper, and return values correctly, without
+ * actually creating a cloud function. However, it does use real cloud queues.
+ */
 import test from "ava";
 import { Context, SNSEvent } from "aws-lambda";
 import { SQS } from "aws-sdk";
@@ -5,13 +10,16 @@ import * as uuidv4 from "uuid/v4";
 import { AwsMetrics } from "../src/aws/aws-faast";
 import { receiveMessages } from "../src/aws/aws-queue";
 import { makeTrampoline } from "../src/aws/aws-trampoline";
-import { Message } from "../src/provider";
-import { deserialize, serialize, serializeFunctionArgs } from "../src/serialize";
+import { filterMessages, Kind } from "../src/provider";
+import { serialize, serializeFunctionArgs } from "../src/serialize";
+import { sleep } from "../src/shared";
 import { Wrapper } from "../src/wrapper";
 import * as funcs from "./fixtures/functions";
-import { title } from "./fixtures/util";
+import { checkIteratorMessages, expectMessage, title } from "./fixtures/util";
 
 const sqs = new SQS({ apiVersion: "2012-11-05", region: "us-west-2" });
+process.env.AWS_REGION = "us-west-2";
+process.env.FAAST_SILENT = "true";
 
 const lambdaContext: Context = {
     callbackWaitsForEmptyEventLoop: true,
@@ -28,43 +36,68 @@ const lambdaContext: Context = {
     succeed: (_: string) => {}
 };
 
+async function makeResponseQueue() {
+    const QueueName = `faast-${uuidv4()}-test`;
+    const { QueueUrl } = await sqs.createQueue({ QueueName }).promise();
+    return QueueUrl!;
+}
+
+async function deleteResponseQueue(QueueUrl: string) {
+    try {
+        // Sometimes AWS needs time to propagate the existence of a queue before
+        // deleting it. This manifests as a NonExistentQueue error. Waiting
+        // a short while seems to make this less common.
+        await sleep(5000);
+        return await sqs.deleteQueue({ QueueUrl }).promise();
+    } catch (err) {
+        console.error(`Could not delete response queue: ${err}`);
+        throw err;
+    }
+}
+
+async function getMessages<K extends Kind>(QueueUrl: string, kind: K, nExpected: number) {
+    const metrics = new AwsMetrics();
+    const cancel = new Promise<void>(_ => {});
+    const result = [];
+    while (result.length < nExpected) {
+        const messages = await receiveMessages(sqs, QueueUrl, metrics, cancel);
+        result.push(...filterMessages(messages.Messages, kind));
+    }
+    return result;
+}
+
 test(title("aws", "trampoline https mode with promise response"), async t => {
-    t.plan(1);
-    process.env.AWS_REGION = "us-west-2";
-    process.env.FAAST_SILENT = "true";
     const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
     const { trampoline } = makeTrampoline(wrapper);
     const arg = "promise with https on aws";
-    const name = funcs.identityNum.name;
-    await trampoline(
-        {
-            callId: "42",
-            name,
-            args: serializeFunctionArgs(name, [arg], true),
-            modulePath: "./fixtures/functions"
-        },
-        lambdaContext,
-        (_: Error | null, obj: Message[]) => {
-            if (obj[0].kind === "promise") {
-                const [ret] = deserialize(obj[0].value);
-                t.is(ret, arg);
-            }
-        }
-    );
+    const name = funcs.identityString.name;
+    const QueueUrl = await makeResponseQueue();
+    try {
+        await trampoline(
+            {
+                callId: "42",
+                name,
+                args: serializeFunctionArgs(name, [arg], true),
+                modulePath: "./fixtures/functions",
+                ResponseQueueId: QueueUrl
+            },
+            lambdaContext
+        );
+
+        const [msg] = await getMessages(QueueUrl, "promise", 1);
+        expectMessage(t, msg, "promise", arg);
+    } finally {
+        deleteResponseQueue(QueueUrl);
+    }
 });
 
 test(title("aws", "trampoline queue mode with promise response"), async t => {
-    t.plan(2);
-    process.env.AWS_REGION = "us-west-2";
-    process.env.FAAST_SILENT = "true";
     const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
-    const QueueName = `faast-${uuidv4()}`;
-    const { QueueUrl = "" } = await sqs.createQueue({ QueueName }).promise();
     const arg = "promise with queue on aws";
-
+    const QueueUrl = await makeResponseQueue();
     try {
         const { trampoline } = makeTrampoline(wrapper);
-        const name = funcs.identityNum.name;
+        const name = funcs.identityString.name;
         const call = {
             callId: "43",
             name,
@@ -81,59 +114,44 @@ test(title("aws", "trampoline queue mode with promise response"), async t => {
                 }
             ]
         };
-        await trampoline(event as SNSEvent, lambdaContext, (_: any, _obj: any) => {});
-        const metrics = new AwsMetrics();
-        const cancel = new Promise<void>(_ => {});
-        const result = await receiveMessages(sqs, QueueUrl, metrics, cancel);
-        const msg = result.Messages[0];
-        t.is(msg.kind, "promise");
-        if (msg.kind === "promise") {
-            const [ret] = deserialize(msg.value);
-            t.is(ret, arg);
-        }
+
+        await trampoline(event as SNSEvent, lambdaContext);
+
+        const [msg] = await getMessages(QueueUrl, "promise", 1);
+        expectMessage(t, msg, "promise", arg);
     } finally {
-        await sqs.deleteQueue({ QueueUrl }).promise();
+        await deleteResponseQueue(QueueUrl);
     }
 });
 
 test(title("aws", "trampoline https mode with async iterator response"), async t => {
-    t.plan(3);
-    process.env.AWS_REGION = "us-west-2";
-    process.env.FAAST_SILENT = "true";
     const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
     const { trampoline } = makeTrampoline(wrapper);
     const name = funcs.asyncGenerator.name;
-    const arg = "async generator with https on aws";
-    await trampoline(
-        {
-            callId: "44",
-            name,
-            args: serializeFunctionArgs(name, [arg], true),
-            modulePath: "./fixtures/functions"
-        },
-        lambdaContext,
-        (_: Error | null, obj: Message[]) => {
-            const messages: any = [];
-            obj.forEach(msg => {
-                if (msg.kind === "iterator") {
-                    const value = deserialize(msg.value)[0];
-                    messages[msg.sequence] = value;
-                }
-            });
-            t.is(messages.length, 2);
-            t.deepEqual(messages[0], { done: false, value: arg });
-            t.deepEqual(messages[1], { done: true });
-        }
-    );
+    const arg = ["async generator with https on aws", "second arg"];
+    const QueueUrl = await makeResponseQueue();
+    try {
+        await trampoline(
+            {
+                callId: "44",
+                name,
+                args: serializeFunctionArgs(name, [arg], true),
+                modulePath: "./fixtures/functions",
+                ResponseQueueId: QueueUrl
+            },
+            lambdaContext
+        );
+        const messages = await getMessages(QueueUrl, "iterator", arg.length + 1);
+        checkIteratorMessages(t, messages, arg);
+    } finally {
+        await deleteResponseQueue(QueueUrl);
+    }
 });
 
 test(title("aws", "trampoline queue mode with async iterator response"), async t => {
-    process.env.AWS_REGION = "us-west-2";
-    process.env.FAAST_SILENT = "true";
     const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
-    const QueueName = `faast-${uuidv4()}`;
-    const { QueueUrl = "" } = await sqs.createQueue({ QueueName }).promise();
-    const arg = "async generator with queue on aws";
+    const QueueUrl = await makeResponseQueue();
+    const arg = ["async generator with queue on aws", "second arg"];
 
     try {
         const { trampoline } = makeTrampoline(wrapper);
@@ -154,25 +172,12 @@ test(title("aws", "trampoline queue mode with async iterator response"), async t
                 }
             ]
         };
-        await trampoline(event as SNSEvent, lambdaContext, (_: any, _obj: any) => {});
-        const metrics = new AwsMetrics();
-        const cancel = new Promise<void>(_ => {});
-        const messages: any = [];
-        let received = 0;
-        while (received < 2) {
-            const result = await receiveMessages(sqs, QueueUrl, metrics, cancel);
-            result.Messages.forEach(msg => {
-                if (msg.kind === "iterator") {
-                    received++;
-                    const value = deserialize(msg.value)[0];
-                    messages[msg.sequence] = value;
-                }
-            });
-        }
-        t.is(messages.length, 2);
-        t.deepEqual(messages[0], { done: false, value: arg });
-        t.deepEqual(messages[1], { done: true });
+
+        await trampoline(event as SNSEvent, lambdaContext);
+
+        const messages = await getMessages(QueueUrl, "iterator", arg.length + 1);
+        checkIteratorMessages(t, messages, arg);
     } finally {
-        await sqs.deleteQueue({ QueueUrl }).promise();
+        await deleteResponseQueue(QueueUrl);
     }
 });

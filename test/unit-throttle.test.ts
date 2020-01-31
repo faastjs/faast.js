@@ -2,6 +2,7 @@ import test from "ava";
 import * as uuidv4 from "uuid/v4";
 import { PersistentCache } from "../src/cache";
 import {
+    AsyncOrderedQueue,
     AsyncQueue,
     cacheFn,
     Deferred,
@@ -9,7 +10,8 @@ import {
     Pump,
     RateLimiter,
     retryOp,
-    throttle
+    throttle,
+    AsyncIterableQueue
 } from "../src/throttle";
 import { timer, Timing } from "./fixtures/functions";
 import { measureConcurrency, sleep, withClock } from "./fixtures/util";
@@ -601,98 +603,146 @@ test.serial("throttle cancellation", async t =>
     })
 );
 
-test("async queue works with enqueue before dequeue", async t => {
+test("AsyncQueue works with enqueue before dequeue", async t => {
     const q = new AsyncQueue<number>();
     q.enqueue(42);
-    t.is((await q.next()).value, 42);
+    t.is(await q.next(), 42);
 });
 
-test("async queue works with dequeue before enqueue", async t => {
-    const q = new AsyncQueue<number>();
-    const promise = q.next();
-    q.enqueue(42);
-    t.is((await promise).value, 42);
-});
-
-test("async queue transition from more enqueues to more dequeues", async t => {
+test("AsyncQueue works with multiple enqueues before dequeue", async t => {
     const q = new AsyncQueue<number>();
     q.enqueue(42);
-    t.is((await q.next()).value, 42);
-    const promise = q.next();
-    q.enqueue(100);
-    t.is((await promise).value, 100);
+    q.enqueue(43);
+    t.is(await q.next(), 42);
+    t.is(await q.next(), 43);
 });
 
-test("async queue transition from more dequeues to more enqueues", async t => {
+test("AsyncQueue works with dequeue before enqueue", async t => {
     const q = new AsyncQueue<number>();
     const promise = q.next();
     q.enqueue(42);
-    q.enqueue(100);
-    t.is((await promise).value, 42);
-    t.is((await q.next()).value, 100);
+    t.is(await promise, 42);
 });
 
-test("async queue handles multiple dequeues before enqueues", async t => {
+test("AsyncQueue works with multiple dequeues before enqueue", async t => {
     const q = new AsyncQueue<number>();
-    const p1 = q.next();
-    const p2 = q.next();
-    const p3 = q.next();
-
+    const promises = [q.next(), q.next()];
     q.enqueue(42);
-    t.is((await p1).value, 42);
-    q.enqueue(100);
-    t.is((await p2).value, 100);
-    q.enqueue(0);
-    t.is((await p3).value, 0);
+    q.enqueue(43);
+    t.deepEqual(await Promise.all(promises), [42, 43]);
 });
 
-test("async queue handles async enqueueing", async t => {
+test("AsyncQueue transition from more enqueues to more dequeues", async t => {
+    const q = new AsyncQueue<number>();
+    q.enqueue(42);
+    t.is(await q.next(), 42);
+    const promise = q.next();
+    q.enqueue(100);
+    t.is(await promise, 100);
+});
+
+test("AsyncQueue transition from more dequeues to more enqueues", async t => {
+    const q = new AsyncQueue<number>();
+    const promise = q.next();
+    q.enqueue(42);
+    q.enqueue(100);
+    t.is(await promise, 42);
+    t.is(await q.next(), 100);
+});
+
+test("AsyncQueue handles async enqueueing", async t => {
     const q = new AsyncQueue<number>();
     const promise = q.next();
     setTimeout(() => q.enqueue(99), 100);
-    t.is((await promise).value, 99);
+    t.is(await promise, 99);
 });
 
-test("async queue handles async dequeueing", async t => {
+test("AsyncQueue handles async dequeueing", async t => {
     t.plan(1);
     const q = new AsyncQueue<number>();
     q.enqueue(88);
     await new Promise(resolve =>
         setTimeout(async () => {
-            t.is((await q.next()).value, 88);
+            t.is(await q.next(), 88);
             resolve();
         }, 100)
     );
 });
 
-test("async queue clear", async t => {
+test("AsyncQueue clear", async t => {
     const q = new AsyncQueue<number>();
     q.enqueue(1);
     q.clear();
     q.enqueue(2);
-    t.is((await q.next()).value, 2);
+    t.is(await q.next(), 2);
 
     const p1 = q.next();
     q.clear();
     const p2 = q.next();
     q.enqueue(3);
-    t.is((await p2).value, 3);
+    t.is(await p2, 3);
 });
 
-test("async queue done function finishes iterator", async t => {
-    const q = new AsyncQueue<number>();
-    q.enqueue(10);
-    q.done();
-
-    for await (const result of q) {
-        t.is(result, 10);
+async function toArray<T>(iterable: AsyncIterable<T> | Iterable<T>) {
+    const result = [];
+    for await (const value of iterable) {
+        result.push(value);
     }
+    return result;
+}
+
+test("AsyncIterableQueue done function finishes iterator", async t => {
+    const q = new AsyncIterableQueue<number>();
+    q.push(10);
+    q.done();
+    t.deepEqual(await toArray(q), [10]);
     // test times out if the done function doesn't work.
 });
 
-test("async queue done function finishes iterator with pending dequeus", async t => {
-    const q = new AsyncQueue<number>();
+test("AsyncIterableQueue done function finishes iterator with pending dequeus", async t => {
+    const q = new AsyncIterableQueue<number>();
     const value = q.next();
     q.done();
     t.is((await value).done, true);
+});
+
+test("AsyncOrderedQueue reorders according to sequence value", async t => {
+    const q = new AsyncOrderedQueue<number>();
+    q.done(2);
+    q.push(42, 1);
+    q.push(-42, 0);
+    t.deepEqual(await toArray(q), [-42, 42]);
+});
+
+test("AsyncOrderedQueue takes the first value with a given sequence value", async t => {
+    const q = new AsyncOrderedQueue<number>();
+    q.done(2);
+    q.push(100, 1);
+    q.push(101, 1);
+    q.push(42, 0);
+    t.deepEqual(await toArray(q), [42, 100]);
+});
+
+test("AsyncOrderedQueue pushImmediate pre-empts arrival order", async t => {
+    const q = new AsyncOrderedQueue<number>();
+    q.push(42, 0);
+    q.push(44, 2);
+    q.pushImmediate(100);
+    q.push(43, 1);
+
+    t.is((await q.next()).value, 42);
+    t.is((await q.next()).value, 100);
+    t.is((await q.next()).value, 43);
+    t.is((await q.next()).value, 44);
+});
+
+test("AsyncOrderedQueue doneImmediate pre-empts arrival order", async t => {
+    const q = new AsyncOrderedQueue<number>();
+    q.push(42, 0);
+    q.push(44, 2);
+    q.doneImmediate();
+    q.push(43, 1);
+
+    t.is((await q.next()).value, 42);
+    t.is((await q.next()).done, true);
 });

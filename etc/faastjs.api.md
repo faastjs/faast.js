@@ -23,6 +23,9 @@ import { VError } from 'verror';
 import * as webpack from 'webpack';
 import { Writable } from 'stream';
 
+// @public
+export type Async<T> = T extends AsyncIterator<infer R> ? AsyncIterableIterator<R> : T extends Iterator<infer R> ? AsyncIterableIterator<R> : T extends Promise<infer R> ? Promise<R> : Promise<T>;
+
 // Warning: (ae-forgotten-export) The symbol "AwsState" needs to be exported by the entry point index.d.ts
 //
 // @public
@@ -189,7 +192,7 @@ export function faastLocal<M extends object>(fmodule: M, options?: LocalOptions)
 export interface FaastModule<M extends object> {
     cleanup(options?: CleanupOptions): Promise<void>;
     costSnapshot(): Promise<CostSnapshot>;
-    functions: Promisified<M>;
+    functions: ProxyModule<M>;
     logUrl(): string;
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
@@ -207,7 +210,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
     options: Required<CommonOptions>);
     cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
     costSnapshot(): Promise<CostSnapshot>;
-    functions: Promisified<M>;
+    functions: ProxyModule<M>;
     logUrl(): string;
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
@@ -304,7 +307,6 @@ export const log: {
     webpack: debug.Debugger;
     provider: debug.Debugger;
     awssdk: debug.Debugger;
-    retry: debug.Debugger;
 };
 
 // @public
@@ -324,21 +326,16 @@ export class PersistentCache {
     set(key: string, value: Buffer | string | Uint8Array | Readable | Blob): Promise<void>;
 }
 
-// Warning: (ae-forgotten-export) The symbol "AsyncifiedGenerator" needs to be exported by the entry point index.d.ts
-//
-// @public
-export type Promisified<M> = {
-    [K in keyof M]: M[K] extends (...args: infer A) => AsyncIterator<infer R> ? AsyncifiedGenerator<A, R> : M[K] extends (...args: infer A) => Iterator<infer R> ? AsyncifiedGenerator<A, R> : M[K] extends (...args: infer A) => infer R ? PromisifiedFunction<A, R> : never;
-};
-
-// @public
-export type PromisifiedFunction<A extends any[], R> = (...args: A) => Promise<Unpacked<R>>;
-
 // @public
 export type Provider = "aws" | "google" | "local";
 
 // @public
 export const providers: Provider[];
+
+// @public
+export type ProxyModule<M> = {
+    [K in keyof M]: M[K] extends (...args: infer A) => infer R ? (...args: A) => Async<R> : never;
+};
 
 // @public
 export class Statistics {
@@ -359,9 +356,6 @@ export class Statistics {
 
 // @public
 export function throttle<A extends any[], R>(limits: Limits, fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;
-
-// @public
-export type Unpacked<T> = T extends Promise<infer D> ? D : T;
 
 
 ```

@@ -4,10 +4,10 @@ import { FaastError } from "../error";
 import { Message, PollResult } from "../provider";
 import { deserialize, serialize } from "../serialize";
 import { computeHttpResponseBytes, defined, sum } from "../shared";
+import { retryOp } from "../throttle";
 import { Attributes } from "../types";
 import { createErrorResponse, FunctionCall } from "../wrapper";
 import { AwsMetrics } from "./aws-faast";
-import { retryOp } from "../throttle";
 
 export async function createSNSTopic(sns: SNS, Name: string) {
     const topic = await sns.createTopic({ Name }).promise();
@@ -138,7 +138,9 @@ export async function receiveMessages(
                     Id: m.MessageId!,
                     ReceiptHandle: m.ReceiptHandle!
                 }))
-            }).promise();
+            })
+                .promise()
+                .catch(_ => {});
             metrics.sqs64kRequests++;
         }
         return {

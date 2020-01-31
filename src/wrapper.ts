@@ -2,10 +2,17 @@ import * as childProcess from "child_process";
 import * as process from "process";
 import * as proctor from "process-doctor";
 import { inspect } from "util";
-import { Message, PromiseResponseMessage } from "./provider";
+import { IteratorResponseMessage, Message, PromiseResponseMessage } from "./provider";
 import { deserialize, serializeReturnValue } from "./serialize";
-import { AsyncQueue } from "./throttle";
+import { AsyncIterableQueue } from "./throttle";
 import { AnyFunction } from "./types";
+
+export function isGenerator(fn: Function) {
+    return (
+        fn instanceof function*() {}.constructor ||
+        fn instanceof async function*() {}.constructor
+    );
+}
 
 export const filename = module.filename;
 
@@ -23,10 +30,10 @@ export interface TrampolineFactory {
 }
 
 export interface FunctionCall extends CallId {
-    name: string;
-    modulePath: string;
     args: string;
-    ResponseQueueId?: string;
+    modulePath: string;
+    name: string;
+    ResponseQueueId: string;
 }
 
 export interface CallingContext {
@@ -114,8 +121,9 @@ export class Wrapper {
     protected verbose = false;
     protected funcs: ModuleType = {};
     protected child?: childProcess.ChildProcess;
+    protected childPid?: number;
     protected log: (msg: string) => void;
-    protected queue: AsyncQueue<Message>;
+    protected queue: AsyncIterableQueue<Message>;
     readonly options: Required<WrapperOptions>;
     protected monitoringTimer?: NodeJS.Timer;
 
@@ -124,7 +132,7 @@ export class Wrapper {
         this.log = this.options.wrapperLog;
         this.verbose = this.options.wrapperVerbose;
         this.funcs = fModule;
-        this.queue = new AsyncQueue();
+        this.queue = new AsyncIterableQueue();
 
         /* istanbul ignore if  */
         if (process.env[FAAST_CHILD_ENV]) {
@@ -238,7 +246,7 @@ export class Wrapper {
                     /* istanbul ignore if  */
                     if (err) {
                         this.log(`child send error: rejecting with ${err}`);
-                        this.queue.enqueue(Promise.reject(err));
+                        this.queue.push(Promise.reject(err));
                     }
                 });
                 if (cpuUsageCallback) {
@@ -258,7 +266,7 @@ export class Wrapper {
                         const error = new Error(
                             `Request exceeded timeout of ${timeout}ms`
                         );
-                        this.queue.enqueue(Promise.reject(error));
+                        this.queue.push(Promise.reject(error));
                     }, timeout);
                 }
                 this.log(`awaiting async dequeue`);
@@ -308,19 +316,23 @@ export class Wrapper {
                 // Check for iterable.
                 // TODO: What if the async iterable throws? Is this a rejection or a rejected promise on next()?
                 if (value !== null && value !== undefined) {
-                    if (
-                        typeof value === "object" &&
-                        typeof value["next"] === "function"
-                    ) {
+                    if (isGenerator(func)) {
                         let next = await value.next();
                         let sequence = 0;
                         while (true) {
-                            yield {
+                            this.log(`next: ${inspect(next)}`);
+                            let result: IteratorResponseMessage = {
                                 ...context,
                                 kind: "iterator",
                                 value: serializeReturnValue(call.name, [next], validate),
                                 sequence
-                            };
+                            } as const;
+                            if (next.done) {
+                                result.remoteExecutionStartTime = startTime;
+                                result.remoteExecutionEndTime = Date.now();
+                                result.memoryUsage = memoryUsage;
+                            }
+                            yield result;
                             if (next.done) {
                                 return;
                             }
@@ -358,7 +370,7 @@ export class Wrapper {
             lines = lines.slice(0, lines.length - 1);
         }
         for (const line of lines) {
-            this.log(`[${this.child!.pid}]: ${line}`);
+            this.log(`[${this.childPid}]: ${line}`);
         }
     };
 
@@ -387,6 +399,7 @@ export class Wrapper {
         };
 
         const child = childProcess.fork("./index.js", [], forkOptions);
+        this.childPid = child.pid;
 
         child.stdout!.setEncoding("utf8");
         child.stderr!.setEncoding("utf8");
@@ -405,20 +418,20 @@ export class Wrapper {
             if (message.done) {
                 this.queue.done();
             } else {
-                this.queue.enqueue(message.value);
+                this.queue.push(message.value);
             }
         });
         /* istanbul ignore next  */
         child.on("error", err => {
             this.log(`child error: rejecting with ${err}`);
             this.child = undefined;
-            this.queue.enqueue(Promise.reject(err));
+            this.queue.push(Promise.reject(err));
         });
         child.on("exit", (code, signal) => {
             this.log(`child exit: code: ${code}, signal: ${signal}`);
             this.child = undefined;
             if (code) {
-                this.queue.enqueue(
+                this.queue.push(
                     Promise.reject(new Error(`Exited with error code ${code}`))
                 );
             } else if (signal !== null && signal !== "SIGTERM") {
@@ -427,7 +440,7 @@ export class Wrapper {
                     errorMessage += ` (${oom})`;
                     oom = undefined;
                 }
-                this.queue.enqueue(Promise.reject(new Error(errorMessage)));
+                this.queue.push(Promise.reject(new Error(errorMessage)));
             } else {
                 this.log(`child exiting normally`);
             }

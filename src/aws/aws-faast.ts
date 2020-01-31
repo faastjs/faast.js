@@ -13,6 +13,7 @@ import {
 } from "aws-sdk";
 import { createHash } from "crypto";
 import { readFile } from "fs-extra";
+import { inspect } from "util";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
 import { FaastError } from "../error";
@@ -26,7 +27,6 @@ import {
     FunctionStats,
     PollResult,
     ProviderImpl,
-    PromiseResponseMessage,
     UUID
 } from "../provider";
 import { serialize } from "../serialize";
@@ -34,9 +34,9 @@ import {
     computeHttpResponseBytes,
     defined,
     hasExpired,
+    sleep,
     streamToBuffer,
-    uuidv4Pattern,
-    sleep
+    uuidv4Pattern
 } from "../shared";
 import { retryOp, throttle } from "../throttle";
 import { FunctionCall, WrapperOptions } from "../wrapper";
@@ -51,7 +51,6 @@ import {
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
-import { inspect } from "util";
 
 export const defaultGcWorker = throttle(
     { concurrency: 5, rate: 5, burst: 2 },
@@ -592,7 +591,9 @@ export const initialize = throttle(
                                         callId: "0",
                                         modulePath: "",
                                         name: "",
-                                        args: ""
+                                        args: "",
+                                        ResponseQueueId:
+                                            awsTrampoline.INVOCATION_TEST_QUEUE
                                     },
                                     state.metrics,
                                     new Promise(_ => {})
@@ -634,7 +635,7 @@ async function invoke(
     state: AwsState,
     call: FunctionCall,
     cancel: Promise<void>
-): Promise<PromiseResponseMessage | void> {
+): Promise<void> {
     const { metrics, services, resources, options } = state;
     switch (options.mode) {
         case "auto":
@@ -642,10 +643,11 @@ async function invoke(
             const { lambda } = services;
             const { FunctionName } = resources;
             try {
-                return await invokeHttps(lambda, FunctionName, call, metrics, cancel);
+                await invokeHttps(lambda, FunctionName, call, metrics, cancel);
             } catch (err) {
                 throw new FaastError(err, "invoke https error");
             }
+            return;
         case "queue":
             const { sns } = services;
             const { RequestTopicArn } = resources;
@@ -670,8 +672,8 @@ function poll(state: AwsState, cancel: Promise<void>): Promise<PollResult> {
     );
 }
 
-function responseQueueId(state: AwsState): string | undefined {
-    return state.resources.ResponseQueueUrl;
+function responseQueueId(state: AwsState): string {
+    return state.resources.ResponseQueueUrl!;
 }
 
 async function invokeHttps(
@@ -680,7 +682,7 @@ async function invokeHttps(
     message: FunctionCall,
     metrics: AwsMetrics,
     cancel: Promise<void>
-): Promise<PromiseResponseMessage | void> {
+): Promise<void> {
     const request: Lambda.InvocationRequest = {
         FunctionName,
         Payload: serialize(message),
@@ -701,15 +703,10 @@ async function invokeHttps(
         log.info(Buffer.from(rawResponse.LogResult!, "base64").toString());
     }
 
-    let body: PromiseResponseMessage;
     if (rawResponse.FunctionError) {
         const error = processAwsErrorMessage(rawResponse.Payload as string);
         throw error;
-    } else {
-        // TODO: handle generators, which return many messages.
-        [body] = JSON.parse(rawResponse.Payload! as string);
     }
-    return { ...body, timestamp: Date.now() };
 }
 
 export async function deleteRole(RoleName: string, iam: IAM) {

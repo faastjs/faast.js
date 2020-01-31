@@ -653,6 +653,12 @@ export type Message =
 export type Kind = Message["kind"];
 export type UUID = string;
 
+export function filterMessages<K extends Kind>(messages: Message[], kind: K) {
+    return messages.filter(
+        (msg: Message): msg is Extract<Message, { kind: K }> => msg.kind === kind
+    );
+}
+
 export interface ProviderImpl<O extends CommonOptions, S> {
     name: Provider;
     defaults: Required<O>;
@@ -660,11 +666,7 @@ export interface ProviderImpl<O extends CommonOptions, S> {
     costSnapshot(state: S, stats: FunctionStats): Promise<CostSnapshot>;
     cleanup(state: S, options: Required<CleanupOptions>): Promise<void>;
     logUrl(state: S): string;
-    invoke(
-        state: S,
-        request: FunctionCall,
-        cancel: Promise<void>
-    ): Promise<PromiseResponseMessage | void>;
+    invoke(state: S, request: FunctionCall, cancel: Promise<void>): Promise<void>;
     poll(state: S, cancel: Promise<void>): Promise<PollResult>;
-    responseQueueId(state: S): string | void;
+    responseQueueId(state: S): string;
 }

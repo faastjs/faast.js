@@ -21,7 +21,7 @@ export interface FaastModule<M extends object>
 
 |  Property | Type | Description |
 |  --- | --- | --- |
-|  [functions](./faastjs.faastmodule.functions.md) | <code>Promisified&lt;M&gt;</code> | Each call of a cloud function creates a separate remote invocation. |
+|  [functions](./faastjs.faastmodule.functions.md) | <code>ProxyModule&lt;M&gt;</code> | Each call of a cloud function creates a separate remote invocation. |
 |  [provider](./faastjs.faastmodule.provider.md) | <code>Provider</code> | See [Provider](./faastjs.provider.md)<!-- -->. |
 
 ## Methods

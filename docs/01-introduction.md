@@ -78,6 +78,19 @@ import * as funcs from "./functions";
 })();
 ```
 
+## Async generators and sending intermediate results
+
+Async generators are functions that can yield:
+
+```typescript
+async function* job() {
+    yield "hello";
+    yield "world";
+}
+```
+
+Faast.js can transform async generators (and regular non-async generators) into callable cloud functions. Each yield within a generator will result in a message being sent, so the proxy function will yield as well. The end result is that you can send intermediate results before a function completes by yielding them from the generator.
+
 ## Options
 
 Try out different providers:
@@ -132,9 +145,9 @@ Check out even more options in [CommonOptions](./api/faastjs.commonoptions.md) a
 
 **faast.js module**, also known as **faast module**: A wrapper around an ordinary JavaScript/TypeScript module that transforms exported ordinary functions into cloud functions. A faast.js module corresponds to a single AWS Lambda or Google Cloud Function that multiplexes requests to all of the functions exported by the module.
 
-**Cloud function** or **remote function**: A function within a faast.js module instantiated on a provider.
+**Remote function**: A function within a faast.js module instantiated on a provider.
 
-**Proxy function** or **local function**: The local function that forwards invocations to the remote cloud function. Proxy functions are accessed via `faastModule.functions.*`.
+**Proxy function**: The local function that forwards invocations to the remote cloud function. Proxy functions are accessed via `faastModule.functions.*`.
 
 ## Functions must be idempotent
 

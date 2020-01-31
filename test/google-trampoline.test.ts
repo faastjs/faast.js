@@ -1,5 +1,12 @@
+/**
+ * The purpose of this test is to check that the trampoline function on google
+ * can route calls, invoke the wrapper, and return values correctly, without
+ * actually creating a cloud function. However, it does use real cloud queues.
+ */
+
 import test from "ava";
 import { Request, Response } from "express";
+import { GoogleApis } from "googleapis";
 import * as uuidv4 from "uuid/v4";
 import {
     getResponseQueueTopic,
@@ -13,107 +20,145 @@ import {
     CloudFunctionContext,
     makeTrampoline as makeTrampolineQueue
 } from "../src/google/google-trampoline-queue";
-import { Message } from "../src/provider";
-import { deserialize, serialize, serializeFunctionArgs } from "../src/serialize";
+import { filterMessages, Kind } from "../src/provider";
+import { serialize, serializeFunctionArgs } from "../src/serialize";
 import { Wrapper } from "../src/wrapper";
 import * as funcs from "./fixtures/functions";
-import { title } from "./fixtures/util";
+import { checkIteratorMessages, expectMessage, title } from "./fixtures/util";
+import { sleep } from "../src/shared";
 
-test(title("google", "trampoline https mode with promise response"), async t => {
-    t.plan(1);
-    process.env.FAAST_SILENT = "true";
-    const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
-    const { trampoline } = makeTrampolineHttps(wrapper);
-    const arg = "promise with https on google";
-    const name = funcs.identityNum.name;
-    const call = {
-        callId: "42",
-        name,
-        args: serializeFunctionArgs(name, [arg], true),
-        modulePath: "./fixtures/functions"
-    };
+process.env.FAAST_SILENT = "true";
 
-    const headers: Request["headers"] = {
-        "function-execution-id": "google-trampoline-test-function-execution-id"
-    };
+interface GoogleTrampolineTestResources {
+    topicName: string;
+    subscriptionName: string;
+    google: GoogleApis;
+}
 
-    const request = { body: call, headers } as Request;
-    const response = {
-        send: (obj: Message[]) => {
-            if (obj[0].kind === "promise") {
-                const [ret] = deserialize(obj[0].value);
-                t.is(ret, arg);
-            }
-        }
-    } as Response;
-    await trampoline(request, response);
-});
-
-test(title("google", "trampoline https mode with async iterator response"), async t => {
-    t.plan(3);
-    process.env.FAAST_SILENT = "true";
-    const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
-    const { trampoline } = makeTrampolineHttps(wrapper);
-    const arg = "async iterator with https on google";
-    const name = funcs.asyncGenerator.name;
-    const call = {
-        callId: "42",
-        name,
-        args: serializeFunctionArgs(name, [arg], true),
-        modulePath: "./fixtures/functions"
-    };
-
-    const headers: Request["headers"] = {
-        "function-execution-id": "google-trampoline-test-function-execution-id"
-    };
-
-    const request = { body: call, headers } as Request;
-    const response = {
-        send: (obj: Message[]) => {
-            const messages: any = [];
-            obj.forEach(msg => {
-                if (msg.kind === "iterator") {
-                    const value = deserialize(msg.value)[0];
-                    messages[msg.sequence] = value;
-                }
-            });
-            t.is(messages.length, 2);
-            t.deepEqual(messages[0], { done: false, value: arg });
-            t.deepEqual(messages[1], { done: true });
-        }
-    } as Response;
-    await trampoline(request, response);
-});
-
-test(title("google", "trampoline queue mode with promise response"), async t => {
-    t.plan(2);
-    process.env.FAAST_SILENT = "true";
-    const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
-    const FunctionName = `faast-${uuidv4()}`;
-
+async function initGoogleResources() {
     const services = await initializeGoogleServices();
-    const { pubsub, google } = services;
+    const { google } = services;
+    const pubsub = google.pubsub("v1");
     const project = await google.auth.getProjectId();
-
-    process.env.GCP_PROJECT = project;
-    process.env.FUNCTION_NAME = FunctionName;
-
+    const FunctionName = `faast-${uuidv4()}`;
     const topic = await pubsub.projects.topics.create({
         name: getResponseQueueTopic(project, FunctionName)
     });
-    const topicName = topic.data.name ?? undefined;
+    const topicName = topic.data.name!;
 
     const subscriptionName = getResponseSubscription(project, FunctionName);
-    const subscription = await pubsub.projects.subscriptions.create({
+    await pubsub.projects.subscriptions.create({
         name: subscriptionName,
         requestBody: {
             topic: topicName
         }
     });
 
-    const arg = "promise with queue on google";
+    const resources: GoogleTrampolineTestResources = {
+        topicName,
+        subscriptionName,
+        google
+    };
+    return resources;
+}
 
+async function cleanupGoogleResources(resources: GoogleTrampolineTestResources) {
+    const { google, subscriptionName, topicName } = resources;
+    const pubsub = google.pubsub("v1");
+    // Give google a little time to propagate the existence of the queue.
+    await sleep(5000);
+    await pubsub.projects.subscriptions.delete({
+        subscription: subscriptionName
+    });
+    await pubsub.projects.topics.delete({
+        topic: topicName
+    });
+}
+
+async function getMessages<K extends Kind>(
+    resources: GoogleTrampolineTestResources,
+    kind: K,
+    nExpected: number
+) {
+    const { google, subscriptionName } = resources;
+    const pubsub = google.pubsub("v1");
+    const metrics = new GoogleMetrics();
+    const cancel = new Promise<void>(_ => {});
+    const result = [];
+    while (result.length < nExpected) {
+        const messages = await receiveMessages(pubsub, subscriptionName, metrics, cancel);
+        result.push(...filterMessages(messages.Messages, kind));
+    }
+    return result;
+}
+
+test(title("google", "trampoline https mode with promise response"), async t => {
+    const resources = await initGoogleResources();
     try {
+        const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
+        const { trampoline } = makeTrampolineHttps(wrapper);
+        const arg = "promise with https on google";
+        const name = funcs.identityNum.name;
+        const call = {
+            callId: "42",
+            name,
+            args: serializeFunctionArgs(name, [arg], true),
+            modulePath: "./fixtures/functions",
+            ResponseQueueId: resources.topicName
+        };
+
+        const headers: Request["headers"] = {
+            "function-execution-id": "google-trampoline-test-function-execution-id"
+        };
+
+        const request = { body: call, headers } as Request;
+        const response = { send: (_: any) => {} } as Response;
+
+        await trampoline(request, response);
+
+        const [msg] = await getMessages(resources, "promise", 1);
+        expectMessage(t, msg, "promise", arg);
+    } finally {
+        await cleanupGoogleResources(resources);
+    }
+});
+
+test(title("google", "trampoline https mode with async iterator response"), async t => {
+    const resources = await initGoogleResources();
+    try {
+        const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
+        const { trampoline } = makeTrampolineHttps(wrapper);
+        const arg = ["async iterator with https on google", "second arg"];
+        const name = funcs.asyncGenerator.name;
+        const call = {
+            callId: "42",
+            name,
+            args: serializeFunctionArgs(name, [arg], true),
+            modulePath: "./fixtures/functions",
+            ResponseQueueId: resources.topicName
+        };
+
+        const headers: Request["headers"] = {
+            "function-execution-id": "google-trampoline-test-function-execution-id"
+        };
+
+        const request = { body: call, headers } as Request;
+        const response = { send: (_: any) => {} } as Response;
+
+        await trampoline(request, response);
+
+        const messages = await getMessages(resources, "iterator", arg.length + 1);
+        checkIteratorMessages(t, messages, arg);
+    } finally {
+        await cleanupGoogleResources(resources);
+    }
+});
+
+test(title("google", "trampoline queue mode with promise response"), async t => {
+    const resources = await initGoogleResources();
+    try {
+        const arg = "promise with queue on google";
+        const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
         const { trampoline } = makeTrampolineQueue(wrapper);
         const name = funcs.identityNum.name;
         const call = {
@@ -121,7 +166,7 @@ test(title("google", "trampoline queue mode with promise response"), async t => 
             name,
             args: serializeFunctionArgs(name, [arg], true),
             modulePath: "./fixtures/functions",
-            ResponseQueueId: topicName
+            ResponseQueueId: resources.topicName
         };
         const event = {
             data: Buffer.from(serialize(call)).toString("base64")
@@ -136,55 +181,19 @@ test(title("google", "trampoline queue mode with promise response"), async t => 
 
         await trampoline(event, context);
 
-        const metrics = new GoogleMetrics();
-        const cancel = new Promise<void>(_ => {});
-
-        const result = await receiveMessages(pubsub, subscriptionName, metrics, cancel);
-        const msg = result.Messages[0];
-        t.is(msg.kind, "promise");
-        if (msg.kind === "promise") {
-            const [ret] = deserialize(msg.value);
-            t.is(ret, arg);
-        }
+        const [msg] = await getMessages(resources, "promise", 1);
+        expectMessage(t, msg, "promise", arg);
     } finally {
-        await pubsub.projects.subscriptions.delete({
-            subscription: subscriptionName
-        });
-        await pubsub.projects.topics.delete({
-            topic: topicName
-        });
+        await cleanupGoogleResources(resources);
     }
 });
 
 test(title("google", "trampoline queue mode with async iterator response"), async t => {
-    t.plan(3);
-    process.env.FAAST_SILENT = "true";
-    const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
-    const FunctionName = `faast-${uuidv4()}`;
-
-    const services = await initializeGoogleServices();
-    const { pubsub, google } = services;
-    const project = await google.auth.getProjectId();
-
-    process.env.GCP_PROJECT = project;
-    process.env.FUNCTION_NAME = FunctionName;
-
-    const topic = await pubsub.projects.topics.create({
-        name: getResponseQueueTopic(project, FunctionName)
-    });
-    const topicName = topic.data.name ?? undefined;
-
-    const subscriptionName = getResponseSubscription(project, FunctionName);
-    const subscription = await pubsub.projects.subscriptions.create({
-        name: subscriptionName,
-        requestBody: {
-            topic: topicName
-        }
-    });
-
-    const arg = "async iterator with queue on google";
-
+    const resources = await initGoogleResources();
     try {
+        const wrapper = new Wrapper(funcs, { childProcess: false, wrapperLog: () => {} });
+        const arg = ["async iterator with queue on google"];
+
         const { trampoline } = makeTrampolineQueue(wrapper);
         const name = funcs.asyncGenerator.name;
         const call = {
@@ -192,7 +201,7 @@ test(title("google", "trampoline queue mode with async iterator response"), asyn
             name,
             args: serializeFunctionArgs(name, [arg], true),
             modulePath: "./fixtures/functions",
-            ResponseQueueId: topicName
+            ResponseQueueId: resources.topicName
         };
         const event = {
             data: Buffer.from(serialize(call)).toString("base64")
@@ -207,35 +216,9 @@ test(title("google", "trampoline queue mode with async iterator response"), asyn
 
         await trampoline(event, context);
 
-        const metrics = new GoogleMetrics();
-        const cancel = new Promise<void>(_ => {});
-
-        const messages: any = [];
-        let received = 0;
-        while (received < 2) {
-            const result = await receiveMessages(
-                pubsub,
-                subscriptionName,
-                metrics,
-                cancel
-            );
-            result.Messages.forEach(msg => {
-                if (msg.kind === "iterator") {
-                    const value = deserialize(msg.value)[0];
-                    messages[msg.sequence] = value;
-                    received++;
-                }
-            });
-        }
-        t.is(messages.length, 2);
-        t.deepEqual(messages[0], { done: false, value: arg });
-        t.deepEqual(messages[1], { done: true });
+        const messages = await getMessages(resources, "iterator", arg.length + 1);
+        checkIteratorMessages(t, messages, arg);
     } finally {
-        await pubsub.projects.subscriptions.delete({
-            subscription: subscriptionName
-        });
-        await pubsub.projects.topics.delete({
-            topic: topicName
-        });
+        await cleanupGoogleResources(resources);
     }
 });

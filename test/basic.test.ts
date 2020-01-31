@@ -1,7 +1,7 @@
 import test, { ExecutionContext } from "ava";
 import { CommonOptions, faast, FaastError, Provider, providers } from "../index";
 import * as funcs from "./fixtures/functions";
-import { configs, noValidateConfigs, title } from "./fixtures/util";
+import { configs, noValidateConfigs, title, toArray } from "./fixtures/util";
 
 function nodeMajorVersion() {
     const match = process.version.match(/^v(\d+)\./);
@@ -20,6 +20,7 @@ async function testBasic(
         timeout: 30,
         gc: "off",
         env: { faastEnvironmentVariable: "the_answer_is_42" },
+        maxRetries: 0,
         ...options
     };
     const faastModule = await faast(provider, funcs, opts);
@@ -116,8 +117,9 @@ async function testBasic(
         t.is(await remote.getEnv("faastEnvironmentVariable"), "the_answer_is_42");
         t.is(await remote.getEnv("faastNonexistent"), undefined);
         t.deepEqual(await remote.returnsError(), funcs.returnsError());
-        // const g = remote.generator("bar");
-        // const ag = remote.asyncGenerator("foo");
+        const elements = ["bar", "baz"];
+        t.deepEqual(await toArray(remote.generator(elements)), elements);
+        t.deepEqual(await toArray(remote.asyncGenerator(elements)), elements);
     } finally {
         await faastModule.cleanup();
     }

@@ -2,7 +2,6 @@ import { Context, SNSEvent } from "aws-lambda";
 import { SQS } from "aws-sdk";
 import { env } from "process";
 import { FaastError } from "../error";
-import { Message } from "../provider";
 import { deserialize } from "../serialize";
 import { CallingContext, FunctionCall, Wrapper } from "../wrapper";
 import { sendResponseQueueMessage } from "./aws-queue";
@@ -11,6 +10,8 @@ import { getExecutionLogUrl } from "./aws-shared";
 const sqs = new SQS({ apiVersion: "2012-11-05" });
 
 export const filename = module.filename;
+
+export const INVOCATION_TEST_QUEUE = "*test*";
 
 const CallIdAttribute: Extract<keyof FunctionCall, "callId"> = "callId";
 
@@ -22,11 +23,7 @@ function errorCallback(err: Error) {
 }
 
 export function makeTrampoline(wrapper: Wrapper) {
-    async function trampoline(
-        event: FunctionCall | SNSEvent,
-        context: Context,
-        callback: (err: Error | null, obj: Message[]) => void
-    ) {
+    async function trampoline(event: FunctionCall | SNSEvent, context: Context) {
         const startTime = Date.now();
         const region = env.AWS_REGION!;
         sqs.config.region = region;
@@ -48,7 +45,10 @@ export function makeTrampoline(wrapper: Wrapper) {
         if (CallIdAttribute in event) {
             const call = event as FunctionCall;
             const { callId, ResponseQueueId: Queue } = call;
-            const results = [];
+            if (Queue === INVOCATION_TEST_QUEUE) {
+                return;
+            }
+            const promises = [];
             for await (const result of wrapper.execute(
                 { call, ...callingContext },
                 {
@@ -61,9 +61,9 @@ export function makeTrampoline(wrapper: Wrapper) {
                     errorCallback
                 }
             )) {
-                results.push(result);
+                promises.push(sendResponseQueueMessage(sqs, Queue!, result));
             }
-            callback(null, results);
+            await Promise.all(promises);
         } else {
             const snsEvent = event as SNSEvent;
             const promises = [];

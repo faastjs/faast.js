@@ -19,17 +19,16 @@ import {
     CleanupOptions,
     CommonOptions,
     FunctionStats,
+    IteratorResponseMessage,
+    PromiseResponseMessage,
     Provider,
     ProviderImpl,
-    UUID,
-    PromiseResponseMessage,
-    IteratorResponseMessage
+    UUID
 } from "./provider";
-import { deserialize, ESERIALIZE, serializeFunctionArgs, serialize } from "./serialize";
+import { deserialize, ESERIALIZE, serialize, serializeFunctionArgs } from "./serialize";
 import { ExponentiallyDecayingAverageValue, roundTo100ms, sleep } from "./shared";
-import { Deferred, Funnel, Pump, RateLimiter, AsyncQueue } from "./throttle";
-import { Unpacked } from "./types";
-import { CpuMeasurement, FunctionCall } from "./wrapper";
+import { AsyncOrderedQueue, Deferred, Funnel, Pump, RateLimiter } from "./throttle";
+import { FunctionCall, isGenerator } from "./wrapper";
 import Module = require("module");
 
 /**
@@ -39,62 +38,32 @@ import Module = require("module");
 export const providers: Provider[] = ["aws", "google", "local"];
 
 /**
- * @internal
- */
-export interface ResponseDetails<D> {
-    value: Promise<D>;
-    executionId?: string;
-    logUrl?: string;
-    localStartLatency?: number;
-    remoteStartLatency?: number;
-    executionTime?: number;
-    sendResponseLatency?: number;
-    returnLatency?: number;
-}
-
-/**
- * @internal
- */
-export type Response<D> = ResponseDetails<Unpacked<D>>;
-
-/**
- * The type of functions on {@link FaastModule.functions}. Used by
- * {@link Promisified}.
- *  @remarks
- * Given argument types A and return type R of a function,
- * `PromisifiedFunction<A,R>` is a type with the same signature except the
- * return value is replaced with a Promise. If the original function already
- * returned a promise, the signature is unchanged.
- *  @public
- */
-export type PromisifiedFunction<A extends any[], R> = (
-    ...args: A
-) => Promise<Unpacked<R>>;
-
-export type AsyncifiedGenerator<A extends any[], R> = (...args: A) => AsyncIterator<R>;
-
-/**
- * `Promisified<M>` is the type of {@link FaastModule.functions}.
- * @remarks
- * `Promisified<M>` maps an imported module's functions to promise-returning
- * versions of those functions (see {@link PromisifiedFunction}). Non-function
- * exports of the module are omitted.
+ * `Async<T>` maps regular values to Promises and Iterators to AsyncIterators,
+ * If `T` is already a Promise or an AsyncIterator, it remains the same.
  * @public
  */
-export type Promisified<M> = {
-    [K in keyof M]: M[K] extends (...args: infer A) => AsyncIterator<infer R>
-        ? AsyncifiedGenerator<A, R>
-        : M[K] extends (...args: infer A) => Iterator<infer R>
-        ? AsyncifiedGenerator<A, R>
-        : M[K] extends (...args: infer A) => infer R
-        ? PromisifiedFunction<A, R>
-        : never;
-};
+export type Async<T> = T extends AsyncIterator<infer R>
+    ? AsyncIterableIterator<R>
+    : T extends Iterator<infer R>
+    ? AsyncIterableIterator<R>
+    : T extends Promise<infer R>
+    ? Promise<R>
+    : Promise<T>;
 
 /**
- * @internal
+ * `ProxyModule<M>` is the type of {@link FaastModule.functions}.
+ * @remarks
+ * `ProxyModule<M>` maps an imported module's functions to promise-returning or
+ * async-iteratable versions of those functions. Non-function exports of the
+ * module are omitted. When invoked, the functions in a `ProxyModule` invoke a
+ * remote cloud function.
+ * @public
  */
-type ResponsifiedFunction<A extends any[], R> = (...args: A) => Promise<Response<R>>;
+export type ProxyModule<M> = {
+    [K in keyof M]: M[K] extends (...args: infer A) => infer R
+        ? (...args: A) => Async<R>
+        : never;
+};
 
 interface FunctionReturnWithMetrics {
     response: PromiseResponseMessage | IteratorResponseMessage;
@@ -102,99 +71,6 @@ interface FunctionReturnWithMetrics {
     localRequestSentTime: number;
     localEndTime: number;
     remoteResponseSentTime?: number;
-}
-
-function processResponse<R>(
-    returned: FunctionReturnWithMetrics,
-    callRequest: FunctionCall,
-    localStartTime: number,
-    fstats: FunctionStatsMap,
-    prevSkew: ExponentiallyDecayingAverageValue,
-    memoryLeakDetector: MemoryLeakDetector
-) {
-    const { response } = returned;
-    const { executionId, logUrl, instanceId, memoryUsage } = response;
-    let value: Promise<Unpacked<R>>;
-    const fn = callRequest.name;
-    if (response.type === "reject") {
-        const error = response.isErrorObject
-            ? synthesizeFaastError(returned.value, logUrl, fn)
-            : returned.value;
-        value = Promise.reject(error);
-        value.catch(_silenceWarningLackOfSynchronousCatch => {});
-    } else {
-        value = Promise.resolve(returned.value[0]);
-    }
-    const { localRequestSentTime, remoteResponseSentTime, localEndTime } = returned;
-    let rv: Response<R> = {
-        value,
-        executionId,
-        logUrl
-    };
-    const { remoteExecutionStartTime, remoteExecutionEndTime } = response;
-
-    if (remoteExecutionStartTime && remoteExecutionEndTime) {
-        const localStartLatency = localRequestSentTime - localStartTime;
-        const roundTripLatency = localEndTime - localRequestSentTime;
-        const executionTime = remoteExecutionEndTime - remoteExecutionStartTime;
-        const sendResponseLatency = Math.max(
-            0,
-            (remoteResponseSentTime || remoteExecutionEndTime) - remoteExecutionEndTime
-        );
-        const networkLatency = roundTripLatency - executionTime - sendResponseLatency;
-        const estimatedRemoteStartTime = localRequestSentTime + networkLatency / 2;
-        const estimatedSkew = estimatedRemoteStartTime - remoteExecutionStartTime;
-        let skew = estimatedSkew;
-        if (fstats.aggregate.completed > 1) {
-            prevSkew.update(skew);
-            skew = prevSkew.value;
-        }
-
-        const remoteStartLatency = Math.max(
-            1,
-            remoteExecutionStartTime + skew - localRequestSentTime
-        );
-        const returnLatency = Math.max(1, localEndTime - (remoteExecutionEndTime + skew));
-        fstats.update(fn, "localStartLatency", localStartLatency);
-        fstats.update(fn, "remoteStartLatency", remoteStartLatency);
-        fstats.update(fn, "executionTime", executionTime);
-        fstats.update(fn, "sendResponseLatency", sendResponseLatency);
-        fstats.update(fn, "returnLatency", returnLatency);
-
-        const billed = (executionTime || 0) + (sendResponseLatency || 0);
-        const estimatedBilledTime = Math.max(100, Math.ceil(billed / 100) * 100);
-        fstats.update(fn, "estimatedBilledTime", estimatedBilledTime);
-        rv = {
-            ...rv,
-            localStartLatency,
-            remoteStartLatency,
-            executionTime,
-            sendResponseLatency,
-            returnLatency
-        };
-    }
-
-    if (response.type === "reject") {
-        fstats.incr(fn, "errors");
-    } else {
-        fstats.incr(fn, "completed");
-    }
-
-    if (instanceId && memoryUsage) {
-        if (memoryLeakDetector.detectedNewLeak(fn, instanceId, memoryUsage)) {
-            log.leaks(`Possible memory leak detected in function '${fn}'.`);
-            log.leaks(
-                `Memory use before execution leaked from prior calls: %O`,
-                memoryUsage
-            );
-            log.leaks(`Logs: ${logUrl} `);
-            log.leaks(
-                `These logs show only one example faast cloud function invocation that may have a leak.`
-            );
-        }
-    }
-
-    return rv;
 }
 
 async function createFaastModuleProxy<M extends object, O extends CommonOptions, S>(
@@ -252,7 +128,7 @@ export class FunctionStatsEvent {
 }
 
 class PendingRequest {
-    queue: AsyncQueue<FunctionReturnWithMetrics> = new AsyncQueue();
+    queue: AsyncOrderedQueue<FunctionReturnWithMetrics> = new AsyncOrderedQueue();
     created: number = Date.now();
     executing?: boolean;
 
@@ -272,17 +148,22 @@ export interface FaastModule<M extends object> {
      * @remarks
      * The module passed into {@link faast} or its provider-specific variants
      * ({@link faastAws}, {@link faastGoogle}, and {@link faastLocal}) is mapped
-     * to a {@link Promisified} version of the module, which performs the
+     * to a {@link ProxyModule} version of the module, which performs the
      * following mapping:
+     *
+     * - All function exports that return iterables are mapped to async
+     *   iterables.
+     *
+     * - All function exports that return async iterables are preserved as-is.
      *
      * - All function exports that return promises have their type signatures
      *   preserved as-is.
      *
-     * - All function exports that return type T where T is not a Promise, are
-     *   mapped to functions that return Promise<T>. Argument types are
-     *   preserved as-is.
+     * - All function exports that return type T, where T is not a Promise,
+     *   Iterable, or AsyncIterable, are mapped to functions that return
+     *   Promise<T>. Argument types are preserved as-is.
      *
-     * - All non-function exports are omitted in the Promisified module.
+     * - All non-function exports are omitted in the remote module.
      *
      * Arguments and return values are serialized with `JSON.stringify` when
      * cloud functions are called, therefore what is received on the remote side
@@ -312,7 +193,7 @@ export interface FaastModule<M extends object> {
      * different in size than the original payload. Also, some bookkeeping data
      * are passed along with arguments and contribute to the size limit.
      */
-    functions: Promisified<M>;
+    functions: ProxyModule<M>;
     /**
      * Stop the faast.js runtime for this cloud function and clean up ephemeral
      * cloud resources.
@@ -455,7 +336,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
     /** The {@link Provider}, e.g. "aws" or "google". */
     provider = this.impl.name;
     /** {@inheritdoc FaastModule.functions} */
-    functions: Promisified<M>;
+    functions: ProxyModule<M>;
     /** @internal */
     private _stats = new FunctionStatsMap();
     private _cpuUsage = new FactoryMap(
@@ -498,8 +379,13 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
         this._memoryLeakDetector = new MemoryLeakDetector(options.memorySize);
         const functions: any = {};
         for (const name of Object.keys(fmodule)) {
-            if (typeof (fmodule as any)[name] === "function") {
-                functions[name] = this.wrapFunction((fmodule as any)[name]);
+            const origFunction = (fmodule as any)[name];
+            if (typeof origFunction === "function") {
+                if (isGenerator(origFunction)) {
+                    functions[name] = this.wrapGenerator(origFunction);
+                } else {
+                    functions[name] = this.wrapFunction(origFunction);
+                }
             }
         }
         this.functions = functions;
@@ -581,36 +467,214 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
         }
     }
 
-    private wrapFunctionWithResponse<A extends any[], R>(
-        fn: (...args: A) => R
-    ): ResponsifiedFunction<A, R> {
-        return async (...args: A) => {
-            let retries = 0;
-            const startTime = Date.now();
-            let fname = fn.name;
-            if (!fname) {
-                for (const key of Object.keys(this.fmodule)) {
-                    if ((this.fmodule as any)[key] === fn) {
-                        fname = key;
-                        log.info(`Found arrow function name: ${key}`);
-                        break;
-                    }
+    private processResponse<R>(
+        returned: FunctionReturnWithMetrics,
+        fname: string,
+        localStartTime: number
+    ): R {
+        const { response } = returned;
+        const { logUrl, instanceId, memoryUsage } = response;
+        let value: any;
+
+        if (response.type === "reject") {
+            const error = response.isErrorObject
+                ? synthesizeFaastError(returned.value, logUrl, fname)
+                : returned.value;
+            value = Promise.reject(error);
+            value.catch((_silenceWarningLackOfSynchronousCatch: any) => {});
+        } else {
+            value = Promise.resolve(returned.value[0]);
+        }
+        const { localRequestSentTime, remoteResponseSentTime, localEndTime } = returned;
+        const { remoteExecutionStartTime, remoteExecutionEndTime } = response;
+        const fstats = this._stats;
+        if (remoteExecutionStartTime && remoteExecutionEndTime) {
+            const localStartLatency = localRequestSentTime - localStartTime;
+            const roundTripLatency = localEndTime - localRequestSentTime;
+            const executionTime = remoteExecutionEndTime - remoteExecutionStartTime;
+            const sendResponseLatency = Math.max(
+                0,
+                (remoteResponseSentTime || remoteExecutionEndTime) -
+                    remoteExecutionEndTime
+            );
+            const networkLatency = roundTripLatency - executionTime - sendResponseLatency;
+            const estimatedRemoteStartTime = localRequestSentTime + networkLatency / 2;
+            const estimatedSkew = estimatedRemoteStartTime - remoteExecutionStartTime;
+            let skew = estimatedSkew;
+            if (fstats.aggregate.completed > 1) {
+                this._skew.update(skew);
+                skew = this._skew.value;
+            }
+
+            const remoteStartLatency = Math.max(
+                1,
+                remoteExecutionStartTime + skew - localRequestSentTime
+            );
+            const returnLatency = Math.max(
+                1,
+                localEndTime - (remoteExecutionEndTime + skew)
+            );
+            fstats.update(fname, "localStartLatency", localStartLatency);
+            fstats.update(fname, "remoteStartLatency", remoteStartLatency);
+            fstats.update(fname, "executionTime", executionTime);
+            fstats.update(fname, "sendResponseLatency", sendResponseLatency);
+            fstats.update(fname, "returnLatency", returnLatency);
+
+            const billed = (executionTime || 0) + (sendResponseLatency || 0);
+            const estimatedBilledTime = Math.max(100, Math.ceil(billed / 100) * 100);
+            fstats.update(fname, "estimatedBilledTime", estimatedBilledTime);
+        }
+
+        if (response.type === "reject") {
+            fstats.incr(fname, "errors");
+        } else {
+            fstats.incr(fname, "completed");
+        }
+
+        if (instanceId && memoryUsage) {
+            if (
+                this._memoryLeakDetector.detectedNewLeak(fname, instanceId, memoryUsage)
+            ) {
+                log.leaks(`Possible memory leak detected in function '${fname}'.`);
+                log.leaks(
+                    `Memory use before execution leaked from prior calls: %O`,
+                    memoryUsage
+                );
+                log.leaks(`Logs: ${logUrl} `);
+                log.leaks(
+                    `These logs show only one example faast cloud function invocation that may have a leak.`
+                );
+            }
+        }
+
+        return value;
+    }
+
+    private invoke(fname: string, args: any[], callId: string) {
+        const ResponseQueueId = this.impl.responseQueueId(this.state);
+        const callObject: FunctionCall = {
+            name: fname,
+            args: serializeFunctionArgs(fname, args, this.options.validateSerialization),
+            callId,
+            modulePath: this.modulePath,
+            ResponseQueueId
+        };
+
+        log.calls(`Calling '${fname}' (${callId})`);
+        const pending = new PendingRequest(callObject);
+        this._callResultsPending.set(callId, pending);
+        if (this._collectorPump.stopped) {
+            this._collectorPump.start();
+        }
+
+        this.withCancellation(async cancel => {
+            await this.impl.invoke(this.state, pending.call, cancel).catch(err =>
+                pending.queue.pushImmediate({
+                    response: {
+                        kind: "promise",
+                        type: "reject",
+                        callId,
+                        isErrorObject: typeof err === "object" && err instanceof Error,
+                        value: serialize(err)
+                    },
+                    value: err,
+                    localEndTime: Date.now(),
+                    localRequestSentTime: pending.created
+                })
+            );
+        });
+        return pending;
+    }
+
+    private lookupFname(fn: Function) {
+        let fname = fn.name;
+        if (!fname) {
+            for (const key of Object.keys(this.fmodule)) {
+                if ((this.fmodule as any)[key] === fn) {
+                    fname = key;
+                    log.info(`Found arrow function name: ${key}`);
+                    break;
                 }
             }
-            if (!fname) {
-                throw new FaastError(`Could not find function name`);
-            }
-            const initialInvocationTime = this._initialInvocationTime.getOrCreate(fname);
+        }
+        if (!fname) {
+            throw new FaastError(`Could not find function name`);
+        }
+        return fname;
+    }
 
+    private createCallId() {
+        return uuidv4();
+    }
+
+    private wrapGenerator<A extends any[], R>(
+        fn: ((...args: A) => AsyncGenerator<R>) | ((...args: A) => Generator<R>)
+    ): (...args: A) => AsyncIterableIterator<R> {
+        return (...args: A) => {
+            const startTime = Date.now();
+            let fname = this.lookupFname(fn);
+            const callId = this.createCallId();
+            const pending = this.invoke(fname, args, callId);
+            this._stats.incr(fname, "invocations");
+            return {
+                [Symbol.asyncIterator]() {
+                    return this;
+                },
+                next: () =>
+                    pending.queue.next().then(next => {
+                        if (next.done) {
+                            this.clearPending(callId);
+                        }
+                        const result = this.processResponse<IteratorYieldResult<R>>(
+                            next.value!,
+                            fname,
+                            startTime
+                        );
+                        return result;
+                    })
+            };
+        };
+    }
+
+    private clearPending(callId: string) {
+        this._callResultsPending.delete(callId);
+        if (this._callResultsPending.size === 0) {
+            this._collectorPump.stop();
+        }
+    }
+
+    private wrapFunction<A extends any[], R>(
+        fn: (...args: A) => R
+    ): (...args: A) => Async<R> {
+        return (...args: A) => {
+            const startTime = Date.now();
+            let fname = this.lookupFname(fn);
+            const callId = this.createCallId();
+            const tryInvoke = async () => {
+                const pending = await this.invoke(fname, args, callId);
+                this._stats.incr(fname, "invocations");
+                const responsePromise = pending.queue.next();
+                log.provider(`invoke ${inspectProvider(pending.call)}`);
+                const rv = await responsePromise;
+                this.clearPending(callId);
+                log.calls(`Returning '${fname}' (${callId}): ${util.inspect(rv)}`);
+                return this.processResponse<R>(rv.value!, fname, startTime);
+            };
+
+            const funnel = this._funnel;
+
+            let retries = 0;
             const shouldRetry = (err: any) => {
-                if (err instanceof FaastError && err.code === ESERIALIZE) {
-                    return false;
+                if (err instanceof FaastError) {
+                    if (err.code === ESERIALIZE) {
+                        return false;
+                    }
                 }
                 if (retries < this.options.maxRetries) {
                     retries++;
                     this._stats.incr(fname, "retries");
-                    log.retry(
-                        `faast: func: ${fname} attempts: ${retries}, err: ${util.inspect(
+                    log.info(
+                        `faast: func: ${fname} attempts: ${retries}, err: ${inspectProvider(
                             err
                         )}`
                     );
@@ -619,138 +683,15 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 return false;
             };
 
-            const invoke = async () => {
-                const callId = uuidv4();
-                log.calls(`Calling '${fname}' (${callId})`);
-                const ResponseQueueId =
-                    this.impl.responseQueueId(this.state) || undefined;
-                const callObject: FunctionCall = {
-                    name: fname,
-                    args: serializeFunctionArgs(
-                        fname,
-                        args,
-                        this.options.validateSerialization
-                    ),
-                    callId,
-                    modulePath: this.modulePath,
-                    ResponseQueueId
-                };
-                const pending = new PendingRequest(callObject);
-                this._callResultsPending.set(callId, pending);
-                if (this._collectorPump.stopped) {
-                    this._collectorPump.start();
-                }
-
-                const invokeCloudFunction = () => {
-                    this._stats.incr(fname, "invocations");
-                    log.provider(`invoke ${inspectProvider(pending.call)}`);
-
-                    this.withCancellation(async cancel => {
-                        const message = await this.impl
-                            .invoke(this.state, pending.call, cancel)
-                            .catch(err => pending.queue.enqueue(Promise.reject(err)));
-                        if (message) {
-                            log.provider(`invoke returned ${inspectProvider(message)}`);
-                            if (message.value === undefined) {
-                                console.log(
-                                    `Bad message: ${util.inspect(message, undefined, 9)}`
-                                );
-                            }
-                            const value = deserialize(message.value);
-                            log.provider(`deserialized return: %O`, value);
-                            const rv: FunctionReturnWithMetrics = {
-                                response: message,
-                                value,
-                                localRequestSentTime: pending.created,
-                                localEndTime: Date.now()
-                            };
-                            pending.queue.enqueue(rv);
-                        }
-                    });
-                };
-
-                const fnStats = this._stats.fAggregate.getOrCreate(fname);
-
-                const responsePromise = pending.queue.next();
-
-                this.withCancellation(cancel =>
-                    retryFunctionIfNeededToReduceTailLatency(
-                        () => Date.now() - initialInvocationTime,
-                        () =>
-                            Math.max(
-                                estimateTailLatency(
-                                    fnStats,
-                                    this.options.speculativeRetryThreshold
-                                ),
-                                5000
-                            ),
-                        async () => {
-                            invokeCloudFunction();
-                            await responsePromise;
-                        },
-                        () => shouldRetry(undefined),
-                        cancel
-                    )
-                );
-
-                const rv = await responsePromise.catch<
-                    IteratorYieldResult<FunctionReturnWithMetrics>
-                >(err => {
-                    log.provider(`invoke promise rejection: ${err}`);
-                    return {
-                        done: false,
-                        value: {
-                            response: {
-                                kind: "promise",
-                                type: "reject",
-                                callId,
-                                isErrorObject:
-                                    typeof err === "object" && err instanceof Error,
-                                value: serialize(err)
-                            },
-                            value: err,
-                            localEndTime: Date.now(),
-                            localRequestSentTime: pending.created
-                        }
-                    };
-                });
-
-                this._callResultsPending.delete(rv.value!.response.callId);
-                if (this._callResultsPending.size === 0) {
-                    this._collectorPump.stop();
-                }
-                log.calls(`Returning '${fname}' (${callId}): ${util.inspect(rv)}`);
-
-                return processResponse<R>(
-                    rv.value!,
-                    callObject,
-                    startTime,
-                    this._stats,
-                    this._skew,
-                    this._memoryLeakDetector
-                );
-            };
-
             if (this._rateLimiter) {
-                return this._funnel.push(
-                    () => this._rateLimiter!.push(invoke),
+                return funnel.push(
+                    () => this._rateLimiter!.push(tryInvoke),
                     shouldRetry
-                );
+                ) as Async<R>;
             } else {
-                return this._funnel.push(invoke, shouldRetry);
+                return funnel.push(tryInvoke, shouldRetry) as Async<R>;
             }
         };
-    }
-
-    private wrapFunction<A extends any[], R>(
-        fn: (...args: A) => R
-    ): PromisifiedFunction<A, R> {
-        const wrappedFunc = async (...args: A) => {
-            const cfn = this.wrapFunctionWithResponse(fn);
-            const response = await cfn(...args);
-            return response.value;
-        };
-        return wrappedFunc as any;
     }
 
     /** {@inheritdoc FaastModule.costSnapshot} */
@@ -822,7 +763,11 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                                 localEndTime
                             };
                             log.provider(`returned ${inspectProvider(value)}`);
-                            pending.queue.enqueue(rv);
+                            if (m.kind === "iterator") {
+                                pending.queue.push(rv, m.sequence);
+                            } else {
+                                pending.queue.pushImmediate(rv);
+                            }
                         } else {
                             log.info(`Pending promise not found for CallId: ${m.callId}`);
                         }
@@ -1072,14 +1017,4 @@ async function retryFunctionIfNeededToReduceTailLatency(
         const waitTime = roundTo100ms(Math.max(timeout - latency(), 5000));
         await sleep(waitTime, cancel);
     }
-}
-
-async function proactiveRetry(
-    cpuUsage: CpuMeasurement,
-    elapsed: number,
-    secondMap: FactoryMap<number, FunctionCpuUsage>
-) {
-    const time = cpuUsage.utime + cpuUsage.stime;
-    const rounded = Math.round(elapsed);
-    const stats = secondMap.get(rounded);
 }

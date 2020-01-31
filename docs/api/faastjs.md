@@ -65,12 +65,11 @@ The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, 
 
 |  Type Alias | Description |
 |  --- | --- |
+|  [Async](./faastjs.async.md) | <code>Async&lt;T&gt;</code> maps regular values to Promises and Iterators to AsyncIterators, If <code>T</code> is already a Promise or an AsyncIterator, it remains the same. |
 |  [AwsFaastModule](./faastjs.awsfaastmodule.md) | The return type of [faastAws()](./faastjs.faastaws.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
 |  [AwsRegion](./faastjs.awsregion.md) | Valid AWS [regions](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html)<!-- -->. Not all of these regions have Lambda support. |
 |  [GoogleFaastModule](./faastjs.googlefaastmodule.md) | The return type of [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
 |  [GoogleRegion](./faastjs.googleregion.md) | Valid Google Cloud [regions](https://cloud.google.com/compute/docs/regions-zones/)<!-- -->. Only some of these \[regions have Cloud Functions\](https://cloud.google.com/functions/docs/locations). |
 |  [LocalFaastModule](./faastjs.localfaastmodule.md) | The return type of [faastLocal()](./faastjs.faastlocal.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
-|  [Promisified](./faastjs.promisified.md) | <code>Promisified&lt;M&gt;</code> is the type of [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. |
-|  [PromisifiedFunction](./faastjs.promisifiedfunction.md) | The type of functions on [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. Used by [Promisified](./faastjs.promisified.md)<!-- -->. |
 |  [Provider](./faastjs.provider.md) | The type of all supported cloud providers. |
-|  [Unpacked](./faastjs.unpacked.md) | The type returned by a <code>Promise</code>. |
+|  [ProxyModule](./faastjs.proxymodule.md) | <code>ProxyModule&lt;M&gt;</code> is the type of [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. |

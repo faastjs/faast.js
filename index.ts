@@ -14,6 +14,7 @@ export { PersistentCache } from "./src/cache";
 export { CostAnalyzer, CostMetric, CostSnapshot } from "./src/cost";
 export { FaastError } from "./src/error";
 export {
+    Async,
     AwsFaastModule,
     faast,
     faastAws,
@@ -24,9 +25,8 @@ export {
     FunctionStatsEvent,
     GoogleFaastModule,
     LocalFaastModule,
-    Promisified,
-    PromisifiedFunction,
-    providers
+    providers,
+    ProxyModule
 } from "./src/faast";
 export { GoogleOptions, GoogleRegion } from "./src/google/google-faast";
 export { LocalOptions } from "./src/local/local-faast";
@@ -40,4 +40,3 @@ export {
 } from "./src/provider";
 export { Statistics } from "./src/shared";
 export { Limits, throttle } from "./src/throttle";
-export { Unpacked } from "./src/types";

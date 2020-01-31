@@ -98,7 +98,6 @@ async function initialize(
     options: Required<LocalOptions>
 ): Promise<LocalState> {
     const wrappers: Executor[] = [];
-    const logStreams: Writable[] = [];
     const { gc, retentionInDays, _gcWorker: gcWorker } = options;
 
     let gcPromise;
@@ -212,8 +211,8 @@ export async function localPacker(
 async function invoke(
     state: LocalState,
     call: FunctionCall,
-    _cancel: Promise<void>
-): Promise<PromiseResponseMessage | void> {
+    _: Promise<void>
+): Promise<void> {
     const {} = state;
     const startTime = Date.now();
     const { wrapper, logUrl: url } = state.getExecutor();
@@ -234,13 +233,15 @@ async function invoke(
 
 async function poll(state: LocalState, cancel: Promise<void>): Promise<PollResult> {
     const message = await Promise.race([state.queue.next(), cancel]);
-    if (!message || !message.value) {
+    if (!message) {
         return { Messages: [] };
     }
-    return { Messages: [message.value] };
+    return { Messages: [message] };
 }
 
-function responseQueueId(_state: LocalState): string | void {}
+function responseQueueId(_state: LocalState): string {
+    return "<none>";
+}
 
 async function cleanup(state: LocalState, options: CleanupOptions): Promise<void> {
     log.info(`local cleanup starting.`);
