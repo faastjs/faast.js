@@ -1,5 +1,4 @@
 import { GoogleFaastModule } from "../../index";
-import { getRequestSubscription } from "../../src/google/google-faast";
 
 export function quietly<T>(p: Promise<T>) {
     return p.catch(_ => {});
