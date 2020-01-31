@@ -1,4 +1,5 @@
 import { GoogleFaastModule } from "../../index";
+import { getRequestSubscription } from "../../src/google/google-faast";
 
 export function quietly<T>(p: Promise<T>) {
     return p.catch(_ => {});
@@ -9,6 +10,7 @@ export async function getGoogleResources(mod: GoogleFaastModule) {
     const {
         trampoline,
         requestQueueTopic,
+        requestSubscription,
         responseQueueTopic,
         responseSubscription,
         region,
@@ -34,14 +36,19 @@ export async function getGoogleResources(mod: GoogleFaastModule) {
         })
     );
 
-    const subscriptionResult = await quietly(
+    const responseSubscriptionResult = await quietly(
         pubsub.projects.subscriptions.get({ subscription: responseSubscription })
+    );
+
+    const requestSubscriptionResult = await quietly(
+        pubsub.projects.subscriptions.get({ subscription: requestSubscription })
     );
 
     return {
         functionResult,
         requestQueueResult,
         responseQueueResult,
-        subscriptionResult
+        responseSubscriptionResult,
+        requestSubscriptionResult
     };
 }

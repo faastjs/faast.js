@@ -41,6 +41,7 @@ import * as googleTrampolineQueue from "./google-trampoline-queue";
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
+import { basename } from "path";
 
 const gaxios = new Gaxios({
     retryConfig: {
@@ -120,6 +121,7 @@ export interface GoogleOptions extends CommonOptions {
 export interface GoogleResources {
     trampoline: string;
     requestQueueTopic?: string;
+    requestSubscription?: string;
     responseQueueTopic?: string;
     responseSubscription?: string;
     region: string;
@@ -415,6 +417,11 @@ export async function initialize(
         requestQueuePromise = pubsub.projects.topics.create({
             name: resources.requestQueueTopic
         });
+        resources.requestSubscription = getRequestSubscription(
+            project,
+            functionName,
+            region
+        );
     }
 
     const sourceUploadUrl = await createCodeBundle();
@@ -495,6 +502,14 @@ export function getResponseQueueTopic(project: string, functionName: string) {
 
 export function getResponseSubscription(project: string, functionName: string) {
     return `projects/${project}/subscriptions/${functionName}-Responses`;
+}
+
+export function getRequestSubscription(
+    project: string,
+    functionName: string,
+    region: string
+) {
+    return `projects/${project}/subscriptions/gcf-${functionName}-${region}-${functionName}-Requests`;
 }
 
 async function callFunctionHttps(
@@ -591,6 +606,7 @@ async function deleteResources(
     const {
         trampoline,
         requestQueueTopic,
+        requestSubscription,
         responseSubscription,
         responseQueueTopic,
         region,
@@ -617,15 +633,19 @@ async function deleteResources(
 
     if (responseSubscription) {
         await check(
-            pubsub.projects.subscriptions.delete({
-                subscription: responseSubscription
-            })
+            pubsub.projects.subscriptions.delete({ subscription: responseSubscription })
         );
         output(`Deleted response subscription: ${responseSubscription}`);
     }
     if (responseQueueTopic) {
         await check(pubsub.projects.topics.delete({ topic: responseQueueTopic }));
         output(`Deleted response queue topic: ${responseQueueTopic}`);
+    }
+    if (requestSubscription) {
+        await check(
+            pubsub.projects.subscriptions.delete({ subscription: requestSubscription })
+        );
+        output(`Deleted response subscription: ${requestSubscription}`);
     }
     if (requestQueueTopic) {
         await check(pubsub.projects.topics.delete({ topic: requestQueueTopic }));
@@ -691,6 +711,7 @@ async function collectGarbage(
                     region,
                     trampoline: fn.name!,
                     requestQueueTopic: getRequestQueueTopic(project, name),
+                    requestSubscription: getRequestSubscription(project, name, region),
                     responseQueueTopic: getResponseQueueTopic(project, name),
                     responseSubscription: getResponseSubscription(project, name)
                 };

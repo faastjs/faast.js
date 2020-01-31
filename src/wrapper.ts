@@ -7,6 +7,13 @@ import { deserialize, serializeReturnValue } from "./serialize";
 import { AsyncIterableQueue } from "./throttle";
 import { AnyFunction } from "./types";
 
+function p(val: any) {
+    inspect(val, {
+        compact: true,
+        breakLength: Infinity
+    });
+}
+
 export function isGenerator(fn: Function) {
     return (
         fn instanceof function*() {}.constructor ||
@@ -231,10 +238,7 @@ export class Wrapper {
                 this.log(`   callId: ${callId}`);
             }
             const memoryUsage = process.memoryUsage();
-            const memInfo = inspect(memoryUsage, {
-                compact: true,
-                breakLength: Infinity
-            });
+            const memInfo = p(memoryUsage);
             if (this.options.childProcess) {
                 if (!this.child) {
                     this.child = this.setupChildProcess();
@@ -272,7 +276,7 @@ export class Wrapper {
                 this.log(`awaiting async dequeue`);
                 try {
                     for await (const result of this.queue) {
-                        this.log(`Dequeuing ${inspect(result)}`);
+                        this.log(`Dequeuing ${p(result)}`);
                         if (result.kind === "promise" || result.kind === "iterator") {
                             result.logUrl = logUrl;
                         }
@@ -303,7 +307,7 @@ export class Wrapper {
                     throw err;
                 }
                 this.verbose &&
-                    this.log(`returned value: ${inspect(value)}, type: ${typeof value}`);
+                    this.log(`returned value: ${p(value)}, type: ${typeof value}`);
 
                 const validate = this.options.validateSerialization;
                 const context = {
@@ -320,7 +324,7 @@ export class Wrapper {
                         let next = await value.next();
                         let sequence = 0;
                         while (true) {
-                            this.log(`next: ${inspect(next)}`);
+                            this.log(`next: ${p(next)}`);
                             let result: IteratorResponseMessage = {
                                 ...context,
                                 kind: "iterator",
@@ -414,7 +418,7 @@ export class Wrapper {
         child.stderr!.on("data", this.logLines);
         child.stderr!.on("data", detectOom);
         child.on("message", (message: IteratorResult<Message>) => {
-            this.log(`child message: resolving with ${inspect(message)}`);
+            this.log(`child message: resolving with ${p(message)}`);
             if (message.done) {
                 this.queue.done();
             } else {
