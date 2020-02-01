@@ -101,7 +101,7 @@ export async function toArray<T>(gen: AsyncIterable<T> | Iterable<T>) {
 }
 
 export function expectMessage<T>(
-    t: ExecutionContext<unknown>,
+    t: ExecutionContext,
     msg: Message,
     kind: "promise" | "iterator",
     expected: T
@@ -114,7 +114,7 @@ export function expectMessage<T>(
 }
 
 export function checkIteratorMessages(
-    t: ExecutionContext<unknown>,
+    t: ExecutionContext,
     rawMessages: IteratorResponseMessage[],
     arg: string[]
 ) {

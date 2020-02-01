@@ -14,7 +14,8 @@ test("remote google garbage collector works for functions that are called", asyn
     // module's resources would be cleaned up, which shows that the garbage
     // collector did its job.
     const mod = await faastGoogle(functions, {
-        mode: "queue"
+        mode: "queue",
+        gc: "off"
     });
     await mod.functions.hello("gc-test");
     await mod.cleanup({ deleteResources: false });

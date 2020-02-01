@@ -188,7 +188,7 @@ export async function packer(
 
     const { childProcess, validateSerialization } = options;
     const {
-        wrapperVerbose: wrapperVerbose,
+        wrapperVerbose,
         childProcess: _onlyUsedForLocalProviderDirectWrapperInstantiation,
         childDir,
         childProcessMemoryLimitMb,

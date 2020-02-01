@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { google, pubsub_v1 } from "googleapis";
-import { createErrorResponse, FunctionCall, Wrapper } from "../wrapper";
+import { FunctionCall, Wrapper } from "../wrapper";
 import { publishResponseMessage } from "./google-queue";
 import { getExecutionLogUrl, shouldRetryRequest } from "./google-shared";
 import PubSubApi = pubsub_v1;
@@ -41,18 +41,9 @@ export function makeTrampoline(wrapper: Wrapper) {
             logUrl,
             executionId
         };
-        const promises = [];
-        for await (const result of wrapper.execute(callingContext, {
-            onCpuUsage: metrics =>
-                publishResponseMessage(pubsub, call.ResponseQueueId!, {
-                    kind: "cpumetrics",
-                    callId: call.callId,
-                    metrics
-                })
-        })) {
-            promises.push(publishResponseMessage(pubsub, call.ResponseQueueId!, result));
-        }
-        await Promise.all(promises);
+        await wrapper.execute(callingContext, {
+            onMessage: msg => publishResponseMessage(pubsub, call.ResponseQueueId!, msg)
+        });
         response.send();
     }
     return { trampoline };

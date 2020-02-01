@@ -529,7 +529,7 @@ async function callFunctionHttps(
             responseType: "json"
         };
         const rawResponse = await Promise.race([
-            gaxios.request<Message[]>(axiosConfig),
+            gaxios.request<void>(axiosConfig),
             cancel
         ]);
 

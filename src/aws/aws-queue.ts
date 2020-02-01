@@ -5,7 +5,6 @@ import { Message, PollResult } from "../provider";
 import { deserialize, serialize } from "../serialize";
 import { computeHttpResponseBytes, defined, sum } from "../shared";
 import { retryOp } from "../throttle";
-import { Attributes } from "../types";
 import { createErrorResponse, FunctionCall } from "../wrapper";
 import { AwsMetrics } from "./aws-faast";
 
@@ -18,33 +17,13 @@ function countRequests(bytes: number) {
     return Math.ceil(bytes / (64 * 1024));
 }
 
-function convertMapToAwsMessageAttributes(
-    attributes?: Attributes
-): SNS.MessageAttributeMap {
-    const attr: SNS.MessageAttributeMap = {};
-    attributes &&
-        Object.keys(attributes).forEach(
-            key => (attr[key] = { DataType: "String", StringValue: attributes[key] })
-        );
-    return attr;
-}
-
-async function publishSQS(
+export async function sendResponseQueueMessage(
     sqs: SQS,
     QueueUrl: string,
-    MessageBody: string,
-    attr?: Attributes
+    message: Message
 ) {
-    const message = {
-        QueueUrl,
-        MessageBody,
-        MessageAttributes: convertMapToAwsMessageAttributes(attr)
-    };
-    await sqs.sendMessage(message).promise();
-}
-
-export function sendResponseQueueMessage(sqs: SQS, QueueUrl: string, message: Message) {
-    return publishSQS(sqs, QueueUrl, serialize(message));
+    const request = { QueueUrl, MessageBody: serialize(message) };
+    await sqs.sendMessage(request).promise();
 }
 
 export function publishFunctionCallMessage(

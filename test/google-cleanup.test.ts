@@ -14,7 +14,8 @@ export function checkResourcesExist<T extends object>(t: ExecutionContext, resou
 test("remote google cleanup removes ephemeral resources", async t => {
     try {
         const func = await faastGoogle(funcs, {
-            mode: "queue"
+            mode: "queue",
+            gc: "off"
         });
         checkResourcesExist(t, await getGoogleResources(func));
         await func.cleanup();

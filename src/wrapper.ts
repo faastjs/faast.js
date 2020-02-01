@@ -110,13 +110,13 @@ export const WrapperOptionDefaults: Required<WrapperOptions> = {
     validateSerialization: true
 };
 
-type CpuUsageCallback = (usage: CpuMeasurement) => void;
 type ErrorCallback = (err: Error) => Error;
+type MessageCallback = (msg: Message) => Promise<void>;
 
 export interface WrapperExecuteOptions {
-    overrideTimeout?: number;
-    onCpuUsage?: CpuUsageCallback;
     errorCallback?: ErrorCallback;
+    onMessage: MessageCallback;
+    measureCpuUsage?: boolean;
 }
 
 const oomPattern = /Allocation failed - JavaScript heap out of memory/;
@@ -148,10 +148,15 @@ export class Wrapper {
             process.on("message", async (call: FunctionCall) => {
                 const startTime = Date.now();
                 try {
-                    for await (const next of this.execute({ call, startTime })) {
-                        this.log(`Received message ${next.kind}`);
-                        process.send!({ done: false, value: next });
-                    }
+                    await this.execute(
+                        { call, startTime },
+                        {
+                            onMessage: async msg => {
+                                this.log(`Received message ${msg.kind}`);
+                                process.send!({ done: false, value: msg });
+                            }
+                        }
+                    );
                     this.log(`Done with this.execute()`);
                 } catch (err) {
                     this.log(err);
@@ -188,7 +193,7 @@ export class Wrapper {
         this.monitoringTimer = undefined;
     }
 
-    protected startCpuMonitoring(pid: number, callback: CpuUsageCallback) {
+    protected startCpuMonitoring(pid: number, callId: string) {
         if (this.monitoringTimer) {
             this.stopCpuMonitoring();
         }
@@ -197,7 +202,7 @@ export class Wrapper {
                 this.log(`cpu monitor error: ${err}`);
             }
             if (result) {
-                callback(result);
+                this.queue.push({ kind: "cpumetrics", callId, metrics: result });
             }
         });
     }
@@ -215,14 +220,12 @@ export class Wrapper {
         }
     }
 
-    async *execute(
+    async execute(
         callingContext: CallingContext,
-        {
-            onCpuUsage: cpuUsageCallback,
-            overrideTimeout,
-            errorCallback
-        }: WrapperExecuteOptions = {}
-    ): AsyncGenerator<Message> {
+        { errorCallback, onMessage, measureCpuUsage }: WrapperExecuteOptions
+    ): Promise<void> {
+        const processError = (err: any) =>
+            err instanceof Error && errorCallback ? errorCallback(err) : err;
         try {
             /* istanbul ignore if  */
             if (this.executing) {
@@ -237,6 +240,17 @@ export class Wrapper {
                 this.log(`   args: ${call.args}`);
                 this.log(`   callId: ${callId}`);
             }
+            // let startedMessageTimer: NodeJS.Timeout | undefined = setTimeout(
+            //     () => messageCallback({ kind: "functionstarted", callId }),
+            //     2 * 1000
+            // );
+
+            // TODO: Add this code after the execute returns or yields its first value...
+            // if (startedMessageTimer) {
+            //     clearTimeout(startedMessageTimer);
+            //     startedMessageTimer = undefined;
+            // }
+
             const memoryUsage = process.memoryUsage();
             const memInfo = p(memoryUsage);
             if (this.options.childProcess) {
@@ -253,35 +267,35 @@ export class Wrapper {
                         this.queue.push(Promise.reject(err));
                     }
                 });
-                if (cpuUsageCallback) {
+                if (measureCpuUsage) {
                     this.log(`Starting CPU monitor for pid ${this.child.pid}`);
                     // XXX CPU Monitoring not enabled for now.
-                    // this.startCpuMonitoring(this.child.pid, callback);
+                    // this.startCpuMonitoring(this.child.pid, callId);
                 }
 
                 let timer;
-                const timeout =
-                    overrideTimeout !== undefined
-                        ? overrideTimeout
-                        : this.options.childProcessTimeoutMs;
+                const timeout = this.options.childProcessTimeoutMs;
                 if (timeout) {
+                    this.log(`Setting timeout: ${timeout}`);
                     timer = setTimeout(() => {
-                        this.stop();
                         const error = new Error(
                             `Request exceeded timeout of ${timeout}ms`
                         );
                         this.queue.push(Promise.reject(error));
+                        this.stop();
                     }, timeout);
                 }
                 this.log(`awaiting async dequeue`);
                 try {
+                    const promises = [];
                     for await (const result of this.queue) {
                         this.log(`Dequeuing ${p(result)}`);
                         if (result.kind === "promise" || result.kind === "iterator") {
                             result.logUrl = logUrl;
                         }
-                        yield result;
+                        promises.push(onMessage(result));
                     }
+                    await Promise.all(promises);
                 } finally {
                     this.log(`Finalizing queue`);
                     this.stopCpuMonitoring();
@@ -336,7 +350,7 @@ export class Wrapper {
                                 result.remoteExecutionEndTime = Date.now();
                                 result.memoryUsage = memoryUsage;
                             }
-                            yield result;
+                            await onMessage(result);
                             if (next.done) {
                                 return;
                             }
@@ -346,22 +360,20 @@ export class Wrapper {
                     }
                 }
 
-                yield {
+                await onMessage({
                     ...context,
                     kind: "promise",
                     value: serializeReturnValue(call.name, [value], validate),
                     remoteExecutionStartTime: startTime,
                     remoteExecutionEndTime: Date.now(),
                     memoryUsage
-                };
+                });
             }
-        } catch (origError) {
-            const err =
-                errorCallback && origError instanceof Error
-                    ? errorCallback(origError)
-                    : origError;
+        } catch (err) {
             this.log(`faast: wrapped function exception or promise rejection: ${err}`);
-            yield createErrorResponse(err, callingContext);
+            const response = createErrorResponse(processError(err), callingContext);
+            this.log(`Error response: ${response}`);
+            await onMessage(response);
         } finally {
             this.log(`Exiting execute`);
             this.executing = false;

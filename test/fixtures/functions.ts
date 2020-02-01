@@ -140,6 +140,10 @@ export function spin(ms: number): Timing {
     return { start, end };
 }
 
+export function infiniteLoop() {
+    while (true) {}
+}
+
 export function optionalArg(arg?: string) {
     return arg ? arg : "No arg";
 }
@@ -220,6 +224,11 @@ export function* generator(args: string[]) {
 
 export async function* asyncGenerator(args: string[]) {
     yield* args;
+}
+
+export async function* generateThenInfiniteLoop(arg: string) {
+    yield arg;
+    while (true) {}
 }
 
 /**

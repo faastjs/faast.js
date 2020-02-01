@@ -44,59 +44,28 @@ export function makeTrampoline(wrapper: Wrapper) {
         };
         if (CallIdAttribute in event) {
             const call = event as FunctionCall;
-            const { callId, ResponseQueueId: Queue } = call;
-            if (Queue === INVOCATION_TEST_QUEUE) {
-                return;
-            }
-            const promises = [];
-            for await (const result of wrapper.execute(
-                { call, ...callingContext },
-                {
-                    onCpuUsage: metrics =>
-                        sendResponseQueueMessage(sqs, Queue!, {
-                            kind: "cpumetrics",
-                            callId,
-                            metrics
-                        }),
-                    errorCallback
-                }
-            )) {
-                promises.push(sendResponseQueueMessage(sqs, Queue!, result));
-            }
-            await Promise.all(promises);
+            const cc: CallingContext = { call, ...callingContext };
+            await execute(cc, wrapper);
         } else {
             const snsEvent = event as SNSEvent;
-            const promises = [];
             for (const record of snsEvent.Records) {
                 const call: FunctionCall = deserialize(record.Sns.Message);
-                const { callId, ResponseQueueId: Queue } = call;
-                let startedMessageTimer: NodeJS.Timeout | undefined = setTimeout(
-                    () =>
-                        sendResponseQueueMessage(sqs, Queue!, {
-                            kind: "functionstarted",
-                            callId
-                        }),
-                    2 * 1000
-                );
                 const cc: CallingContext = { call, ...callingContext };
-                for await (const result of wrapper.execute(cc, {
-                    onCpuUsage: metrics =>
-                        sendResponseQueueMessage(sqs, Queue!, {
-                            kind: "cpumetrics",
-                            callId,
-                            metrics
-                        }),
-                    errorCallback
-                })) {
-                    if (startedMessageTimer) {
-                        clearTimeout(startedMessageTimer);
-                        startedMessageTimer = undefined;
-                    }
-                    promises.push(sendResponseQueueMessage(sqs, Queue!, result));
-                }
+                await execute(cc, wrapper);
             }
-            await Promise.all(promises);
         }
     }
     return { trampoline };
+}
+
+async function execute(cc: CallingContext, wrapper: Wrapper) {
+    const { call } = cc;
+    const { ResponseQueueId: Queue } = call;
+    if (Queue === INVOCATION_TEST_QUEUE) {
+        return;
+    }
+    await wrapper.execute(cc, {
+        errorCallback,
+        onMessage: msg => sendResponseQueueMessage(sqs, Queue!, msg)
+    });
 }

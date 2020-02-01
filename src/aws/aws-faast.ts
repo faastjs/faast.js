@@ -495,10 +495,7 @@ export const initialize = throttle(
         }
         const { wrapperVerbose } = options.debugOptions;
         async function createCodeBundle() {
-            const wrapperOptions = {
-                // childProcessTimeoutMs: timeout * 1000 - 50,
-                wrapperVerbose
-            };
+            const wrapperOptions = { wrapperVerbose };
             const bundle = awsPacker(fModule, options, wrapperOptions, FunctionName);
             return { ZipFile: await streamToBuffer((await bundle).archive) };
         }

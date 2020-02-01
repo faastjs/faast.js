@@ -1,6 +1,6 @@
 import { google, pubsub_v1 } from "googleapis";
 import { deserialize } from "../serialize";
-import { createErrorResponse, FunctionCall, Wrapper } from "../wrapper";
+import { FunctionCall, Wrapper } from "../wrapper";
 import { publishResponseMessage } from "./google-queue";
 import { getExecutionLogUrl, shouldRetryRequest } from "./google-shared";
 import PubSubApi = pubsub_v1;
@@ -46,16 +46,6 @@ export function makeTrampoline(wrapper: Wrapper) {
         const str = Buffer.from(data.data!, "base64");
         const call: FunctionCall = deserialize(str.toString());
 
-        const { callId, ResponseQueueId } = call;
-        let startedMessageTimer: NodeJS.Timer | undefined = setTimeout(
-            () =>
-                publishResponseMessage(pubsub, ResponseQueueId!, {
-                    kind: "functionstarted",
-                    callId
-                }),
-            2 * 1000
-        );
-
         const callingContext = {
             call,
             startTime,
@@ -63,40 +53,9 @@ export function makeTrampoline(wrapper: Wrapper) {
             executionId
         };
 
-        try {
-            const promises = [];
-            const timeout = wrapper.options.childProcessTimeoutMs;
-            for await (const result of wrapper.execute(callingContext, {
-                onCpuUsage: metrics =>
-                    publishResponseMessage(pubsub, ResponseQueueId!, {
-                        kind: "cpumetrics",
-                        callId,
-                        metrics
-                    }),
-                overrideTimeout: timeout
-            })) {
-                if (startedMessageTimer) {
-                    clearTimeout(startedMessageTimer);
-                    startedMessageTimer = undefined;
-                }
-                promises.push(
-                    publishResponseMessage(pubsub, call.ResponseQueueId!, result)
-                );
-            }
-            await Promise.all(promises);
-        } catch (err) {
-            /* istanbul ignore next */
-            {
-                console.error(err);
-                if (ResponseQueueId) {
-                    await publishResponseMessage(
-                        pubsub,
-                        call.ResponseQueueId!,
-                        createErrorResponse(err, callingContext)
-                    );
-                }
-            }
-        }
+        await wrapper.execute(callingContext, {
+            onMessage: msg => publishResponseMessage(pubsub, call.ResponseQueueId!, msg)
+        });
     }
     return { trampoline };
 }

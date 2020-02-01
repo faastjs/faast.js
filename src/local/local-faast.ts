@@ -216,19 +216,10 @@ async function invoke(
     const {} = state;
     const startTime = Date.now();
     const { wrapper, logUrl: url } = state.getExecutor();
-    for await (const result of wrapper.execute(
+    await wrapper.execute(
         { call, startTime, logUrl: url },
-        {
-            onCpuUsage: metrics =>
-                state.queue.enqueue({
-                    kind: "cpumetrics",
-                    metrics,
-                    callId: call.callId
-                })
-        }
-    )) {
-        state.queue.enqueue(result);
-    }
+        { onMessage: async msg => state.queue.enqueue(msg) }
+    );
 }
 
 async function poll(state: LocalState, cancel: Promise<void>): Promise<PollResult> {

@@ -9,20 +9,45 @@ async function testTimeout(
     provider: Provider,
     options: CommonOptions
 ) {
-    let wrapperVerbose = false;
-    if (t.title.match(/.*google.*queue.*/)) {
-        wrapperVerbose = true;
-    }
     const lambda = await faast(provider, funcs, {
         ...options,
         timeout: 5,
         maxRetries: 0,
-        gc: "off",
-        debugOptions: { wrapperVerbose }
+        gc: "off"
     });
     // t.log(`${lambda.logUrl()}`);
     try {
-        await t.throwsAsync(lambda.functions.spin(30 * 1000), { message: /time/i });
+        await t.throwsAsync(lambda.functions.infiniteLoop(), { message: /time/i });
+    } finally {
+        await lambda.cleanup();
+    }
+}
+
+/**
+ * The purpose of this test is to verify that a CPU hogging async generator
+ * function won't starve the sending logic, so yield messages prior to the CPU
+ * intensive work are  delivered.
+ */
+async function testGenerator(
+    t: ExecutionContext,
+    provider: Provider,
+    options: CommonOptions
+) {
+    t.plan(2);
+    const lambda = await faast(provider, funcs, {
+        ...options,
+        timeout: 5,
+        maxRetries: 0,
+        gc: "off"
+    });
+    // t.log(`${lambda.logUrl()}`);
+    try {
+        const arg = "hello, generator!";
+        for await (const result of lambda.functions.generateThenInfiniteLoop(arg)) {
+            t.is(result, arg);
+        }
+    } catch (err) {
+        t.regex(err.message, /time/i);
     } finally {
         await lambda.cleanup();
     }
@@ -72,23 +97,38 @@ async function memoryLimitFail(
     }
 }
 
-// Memory limit setting isn't reliable on local mode.
-const configurations: [Provider, CommonOptions][] = [
-    ["aws", { mode: "https", childProcess: true }],
-    ["aws", { mode: "queue", childProcess: true }],
-    ["aws", { mode: "https", childProcess: false }],
-    ["aws", { mode: "queue", childProcess: false }],
-    ["google", { mode: "https" }],
-    ["google", { mode: "queue" }]
+type LimitType = "memory" | "timeout" | "generator";
+
+const configurations: [Provider, CommonOptions, LimitType[]][] = [
+    ["aws", { mode: "https", childProcess: true }, ["memory", "timeout", "generator"]],
+    ["aws", { mode: "queue", childProcess: true }, ["memory", "timeout", "generator"]],
+    ["aws", { mode: "https", childProcess: false }, ["memory", "timeout", "generator"]],
+    ["aws", { mode: "queue", childProcess: false }, ["memory", "timeout", "generator"]],
+    ["google", { mode: "https", childProcess: true }, ["memory", "timeout"]],
+    ["google", { mode: "queue", childProcess: true }, []],
+    ["local", {}, ["timeout"]]
 ];
 
-for (const [provider, config] of configurations) {
+for (const [provider, config, limitTypes] of configurations) {
     const opts = inspect(config);
-    test(title(provider, `memory under limit ${opts}`), memoryLimitOk, provider, config);
-    if (provider === "google" && config.mode === "queue") {
-        // Google in queue mode cannot detect OOM errors.
-    } else {
+    if (limitTypes.find(t => t === "memory")) {
+        test(
+            title(provider, `memory under limit ${opts}`),
+            memoryLimitOk,
+            provider,
+            config
+        );
         test(title(provider, `out of memory`, config), memoryLimitFail, provider, config);
     }
-    test(title(provider, `timeout`, config), testTimeout, provider, config);
+    if (limitTypes.find(t => t === "timeout")) {
+        test(title(provider, `timeout`, config), testTimeout, provider, config);
+    }
+    if (limitTypes.find(t => t === "generator")) {
+        test(
+            title(provider, `generator timeout`, config),
+            testGenerator,
+            provider,
+            config
+        );
+    }
 }
