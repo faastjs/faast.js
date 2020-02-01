@@ -1154,7 +1154,13 @@ function addSnsInvokePermissionsToFunction(
             StatementId: `${FunctionName}-Invoke`,
             SourceArn: RequestTopicArn
         })
-        .promise();
+        .promise()
+        .catch(err => {
+            if (err.match(/already exists/)) {
+            } else {
+                throw err;
+            }
+        });
 }
 
 /**
