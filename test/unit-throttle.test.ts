@@ -691,6 +691,14 @@ async function toArray<T>(iterable: AsyncIterable<T> | Iterable<T>) {
     return result;
 }
 
+async function take<T>(q: AsyncOrderedQueue<T>, n: number) {
+    const result = [];
+    for (let i = 0; i < n; i++) {
+        result.push(await q.next());
+    }
+    return result;
+}
+
 test("AsyncIterableQueue done function finishes iterator", async t => {
     const q = new AsyncIterableQueue<number>();
     q.push(10);
@@ -708,19 +716,17 @@ test("AsyncIterableQueue done function finishes iterator with pending dequeus", 
 
 test("AsyncOrderedQueue reorders according to sequence value", async t => {
     const q = new AsyncOrderedQueue<number>();
-    q.done(2);
     q.push(42, 1);
     q.push(-42, 0);
-    t.deepEqual(await toArray(q), [-42, 42]);
+    t.deepEqual(await take(q, 2), [-42, 42]);
 });
 
 test("AsyncOrderedQueue takes the first value with a given sequence value", async t => {
     const q = new AsyncOrderedQueue<number>();
-    q.done(2);
     q.push(100, 1);
     q.push(101, 1);
     q.push(42, 0);
-    t.deepEqual(await toArray(q), [42, 100]);
+    t.deepEqual(await take(q, 2), [42, 100]);
 });
 
 test("AsyncOrderedQueue pushImmediate pre-empts arrival order", async t => {
@@ -730,19 +736,8 @@ test("AsyncOrderedQueue pushImmediate pre-empts arrival order", async t => {
     q.pushImmediate(100);
     q.push(43, 1);
 
-    t.is((await q.next()).value, 42);
-    t.is((await q.next()).value, 100);
-    t.is((await q.next()).value, 43);
-    t.is((await q.next()).value, 44);
-});
-
-test("AsyncOrderedQueue doneImmediate pre-empts arrival order", async t => {
-    const q = new AsyncOrderedQueue<number>();
-    q.push(42, 0);
-    q.push(44, 2);
-    q.doneImmediate();
-    q.push(43, 1);
-
-    t.is((await q.next()).value, 42);
-    t.is((await q.next()).done, true);
+    t.is(await q.next(), 42);
+    t.is(await q.next(), 100);
+    t.is(await q.next(), 43);
+    t.is(await q.next(), 44);
 });

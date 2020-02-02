@@ -17,6 +17,22 @@
             "name": "Map buckets",
             "program": "${workspaceFolder}/dist/examples/map-buckets.js",
             "outFiles": ["${workspaceFolder}/**/*.js"]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug AVA test file",
+            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/ava",
+            "runtimeArgs": [
+                "debug",
+                "--break",
+                "-v",
+                "-m=\"local*basic*https*false*true*\"",
+                "dist/**/basic.*"
+            ],
+            "port": 9229,
+            "outputCapture": "std",
+            "skipFiles": ["<node_internals>/**/*.js"]
         }
     ]
 }

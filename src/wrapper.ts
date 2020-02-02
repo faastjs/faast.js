@@ -332,7 +332,7 @@ export class Wrapper {
                     instanceId
                 } as const;
                 // Check for iterable.
-                // TODO: What if the async iterable throws? Is this a rejection or a rejected promise on next()?
+
                 if (value !== null && value !== undefined) {
                     if (isGenerator(func)) {
                         let next = await value.next();

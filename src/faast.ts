@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import * as util from "util";
+import { inspect } from "util";
 import * as uuidv4 from "uuid/v4";
 import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
 import { CostMetric, CostSnapshot } from "./cost";
@@ -622,14 +622,15 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 },
                 next: () =>
                     pending.queue.next().then(next => {
-                        if (next.done) {
-                            this.clearPending(callId);
-                        }
                         const result = this.processResponse<IteratorYieldResult<R>>(
-                            next.value!,
+                            next,
                             fname,
                             startTime
                         );
+                        log.calls(`yielded ${inspect(result)}`);
+                        if (result.done) {
+                            this.clearPending(callId);
+                        }
                         return result;
                     })
             };
@@ -652,13 +653,13 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             const callId = this.createCallId();
             const tryInvoke = async () => {
                 const pending = await this.invoke(fname, args, callId);
+                log.provider(`invoke ${inspectProvider(pending.call)}`);
                 this._stats.incr(fname, "invocations");
                 const responsePromise = pending.queue.next();
-                log.provider(`invoke ${inspectProvider(pending.call)}`);
                 const rv = await responsePromise;
                 this.clearPending(callId);
-                log.calls(`Returning '${fname}' (${callId}): ${util.inspect(rv)}`);
-                return this.processResponse<R>(rv.value!, fname, startTime);
+                log.calls(`Returning '${fname}' (${callId}): ${inspect(rv)}`);
+                return this.processResponse<R>(rv, fname, startTime);
             };
 
             const funnel = this._funnel;
@@ -667,6 +668,12 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             const shouldRetry = (err: any) => {
                 if (err instanceof FaastError) {
                     if (err.code === ESERIALIZE) {
+                        return false;
+                    }
+                    // Don't retry user-generated errors. Only errors caused by
+                    // failures of operations faast itself initiated (e.g. cloud
+                    // service APIs) are retried.
+                    if (err.functionName) {
                         return false;
                     }
                 }

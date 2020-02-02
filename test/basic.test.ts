@@ -20,7 +20,6 @@ async function testBasic(
         timeout: 30,
         gc: "off",
         env: { faastEnvironmentVariable: "the_answer_is_42" },
-        maxRetries: 0,
         ...options
     };
     const faastModule = await faast(provider, funcs, opts);

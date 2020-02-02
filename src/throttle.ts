@@ -513,28 +513,20 @@ export class AsyncIterableQueue<T> extends AsyncQueue<IteratorResult<T>> {
     }
 }
 
-export class AsyncOrderedQueue<T> implements AsyncIterableIterator<T> {
-    protected queue = new AsyncQueue<IteratorResult<T>>();
-    protected arrived: Map<number, Promise<IteratorResult<T>>> = new Map();
+export class AsyncOrderedQueue<T> {
+    protected queue = new AsyncQueue<T>();
+    protected arrived: Map<number, Promise<T>> = new Map();
     protected current = 0;
 
     push(value: T | Promise<T>, sequence: number) {
-        this.enqueueIteratorResult(iteratorResult(value), sequence);
+        this.enqueue(Promise.resolve(value), sequence);
     }
 
     pushImmediate(value: T | Promise<T>) {
-        this.queue.enqueue(iteratorResult(value));
+        this.queue.enqueue(value);
     }
 
-    done(sequence: number) {
-        this.enqueueIteratorResult(done, sequence);
-    }
-
-    doneImmediate() {
-        this.queue.enqueue(done);
-    }
-
-    enqueueIteratorResult(value: Promise<IteratorResult<T>>, sequence: number) {
+    enqueue(value: Promise<T>, sequence: number) {
         if (sequence < this.current) {
             return;
         }
@@ -548,12 +540,8 @@ export class AsyncOrderedQueue<T> implements AsyncIterableIterator<T> {
         }
     }
 
-    next(): Promise<IteratorResult<T, undefined>> {
+    next(): Promise<T> {
         return this.queue.next();
-    }
-
-    [Symbol.asyncIterator]() {
-        return this;
     }
 
     clear() {
