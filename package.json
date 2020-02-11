@@ -107,7 +107,7 @@
         "tslint": "5.20.1",
         "tslint-config-prettier": "1.18.0",
         "typescript": "3.7.5",
-        "webpack-cli": "3.3.10"
+        "webpack-cli": "3.3.11"
     },
     "ava": {
         "files": [
