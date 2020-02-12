@@ -21,13 +21,13 @@ functions: ProxyModule<M>;
 
 The module passed into [faast()](./faastjs.faast.md) or its provider-specific variants ([faastAws()](./faastjs.faastaws.md)<!-- -->, [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->, and [faastLocal()](./faastjs.faastlocal.md)<!-- -->) is mapped to a [ProxyModule](./faastjs.proxymodule.md) version of the module, which performs the following mapping:
 
-- All function exports that return iterables are mapped to async iterables.
+- All function exports that are generators are mapped to async generators.
 
-- All function exports that return async iterables are preserved as-is.
+- All function exports that return async generators are preserved as-is.
 
 - All function exports that return promises have their type signatures preserved as-is.
 
-- All function exports that return type T, where T is not a Promise, Iterable, or AsyncIterable, are mapped to functions that return Promise<T>. Argument types are preserved as-is.
+- All function exports that return type T, where T is not a Promise, Generator, or AsyncGenerator, are mapped to functions that return Promise<T>. Argument types are preserved as-is.
 
 - All non-function exports are omitted in the remote module.
 

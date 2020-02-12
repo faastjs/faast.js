@@ -24,7 +24,7 @@ import * as webpack from 'webpack';
 import { Writable } from 'stream';
 
 // @public
-export type Async<T> = T extends AsyncIterator<infer R> ? AsyncIterableIterator<R> : T extends Iterator<infer R> ? AsyncIterableIterator<R> : T extends Promise<infer R> ? Promise<R> : Promise<T>;
+export type Async<T> = T extends AsyncGenerator<infer R> ? AsyncGenerator<R> : T extends Generator<infer R> ? AsyncGenerator<R> : T extends Promise<infer R> ? Promise<R> : Promise<T>;
 
 // Warning: (ae-forgotten-export) The symbol "AwsState" needs to be exported by the entry point index.d.ts
 //

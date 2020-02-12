@@ -42,10 +42,10 @@ export const providers: Provider[] = ["aws", "google", "local"];
  * If `T` is already a Promise or an AsyncIterator, it remains the same.
  * @public
  */
-export type Async<T> = T extends AsyncIterator<infer R>
-    ? AsyncIterableIterator<R>
-    : T extends Iterator<infer R>
-    ? AsyncIterableIterator<R>
+export type Async<T> = T extends AsyncGenerator<infer R>
+    ? AsyncGenerator<R>
+    : T extends Generator<infer R>
+    ? AsyncGenerator<R>
     : T extends Promise<infer R>
     ? Promise<R>
     : Promise<T>;
@@ -151,16 +151,16 @@ export interface FaastModule<M extends object> {
      * to a {@link ProxyModule} version of the module, which performs the
      * following mapping:
      *
-     * - All function exports that return iterables are mapped to async
-     *   iterables.
+     * - All function exports that are generators are mapped to async
+     *   generators.
      *
-     * - All function exports that return async iterables are preserved as-is.
+     * - All function exports that return async generators are preserved as-is.
      *
      * - All function exports that return promises have their type signatures
      *   preserved as-is.
      *
      * - All function exports that return type T, where T is not a Promise,
-     *   Iterable, or AsyncIterable, are mapped to functions that return
+     *   Generator, or AsyncGenerator, are mapped to functions that return
      *   Promise<T>. Argument types are preserved as-is.
      *
      * - All non-function exports are omitted in the remote module.
