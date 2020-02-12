@@ -434,7 +434,7 @@ export const initialize = throttle(
         const { region, timeout, memorySize, env } = options;
         log.info(`Creating AWS APIs`);
         const services = await createAwsApis(region);
-        const { lambda, sts } = services;
+        const { lambda } = services;
         const FunctionName = `faast-${nonce}`;
         const { packageJson, useDependencyCaching } = options;
 
@@ -471,26 +471,35 @@ export const initialize = throttle(
                         func = (await lambda.getFunction({ FunctionName }).promise())
                             .Configuration!;
                     } else {
-                        throw err;
+                        throw new FaastError(err, "createFunction");
                     }
                 }
                 log.info(
                     `Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`
                 );
-                const config = await lambda
-                    .putFunctionEventInvokeConfig({
-                        FunctionName,
-                        MaximumRetryAttempts: 0,
-                        MaximumEventAgeInSeconds: 120,
-                        DestinationConfig: {
-                            OnFailure: { Destination: responseQueueArn }
-                        }
-                    })
-                    .promise();
-                log.info(`Function event invocation config: %O`, config);
+                try {
+                    const config = await retryOp(
+                        (err, n) =>
+                            n < 5 && err?.message?.match(/destination ARN.*is invalid/),
+                        () =>
+                            lambda
+                                .putFunctionEventInvokeConfig({
+                                    FunctionName,
+                                    MaximumRetryAttempts: 0,
+                                    MaximumEventAgeInSeconds: 120,
+                                    DestinationConfig: {
+                                        OnFailure: { Destination: responseQueueArn }
+                                    }
+                                })
+                                .promise()
+                    );
+                    log.info(`Function event invocation config: %O`, config);
+                } catch (err) {
+                    throw new FaastError(err, "putFunctionEventInvokeConfig");
+                }
                 return func;
             } catch (err) {
-                throw new FaastError(err, "Create function request failure");
+                throw new FaastError(err, "Create function failure");
             }
         }
         const { wrapperVerbose } = options.debugOptions;

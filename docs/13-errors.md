@@ -435,3 +435,7 @@ sqs.deleteMessageBatch({
 ```
 
 This closes a longstanding mysterious error message that occurs in the testsuite.
+
+## [testsuite] Create function request failure: The destination ARN arn:aws:sqs:us-west-2:547696317263:faast-88e9096f-28ec-4ca7-8c7f-8f3b98340e8c-Responses is invalid.'
+
+This error occurs occassionally in the testsuite. It's likely caused by a rare race condition on the AWS side where an SQS queue is successfully created, but not yet available for adding as a function invocation configuration destination. Resolved by adding retry in case of this specific error message when putting function invocation configuration.
