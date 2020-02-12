@@ -6,11 +6,11 @@
         "clean": "rm -rf dist"
     },
     "dependencies": {
-        "aws-sdk": "^2.437.0",
-        "tar-stream": "^2.0.1"
+        "aws-sdk": "^2.616.0",
+        "tar-stream": "^2.1.0"
     },
     "devDependencies": {
-        "@types/tar-stream": "^1.6.0",
-        "typescript": "^3.4.5"
+        "@types/tar-stream": "^1.6.1",
+        "typescript": "^3.7.5"
     }
 }
