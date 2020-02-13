@@ -103,7 +103,7 @@
         "lolex": "5.1.2",
         "nyc": "15.0.0",
         "papaparse": "5.1.1",
-        "semantic-release": "17.0.1",
+        "semantic-release": "17.0.3",
         "tslint": "5.20.1",
         "tslint-config-prettier": "1.18.0",
         "typescript": "3.7.5",
