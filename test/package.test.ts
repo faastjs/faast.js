@@ -2,7 +2,7 @@ import test, { ExecutionContext } from "ava";
 import { CommonOptions, faast, Provider, providers, faastAws } from "../index";
 import * as funcs from "./fixtures/functionsPackage";
 import { configs, title } from "./fixtures/util";
-import uuid = require("uuid/v4");
+import { v4 as uuid } from "uuid";
 
 async function testPackage(
     t: ExecutionContext,

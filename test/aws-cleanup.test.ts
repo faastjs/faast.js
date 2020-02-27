@@ -1,5 +1,5 @@
 import test from "ava";
-import * as uuid from "uuid/v4";
+import { v4 as uuid } from "uuid";
 import { faastAws } from "../index";
 import { checkResourcesCleanedUp } from "./fixtures/util";
 import { getAWSResources } from "./fixtures/util-aws";

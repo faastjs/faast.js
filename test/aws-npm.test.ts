@@ -1,6 +1,6 @@
 import test, { ExecutionContext } from "ava";
 import { Lambda } from "aws-sdk";
-import * as uuid from "uuid/v4";
+import { v4 as uuid } from "uuid";
 import { AwsLayerInfo, npmInstall } from "../src/aws/aws-npm";
 import { title } from "./fixtures/util";
 
