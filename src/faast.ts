@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { inspect } from "util";
-import * as uuidv4 from "uuid/v4";
+import { v4 as uuidv4 } from "uuid";
 import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
 import { CostMetric, CostSnapshot } from "./cost";
 import { FaastError, synthesizeFaastError } from "./error";

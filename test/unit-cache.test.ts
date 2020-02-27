@@ -1,6 +1,6 @@
 import anytest, { TestInterface } from "ava";
 import { createHash } from "crypto";
-import * as uuidv4 from "uuid/v4";
+import { v4 as uuidv4 } from "uuid";
 import { PersistentCache } from "../src/cache";
 import { sleep } from "./fixtures/functions";
 

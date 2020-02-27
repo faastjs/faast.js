@@ -2,7 +2,7 @@ import test from "ava";
 import { createWriteStream, mkdir, mkdirp, pathExists, remove } from "fs-extra";
 import { tmpdir } from "os";
 import * as path from "path";
-import * as uuidv4 from "uuid/v4";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * The point of this file is to ensure that whatever filesystem library is used,
