@@ -30,7 +30,7 @@ const lambdaContext: Context = {
     functionName: "aws-trampoline-test-functionName",
     functionVersion: "aws-trampoline-test-functionVersion",
     invokedFunctionArn: "aws-trampoline-test-invokedFunctionArn",
-    memoryLimitInMB: 1728,
+    memoryLimitInMB: "1728",
     done: () => {},
     fail: _ => {},
     succeed: (_: string) => {}
