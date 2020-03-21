@@ -15,9 +15,14 @@ async function testTimeout(
         maxRetries: 0,
         gc: "off"
     });
+    t.plan(1);
     // t.log(`${lambda.logUrl()}`);
     try {
-        await t.throwsAsync(lambda.functions.infiniteLoop(), { message: /time/i });
+        try {
+            await lambda.functions.infiniteLoop();
+        } catch (err) {
+            t.is(err.isTimeout, true);
+        }
     } finally {
         await lambda.cleanup();
     }
@@ -47,7 +52,7 @@ async function testGenerator(
             t.is(result, arg);
         }
     } catch (err) {
-        t.regex(err.message, /time/i);
+        t.is(err.isTimeout, true);
     } finally {
         await lambda.cleanup();
     }

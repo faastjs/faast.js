@@ -648,11 +648,7 @@ async function invoke(
         case "https":
             const { lambda } = services;
             const { FunctionName } = resources;
-            try {
-                await invokeHttps(lambda, FunctionName, call, metrics, cancel);
-            } catch (err) {
-                throw new FaastError(err, "invoke https error");
-            }
+            await invokeHttps(lambda, FunctionName, call, metrics, cancel);
             return;
         case "queue":
             const { sns } = services;

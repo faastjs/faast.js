@@ -42,6 +42,22 @@ export class FaastError extends VError {
     logUrl?: string;
 
     /**
+     * @internal
+     */
+    _isTimeout: boolean | undefined;
+
+    /**
+     * True if the error is caused by a cloud function timeout.
+     */
+    get isTimeout(): boolean {
+        if (this._isTimeout) {
+            return true;
+        }
+        const { cause } = this;
+        return cause && cause instanceof FaastError && cause.isTimeout;
+    }
+
+    /**
      * The error message. If nested errors occurred, this message summarizes all
      * nested errors separated with colons (:).
      */
@@ -103,12 +119,17 @@ export class FaastError extends VError {
     args?: any[];
 }
 
-export function synthesizeFaastError(
-    errObj: any,
-    logUrl?: string,
-    functionName?: string,
-    args?: any[]
-) {
+export function synthesizeFaastError({
+    errObj,
+    logUrl,
+    functionName,
+    args
+}: {
+    errObj: any;
+    logUrl?: string;
+    functionName?: string;
+    args?: any[];
+}) {
     let underlying;
     if (logUrl) {
         underlying = new FaastError("%s", logUrl);
@@ -127,6 +148,7 @@ export function synthesizeFaastError(
     error.code = errObj.code;
     error.functionName = functionName;
     error.args = args;
+    error._isTimeout = errObj._isTimeout;
 
     // Surround the logUrl with spaces because URL links are broken in vscode if
     // there's no whitespace surrounding the URL.

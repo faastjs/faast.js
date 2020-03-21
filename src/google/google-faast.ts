@@ -18,7 +18,6 @@ import {
     commonDefaults,
     CommonOptions,
     FunctionStats,
-    Message,
     PollResult,
     ProviderImpl,
     UUID
@@ -41,7 +40,6 @@ import * as googleTrampolineQueue from "./google-trampoline-queue";
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
-import { basename } from "path";
 
 const gaxios = new Gaxios({
     retryConfig: {

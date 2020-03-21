@@ -55,7 +55,7 @@ function replacer(this: any, key: any, value: any) {
             const errObj: any = {};
             Object.getOwnPropertyNames(value).forEach(name => {
                 if (typeof (value as any)[name] === "string") {
-                    errObj[name] = (value as any)[name];
+                    errObj[name] = JSON.stringify((value as any)[name], replacer);
                 }
             });
             return { [FJS_TYPE]: type, value: errObj };
@@ -103,7 +103,7 @@ function reviver(this: any, _: any, value: any) {
                         const sErr = value["value"];
                         const err = new Error(sErr.message);
                         for (const key of Object.keys(sErr)) {
-                            (err as any)[key] = sErr[key];
+                            (err as any)[key] = JSON.parse(sErr[key], reviver);
                         }
                         return err;
                     }

@@ -1,11 +1,11 @@
 import * as archiver from "archiver";
 import { Lambda, S3 } from "aws-sdk";
 import * as sys from "child_process";
-import { writeFile, ensureDir, remove } from "fs-extra";
+import { ensureDir, remove, writeFile } from "fs-extra";
 import { tmpdir } from "os";
 import * as path from "path";
-import { streamToBuffer } from "../shared";
 import { inspect } from "util";
+import { streamToBuffer } from "../shared";
 
 export function exec(log: (_: string) => void, cmds: string[]) {
     let rv = "";
@@ -57,10 +57,12 @@ export async function npmInstall({
     await ensureDir(buildDir);
     await writeFile(path.join(buildDir, "package.json"), packageJsonContents);
 
+    const awsconfig = { correctClockSkew: true, maxRetries: 6 };
+
     let installLog = "";
     log("Checking cache");
     log(`Checking faast layers for ${LayerName}`);
-    const lambda = new Lambda({ apiVersion: "2015-03-31", region });
+    const lambda = new Lambda({ apiVersion: "2015-03-31", region, ...awsconfig });
 
     const cached = await lambda
         .listLayerVersions({ LayerName, CompatibleRuntime: "nodejs" })
@@ -68,7 +70,7 @@ export async function npmInstall({
         .catch(_ => undefined);
 
     const layerVersion = cached?.LayerVersions?.[0];
-    if(layerVersion) {
+    if (layerVersion) {
         const layerInfo = {
             LayerName,
             Version: layerVersion.Version!,
@@ -94,7 +96,7 @@ export async function npmInstall({
     const removePromise = remove(buildParentDir);
     let Content: Lambda.LayerVersionContentInput | undefined;
     const Bucket = FunctionName;
-    const s3 = new S3({ region });
+    const s3 = new S3({ region, ...awsconfig });
     const zipSize = ZipFile.length;
     try {
         if (ZipFile.length > 50 * 2 ** 20) {

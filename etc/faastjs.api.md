@@ -175,6 +175,9 @@ export class FaastError extends VError {
     get info(): {
         [key: string]: any;
     };
+    get isTimeout(): boolean;
+    // @internal (undocumented)
+    _isTimeout: boolean | undefined;
     logUrl?: string;
     get message(): string;
     set message(value: string);

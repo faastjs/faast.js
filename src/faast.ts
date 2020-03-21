@@ -469,7 +469,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
 
     private processResponse<R>(
         returned: FunctionReturnWithMetrics,
-        fname: string,
+        functionName: string,
         localStartTime: number
     ): R {
         const { response } = returned;
@@ -478,7 +478,11 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
 
         if (response.type === "reject") {
             const error = response.isErrorObject
-                ? synthesizeFaastError(returned.value, logUrl, fname)
+                ? synthesizeFaastError({
+                      errObj: returned.value,
+                      logUrl,
+                      functionName
+                  })
                 : returned.value;
             value = Promise.reject(error);
             value.catch((_silenceWarningLackOfSynchronousCatch: any) => {});
@@ -514,28 +518,32 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 1,
                 localEndTime - (remoteExecutionEndTime + skew)
             );
-            fstats.update(fname, "localStartLatency", localStartLatency);
-            fstats.update(fname, "remoteStartLatency", remoteStartLatency);
-            fstats.update(fname, "executionTime", executionTime);
-            fstats.update(fname, "sendResponseLatency", sendResponseLatency);
-            fstats.update(fname, "returnLatency", returnLatency);
+            fstats.update(functionName, "localStartLatency", localStartLatency);
+            fstats.update(functionName, "remoteStartLatency", remoteStartLatency);
+            fstats.update(functionName, "executionTime", executionTime);
+            fstats.update(functionName, "sendResponseLatency", sendResponseLatency);
+            fstats.update(functionName, "returnLatency", returnLatency);
 
             const billed = (executionTime || 0) + (sendResponseLatency || 0);
             const estimatedBilledTime = Math.max(100, Math.ceil(billed / 100) * 100);
-            fstats.update(fname, "estimatedBilledTime", estimatedBilledTime);
+            fstats.update(functionName, "estimatedBilledTime", estimatedBilledTime);
         }
 
         if (response.type === "reject") {
-            fstats.incr(fname, "errors");
+            fstats.incr(functionName, "errors");
         } else {
-            fstats.incr(fname, "completed");
+            fstats.incr(functionName, "completed");
         }
 
         if (instanceId && memoryUsage) {
             if (
-                this._memoryLeakDetector.detectedNewLeak(fname, instanceId, memoryUsage)
+                this._memoryLeakDetector.detectedNewLeak(
+                    functionName,
+                    instanceId,
+                    memoryUsage
+                )
             ) {
-                log.leaks(`Possible memory leak detected in function '${fname}'.`);
+                log.leaks(`Possible memory leak detected in function '${functionName}'.`);
                 log.leaks(
                     `Memory use before execution leaked from prior calls: %O`,
                     memoryUsage

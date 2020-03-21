@@ -6,6 +6,7 @@ import { IteratorResponseMessage, Message, PromiseResponseMessage } from "./prov
 import { deserialize, serializeReturnValue } from "./serialize";
 import { AsyncIterableQueue } from "./throttle";
 import { AnyFunction } from "./types";
+import { FaastError } from "./error";
 
 function p(val: any) {
     inspect(val, {
@@ -59,19 +60,10 @@ export function createErrorResponse(
     err: any,
     { call, startTime, logUrl, executionId }: CallingContext
 ): PromiseResponseMessage {
-    let errObj: any = err;
-    if (err instanceof Error) {
-        errObj = {};
-        Object.getOwnPropertyNames(err).forEach(name => {
-            if (typeof (err as any)[name] === "string") {
-                errObj[name] = (err as any)[name];
-            }
-        });
-    }
     return {
         kind: "promise",
         type: "reject",
-        value: serializeReturnValue(call.name, errObj, false),
+        value: serializeReturnValue(call.name, err, false),
         isErrorObject: typeof err === "object" && err instanceof Error,
         callId: call.callId,
         remoteExecutionStartTime: startTime,
@@ -278,9 +270,10 @@ export class Wrapper {
                 if (timeout) {
                     this.log(`Setting timeout: ${timeout}`);
                     timer = setTimeout(() => {
-                        const error = new Error(
+                        const error = new FaastError(
                             `Request exceeded timeout of ${timeout}ms`
                         );
+                        error._isTimeout = true;
                         this.queue.push(Promise.reject(error));
                         this.stop();
                     }, timeout);

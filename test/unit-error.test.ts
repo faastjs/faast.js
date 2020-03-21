@@ -14,6 +14,7 @@ test("FaastError basic error", t => {
         code,
         functionName,
         args,
+        _isTimeout,
         ...rest
     } = error;
     const _exhaustiveCheck: Required<typeof rest> = {};
@@ -27,6 +28,7 @@ test("FaastError basic error", t => {
     t.is(functionName, undefined);
     t.is(args, undefined);
     t.is(error.cause(), undefined);
+    t.is(_isTimeout, undefined);
 });
 
 function foo() {
@@ -51,6 +53,7 @@ test("FaastError nested error", t => {
         code,
         functionName,
         args,
+        _isTimeout,
         ...rest
     } = error;
     const _exhaustiveCheck: Required<typeof rest> = {};
@@ -64,6 +67,7 @@ test("FaastError nested error", t => {
     t.is(functionName, undefined);
     t.is(args, undefined);
     t.is(error.cause(), nested);
+    t.is(_isTimeout, undefined);
 });
 
 test("FaastError synthesized error", t => {
@@ -74,7 +78,12 @@ test("FaastError synthesized error", t => {
         custom: "remote custom property"
     };
     const logUrlString = "https://cloud.com/logs";
-    const error = synthesizeFaastError(errObj, logUrlString, "functionName", ["arg"]);
+    const error = synthesizeFaastError({
+        errObj,
+        logUrl: logUrlString,
+        functionName: "functionName",
+        args: ["arg"]
+    });
     const {
         name,
         stack,
@@ -85,6 +94,7 @@ test("FaastError synthesized error", t => {
         code,
         functionName,
         args,
+        _isTimeout,
         ...rest
     } = error;
     const _exhaustiveCheck: Required<typeof rest> = {};
@@ -103,4 +113,5 @@ test("FaastError synthesized error", t => {
     t.true(cause.stack!.indexOf("faast.js cloud function invocation") >= 0);
     t.is(cause.fullStack, cause.stack);
     t.true(cause.fullStack.indexOf(logUrlString) >= 0);
+    t.is(_isTimeout, undefined);
 });

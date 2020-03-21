@@ -75,6 +75,8 @@ export function processAwsErrorMessage(message: string): Error {
         message?.match(/signal: killed/)
     ) {
         err = new FaastError(err, "possibly out of memory");
+    } else if (message?.match(/time/)) {
+        err._isTimeout = true;
     }
     return err;
 }

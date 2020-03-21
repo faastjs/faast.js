@@ -20,10 +20,9 @@ import {
     commonDefaults,
     CommonOptions,
     FunctionStats,
+    Message,
     PollResult,
     ProviderImpl,
-    Message,
-    PromiseResponseMessage,
     UUID
 } from "../provider";
 import { hasExpired, uuidv4Pattern } from "../shared";
