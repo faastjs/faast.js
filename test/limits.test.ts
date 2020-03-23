@@ -21,7 +21,7 @@ async function testTimeout(
         try {
             await lambda.functions.infiniteLoop();
         } catch (err) {
-            t.is(err.isTimeout, true);
+            t.is(err.isTimeout, true, `${inspect(err)}`);
         }
     } finally {
         await lambda.cleanup();
