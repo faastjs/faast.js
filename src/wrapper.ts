@@ -6,7 +6,7 @@ import { IteratorResponseMessage, Message, PromiseResponseMessage } from "./prov
 import { deserialize, serializeReturnValue } from "./serialize";
 import { AsyncIterableQueue } from "./throttle";
 import { AnyFunction } from "./types";
-import { FaastError } from "./error";
+import { FaastError, FaastErrorNames } from "./error";
 
 function p(val: any) {
     inspect(val, {
@@ -271,9 +271,9 @@ export class Wrapper {
                     this.log(`Setting timeout: ${timeout}`);
                     timer = setTimeout(() => {
                         const error = new FaastError(
+                            { name: FaastErrorNames.ETIMEOUT },
                             `Request exceeded timeout of ${timeout}ms`
                         );
-                        error._isTimeout = true;
                         this.queue.push(Promise.reject(error));
                         this.stop();
                     }, timeout);

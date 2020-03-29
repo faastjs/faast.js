@@ -1,6 +1,6 @@
 import { SNSEvent } from "aws-lambda";
 import { SNS, SQS } from "aws-sdk";
-import { FaastError } from "../error";
+import { FaastError, FaastErrorNames } from "../error";
 import { Message, PollResult } from "../provider";
 import { deserialize, serialize } from "../serialize";
 import { computeHttpResponseBytes, defined, sum } from "../shared";
@@ -69,14 +69,16 @@ export async function createSQSQueue(QueueName: string, VTimeout: number, sqs: S
 /* istanbul ignore next  */
 export function processAwsErrorMessage(message: string): Error {
     let err = new FaastError(message);
-    err = new FaastError(err, "lambda execution error");
     if (
         message?.match(/Process exited before completing/) ||
         message?.match(/signal: killed/)
     ) {
-        err = new FaastError(err, "possibly out of memory");
+        err = new FaastError(
+            { cause: err, name: FaastErrorNames.EMEMORY },
+            "possibly out of memory"
+        );
     } else if (message?.match(/time/)) {
-        err._isTimeout = true;
+        err = new FaastError({ cause: err, name: FaastErrorNames.ETIMEOUT }, "timeout");
     }
     return err;
 }

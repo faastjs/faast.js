@@ -108,10 +108,9 @@ async function testBasic(
             await remote.customError();
             t.fail("remote.customError() did not reject as expected");
         } catch (err) {
-            const ferr = err as FaastError;
             t.true(err instanceof FaastError);
-            t.truthy(ferr.message.match(/^custom error message/));
-            t.is(ferr.info.custom, "custom value");
+            t.truthy(err.message.match(/^custom error message/));
+            t.is(FaastError.info(err).custom, "custom value");
         }
         t.is(await remote.getEnv("faastEnvironmentVariable"), "the_answer_is_42");
         t.is(await remote.getEnv("faastNonexistent"), undefined);

@@ -3,7 +3,7 @@ import { inspect } from "util";
 import { v4 as uuidv4 } from "uuid";
 import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
 import { CostMetric, CostSnapshot } from "./cost";
-import { FaastError, synthesizeFaastError } from "./error";
+import { FaastError, FaastErrorNames, synthesizeFaastError } from "./error";
 import { GoogleImpl, GoogleOptions, GoogleState } from "./google/google-faast";
 import { LocalImpl, LocalOptions, LocalState } from "./local/local-faast";
 import { inspectProvider, log } from "./log";
@@ -25,7 +25,7 @@ import {
     ProviderImpl,
     UUID
 } from "./provider";
-import { deserialize, ESERIALIZE, serialize, serializeFunctionArgs } from "./serialize";
+import { deserialize, serialize, serializeFunctionArgs } from "./serialize";
 import { ExponentiallyDecayingAverageValue, roundTo100ms, sleep } from "./shared";
 import { AsyncOrderedQueue, Deferred, Funnel, Pump, RateLimiter } from "./throttle";
 import { FunctionCall, isGenerator } from "./wrapper";
@@ -480,7 +480,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             const error = response.isErrorObject
                 ? synthesizeFaastError({
                       errObj: returned.value,
-                      logUrl,
+                      logUrl: ` ${logUrl} `,
                       functionName
                   })
                 : returned.value;
@@ -675,13 +675,13 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             let retries = 0;
             const shouldRetry = (err: any) => {
                 if (err instanceof FaastError) {
-                    if (err.code === ESERIALIZE) {
+                    if (FaastError.hasCauseWithName(err, FaastErrorNames.ESERIALIZE)) {
                         return false;
                     }
                     // Don't retry user-generated errors. Only errors caused by
                     // failures of operations faast itself initiated (e.g. cloud
                     // service APIs) are retried.
-                    if (err.functionName) {
+                    if (FaastError.hasCauseWithName(err, FaastErrorNames.EEXCEPTION)) {
                         return false;
                     }
                 }
@@ -868,12 +868,7 @@ function resolve(fmodule: object) {
     }
     if (!modulePath) {
         throw new FaastError(
-            {
-                name: "FaastError",
-                info: {
-                    module: fmodule
-                }
-            },
+            { info: { module: fmodule } },
             `Could not find file for module, must use "import * as X from Y" or "X = require(Y)" to load a module for faast.`
         );
     }

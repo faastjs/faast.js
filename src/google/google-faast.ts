@@ -10,7 +10,7 @@ import {
 import * as util from "util";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
-import { FaastError } from "../error";
+import { FaastError, FaastErrorNames } from "../error";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
 import {
@@ -40,6 +40,7 @@ import * as googleTrampolineQueue from "./google-trampoline-queue";
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
+import { cloudfunctions } from "googleapis/build/src/apis/cloudfunctions";
 
 const gaxios = new Gaxios({
     retryConfig: {
@@ -456,11 +457,27 @@ export async function initialize(
                 requestBody
             })
         );
+        await cloudFunctions.projects.locations.functions.setIamPolicy({
+            resource: trampoline,
+            requestBody: {
+                policy: {
+                    bindings: [
+                        {
+                            members: ["allUsers"],
+                            role: "roles/cloudfunctions.invoker"
+                        }
+                    ]
+                }
+            }
+        });
     } catch (err) {
         /* istanbul ignore next  */
         if (!err.message.match(/already exists/)) {
             await deleteFunction(cloudFunctions, trampoline).catch(() => {});
-            throw new FaastError(err, "failed to create google cloud function");
+            throw new FaastError(
+                { cause: err, name: FaastErrorNames.ECREATE },
+                "failed to create google cloud function"
+            );
         }
     }
     if (mode === "https" || mode === "auto") {
@@ -549,7 +566,7 @@ async function callFunctionHttps(
         if (response) {
             if (response.status === 503) {
                 throw new FaastError(
-                    err,
+                    { cause: err, name: FaastErrorNames.EMEMORY },
                     "google cloud function: possibly out of memory"
                 );
             }

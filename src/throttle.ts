@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import { createHash } from "crypto";
 import { PersistentCache } from "./cache";
-import { FaastError } from "./error";
+import { FaastError, FaastErrorNames } from "./error";
 import { deserialize, serialize } from "./serialize";
 import { sleep } from "./shared";
 
@@ -27,7 +27,7 @@ export class DeferredWorker<T = void> extends Deferred<T> {
     async execute() {
         const cancelMessage = this.cancel?.();
         if (cancelMessage) {
-            this.reject(new FaastError(cancelMessage));
+            this.reject(new FaastError({ name: FaastErrorNames.ECANCEL }, cancelMessage));
         } else {
             try {
                 const rv = await this.worker();

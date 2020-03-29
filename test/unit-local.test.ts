@@ -5,6 +5,7 @@ import { inspect } from "util";
 import { faastLocal, LocalOptions } from "../index";
 import * as funcs from "./fixtures/functions";
 import { measureConcurrency, sleep } from "./fixtures/util";
+import { FaastError } from "../src/error";
 
 async function testCleanup(t: ExecutionContext, options: LocalOptions) {
     const m = await faastLocal(funcs, {
@@ -162,7 +163,11 @@ test("local provider child process exceptions should result in errors with logUr
     try {
         await faastModule.functions.error("synthetic error");
     } catch (err) {
-        t.true(typeof err.logUrl === "string" && err.logUrl.startsWith(" file:///"));
+        const info = FaastError.info(err);
+        t.true(
+            typeof info.logUrl === "string" && info.logUrl.startsWith(" file:///"),
+            inspect(err)
+        );
     } finally {
         await faastModule.cleanup();
     }
@@ -179,7 +184,11 @@ test("local provider child process crashes should result in errors with logUrl",
     try {
         await faastModule.functions.processExit(-1);
     } catch (err) {
-        t.true(typeof err.logUrl === "string" && err.logUrl.startsWith(" file:///"));
+        const info = FaastError.info(err);
+        t.true(
+            typeof info.logUrl === "string" && info.logUrl.startsWith(" file:///"),
+            inspect(err)
+        );
     } finally {
         await faastModule.cleanup();
     }

@@ -8,6 +8,16 @@ hide_title: true
 
 A catalogue of common error messages and their root causes. Some of these errors are specific to the faast.js testsuite, but other errors may be encountered by users.
 
+## Google cloud permissions error
+
+```text
+ Permission \'cloudfunctions.functions.setIamPolicy\' denied on resource \'projects/derivative-184723/locations/us-central1/functions/faast-cf84d703-64bb-465e-809d-0a39f36f4d9b\' (or resource may not exist).
+```
+
+In March 2020 Google changed the permissions model for cloud functions to disallow cloud functions to be called by unauthenticated users by default. Faast.js created cloud functions are intended to be ephemeral, and are named using a sha256 hash, so unauthorized calls are very unlikely. Therefore faast.js sets the IAM policy for the cloud functions it creates to allow invocations for all users from anywhere -- until they are deleted of course.
+
+The error above occurs if the user or service account used with faast.js doesn't have Owner permissions. Editor permissions are not sufficient; Owner permissions are required to be able to invoke setIamPolicy in the google cloud functions API.
+
 ## AWS IAM role permissions problems
 
 A constellation of errors can occur with AWS IAM roles:

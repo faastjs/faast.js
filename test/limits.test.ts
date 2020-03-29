@@ -1,6 +1,6 @@
 import test, { ExecutionContext } from "ava";
 import { inspect } from "util";
-import { CommonOptions, faast, Provider } from "../index";
+import { CommonOptions, faast, Provider, FaastError, FaastErrorNames } from "../index";
 import * as funcs from "./fixtures/functions";
 import { title } from "./fixtures/util";
 
@@ -21,10 +21,14 @@ async function testTimeout(
         try {
             await lambda.functions.infiniteLoop();
         } catch (err) {
-            t.is(err.isTimeout, true, `${inspect(err)}`);
+            t.is(
+                FaastError.hasCauseWithName(err, FaastErrorNames.ETIMEOUT),
+                true,
+                `${inspect(err)}`
+            );
         }
     } finally {
-        await lambda.cleanup();
+        await lambda.cleanup({ deleteResources: false });
     }
 }
 
@@ -52,7 +56,7 @@ async function testGenerator(
             t.is(result, arg);
         }
     } catch (err) {
-        t.is(err.isTimeout, true);
+        t.is(FaastError.hasCauseWithName(err, FaastErrorNames.ETIMEOUT), true);
     } finally {
         await lambda.cleanup();
     }

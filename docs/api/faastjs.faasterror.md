@@ -9,7 +9,7 @@ hide_title: true
 
 ## FaastError class
 
-A subclass of Error that is thrown by faast.js APIs and cloud function invocations.
+FaastError is a subclass of VError (https://github.com/joyent/node-verror). that is thrown by faast.js APIs and cloud function invocations.
 
 <b>Signature:</b>
 
@@ -19,29 +19,18 @@ export declare class FaastError extends VError
 
 ## Remarks
 
-`FaastError` is a subclass of [VError](https://github.com/joyent/node-verror)<!-- -->, which provides an API for nested error handling. The main API is the same as the standard Error class, namely the [FaastError.message](./faastjs.faasterror.message.md)<!-- -->, [FaastError.name](./faastjs.faasterror.name.md)<!-- -->, and [FaastError.stack](./faastjs.faasterror.stack.md) properties. In addition, the [FaastError.fullStack](./faastjs.faasterror.fullstack.md) property provides a more detailed stack trace.
+`FaastError` is a subclass of [VError](https://github.com/joyent/node-verror)<!-- -->, which provides an API for nested error handling. The main API is the same as the standard Error class, namely the err.message, err.name, and err.stack properties.
 
-`FaastError` can be returned in two situations. In the first situation, faast.js itself is reporting an error when it encounters a situation it cannot handle. In the second situation, the user's cloud function is throwing an error (or returning a rejected `Promise`<!-- -->). In the second situation, the original error class is not re-created on the client side because faast.js cannot reliably instantiate foreign subclasses of `Error`<!-- -->. Instead, all of the properties of the `Error` on the remote side are serialized and sent to the local side. These properties are available on the [FaastError.info](./faastjs.faasterror.info.md) object. In addition, [FaastError.functionName](./faastjs.faasterror.functionname.md) is the name of the function that was invoked, and [FaastError.args](./faastjs.faasterror.args.md) are the arguments used to invoke the function that caused the error.
+Several static methods on [FaastError](./faastjs.faasterror.md) are inherited from VError:
 
-If available, [FaastError.logUrl](./faastjs.faasterror.logurl.md) will be a URL pointing to the logs for the specific invocation that caused the error. The `logUrl` will be appended to the end of [FaastError.message](./faastjs.faasterror.message.md) and [FaastError.fullStack](./faastjs.faasterror.fullstack.md) as well. `logUrl` be surrounded by whilespace on both sides to ease parsing as a URL by IDEs.
+FaastError.fullStack(err) - property provides a more detailed stack trace that include stack traces of causes in the causal chain.
 
-## Properties
+FaastError.info(err) - returns an object with fields `functionName`<!-- -->, `args`<!-- -->, and `logUrl`<!-- -->. The `logUrl` property is a URL pointing to the logs for a specific invocation that caused the error.`logUrl` will be surrounded by whitespace on both sides to ease parsing as a URL by IDEs.
 
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [args](./faastjs.faasterror.args.md) |  | <code>any[]</code> | For errors returned from a cloud function call, these are the arguments that caused the failed invocation. |
-|  [code](./faastjs.faasterror.code.md) |  | <code>string</code> | Error code, if any. |
-|  [fullStack](./faastjs.faasterror.fullstack.md) |  | <code>string</code> | The full stack trace including stack traces for underlying causes, if any. |
-|  [functionName](./faastjs.faasterror.functionname.md) |  | <code>string</code> | For errors returned from a cloud function call, this is the function name that was invoked that caused the error. |
-|  [info](./faastjs.faasterror.info.md) |  | <code>{</code><br/><code>        [key: string]: any;</code><br/><code>    }</code> | Get additional metadata about this error. For errors returned from a remote cloud function call, the returned object will contain all of the properties from the original error on the remote side. |
-|  [isTimeout](./faastjs.faasterror.istimeout.md) |  | <code>boolean</code> | True if the error is caused by a cloud function timeout. |
-|  [logUrl](./faastjs.faasterror.logurl.md) |  | <code>string</code> | The log URL if this <code>FaastError</code> was caused by a cloud function invocation exception. The url will have a space at the beginning and end. |
-|  [message](./faastjs.faasterror.message.md) |  | <code>string</code> | The error message. If nested errors occurred, this message summarizes all nested errors separated with colons (:). |
-|  [name](./faastjs.faasterror.name.md) |  | <code>string</code> | Always <code>&quot;FaastError&quot;</code> |
-|  [stack](./faastjs.faasterror.stack.md) |  | <code>string &#124; undefined</code> | The stack trace for the error without include traces for underlying errors. A more complete stack trace is available under [FaastError.fullStack](./faastjs.faasterror.fullstack.md)<!-- -->. |
+FaastError.hasCauseWithName(err, cause) - returns true if the FaastError or any of its causes includes an error with the given name, otherwise false. All of the available names are in the enum [FaastErrorNames](./faastjs.faasterrornames.md)<!-- -->. For example, to detect if a FaastError was caused by a cloud function timeout:
 
-## Methods
+```typescript
+  FaastError.hasCauseWithName(err, FaastErrorNames.ETIMEOUT)
 
-|  Method | Modifiers | Description |
-|  --- | --- | --- |
-|  [cause()](./faastjs.faasterror.cause.md) |  | The underlying cause of the error, if any. This cause is also reflected in [FaastError.message](./faastjs.faasterror.message.md) and [FaastError.fullStack](./faastjs.faasterror.fullstack.md)<!-- -->. |
+```
+FaastError.findCauseByName(err, cause) - like FaastError.hasCauseWithName() except it returns the Error in the causal chain with the given name instead of a boolean, otherwise null.

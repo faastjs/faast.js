@@ -167,22 +167,17 @@ export function faastAws<M extends object>(fmodule: M, options?: AwsOptions): Pr
 
 // @public
 export class FaastError extends VError {
-    args?: any[];
-    cause(): Error | undefined;
-    code?: string;
-    get fullStack(): string;
-    functionName?: string;
-    get info(): {
-        [key: string]: any;
-    };
-    get isTimeout(): boolean;
-    // @internal (undocumented)
-    _isTimeout: boolean | undefined;
-    logUrl?: string;
-    get message(): string;
-    set message(value: string);
-    name: string;
-    stack: string | undefined;
+}
+
+// @public
+export enum FaastErrorNames {
+    ECANCEL = "FaastCancelError",
+    ECREATE = "FaastCreateFunctionError",
+    EEXCEPTION = "UserException",
+    EGENERIC = "VError",
+    EMEMORY = "FaastOutOfMemoryError",
+    ESERIALIZE = "FaastSerializationError",
+    ETIMEOUT = "FaastTimeoutError"
 }
 
 // @public

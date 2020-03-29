@@ -1,34 +1,17 @@
 import test from "ava";
 import { FaastError } from "../index";
-import { synthesizeFaastError } from "../src/error";
+import { synthesizeFaastError, FaastErrorNames } from "../src/error";
 
 test("FaastError basic error", t => {
     const error = new FaastError("bad error");
-    const {
-        name,
-        stack,
-        fullStack,
-        info,
-        logUrl,
-        message,
-        code,
-        functionName,
-        args,
-        _isTimeout,
-        ...rest
-    } = error;
+    const { name, stack, message, ...rest } = error;
     const _exhaustiveCheck: Required<typeof rest> = {};
-    t.is(name, "FaastError");
+    t.is(name, FaastErrorNames.EGENERIC);
     t.regex(stack!, /unit-error.test/);
-    t.is(fullStack, stack);
-    t.deepEqual(info, {});
-    t.is(logUrl, undefined);
+    t.is(FaastError.fullStack(error), stack);
+    t.deepEqual(FaastError.info(error), {});
     t.is(message, "bad error");
-    t.is(code, undefined);
-    t.is(functionName, undefined);
-    t.is(args, undefined);
     t.is(error.cause(), undefined);
-    t.is(_isTimeout, undefined);
 });
 
 function foo() {
@@ -43,31 +26,14 @@ test("FaastError nested error", t => {
         nested = err;
     }
     const error = new FaastError(nested, "bad error");
-    const {
-        name,
-        stack,
-        fullStack,
-        info,
-        logUrl,
-        message,
-        code,
-        functionName,
-        args,
-        _isTimeout,
-        ...rest
-    } = error;
+    const { name, stack, message, ...rest } = error;
     const _exhaustiveCheck: Required<typeof rest> = {};
-    t.is(name, "FaastError");
+    t.is(name, FaastErrorNames.EGENERIC);
     t.regex(stack!, /unit-error.test/);
-    t.regex(fullStack, /at foo /);
-    t.deepEqual(info, {});
-    t.is(logUrl, undefined);
+    t.regex(FaastError.fullStack(error), /at foo /);
+    t.deepEqual(FaastError.info(error), {});
     t.is(message, "bad error: underlying error");
-    t.is(code, undefined);
-    t.is(functionName, undefined);
-    t.is(args, undefined);
     t.is(error.cause(), nested);
-    t.is(_isTimeout, undefined);
 });
 
 test("FaastError synthesized error", t => {
@@ -84,34 +50,30 @@ test("FaastError synthesized error", t => {
         functionName: "functionName",
         args: ["arg"]
     });
-    const {
-        name,
-        stack,
-        fullStack,
-        info,
-        logUrl,
-        message,
-        code,
-        functionName,
-        args,
-        _isTimeout,
-        ...rest
-    } = error;
+    const { name, stack, message, ...rest } = error;
     const _exhaustiveCheck: Required<typeof rest> = {};
 
-    t.is(name, "FaastError");
+    t.is(name, errObj.name);
     t.true(stack!.indexOf(errObj.stack) >= 0);
-    t.true(fullStack.indexOf(errObj.stack) >= 0);
-    t.deepEqual(info, errObj);
-    t.true(logUrl!.trim() === logUrlString);
+    t.true(FaastError.fullStack(error).indexOf(errObj.stack) >= 0);
+    const info = FaastError.info(error);
+    for (const key of Object.keys(errObj)) {
+        t.is(info[key], (errObj as any)[key]);
+    }
+    t.true(FaastError.info(error).logUrl.trim() === logUrlString);
     t.true(message.indexOf(errObj.message) >= 0);
     const cause = error.cause()! as FaastError;
     t.is(cause.message, logUrlString);
-    t.is(code, undefined);
-    t.is(functionName, "functionName");
-    t.deepEqual(args, ["arg"]);
+    t.is(info.functionName, "functionName");
+    t.deepEqual(info.args, ["arg"]);
     t.true(cause.stack!.indexOf("faast.js cloud function invocation") >= 0);
-    t.is(cause.fullStack, cause.stack);
-    t.true(cause.fullStack.indexOf(logUrlString) >= 0);
-    t.is(_isTimeout, undefined);
+    t.is(FaastError.fullStack(cause), cause.stack);
+    t.true(FaastError.fullStack(cause).indexOf(logUrlString) >= 0);
+});
+
+test("FaastError using option constructor", t => {
+    const error = new FaastError({ name: FaastErrorNames.ETIMEOUT }, "message");
+    const { name, stack, message, ...rest } = error;
+    const _exhaustiveCheck: Required<typeof rest> = {};
+    t.is(name, FaastErrorNames.ETIMEOUT);
 });

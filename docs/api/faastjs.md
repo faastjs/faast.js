@@ -18,12 +18,18 @@ The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, 
 |  --- | --- |
 |  [CostMetric](./faastjs.costmetric.md) | A line item in the cost estimate, including the resource usage metric measured and its pricing. |
 |  [CostSnapshot](./faastjs.costsnapshot.md) | A summary of the costs incurred by a faast.js module at a point in time. Output of [FaastModule.costSnapshot()](./faastjs.faastmodule.costsnapshot.md)<!-- -->. |
-|  [FaastError](./faastjs.faasterror.md) | A subclass of Error that is thrown by faast.js APIs and cloud function invocations. |
+|  [FaastError](./faastjs.faasterror.md) | FaastError is a subclass of VError (https://github.com/joyent/node-verror). that is thrown by faast.js APIs and cloud function invocations. |
 |  [FaastModuleProxy](./faastjs.faastmoduleproxy.md) | Implementation of [FaastModule](./faastjs.faastmodule.md)<!-- -->. |
 |  [FunctionStats](./faastjs.functionstats.md) | Summary statistics for function invocations. |
 |  [FunctionStatsEvent](./faastjs.functionstatsevent.md) | Summarize statistics about cloud function invocations. |
 |  [PersistentCache](./faastjs.persistentcache.md) | A simple persistent key-value store. Used to implement [Limits.cache](./faastjs.limits.cache.md) for [throttle()](./faastjs.throttle.md)<!-- -->. |
 |  [Statistics](./faastjs.statistics.md) | Incrementally updated statistics on a set of values. |
+
+## Enumerations
+
+|  Enumeration | Description |
+|  --- | --- |
+|  [FaastErrorNames](./faastjs.faasterrornames.md) | Possible FaastError names. See [FaastError](./faastjs.faasterror.md)<!-- -->. To test for errors matching these names, use the static method [FaastError](./faastjs.faasterror.md)<!-- -->.hasCauseWithName(). |
 
 ## Functions
 

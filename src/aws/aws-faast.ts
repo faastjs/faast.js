@@ -16,7 +16,7 @@ import { readFile } from "fs-extra";
 import { inspect } from "util";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
-import { FaastError } from "../error";
+import { FaastError, FaastErrorNames } from "../error";
 import { faastAws } from "../faast";
 import { log } from "../log";
 import { packer, PackerResult } from "../packer";
@@ -462,45 +462,41 @@ export const initialize = throttle(
                 ...rest
             };
             log.info(`createFunctionRequest: %O`, request);
+            let func;
             try {
-                let func;
-                try {
-                    func = await lambda.createFunction(request).promise();
-                } catch (err) {
-                    if (err?.message?.match(/Function already exist/)) {
-                        func = (await lambda.getFunction({ FunctionName }).promise())
-                            .Configuration!;
-                    } else {
-                        throw new FaastError(err, "createFunction");
-                    }
-                }
-                log.info(
-                    `Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`
-                );
-                try {
-                    const config = await retryOp(
-                        (err, n) =>
-                            n < 5 && err?.message?.match(/destination ARN.*is invalid/),
-                        () =>
-                            lambda
-                                .putFunctionEventInvokeConfig({
-                                    FunctionName,
-                                    MaximumRetryAttempts: 0,
-                                    MaximumEventAgeInSeconds: 120,
-                                    DestinationConfig: {
-                                        OnFailure: { Destination: responseQueueArn }
-                                    }
-                                })
-                                .promise()
-                    );
-                    log.info(`Function event invocation config: %O`, config);
-                } catch (err) {
-                    throw new FaastError(err, "putFunctionEventInvokeConfig");
-                }
-                return func;
+                func = await lambda.createFunction(request).promise();
             } catch (err) {
-                throw new FaastError(err, "Create function failure");
+                if (err?.message?.match(/Function already exist/)) {
+                    func = (await lambda.getFunction({ FunctionName }).promise())
+                        .Configuration!;
+                } else {
+                    throw new FaastError(err, "Create function failure");
+                }
             }
+            log.info(
+                `Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`
+            );
+            try {
+                const config = await retryOp(
+                    (err, n) =>
+                        n < 5 && err?.message?.match(/destination ARN.*is invalid/),
+                    () =>
+                        lambda
+                            .putFunctionEventInvokeConfig({
+                                FunctionName,
+                                MaximumRetryAttempts: 0,
+                                MaximumEventAgeInSeconds: 120,
+                                DestinationConfig: {
+                                    OnFailure: { Destination: responseQueueArn }
+                                }
+                            })
+                            .promise()
+                );
+                log.info(`Function event invocation config: %O`, config);
+            } catch (err) {
+                throw new FaastError(err, "putFunctionEventInvokeConfig failure");
+            }
+            return func;
         }
         const { wrapperVerbose } = options.debugOptions;
         async function createCodeBundle() {
@@ -632,7 +628,10 @@ export const initialize = throttle(
             try {
                 await cleanup(state, { deleteResources: true, deleteCaches: false });
             } catch {}
-            throw new FaastError(err, "failed to initialize cloud function");
+            throw new FaastError(
+                { cause: err, name: FaastErrorNames.ECREATE },
+                "failed to initialize cloud function"
+            );
         }
     }
 );

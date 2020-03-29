@@ -1,8 +1,6 @@
 import { deepStrictEqual } from "assert";
-import { FaastError } from "./error";
+import { FaastError, FaastErrorNames } from "./error";
 import { inspect } from "util";
-
-export const ESERIALIZE = "ESERIALIZE";
 
 export function deepCopyUndefined(dest: object, source: object) {
     const stack: object[] = [];
@@ -163,10 +161,9 @@ export function serializeFunctionArgs(
         return serialize(args, validate);
     } catch (err) {
         const error = new FaastError(
-            err,
+            { cause: err, name: FaastErrorNames.ESERIALIZE },
             `faast: Detected '${name}' argument cannot be serialized by JSON.stringify`
         );
-        error.code = ESERIALIZE;
         throw error;
     }
 }
@@ -180,12 +177,11 @@ export function serializeReturnValue(
         return serialize(returned, validate);
     } catch (err) {
         const error = new FaastError(
-            err,
+            { cause: err, name: FaastErrorNames.ESERIALIZE },
             `faast: Detected return value from ${name} cannot be serialized by JSON.stringify: ${inspect(
                 returned
             )}`
         );
-        error.code = ESERIALIZE;
         throw error;
     }
 }

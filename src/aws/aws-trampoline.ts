@@ -1,7 +1,7 @@
 import { Context, SNSEvent } from "aws-lambda";
 import { SQS } from "aws-sdk";
 import { env } from "process";
-import { FaastError } from "../error";
+import { FaastError, FaastErrorNames } from "../error";
 import { deserialize } from "../serialize";
 import { CallingContext, FunctionCall, Wrapper } from "../wrapper";
 import { sendResponseQueueMessage } from "./aws-queue";
@@ -17,7 +17,10 @@ const CallIdAttribute: Extract<keyof FunctionCall, "callId"> = "callId";
 
 function errorCallback(err: Error) {
     if (err.message.match(/SIGKILL/)) {
-        return new FaastError(err, "possibly out of memory");
+        return new FaastError(
+            { cause: err, name: FaastErrorNames.EMEMORY },
+            "possibly out of memory"
+        );
     }
     return err;
 }
