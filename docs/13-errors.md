@@ -8,6 +8,20 @@ hide_title: true
 
 A catalogue of common error messages and their root causes. Some of these errors are specific to the faast.js testsuite, but other errors may be encountered by users.
 
+## Cannot find any-observable
+
+This error was observed when developing another application that uses faast.js:
+
+```
+`lambda execution error: {"errorType":"Error","errorMessage":"Cannot find any-observable implementation nor global.Observable. You must install polyfill or call require(\\"any-observable/register\\") with your preferred implementation, e.g. require(\\"any-observable/register\\")('rxjs') on application load prior to any require(\\"any-observable\\").","trace":["Error: Cannot find any-observable implementation nor global.Observable. You must install polyfill or call require(\\"any-observable/register\\") with your preferred implementation, e.g. require(\\"any-observable/register\\")('rxjs') on application load prior to any require(\\"any-observable\\")."," at loadImplementation (webpack:///./node_modules/any-observable/register.js?:29:9)"," at eval (webpack:///./node_modules/any-observable/loader.js?:30:18)"," at eval (webpack:///./node_modules/any-observable/index.js?:2:100)"," at Object../node_modules/any-observable/index.js (/var/task/index.js:4784:1)"," at __webpack_require__ (/var/task/index.js:27:30)"," at eval (webpack:///./node_modules/@samverschueren/stream-to-observable/index.js?:2:20)"," at Object../node_modules/@samverschueren/stream-to-observable/index.js (/var/task/index.js:3289:1)"," at __webpack_require__ (/var/task/index.js:27:30)"," at eval (webpack:///./node_modules/listr/lib/task.js?:3:28)"," at Object../node_modules/listr/lib/task.js (/var/task/index.js:26916:1)"]}`
+```
+
+The root cause was trying to import faast.js into the remote module (indirectly). In particular, a utility function was importing `FaastError` and `FaastErrorNames` to check for timeouts. This utility code was shared between local and remote sides, because it dealt with low-level async operations. When faast.js was imported, it pulled in many dependencies during webpack processing, some of which were not using only static imports.
+
+The solution was to move one utility function out of the shared module and into a purely local file. This removed the indirect dependency on faast.js in the remote module.
+
+Faast.js should probably detect this situation and warn about it explicitly.
+
 ## Google cloud permissions error
 
 ```text
