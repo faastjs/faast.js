@@ -44,7 +44,7 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
                     .processBucketObject(Bucket, Obj.Key!)
                     .catch((err: FaastError) => {
                         console.log(`Error processing ${Obj.Key!}`);
-                        console.log(`Logs: ${err.logUrl}`);
+                        console.log(`Logs: ${FaastError.info(err).logUrl}`);
                     })
             );
         }
