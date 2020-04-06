@@ -103,6 +103,7 @@
         "lolex": "5.1.2",
         "nyc": "15.0.1",
         "papaparse": "5.2.0",
+        "prettier": "2.0.4",
         "semantic-release": "17.0.4",
         "tslint": "6.1.1",
         "tslint-config-prettier": "1.18.0",
@@ -116,7 +117,10 @@
     },
     "prettier": {
         "printWidth": 90,
-        "tabWidth": 4
+        "tabWidth": 4,
+        "useTabs": false,
+        "arrowParens": "avoid",
+        "trailingComma": "none"
     },
     "nyc": {
         "exclude": [
