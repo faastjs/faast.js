@@ -584,7 +584,7 @@ export const initialize = throttle(
                         // deleted and re-deployed. Empirically, this is the way
                         // to ensure successful lambda creation when an IAM role
                         // is recently created.
-                        if (Date.now() - role.CreateDate.getTime() < 120 * 1000) {
+                        if (Date.now() - role.CreateDate.getTime() < 300 * 1000) {
                             await retryOp(1, () =>
                                 invokeHttps(
                                     lambda,
