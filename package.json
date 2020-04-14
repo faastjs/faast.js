@@ -59,7 +59,7 @@
         "@types/debug": "^4.1.4",
         "@types/verror": "^1.10.3",
         "@types/webpack": "^4.41.2",
-        "archiver": "^3.0.0",
+        "archiver": "^4.0.0",
         "aws-sdk": "^2.606.0",
         "commander": "^5.0.0",
         "debug": "^4.1.1",
