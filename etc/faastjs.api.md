@@ -8,7 +8,7 @@ import * as childProcess from 'child_process';
 import { cloudbilling_v1 } from 'googleapis';
 import { cloudfunctions_v1 } from 'googleapis';
 import { CloudWatchLogs } from 'aws-sdk';
-import * as debug from 'debug';
+import * as debug_2 from 'debug';
 import { GoogleApis } from 'googleapis';
 import { IAM } from 'aws-sdk';
 import { Lambda } from 'aws-sdk';
@@ -297,14 +297,14 @@ export interface LocalOptions extends CommonOptions {
 
 // @public
 export const log: {
-    info: debug.Debugger;
-    warn: debug.Debugger;
-    gc: debug.Debugger;
-    leaks: debug.Debugger;
-    calls: debug.Debugger;
-    webpack: debug.Debugger;
-    provider: debug.Debugger;
-    awssdk: debug.Debugger;
+    info: debug_2.Debugger;
+    warn: debug_2.Debugger;
+    gc: debug_2.Debugger;
+    leaks: debug_2.Debugger;
+    calls: debug_2.Debugger;
+    webpack: debug_2.Debugger;
+    provider: debug_2.Debugger;
+    awssdk: debug_2.Debugger;
 };
 
 // @public
