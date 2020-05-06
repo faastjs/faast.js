@@ -21,12 +21,12 @@ off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  name | <code>&quot;stats&quot;</code> |  |
-|  listener | <code>(statsEvent: FunctionStatsEvent) =&gt; void</code> |  |
+|  name | "stats" |  |
+|  listener | (statsEvent: [FunctionStatsEvent](./faastjs.functionstatsevent.md)<!-- -->) =&gt; void |  |
 
 <b>Returns:</b>
 
-`void`
+void
 
 ## Remarks
 

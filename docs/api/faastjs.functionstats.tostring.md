@@ -18,6 +18,6 @@ toString(): string;
 ```
 <b>Returns:</b>
 
-`string`
+string
 
 a string showing the value of completed, retries, errors, and mean execution time. This string excludes invocations by default because it is often fixed.

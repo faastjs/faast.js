@@ -21,11 +21,11 @@ set(key: string, value: Buffer | string | Uint8Array | Readable | Blob): Promise
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  key | <code>string</code> |  |
-|  value | <code>Buffer &#124; string &#124; Uint8Array &#124; Readable &#124; Blob</code> |  |
+|  key | string |  |
+|  value | Buffer \| string \| Uint8Array \| Readable \| Blob |  |
 
 <b>Returns:</b>
 
-`Promise<void>`
+Promise&lt;void&gt;
 
 a Promise that resolves when the cache entry has been persisted.

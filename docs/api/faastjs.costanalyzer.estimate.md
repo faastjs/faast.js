@@ -21,6 +21,6 @@ interface Estimate<A extends string>
 
 |  Property | Type | Description |
 |  --- | --- | --- |
-|  [config](./faastjs.costanalyzer.estimate.config.md) | <code>Configuration</code> | The worload configuration that was analyzed. See [CostAnalyzer.Configuration](./faastjs.costanalyzer.configuration.md)<!-- -->. |
-|  [costSnapshot](./faastjs.costanalyzer.estimate.costsnapshot.md) | <code>CostSnapshot</code> | The cost snapshot for the cost analysis of the specific (workload, configuration) combination. See [CostSnapshot](./faastjs.costsnapshot.md)<!-- -->. |
-|  [extraMetrics](./faastjs.costanalyzer.estimate.extrametrics.md) | <code>WorkloadAttribute&lt;A&gt;</code> | Additional workload metrics returned from the work function. See [CostAnalyzer.WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)<!-- -->. |
+|  [config](./faastjs.costanalyzer.estimate.config.md) | [Configuration](./faastjs.costanalyzer.configuration.md) | The worload configuration that was analyzed. See [CostAnalyzer.Configuration](./faastjs.costanalyzer.configuration.md)<!-- -->. |
+|  [costSnapshot](./faastjs.costanalyzer.estimate.costsnapshot.md) | [CostSnapshot](./faastjs.costsnapshot.md) | The cost snapshot for the cost analysis of the specific (workload, configuration) combination. See [CostSnapshot](./faastjs.costsnapshot.md)<!-- -->. |
+|  [extraMetrics](./faastjs.costanalyzer.estimate.extrametrics.md) | [WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)<!-- -->&lt;A&gt; | Additional workload metrics returned from the work function. See [CostAnalyzer.WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)<!-- -->. |

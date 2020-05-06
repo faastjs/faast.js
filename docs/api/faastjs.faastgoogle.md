@@ -21,11 +21,11 @@ export declare function faastGoogle<M extends object>(fmodule: M, options?: Goog
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  fmodule | <code>M</code> | A module imported with <code>import * as X from &quot;Y&quot;;</code>. Using <code>require</code> also works but loses type information. |
-|  options | <code>GoogleOptions</code> | Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional Google-specific options are in [GoogleOptions](./faastjs.googleoptions.md)<!-- -->. |
+|  fmodule | M | A module imported with <code>import * as X from &quot;Y&quot;;</code>. Using <code>require</code> also works but loses type information. |
+|  options | [GoogleOptions](./faastjs.googleoptions.md) | Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional Google-specific options are in [GoogleOptions](./faastjs.googleoptions.md)<!-- -->. |
 
 <b>Returns:</b>
 
-`Promise<GoogleFaastModule<M>>`
+Promise&lt;[GoogleFaastModule](./faastjs.googlefaastmodule.md)<!-- -->&lt;M&gt;&gt;
 
 a Promise for [GoogleFaastModule](./faastjs.googlefaastmodule.md)<!-- -->.

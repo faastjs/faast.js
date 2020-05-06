@@ -18,7 +18,7 @@ costSnapshot(): Promise<CostSnapshot>;
 ```
 <b>Returns:</b>
 
-`Promise<CostSnapshot>`
+Promise&lt;[CostSnapshot](./faastjs.costsnapshot.md)<!-- -->&gt;
 
 a Promise for a [CostSnapshot](./faastjs.costsnapshot.md)<!-- -->.
 

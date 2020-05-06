@@ -21,10 +21,10 @@ find(name: string): CostMetric | undefined;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  name | <code>string</code> |  |
+|  name | string |  |
 
 <b>Returns:</b>
 
-`CostMetric | undefined`
+[CostMetric](./faastjs.costmetric.md) \| undefined
 
 a [CostMetric](./faastjs.costmetric.md) if found, otherwise `undefined`<!-- -->.

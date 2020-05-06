@@ -23,8 +23,8 @@ clear({ leaveEmptyDir }?: {
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  { leaveEmptyDir } | <code>{</code><br/><code>        leaveEmptyDir?: boolean &#124; undefined;</code><br/><code>    }</code> |  |
+|  { leaveEmptyDir } | { leaveEmptyDir?: boolean \| undefined; } |  |
 
 <b>Returns:</b>
 
-`Promise<void>`
+Promise&lt;void&gt;

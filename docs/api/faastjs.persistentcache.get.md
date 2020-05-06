@@ -21,8 +21,8 @@ get(key: string): Promise<Buffer | undefined>;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  key | <code>string</code> |  |
+|  key | string |  |
 
 <b>Returns:</b>
 
-`Promise<Buffer | undefined>`
+Promise&lt;Buffer \| undefined&gt;

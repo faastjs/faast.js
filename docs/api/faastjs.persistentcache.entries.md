@@ -18,4 +18,4 @@ entries(): Promise<string[]>;
 ```
 <b>Returns:</b>
 
-`Promise<string[]>`
+Promise&lt;string\[\]&gt;

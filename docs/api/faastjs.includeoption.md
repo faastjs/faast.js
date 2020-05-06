@@ -21,5 +21,5 @@ export interface IncludeOption
 
 |  Property | Type | Description |
 |  --- | --- | --- |
-|  [cwd](./faastjs.includeoption.cwd.md) | <code>string</code> | The working directory if <code>path</code> is relative. Defaults to <code>process.cwd()</code>. For example, if <code>cwd</code> is <code>&quot;foo&quot;</code> and <code>path</code> is <code>&quot;bar&quot;</code>, then the contents of the directory <code>foo/bar/</code> will be added to the remote function under the path <code>bar/</code>. |
-|  [path](./faastjs.includeoption.path.md) | <code>string</code> | The path to the directory or glob to add to the cloud function. |
+|  [cwd](./faastjs.includeoption.cwd.md) | string | The working directory if <code>path</code> is relative. Defaults to <code>process.cwd()</code>. For example, if <code>cwd</code> is <code>&quot;foo&quot;</code> and <code>path</code> is <code>&quot;bar&quot;</code>, then the contents of the directory <code>foo/bar/</code> will be added to the remote function under the path <code>bar/</code>. |
+|  [path](./faastjs.includeoption.path.md) | string | The path to the directory or glob to add to the cloud function. |

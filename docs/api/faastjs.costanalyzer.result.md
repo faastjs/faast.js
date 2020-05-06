@@ -27,8 +27,8 @@ The constructor for this class is marked as internal. Third-party code should no
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [estimates](./faastjs.costanalyzer.result.estimates.md) |  | <code>Estimate&lt;A&gt;[]</code> | Cost estimates for each configuration of the workload. See [CostAnalyzer.Estimate](./faastjs.costanalyzer.estimate.md)<!-- -->. |
-|  [workload](./faastjs.costanalyzer.result.workload.md) |  | <code>Required&lt;Workload&lt;T, A&gt;&gt;</code> | The workload analyzed. |
+|  [estimates](./faastjs.costanalyzer.result.estimates.md) |  | [Estimate](./faastjs.costanalyzer.estimate.md)<!-- -->&lt;A&gt;\[\] | Cost estimates for each configuration of the workload. See [CostAnalyzer.Estimate](./faastjs.costanalyzer.estimate.md)<!-- -->. |
+|  [workload](./faastjs.costanalyzer.result.workload.md) |  | Required&lt;[Workload](./faastjs.costanalyzer.workload.md)<!-- -->&lt;T, A&gt;&gt; | The workload analyzed. |
 
 ## Methods
 

@@ -21,11 +21,11 @@ cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  userCleanupOptions | <code>CleanupOptions</code> |  |
+|  userCleanupOptions | [CleanupOptions](./faastjs.cleanupoptions.md) |  |
 
 <b>Returns:</b>
 
-`Promise<void>`
+Promise&lt;void&gt;
 
 a Promise that resolves when the `FaastModule` runtime stops and ephemeral resources have been deleted.
 

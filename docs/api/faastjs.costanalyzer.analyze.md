@@ -21,11 +21,11 @@ function analyze<T extends object, A extends string>(userWorkload: Workload<T, A
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  userWorkload | <code>Workload&lt;T, A&gt;</code> | a [CostAnalyzer.Workload](./faastjs.costanalyzer.workload.md) object specifying the workload to run and additional parameters. |
+|  userWorkload | [Workload](./faastjs.costanalyzer.workload.md)<!-- -->&lt;T, A&gt; | a [CostAnalyzer.Workload](./faastjs.costanalyzer.workload.md) object specifying the workload to run and additional parameters. |
 
 <b>Returns:</b>
 
-`Promise<Result<T, A>>`
+Promise&lt;[Result](./faastjs.costanalyzer.result.md)<!-- -->&lt;T, A&gt;&gt;
 
 A promise for a [CostAnalyzer.Result](./faastjs.costanalyzer.result.md)
 

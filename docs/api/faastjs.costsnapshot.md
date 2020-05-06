@@ -91,10 +91,10 @@ The constructor for this class is marked as internal. Third-party code should no
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [costMetrics](./faastjs.costsnapshot.costmetrics.md) |  | <code>CostMetric[]</code> | The cost metric components for this cost snapshot. See [CostMetric](./faastjs.costmetric.md)<!-- -->. |
-|  [options](./faastjs.costsnapshot.options.md) |  | <code>CommonOptions &#124; AwsOptions &#124; GoogleOptions</code> | The options used to initialize the faast.js module where this cost snapshot was generated. |
-|  [provider](./faastjs.costsnapshot.provider.md) |  | <code>string</code> | The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" or "google" |
-|  [stats](./faastjs.costsnapshot.stats.md) |  | <code>FunctionStats</code> | The function statistics that were used to compute prices. |
+|  [costMetrics](./faastjs.costsnapshot.costmetrics.md) |  | [CostMetric](./faastjs.costmetric.md)<!-- -->\[\] | The cost metric components for this cost snapshot. See [CostMetric](./faastjs.costmetric.md)<!-- -->. |
+|  [options](./faastjs.costsnapshot.options.md) |  | [CommonOptions](./faastjs.commonoptions.md) \| [AwsOptions](./faastjs.awsoptions.md) \| [GoogleOptions](./faastjs.googleoptions.md) | The options used to initialize the faast.js module where this cost snapshot was generated. |
+|  [provider](./faastjs.costsnapshot.provider.md) |  | string | The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" or "google" |
+|  [stats](./faastjs.costsnapshot.stats.md) |  | [FunctionStats](./faastjs.functionstats.md) | The function statistics that were used to compute prices. |
 
 ## Methods
 

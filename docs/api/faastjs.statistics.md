@@ -27,13 +27,13 @@ export declare class Statistics
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [max](./faastjs.statistics.max.md) |  | <code>number</code> | The maximum value observed. Initialized to <code>Number.NEGATIVE_INFINITY</code>. |
-|  [mean](./faastjs.statistics.mean.md) |  | <code>number</code> | The mean (average) of the values observed. |
-|  [min](./faastjs.statistics.min.md) |  | <code>number</code> | The minimum value observed. Initialized to <code>Number.POSITIVE_INFINITY</code>. |
-|  [printFixedPrecision](./faastjs.statistics.printfixedprecision.md) |  | <code>number</code> | The number of decimal places to print in [Statistics.toString()](./faastjs.statistics.tostring.md) |
-|  [samples](./faastjs.statistics.samples.md) |  | <code>number</code> | Number of values observed. |
-|  [stdev](./faastjs.statistics.stdev.md) |  | <code>number</code> | The standard deviation of the values observed. |
-|  [variance](./faastjs.statistics.variance.md) |  | <code>number</code> | The variance of the values observed. |
+|  [max](./faastjs.statistics.max.md) |  | number | The maximum value observed. Initialized to <code>Number.NEGATIVE_INFINITY</code>. |
+|  [mean](./faastjs.statistics.mean.md) |  | number | The mean (average) of the values observed. |
+|  [min](./faastjs.statistics.min.md) |  | number | The minimum value observed. Initialized to <code>Number.POSITIVE_INFINITY</code>. |
+|  [printFixedPrecision](./faastjs.statistics.printfixedprecision.md) |  | number | The number of decimal places to print in [Statistics.toString()](./faastjs.statistics.tostring.md) |
+|  [samples](./faastjs.statistics.samples.md) |  | number | Number of values observed. |
+|  [stdev](./faastjs.statistics.stdev.md) |  | number | The standard deviation of the values observed. |
+|  [variance](./faastjs.statistics.variance.md) |  | number | The variance of the values observed. |
 
 ## Methods
 

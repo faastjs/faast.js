@@ -18,4 +18,4 @@ cost(): number;
 ```
 <b>Returns:</b>
 
-`number`
+number

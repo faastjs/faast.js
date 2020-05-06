@@ -18,7 +18,7 @@ logUrl(): string;
 ```
 <b>Returns:</b>
 
-`string`
+string
 
 ## Remarks
 

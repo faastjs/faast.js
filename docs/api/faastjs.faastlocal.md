@@ -21,11 +21,11 @@ export declare function faastLocal<M extends object>(fmodule: M, options?: Local
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  fmodule | <code>M</code> | A module imported with <code>import * as X from &quot;Y&quot;;</code>. Using <code>require</code> also works but loses type information. |
-|  options | <code>LocalOptions</code> | Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional Local-specific options are in [LocalOptions](./faastjs.localoptions.md)<!-- -->. |
+|  fmodule | M | A module imported with <code>import * as X from &quot;Y&quot;;</code>. Using <code>require</code> also works but loses type information. |
+|  options | [LocalOptions](./faastjs.localoptions.md) | Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional Local-specific options are in [LocalOptions](./faastjs.localoptions.md)<!-- -->. |
 
 <b>Returns:</b>
 
-`Promise<LocalFaastModule<M>>`
+Promise&lt;[LocalFaastModule](./faastjs.localfaastmodule.md)<!-- -->&lt;M&gt;&gt;
 
 a Promise for [LocalFaastModule](./faastjs.localfaastmodule.md)<!-- -->.

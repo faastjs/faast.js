@@ -21,12 +21,12 @@ export declare function throttle<A extends any[], R>(limits: Limits, fn: (...arg
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  limits | <code>Limits</code> | see [Limits](./faastjs.limits.md)<!-- -->. |
-|  fn | <code>(...args: A) =&gt; Promise&lt;R&gt;</code> | The function to throttle. It can take any arguments, but must return a Promise (which includes <code>async</code> functions). |
+|  limits | [Limits](./faastjs.limits.md) | see [Limits](./faastjs.limits.md)<!-- -->. |
+|  fn | (...args: A) =&gt; Promise&lt;R&gt; | The function to throttle. It can take any arguments, but must return a Promise (which includes <code>async</code> functions). |
 
 <b>Returns:</b>
 
-`(...args: A) => Promise<R>`
+(...args: A) =&gt; Promise&lt;R&gt;
 
 Returns a throttled function with the same signature as the argument `fn`<!-- -->.
 
