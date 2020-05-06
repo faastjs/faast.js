@@ -197,7 +197,6 @@ export interface FaastModule<M extends object> {
     /**
      * Stop the faast.js runtime for this cloud function and clean up ephemeral
      * cloud resources.
-     * @param options - See {@link CleanupOptions}.
      * @returns a Promise that resolves when the `FaastModule` runtime stops and
      * ephemeral resources have been deleted.
      * @remarks
@@ -923,7 +922,6 @@ export async function faast<M extends object>(
  * `require` also works but loses type information.
  * @param options - Most common options are in {@link CommonOptions}.
  * Additional AWS-specific options are in {@link AwsOptions}.
- * @returns a Promise for {@link AwsFaastModule}.
  * @public
  */
 export function faastAws<M extends object>(
@@ -939,7 +937,6 @@ export function faastAws<M extends object>(
  * `require` also works but loses type information.
  * @param options - Most common options are in {@link CommonOptions}.
  * Additional Google-specific options are in {@link GoogleOptions}.
- * @returns a Promise for {@link GoogleFaastModule}.
  * @public
  */
 export function faastGoogle<M extends object>(

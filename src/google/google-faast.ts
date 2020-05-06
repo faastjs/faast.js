@@ -52,8 +52,9 @@ const gaxios = new Gaxios({
 
 /**
  * Valid Google Cloud
- * {@link https://cloud.google.com/compute/docs/regions-zones/ | regions}.
- * Only some of these [regions have Cloud Functions](https://cloud.google.com/functions/docs/locations).
+ * {@link https://cloud.google.com/compute/docs/regions-zones/ | regions}. Only
+ * some of these
+ * {@link https://cloud.google.com/functions/docs/locations | regions have Cloud Functions}.
  * @public
  */
 export type GoogleRegion =
