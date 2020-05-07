@@ -27,5 +27,3 @@ export declare function faastAws<M extends object>(fmodule: M, options?: AwsOpti
 <b>Returns:</b>
 
 Promise&lt;[AwsFaastModule](./faastjs.awsfaastmodule.md)<!-- -->&lt;M&gt;&gt;
-
-a Promise for [AwsFaastModule](./faastjs.awsfaastmodule.md)<!-- -->.

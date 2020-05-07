@@ -9,7 +9,7 @@ hide_title: true
 
 ## GoogleRegion type
 
-Valid Google Cloud [regions](https://cloud.google.com/compute/docs/regions-zones/)<!-- -->. Only some of these \[regions have Cloud Functions\](https://cloud.google.com/functions/docs/locations).
+Valid Google Cloud [regions](https://cloud.google.com/compute/docs/regions-zones/)<!-- -->. Only some of these [regions have Cloud Functions](https://cloud.google.com/functions/docs/locations)<!-- -->.
 
 <b>Signature:</b>
 

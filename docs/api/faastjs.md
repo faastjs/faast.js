@@ -75,7 +75,7 @@ The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, 
 |  [AwsFaastModule](./faastjs.awsfaastmodule.md) | The return type of [faastAws()](./faastjs.faastaws.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
 |  [AwsRegion](./faastjs.awsregion.md) | Valid AWS [regions](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html)<!-- -->. Not all of these regions have Lambda support. |
 |  [GoogleFaastModule](./faastjs.googlefaastmodule.md) | The return type of [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
-|  [GoogleRegion](./faastjs.googleregion.md) | Valid Google Cloud [regions](https://cloud.google.com/compute/docs/regions-zones/)<!-- -->. Only some of these \[regions have Cloud Functions\](https://cloud.google.com/functions/docs/locations). |
+|  [GoogleRegion](./faastjs.googleregion.md) | Valid Google Cloud [regions](https://cloud.google.com/compute/docs/regions-zones/)<!-- -->. Only some of these [regions have Cloud Functions](https://cloud.google.com/functions/docs/locations)<!-- -->. |
 |  [LocalFaastModule](./faastjs.localfaastmodule.md) | The return type of [faastLocal()](./faastjs.faastlocal.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
 |  [Provider](./faastjs.provider.md) | The type of all supported cloud providers. |
 |  [ProxyModule](./faastjs.proxymodule.md) | <code>ProxyModule&lt;M&gt;</code> is the type of [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. |

@@ -27,5 +27,3 @@ export declare function faastGoogle<M extends object>(fmodule: M, options?: Goog
 <b>Returns:</b>
 
 Promise&lt;[GoogleFaastModule](./faastjs.googlefaastmodule.md)<!-- -->&lt;M&gt;&gt;
-
-a Promise for [GoogleFaastModule](./faastjs.googlefaastmodule.md)<!-- -->.
