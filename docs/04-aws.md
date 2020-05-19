@@ -37,7 +37,7 @@ The following diagram shows the AWS resources that faast.js creates:
 
 ![faastjs-architecture-aws](./assets/faastjs-architecture-aws.svg "faast.js architecture for aws")
 
-In the `cleanup` function the SNS topic, SQS queue, and Lambda function are deleted. Lambda Layers are retained for 24 hours, then removed by the next faast.js instance that runs garbage collection. The Lambda Role remains permanently.
+In the `cleanup` function the SNS topic, SQS queue, S3 Bucket, and Lambda function are deleted. Lambda Layers are retained for 24 hours, then removed by the next faast.js instance that runs garbage collection. The Lambda Role remains permanently.
 
 All faast.js AWS resources can be removed using the [faastjs cleanup command](./01-introduction.md#cleanup-command).
 

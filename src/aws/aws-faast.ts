@@ -781,16 +781,6 @@ export async function deleteResources(
             output(`Deleted lambda layer: ${layer.LayerName}:${layer.Version}`);
         }
     }
-    if (FunctionName) {
-        if (await quietly(lambda.deleteFunction({ FunctionName }))) {
-            output(`Deleted function: ${FunctionName}`);
-        }
-    }
-    if (logGroupName) {
-        if (await quietly(cloudwatch.deleteLogGroup({ logGroupName }))) {
-            output(`Deleted log group: ${logGroupName}`);
-        }
-    }
     if (Bucket) {
         const objects = await quietly(s3.listObjectsV2({ Bucket, Prefix: "faast-" }));
         if (objects) {
@@ -801,6 +791,16 @@ export async function deleteResources(
         }
         if (await quietly(s3.deleteBucket({ Bucket }))) {
             output(`Deleted s3 bucket: ${Bucket}`);
+        }
+    }
+    if (FunctionName) {
+        if (await quietly(lambda.deleteFunction({ FunctionName }))) {
+            output(`Deleted function: ${FunctionName}`);
+        }
+    }
+    if (logGroupName) {
+        if (await quietly(cloudwatch.deleteLogGroup({ logGroupName }))) {
+            output(`Deleted log group: ${logGroupName}`);
         }
     }
 }
