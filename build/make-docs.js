@@ -57,6 +57,13 @@ async function main() {
                     }
                     skip = true;
                 }
+                // See issue #4. api-documenter expects \| to escape table
+                // column delimiters, but docusaurus uses a markdown processor
+                // that doesn't support this. Replace with an escape sequence
+                // that renders |.
+                if (line.startsWith("|")) {
+                    line = line.replace(/\\\|/g, "&#124;");
+                }
                 if (!skip) {
                     output.push(line);
                 }

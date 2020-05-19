@@ -92,7 +92,7 @@ The constructor for this class is marked as internal. Third-party code should no
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
 |  [costMetrics](./faastjs.costsnapshot.costmetrics.md) |  | [CostMetric](./faastjs.costmetric.md)<!-- -->\[\] | The cost metric components for this cost snapshot. See [CostMetric](./faastjs.costmetric.md)<!-- -->. |
-|  [options](./faastjs.costsnapshot.options.md) |  | [CommonOptions](./faastjs.commonoptions.md) \| [AwsOptions](./faastjs.awsoptions.md) \| [GoogleOptions](./faastjs.googleoptions.md) | The options used to initialize the faast.js module where this cost snapshot was generated. |
+|  [options](./faastjs.costsnapshot.options.md) |  | [CommonOptions](./faastjs.commonoptions.md) &#124; [AwsOptions](./faastjs.awsoptions.md) &#124; [GoogleOptions](./faastjs.googleoptions.md) | The options used to initialize the faast.js module where this cost snapshot was generated. |
 |  [provider](./faastjs.costsnapshot.provider.md) |  | string | The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" or "google" |
 |  [stats](./faastjs.costsnapshot.stats.md) |  | [FunctionStats](./faastjs.functionstats.md) | The function statistics that were used to compute prices. |
 

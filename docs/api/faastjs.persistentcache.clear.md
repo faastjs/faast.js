@@ -23,7 +23,7 @@ clear({ leaveEmptyDir }?: {
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  { leaveEmptyDir } | { leaveEmptyDir?: boolean \| undefined; } |  |
+|  { leaveEmptyDir } | { leaveEmptyDir?: boolean &#124; undefined; } |  |
 
 <b>Returns:</b>
 

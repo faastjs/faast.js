@@ -21,7 +21,7 @@ update(value: number | undefined): void;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  value | number \| undefined |  |
+|  value | number &#124; undefined |  |
 
 <b>Returns:</b>
 

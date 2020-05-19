@@ -29,12 +29,12 @@ There are also more specific options for each provider. See [AwsOptions](./faast
 |  [concurrency](./faastjs.commonoptions.concurrency.md) | number | The maximum number of concurrent invocations to allow. Default: 100, except for the <code>local</code> provider, where the default is 10. |
 |  [env](./faastjs.commonoptions.env.md) | { \[key: string\]: string; } | Environment variables available during serverless function execution. Default: {<!-- -->}<!-- -->. |
 |  [exclude](./faastjs.commonoptions.exclude.md) | string\[\] | Exclude a subset of files included by [CommonOptions.include](./faastjs.commonoptions.include.md)<!-- -->. |
-|  [gc](./faastjs.commonoptions.gc.md) | "auto" \| "force" \| "off" | Garbage collector mode. Default: <code>&quot;auto&quot;</code>. |
-|  [include](./faastjs.commonoptions.include.md) | (string \| [IncludeOption](./faastjs.includeoption.md)<!-- -->)\[\] | Include files to make available in the remote function. See [IncludeOption](./faastjs.includeoption.md)<!-- -->. |
+|  [gc](./faastjs.commonoptions.gc.md) | "auto" &#124; "force" &#124; "off" | Garbage collector mode. Default: <code>&quot;auto&quot;</code>. |
+|  [include](./faastjs.commonoptions.include.md) | (string &#124; [IncludeOption](./faastjs.includeoption.md)<!-- -->)\[\] | Include files to make available in the remote function. See [IncludeOption](./faastjs.includeoption.md)<!-- -->. |
 |  [maxRetries](./faastjs.commonoptions.maxretries.md) | number | Maximum number of times that faast will retry each invocation. Default: 2 (invocations can therefore be attemped 3 times in total). |
 |  [memorySize](./faastjs.commonoptions.memorysize.md) | number | Memory limit for each function in MB. This setting has an effect on pricing. Default varies by provider. |
-|  [mode](./faastjs.commonoptions.mode.md) | "https" \| "queue" \| "auto" | Specify invocation mode. Default: <code>&quot;auto&quot;</code>. |
-|  [packageJson](./faastjs.commonoptions.packagejson.md) | string \| object | Specify a package.json file to include with the code package. |
+|  [mode](./faastjs.commonoptions.mode.md) | "https" &#124; "queue" &#124; "auto" | Specify invocation mode. Default: <code>&quot;auto&quot;</code>. |
+|  [packageJson](./faastjs.commonoptions.packagejson.md) | string &#124; object | Specify a package.json file to include with the code package. |
 |  [rate](./faastjs.commonoptions.rate.md) | number | Rate limit invocations (invocations/sec). Default: no rate limit. |
 |  [retentionInDays](./faastjs.commonoptions.retentionindays.md) | number | Specify how many days to wait before reclaiming cloud garbage. Default: 1. |
 |  [speculativeRetryThreshold](./faastjs.commonoptions.speculativeretrythreshold.md) | number | <b><i>(BETA)</i></b> Reduce tail latency by retrying invocations that take substantially longer than other invocations of the same function. Default: 3. |

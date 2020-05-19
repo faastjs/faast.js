@@ -22,7 +22,7 @@ set(key: string, value: Buffer | string | Uint8Array | Readable | Blob): Promise
 |  Parameter | Type | Description |
 |  --- | --- | --- |
 |  key | string |  |
-|  value | Buffer \| string \| Uint8Array \| Readable \| Blob |  |
+|  value | Buffer &#124; string &#124; Uint8Array &#124; Readable &#124; Blob |  |
 
 <b>Returns:</b>
 
