@@ -463,3 +463,9 @@ This closes a longstanding mysterious error message that occurs in the testsuite
 ## [testsuite] Create function request failure: The destination ARN arn:aws:sqs:us-west-2:547696317263:faast-88e9096f-28ec-4ca7-8c7f-8f3b98340e8c-Responses is invalid.'
 
 This error occurs occassionally in the testsuite. It's likely caused by a rare race condition on the AWS side where an SQS queue is successfully created, but not yet available for adding as a function invocation configuration destination. Resolved by adding retry in case of this specific error message when putting function invocation configuration.
+
+## Cleanup script: MalformedXML: The XML you provided was not well-formed or did not validate against our published schema
+
+This error occurs on trying to delete S3 bucket objects with the s3.deleteObjects API with 0 keys to delete. This is counter to Ousterhout's advice in [A Philosophy of Software Design](https://www.amazon.com/Philosophy-Software-Design-John-Ousterhout/dp/1732102201) to define errors away when possible. There are two sins here: (1) a very obscure error message for a very simple error, and (2) not choosing to design the error away by simply claiming success when there are no keys to delete. This is reminiscent of the example in the book re: unix vs Windows file deletion semantics.
+
+Fixed by not attempting to call deleteObjects when there are no keys to delete.

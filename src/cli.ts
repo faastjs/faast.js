@@ -92,6 +92,8 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
                 const elems = (page && extractList(page)) || [];
                 allResources.push(...elems.map(elem => extractElement(elem) || ""));
                 if (page === null) {
+                    // console.log(`allResources: ${allResources.join("\n")}`);
+                    // console.log(`pattern: ${pattern}`);
                     const matchingResources = allResources.filter(t => t.match(pattern));
                     matchingResources.forEach(resource => output(`  ${resource}`));
                     resolve(matchingResources);
@@ -158,7 +160,7 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
     output(`S3 buckets`);
     await deleteAWSResource(
         "S3 bucket(s)",
-        new RegExp(`/faast-${uuidv4Pattern}`),
+        new RegExp(`^faast-${uuidv4Pattern}`),
         () => s3.listBuckets(),
         page => page.Buckets,
         Bucket => Bucket.Name,
@@ -167,7 +169,9 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
                 .listObjectsV2({ Bucket, Prefix: "faast-" })
                 .promise();
             const keys = (objects.Contents || []).map(entry => ({ Key: entry.Key! }));
-            await s3.deleteObjects({ Bucket, Delete: { Objects: keys } }).promise();
+            if (keys.length > 0) {
+                await s3.deleteObjects({ Bucket, Delete: { Objects: keys } }).promise();
+            }
             await s3.deleteBucket({ Bucket }).promise();
         }
     );
@@ -186,6 +190,16 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
     await deleteAWSResource(
         "IAM role(s)",
         /^faast-cached-lambda-role$/,
+        () => iam.listRoles(),
+        page => page.Roles,
+        role => role.RoleName,
+        RoleName => awsFaast.deleteRole(RoleName, iam)
+    );
+
+    output(`IAM test roles`);
+    await deleteAWSResource(
+        "IAM test role(s)",
+        new RegExp(`^faast-test-.*${uuidv4Pattern}$`),
         () => iam.listRoles(),
         page => page.Roles,
         role => role.RoleName,
