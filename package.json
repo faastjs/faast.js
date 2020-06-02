@@ -64,7 +64,7 @@
         "commander": "^5.0.0",
         "debug": "^4.1.1",
         "fs-extra": "^9.0.0",
-        "googleapis": "^50.0.0",
+        "googleapis": "^52.0.0",
         "listr": "^0.14.3",
         "memory-fs": "^0.5.0",
         "ora": "^4.0.3",
