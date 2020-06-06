@@ -11,6 +11,7 @@ async function testWorker(
     const opts: CommonOptions = {
         timeout: 10,
         gc: "off",
+        description: t.title,
         ...options
     };
     const faastModule = await faast(provider, funcs, opts);

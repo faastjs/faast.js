@@ -104,7 +104,7 @@ async function initialize(
         gcPromise = collectGarbage(gcWorker, retentionInDays!);
     }
     const tempDir = join(tmpdir(), "faast", nonce);
-    log.info(`tempDir: ${tempDir}`);
+    log.info(`tempDir: ${tempDir} [${options.description}]`);
     await mkdirp(tempDir);
     const logDir = join(tempDir, "logs");
     await mkdir(logDir);

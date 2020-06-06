@@ -16,6 +16,7 @@ Faast.js loggers.
 ```typescript
 log: {
     info: debug.Debugger;
+    minimal: debug.Debugger;
     warn: debug.Debugger;
     gc: debug.Debugger;
     leaks: debug.Debugger;
@@ -46,6 +47,8 @@ log.provider.enabled = true;
 Each log outputs specific information:
 
 `info` - General informational logging.
+
+`minimal` - Outputs only basic information like the function name created in the cloud.
 
 `warn` - Warnings. Enabled by default.
 

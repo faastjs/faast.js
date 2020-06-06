@@ -27,6 +27,7 @@ There are also more specific options for each provider. See [AwsOptions](./faast
 |  --- | --- | --- |
 |  [childProcess](./faastjs.commonoptions.childprocess.md) | boolean | If true, create a child process to isolate user code from faast scaffolding. Default: true. |
 |  [concurrency](./faastjs.commonoptions.concurrency.md) | number | The maximum number of concurrent invocations to allow. Default: 100, except for the <code>local</code> provider, where the default is 10. |
+|  [description](./faastjs.commonoptions.description.md) | string | A user-supplied description for this function, which may make it easier to track different functions when multiple functions are created. |
 |  [env](./faastjs.commonoptions.env.md) | { \[key: string\]: string; } | Environment variables available during serverless function execution. Default: {<!-- -->}<!-- -->. |
 |  [exclude](./faastjs.commonoptions.exclude.md) | string\[\] | Exclude a subset of files included by [CommonOptions.include](./faastjs.commonoptions.include.md)<!-- -->. |
 |  [gc](./faastjs.commonoptions.gc.md) | "auto" &#124; "force" &#124; "off" | Garbage collector mode. Default: <code>&quot;auto&quot;</code>. |

@@ -24,6 +24,9 @@ import { inspect } from "util";
  *
  * `info` - General informational logging.
  *
+ * `minimal` - Outputs only basic information like the function name created in
+ * the cloud.
+ *
  * `warn` - Warnings. Enabled by default.
  *
  * `gc` - Garbage collection verbose logging.
@@ -51,6 +54,7 @@ import { inspect } from "util";
  */
 export const log = {
     info: debug("faast:info"),
+    minimal: debug("faast:minimal"),
     warn: debug("faast:warning"),
     gc: debug("faast:gc"),
     leaks: debug("faast:leaks"),

@@ -20,7 +20,8 @@ function testCancellation(
         const faastModule = await faast(provider, funcs, {
             ...options,
             childProcess: true,
-            gc: "off"
+            gc: "off",
+            description: t.title
         });
         try {
             faastModule.functions.spin(10000).catch(_ => {});

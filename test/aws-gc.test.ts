@@ -32,6 +32,7 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
     const mod = await faastAws(functions, {
         gc: "off",
         mode: "queue",
+        description: t.title,
         packageJson: {
             name: uuid(),
             dependencies: {
@@ -58,6 +59,7 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
         const mod2 = await faastAws(functions, {
             gc: "force",
             retentionInDays: 0,
+            description: t.title,
             _gcWorker: async (work, services) => {
                 switch (work.type) {
                     case "SetLogRetention":
@@ -90,13 +92,18 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
 });
 
 test.serial(title("aws", "garbage collects functions that are never called"), async t => {
-    const mod = await faastAws(functions, { gc: "off", mode: "queue" });
+    const mod = await faastAws(functions, {
+        gc: "off",
+        mode: "queue",
+        description: t.title
+    });
     try {
         await mod.cleanup({ deleteResources: false });
         const { FunctionName } = mod.state.resources;
         const mod2 = await faastAws(functions, {
             gc: "force",
             retentionInDays: 0,
+            description: t.title,
             _gcWorker: async (work, services) => {
                 switch (work.type) {
                     case "DeleteResources":
@@ -118,7 +125,7 @@ test.serial(title("aws", "garbage collects functions that are never called"), as
 test.skip(title("aws", "garbage collection caching"), async t => {
     {
         // Run a real gc so the build account doesn't accumulate garbage.
-        const mod = await faastAws(functions, { gc: "force" });
+        const mod = await faastAws(functions, { gc: "force", description: t.title });
         await mod.cleanup();
         t.is(await mod.state.gcPromise, "done");
     }
@@ -126,7 +133,7 @@ test.skip(title("aws", "garbage collection caching"), async t => {
     {
         // Test the in-memory cache that prevents gc from multiple faast.js
         // instances from running at the same time.
-        const mod = await faastAws(functions);
+        const mod = await faastAws(functions, { description: t.title });
         await mod.cleanup();
         t.is(await mod.state.gcPromise, "skipped");
     }
@@ -135,7 +142,7 @@ test.skip(title("aws", "garbage collection caching"), async t => {
         // Test the persistent cache that prevents gc from running too often
         // even across processes.
         clearLastGc();
-        const mod = await faastAws(functions);
+        const mod = await faastAws(functions, { description: t.title });
         await mod.cleanup();
         t.is(await mod.state.gcPromise, "skipped");
     }

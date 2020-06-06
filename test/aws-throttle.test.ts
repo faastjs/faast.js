@@ -7,7 +7,8 @@ test("remote aws throttling to no concurrency", async t => {
         mode: "https",
         memorySize: 1024,
         concurrency: 1,
-        gc: "off"
+        gc: "off",
+        description: t.title
     });
     try {
         const N = 10;

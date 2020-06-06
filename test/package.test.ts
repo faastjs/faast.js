@@ -23,7 +23,8 @@ async function testPackage(
                 tslib: "^1.9.1"
             }
         },
-        useDependencyCaching: false
+        useDependencyCaching: false,
+        description: t.title
     };
     const faastModule = await faast(provider, funcs, opts);
     const remote = faastModule.functions;
@@ -57,9 +58,17 @@ test("remote aws package dependencies with lambda layer caching", async t => {
             tslib: "^1.9.1"
         }
     };
-    const faastModule = await faastAws(funcs, { gc: "off", packageJson });
+    const faastModule = await faastAws(funcs, {
+        gc: "off",
+        packageJson,
+        description: t.title
+    });
     try {
-        const faastModule2 = await faastAws(funcs, { gc: "off", packageJson });
+        const faastModule2 = await faastAws(funcs, {
+            gc: "off",
+            packageJson,
+            description: t.title
+        });
         t.not(faastModule.state.resources.layer, undefined);
         t.deepEqual(
             faastModule.state.resources.layer,

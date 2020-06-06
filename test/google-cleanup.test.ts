@@ -15,7 +15,8 @@ test("remote google cleanup removes ephemeral resources", async t => {
     try {
         const func = await faastGoogle(funcs, {
             mode: "queue",
-            gc: "off"
+            gc: "off",
+            description: t.title
         });
         checkResourcesExist(t, await getGoogleResources(func));
         await func.cleanup();

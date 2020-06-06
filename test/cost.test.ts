@@ -72,7 +72,8 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
         memorySize: 512,
         mode: "queue",
         maxRetries: 0,
-        gc: "off"
+        gc: "off",
+        description: t.title
     };
     const faastModule = await faast(provider, funcs, args);
 

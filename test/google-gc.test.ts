@@ -15,13 +15,15 @@ test("remote google garbage collector works for functions that are called", asyn
     // collector did its job.
     const mod = await faastGoogle(functions, {
         mode: "queue",
-        gc: "off"
+        gc: "off",
+        description: t.title
     });
     await mod.functions.hello("gc-test");
     await mod.cleanup({ deleteResources: false });
     const mod2 = await faastGoogle(functions, {
         gc: "force",
         retentionInDays: 0,
+        description: t.title,
         _gcWorker: async (work, services) => {
             if (work.trampoline === mod.state.resources.trampoline) {
                 await defaultGcWorker(work, services);
@@ -37,12 +39,14 @@ test("remote google garbage collector works for functions that are called", asyn
 test("remote google garbage collector works for functions that are never called", async t => {
     const mod = await faastGoogle(functions, {
         mode: "queue",
-        gc: "off"
+        gc: "off",
+        description: t.title
     });
     await mod.cleanup({ deleteResources: false });
     const mod2 = await faastGoogle(functions, {
         gc: "force",
         retentionInDays: 0,
+        description: t.title,
         _gcWorker: async (work, services) => {
             if (work.trampoline === mod.state.resources.trampoline) {
                 await defaultGcWorker(work, services);

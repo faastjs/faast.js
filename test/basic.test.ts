@@ -19,8 +19,9 @@ async function testBasic(
     const opts: CommonOptions = {
         timeout: 60,
         gc: "off",
+        description: t.title,
         env: { faastEnvironmentVariable: "the_answer_is_42" },
-        ...options,
+        ...options
     };
     const faastModule = await faast(provider, funcs, opts);
     const remote = faastModule.functions;
@@ -40,7 +41,7 @@ async function testBasic(
         t.is(await remote.fact(5), 120);
         t.is(await remote.concat("abc", "def"), "abcdef");
         await t.throwsAsync(() => remote.error("hey"), {
-            message: /Expected error. Arg: hey/,
+            message: /Expected error. Arg: hey/
         });
         t.is(await remote.noargs(), "called function with no args.");
         t.is(await remote.async(), "async function: success");
@@ -65,7 +66,7 @@ async function testBasic(
         t.deepEqual(await remote.identityObject({}), {});
         t.deepEqual(await remote.identityObject({ a: 42, b: "hello" }), {
             a: 42,
-            b: "hello",
+            b: "hello"
         });
         const int8 = Int8Array.of(0, -8, 42);
         t.deepEqual(await remote.identityInt8(int8), int8);
@@ -87,7 +88,7 @@ async function testBasic(
         t.deepEqual(await remote.identityFloat64(float64), float64);
         const m = new Map([
             [1, 2],
-            [42, 10],
+            [42, 10]
         ]);
         t.deepEqual(await remote.identityMap(m), m);
         const s = new Set([1, 42, 100]);
@@ -125,7 +126,7 @@ async function testBasic(
 
 async function testBasicRequire(t: ExecutionContext, provider: Provider) {
     const requiredFuncs = require("./fixtures/functions");
-    const opts: CommonOptions = { timeout: 30, gc: "off" };
+    const opts: CommonOptions = { timeout: 30, gc: "off", description: t.title };
     const faastModule = await faast(provider, requiredFuncs, opts);
     const remote = faastModule.functions;
     try {
@@ -144,7 +145,8 @@ async function testBasicRequire(t: ExecutionContext, provider: Provider) {
 //         timeout: 90,
 //         memorySize: 512,
 //         maxRetries: 0,
-//         gc: "off"
+//         gc: "off",
+//         description: t.title
 //     });
 
 //     try {

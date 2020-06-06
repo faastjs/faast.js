@@ -5,11 +5,15 @@ import { sleep, title } from "../test/fixtures/util";
 import { Pump } from "../src/throttle";
 
 async function throughput(
-    _: ExecutionContext,
+    t: ExecutionContext,
     provider: Provider,
     options: CommonOptions & { duration: number }
 ) {
-    const lambda = await faast(provider, funcs, { gc: "off", ...options });
+    const lambda = await faast(provider, funcs, {
+        gc: "off",
+        description: t.title,
+        ...options
+    });
     lambda.on("stats", s => console.log(s.toString()));
 
     try {
@@ -34,7 +38,11 @@ async function throughput(
 }
 
 async function rampUp(t: ExecutionContext, provider: Provider, options: CommonOptions) {
-    const lambda = await faast(provider, funcs, { gc: "off", ...options });
+    const lambda = await faast(provider, funcs, {
+        gc: "off",
+        description: t.title,
+        ...options
+    });
     lambda.on("stats", s => console.log(s.toString()));
 
     try {

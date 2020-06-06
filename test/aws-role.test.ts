@@ -80,7 +80,8 @@ test(title("aws", "custom role"), async t => {
         state = "creating faastAws with custom role";
         faastModule = await faastAws(funcs, {
             RoleName,
-            gc: "off"
+            gc: "off",
+            description: t.title
         });
 
         state = "testing invocation";

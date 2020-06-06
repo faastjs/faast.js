@@ -69,6 +69,11 @@ export interface CommonOptions {
      */
     concurrency?: number;
     /**
+     * A user-supplied description for this function, which may make it easier
+     * to track different functions when multiple functions are created.
+     */
+    description?: string;
+    /**
      * Exclude a subset of files included by {@link CommonOptions.include}.
      * @remarks
      * The exclusion can be a directory or glob. Exclusions apply to all included
@@ -413,6 +418,7 @@ export interface CommonOptions {
 export const commonDefaults: Required<CommonOptions> = {
     childProcess: true,
     concurrency: 100,
+    description: "",
     exclude: [],
     include: [],
     rate: 0,

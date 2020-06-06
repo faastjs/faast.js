@@ -436,7 +436,7 @@ export const initialize = throttle(
         const services = await createAwsApis(region);
         const { lambda } = services;
         const FunctionName = `faast-${nonce}`;
-        const { packageJson, useDependencyCaching } = options;
+        const { packageJson, useDependencyCaching, description } = options;
 
         async function createFunctionRequest(
             Code: Lambda.FunctionCode,
@@ -474,8 +474,9 @@ export const initialize = throttle(
                 }
             }
             log.info(
-                `Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn}`
+                `Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn} [${description}]`
             );
+            log.minimal(`Created function ${func.FunctionName} [${description}]`);
             try {
                 const config = await retryOp(
                     (err, n) =>

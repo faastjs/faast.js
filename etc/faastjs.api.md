@@ -60,6 +60,7 @@ export interface CommonOptions {
     debugOptions?: {
         [key: string]: boolean;
     };
+    description?: string;
     env?: {
         [key: string]: string;
     };
@@ -298,6 +299,7 @@ export interface LocalOptions extends CommonOptions {
 // @public
 export const log: {
     info: debug_2.Debugger;
+    minimal: debug_2.Debugger;
     warn: debug_2.Debugger;
     gc: debug_2.Debugger;
     leaks: debug_2.Debugger;

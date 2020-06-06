@@ -8,7 +8,12 @@ async function testUnsupported(
     provider: Provider,
     options: CommonOptions
 ) {
-    const opts: CommonOptions = { timeout: 30, gc: "off", ...options };
+    const opts: CommonOptions = {
+        timeout: 30,
+        gc: "off",
+        description: t.title,
+        ...options
+    };
     const faastModule = await faast(provider, funcs, opts);
     const remote = faastModule.functions;
 

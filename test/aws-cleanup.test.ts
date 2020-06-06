@@ -8,7 +8,8 @@ import * as funcs from "./fixtures/functions";
 test("remote aws cleanup removes ephemeral resources", async t => {
     const func = await faastAws(funcs, {
         mode: "queue",
-        gc: "off"
+        gc: "off",
+        description: t.title
     });
     await func.cleanup({ deleteCaches: true });
     await checkResourcesCleanedUp(t, await getAWSResources(func));
@@ -27,7 +28,8 @@ test("remote aws cleanup removes lambda layers", async t => {
                 "puppeteer-core": "latest"
             }
         },
-        gc: "off"
+        gc: "off",
+        description: t.title
     });
     await func.cleanup({ deleteCaches: true });
     await checkResourcesCleanedUp(t, await getAWSResources(func));

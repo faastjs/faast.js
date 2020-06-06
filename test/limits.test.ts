@@ -13,7 +13,8 @@ async function testTimeout(
         ...options,
         timeout: 5,
         maxRetries: 0,
-        gc: "off"
+        gc: "off",
+        description: t.title
     });
     t.plan(1);
     // t.log(`${lambda.logUrl()}`);
@@ -28,7 +29,7 @@ async function testTimeout(
             );
         }
     } finally {
-        await lambda.cleanup({ deleteResources: false });
+        await lambda.cleanup();
     }
 }
 
@@ -47,7 +48,8 @@ async function testGenerator(
         ...options,
         timeout: 5,
         maxRetries: 0,
-        gc: "off"
+        gc: "off",
+        description: t.title
     });
     // t.log(`${lambda.logUrl()}`);
     try {
@@ -69,11 +71,11 @@ async function memoryLimitOk(
 ) {
     const lambda = await faast(provider, funcs, {
         ...options,
-
         timeout: 200,
         memorySize: 512,
         maxRetries: 0,
-        gc: "off"
+        gc: "off",
+        description: t.title
     });
 
     try {
@@ -95,7 +97,8 @@ async function memoryLimitFail(
         timeout: 200,
         memorySize: 512,
         maxRetries: 0,
-        gc: "off"
+        gc: "off",
+        description: t.title
     });
 
     try {
