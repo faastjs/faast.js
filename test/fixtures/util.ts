@@ -70,9 +70,9 @@ export function record<A extends any[], R>(fn: (...args: A) => R) {
 }
 
 export const configs: CommonOptions[] = [
-    { mode: "https", childProcess: false, validateSerialization: true },
+    // { mode: "https", childProcess: false, validateSerialization: true },
     { mode: "https", childProcess: true, validateSerialization: true },
-    { mode: "queue", childProcess: false, validateSerialization: true },
+    // { mode: "queue", childProcess: false, validateSerialization: true },
     { mode: "queue", childProcess: true, validateSerialization: true }
 ];
 
