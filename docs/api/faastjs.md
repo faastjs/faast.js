@@ -45,14 +45,14 @@ The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, 
 
 |  Interface | Description |
 |  --- | --- |
-|  [AwsOptions](./faastjs.awsoptions.md) | AWS-specific options for [faastAws()](./faastjs.faastaws.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. |
+|  [AwsOptions](./faastjs.awsoptions.md) | AWS-specific options for [faastAws()](./faastjs.faastaws.md)<!-- -->. |
 |  [CleanupOptions](./faastjs.cleanupoptions.md) | Options that apply to the [FaastModule.cleanup()](./faastjs.faastmodule.cleanup.md) method. |
 |  [CommonOptions](./faastjs.commonoptions.md) | Options common across all faast.js providers. Used as argument to [faast()](./faastjs.faast.md)<!-- -->. |
 |  [FaastModule](./faastjs.faastmodule.md) | The main interface for invoking, cleaning up, and managing faast.js cloud functions. Returned by [faast()](./faastjs.faast.md)<!-- -->. |
-|  [GoogleOptions](./faastjs.googleoptions.md) | Google-specific options for [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. |
+|  [GoogleOptions](./faastjs.googleoptions.md) | Google-specific options for [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->. |
 |  [IncludeOption](./faastjs.includeoption.md) | Options for the [CommonOptions.include](./faastjs.commonoptions.include.md) option. |
 |  [Limits](./faastjs.limits.md) | Specify [throttle()](./faastjs.throttle.md) limits. These limits shape the way throttle invokes the underlying function. |
-|  [LocalOptions](./faastjs.localoptions.md) | Local provider options for [faastLocal()](./faastjs.faastlocal.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->. |
+|  [LocalOptions](./faastjs.localoptions.md) | Local provider options for [faastLocal()](./faastjs.faastlocal.md)<!-- -->. |
 
 ## Namespaces
 

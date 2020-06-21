@@ -59,7 +59,7 @@ export interface LocalState {
 }
 
 /**
- * Local provider options for {@link faastLocal}. Extends {@link CommonOptions}.
+ * Local provider options for {@link faastLocal}.
  *
  * @public
  */

@@ -9,10 +9,11 @@ hide_title: true
 
 ## LocalOptions interface
 
-Local provider options for [faastLocal()](./faastjs.faastlocal.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->.
+Local provider options for [faastLocal()](./faastjs.faastlocal.md)<!-- -->.
 
 <b>Signature:</b>
 
 ```typescript
 export interface LocalOptions extends CommonOptions 
 ```
+<b>Extends:</b> [CommonOptions](./faastjs.commonoptions.md)

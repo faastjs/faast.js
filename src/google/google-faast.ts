@@ -81,8 +81,7 @@ export type GoogleRegion =
 const GoogleCloudFunctionsMemorySizes = [128, 256, 512, 1024, 2048];
 
 /**
- * Google-specific options for {@link faastGoogle}. Extends
- * {@link CommonOptions}.
+ * Google-specific options for {@link faastGoogle}.
  * @public
  */
 export interface GoogleOptions extends CommonOptions {

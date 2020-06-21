@@ -9,13 +9,14 @@ hide_title: true
 
 ## AwsOptions interface
 
-AWS-specific options for [faastAws()](./faastjs.faastaws.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->.
+AWS-specific options for [faastAws()](./faastjs.faastaws.md)<!-- -->.
 
 <b>Signature:</b>
 
 ```typescript
 export interface AwsOptions extends CommonOptions 
 ```
+<b>Extends:</b> [CommonOptions](./faastjs.commonoptions.md)
 
 ## Properties
 

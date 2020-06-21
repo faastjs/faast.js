@@ -88,7 +88,7 @@ export const defaultGcWorker = throttle(
 );
 
 /**
- * AWS-specific options for {@link faastAws}. Extends {@link CommonOptions}.
+ * AWS-specific options for {@link faastAws}.
  * @public
  */
 export interface AwsOptions extends CommonOptions {

@@ -9,13 +9,14 @@ hide_title: true
 
 ## GoogleOptions interface
 
-Google-specific options for [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->. Extends [CommonOptions](./faastjs.commonoptions.md)<!-- -->.
+Google-specific options for [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->.
 
 <b>Signature:</b>
 
 ```typescript
 export interface GoogleOptions extends CommonOptions 
 ```
+<b>Extends:</b> [CommonOptions](./faastjs.commonoptions.md)
 
 ## Properties
 

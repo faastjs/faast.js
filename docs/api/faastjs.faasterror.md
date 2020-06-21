@@ -16,6 +16,7 @@ FaastError is a subclass of VError (https://github.com/joyent/node-verror). that
 ```typescript
 export declare class FaastError extends VError 
 ```
+<b>Extends:</b> VError
 
 ## Remarks
 
