@@ -8,19 +8,11 @@ import { AsyncIterableQueue } from "./throttle";
 import { AnyFunction } from "./types";
 import { FaastError, FaastErrorNames } from "./error";
 
-function p(val: any) {
-    inspect(val, {
-        compact: true,
-        breakLength: Infinity
-    });
-}
+const p = (val: any) => inspect(val, { compact: true, breakLength: Infinity });
 
-export function isGenerator(fn: Function) {
-    return (
-        fn instanceof function* () {}.constructor ||
-        fn instanceof async function* () {}.constructor
-    );
-}
+export const isGenerator = (fn: Function) =>
+    fn instanceof function* () {}.constructor ||
+    fn instanceof async function* () {}.constructor;
 
 export const filename = module.filename;
 
@@ -402,7 +394,11 @@ export class Wrapper {
         }
 
         const { childProcessEnvironment } = this.options;
-        const env = { ...process.env, ...childProcessEnvironment, FAAST_CHILD: "true" };
+        const env = {
+            ...process.env,
+            ...childProcessEnvironment,
+            [FAAST_CHILD_ENV]: "true"
+        };
         this.verbose && this.log(`Env: ${JSON.stringify(env)}`);
         const forkOptions: childProcess.ForkOptions = {
             silent: true, // redirects stdout and stderr to IPC.
