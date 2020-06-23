@@ -17,8 +17,8 @@ function p(val: any) {
 
 export function isGenerator(fn: Function) {
     return (
-        fn instanceof function*() {}.constructor ||
-        fn instanceof async function*() {}.constructor
+        fn instanceof function* () {}.constructor ||
+        fn instanceof async function* () {}.constructor
     );
 }
 
@@ -271,9 +271,13 @@ export class Wrapper {
                     this.log(`Setting timeout: ${timeout}`);
                     timer = setTimeout(() => {
                         const error = new FaastError(
-                            { name: FaastErrorNames.ETIMEOUT },
+                            {
+                                name: FaastErrorNames.ETIMEOUT,
+                                info: { logUrl, functionName: call.name }
+                            },
                             `Request exceeded timeout of ${timeout}ms`
                         );
+
                         this.queue.push(Promise.reject(error));
                         this.stop();
                     }, timeout);
