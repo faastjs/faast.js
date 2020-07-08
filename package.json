@@ -73,7 +73,7 @@
         "uuid": "^8.0.0",
         "verror": "^1.10.0",
         "webpack": "^4.41.5",
-        "webpack-node-externals": "^1.7.2",
+        "webpack-node-externals": "^2.0.0",
         "yauzl": "^2.10.0"
     },
     "peerDependencies": {
