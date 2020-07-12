@@ -562,61 +562,61 @@ export const initialize = throttle(
             }
 
             let lambdaFnArn!: string;
-            await retryOp(
-                (err, n) =>
-                    n < 5 &&
-                    (err?.message?.match(/role/) ||
-                        err?.message?.match(/KMS Exception/) ||
-                        err?.message?.match(/internal service error/)),
-                async () => {
-                    try {
-                        const lambdaFn = await createFunctionRequest(
-                            codeBundle,
-                            role.Arn,
-                            responseQueueArn,
-                            layer
+            const retryable = [
+                /role/,
+                /KMS Exception/,
+                /internal service error/,
+                /Layer version/
+            ];
+            const shouldRetry = (err: Error, n: number) =>
+                n < 5 && !!retryable.find(regex => err?.message?.match(regex));
+            await retryOp(shouldRetry, async () => {
+                try {
+                    const lambdaFn = await createFunctionRequest(
+                        codeBundle,
+                        role.Arn,
+                        responseQueueArn,
+                        layer
+                    );
+
+                    lambdaFnArn = lambdaFn.FunctionArn!;
+
+                    // If the role for the lambda function was created
+                    // recently, test that the role works by invoking the
+                    // function. If an exception occurs, the function is
+                    // deleted and re-deployed. Empirically, this is the way
+                    // to ensure successful lambda creation when an IAM role
+                    // is recently created.
+                    if (Date.now() - role.CreateDate.getTime() < 300 * 1000) {
+                        await retryOp(1, () =>
+                            invokeHttps(
+                                lambda,
+                                FunctionName,
+                                {
+                                    callId: "0",
+                                    modulePath: "",
+                                    name: "",
+                                    args: "",
+                                    ResponseQueueId: awsTrampoline.INVOCATION_TEST_QUEUE
+                                },
+                                state.metrics,
+                                new Promise(_ => {})
+                            )
                         );
-
-                        lambdaFnArn = lambdaFn.FunctionArn!;
-
-                        // If the role for the lambda function was created
-                        // recently, test that the role works by invoking the
-                        // function. If an exception occurs, the function is
-                        // deleted and re-deployed. Empirically, this is the way
-                        // to ensure successful lambda creation when an IAM role
-                        // is recently created.
-                        if (Date.now() - role.CreateDate.getTime() < 300 * 1000) {
-                            await retryOp(1, () =>
-                                invokeHttps(
-                                    lambda,
-                                    FunctionName,
-                                    {
-                                        callId: "0",
-                                        modulePath: "",
-                                        name: "",
-                                        args: "",
-                                        ResponseQueueId:
-                                            awsTrampoline.INVOCATION_TEST_QUEUE
-                                    },
-                                    state.metrics,
-                                    new Promise(_ => {})
-                                )
-                            );
-                        }
-                    } catch (err) {
-                        /* istanbul ignore next */ {
-                            await lambda
-                                .deleteFunction({ FunctionName })
-                                .promise()
-                                .catch(_ => {});
-                            throw new FaastError(
-                                err,
-                                "New lambda function failed invocation test"
-                            );
-                        }
+                    }
+                } catch (err) {
+                    /* istanbul ignore next */ {
+                        await lambda
+                            .deleteFunction({ FunctionName })
+                            .promise()
+                            .catch(_ => {});
+                        throw new FaastError(
+                            err,
+                            "New lambda function failed invocation test"
+                        );
                     }
                 }
-            );
+            });
 
             const { mode } = options;
             if (mode === "queue") {
