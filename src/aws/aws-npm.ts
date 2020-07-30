@@ -5,7 +5,7 @@ import { ensureDir, remove, writeFile } from "fs-extra";
 import { tmpdir } from "os";
 import * as path from "path";
 import { inspect } from "util";
-import { streamToBuffer } from "../shared";
+import { streamToBuffer, hasExpired } from "../shared";
 
 export function exec(log: (_: string) => void, cmds: string[]) {
     let rv = "";
@@ -22,6 +22,7 @@ export interface NpmInstallArgs {
     FunctionName: string;
     region: string;
     quiet?: boolean;
+    retentionInDays: number;
 }
 
 export interface AwsLayerInfo {
@@ -41,7 +42,8 @@ export async function npmInstall({
     packageJsonContents,
     FunctionName,
     region,
-    quiet
+    quiet,
+    retentionInDays
 }: NpmInstallArgs): Promise<NpmInstallReturn> {
     const log = quiet ? (_: string) => {} : console.log;
 
@@ -70,7 +72,7 @@ export async function npmInstall({
         .catch(_ => undefined);
 
     const layerVersion = cached?.LayerVersions?.[0];
-    if (layerVersion) {
+    if (layerVersion && !hasExpired(layerVersion.CreatedDate, retentionInDays)) {
         const layerInfo = {
             LayerName,
             Version: layerVersion.Version!,

@@ -21,7 +21,8 @@ async function testNpmInstall(
             FunctionName,
             packageJsonContents,
             region: "us-west-2",
-            quiet: true
+            quiet: true,
+            retentionInDays: 1
         });
         if (bigPackage) {
             t.true(result.zipSize! > 50 * 2 ** 20);
@@ -36,7 +37,8 @@ async function testNpmInstall(
             FunctionName,
             packageJsonContents,
             region: "us-west-2",
-            quiet: true
+            quiet: true,
+            retentionInDays: 1
         });
 
         t.deepEqual(cachedResult.layerInfo, layerInfo);

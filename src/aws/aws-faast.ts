@@ -362,7 +362,8 @@ export async function createLayer(
     packageJson: string | object | undefined,
     useDependencyCaching: boolean,
     FunctionName: string,
-    region: AwsRegion
+    region: AwsRegion,
+    retentionInDays: number
 ): Promise<AwsLayerInfo | undefined> {
     if (!packageJson) {
         return;
@@ -382,8 +383,9 @@ export async function createLayer(
         LayerName = `faast-${cacheKey}`;
         const layers = await quietly(lambda.listLayerVersions({ LayerName }));
         if (layers?.LayerVersions?.length ?? 0 > 0) {
-            const [{ Version, LayerVersionArn }] = layers?.LayerVersions ?? [];
-            if (Version && LayerVersionArn) {
+            const [{ Version, LayerVersionArn, CreatedDate }] =
+                layers?.LayerVersions ?? [];
+            if (!hasExpired(CreatedDate, retentionInDays) && Version && LayerVersionArn) {
                 return { Version, LayerVersionArn, LayerName };
             }
         }
@@ -408,7 +410,8 @@ export async function createLayer(
                 packageJsonContents,
                 LayerName,
                 FunctionName,
-                region
+                region,
+                retentionInDays
             };
             const { installLog, layerInfo } = await faastModule.functions.npmInstall(
                 installArgs
@@ -551,7 +554,8 @@ export const initialize = throttle(
                 packageJson,
                 useDependencyCaching,
                 FunctionName,
-                region
+                region,
+                retentionInDays
             );
 
             const codeBundle = await codeBundlePromise;
