@@ -94,7 +94,7 @@
         "@types/papaparse": "5.0.3",
         "@types/tar-stream": "2.1.0",
         "@types/uuid": "8.0.1",
-        "@types/webpack-node-externals": "1.7.1",
+        "@types/webpack-node-externals": "2.5.0",
         "@types/yauzl": "2.9.1",
         "ava": "3.11.1",
         "codecov": "3.7.2",
