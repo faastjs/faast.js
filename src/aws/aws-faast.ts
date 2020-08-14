@@ -357,6 +357,9 @@ export const ensureRole = throttle(
     ensureRoleRaw
 );
 
+const ResponseQueueId = awsTrampoline.INVOCATION_TEST_QUEUE;
+const emptyFcall = { callId: "0", modulePath: "", name: "", args: "", ResponseQueueId };
+
 export async function createLayer(
     lambda: Lambda,
     packageJson: string | object | undefined,
@@ -574,6 +577,7 @@ export const initialize = throttle(
             ];
             const shouldRetry = (err: Error, n: number) =>
                 n < 5 && !!retryable.find(regex => err?.message?.match(regex));
+
             await retryOp(shouldRetry, async () => {
                 try {
                     const lambdaFn = await createFunctionRequest(
@@ -592,20 +596,11 @@ export const initialize = throttle(
                     // to ensure successful lambda creation when an IAM role
                     // is recently created.
                     if (Date.now() - role.CreateDate.getTime() < 300 * 1000) {
+                        const { metrics } = state;
+                        const fn = FunctionName;
+                        const never = new Promise<void>(_ => {});
                         await retryOp(1, () =>
-                            invokeHttps(
-                                lambda,
-                                FunctionName,
-                                {
-                                    callId: "0",
-                                    modulePath: "",
-                                    name: "",
-                                    args: "",
-                                    ResponseQueueId: awsTrampoline.INVOCATION_TEST_QUEUE
-                                },
-                                state.metrics,
-                                new Promise(_ => {})
-                            )
+                            invokeHttps(lambda, fn, emptyFcall, metrics, never)
                         );
                     }
                 } catch (err) {

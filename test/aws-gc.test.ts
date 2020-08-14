@@ -116,7 +116,14 @@ test.serial(title("aws", "garbage collects functions that are never called"), as
         });
 
         await mod2.cleanup();
-        await checkResourcesCleanedUp(t, await getAWSResources(mod, true));
+        // Don't fail if a log group exists because we didn't wait for its
+        // creation; it might be created by AWS after the cleanup occurs. The
+        // reason is that the log group will only be created if there's an
+        // invocation test, which only happens in the special case that the role
+        // was recently created. Which is true for the nightly testsuite but
+        // rarely elsewhere.
+        const { logGroupResult, ...resources } = await getAWSResources(mod, true);
+        await checkResourcesCleanedUp(t, resources);
     } finally {
         await mod.cleanup({ deleteResources: true, deleteCaches: true });
     }
