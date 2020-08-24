@@ -219,11 +219,9 @@ export class Wrapper {
             this.executing = true;
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
             const { callId } = call;
-            if (this.verbose) {
-                this.log(`calling: ${call.name}`);
-                this.log(`   args: ${call.args}`);
-                this.log(`   callId: ${callId}`);
-            }
+            this.log(`calling: ${call.name}`);
+            this.log(`   args: ${call.args}`);
+            this.log(`   callId: ${callId}`);
             // let startedMessageTimer: NodeJS.Timeout | undefined = setTimeout(
             //     () => messageCallback({ kind: "functionstarted", callId }),
             //     2 * 1000
@@ -241,9 +239,10 @@ export class Wrapper {
                 if (!this.child) {
                     this.child = this.setupChildProcess();
                 }
-                this.log(
-                    `faast: invoking '${call.name}' in child process, memory: ${memInfo}`
-                );
+                this.verbose &&
+                    this.log(
+                        `faast: invoking '${call.name}' in child process, memory: ${memInfo}`
+                    );
                 this.child.send(call, err => {
                     /* istanbul ignore if  */
                     if (err) {
@@ -252,7 +251,8 @@ export class Wrapper {
                     }
                 });
                 if (measureCpuUsage) {
-                    this.log(`Starting CPU monitor for pid ${this.child.pid}`);
+                    this.verbose &&
+                        this.log(`Starting CPU monitor for pid ${this.child.pid}`);
                     // XXX CPU Monitoring not enabled for now.
                     // this.startCpuMonitoring(this.child.pid, callId);
                 }
@@ -260,7 +260,7 @@ export class Wrapper {
                 let timer;
                 const timeout = this.options.childProcessTimeoutMs;
                 if (timeout) {
-                    this.log(`Setting timeout: ${timeout}`);
+                    this.verbose && this.log(`Setting timeout: ${timeout}`);
                     timer = setTimeout(() => {
                         const error = new FaastError(
                             {
@@ -274,11 +274,11 @@ export class Wrapper {
                         this.stop();
                     }, timeout);
                 }
-                this.log(`awaiting async dequeue`);
+                this.verbose && this.log(`awaiting async dequeue`);
                 try {
                     const promises = [];
                     for await (const result of this.queue) {
-                        this.log(`Dequeuing ${p(result)}`);
+                        this.verbose && this.log(`Dequeuing ${p(result)}`);
                         if (result.kind === "promise" || result.kind === "iterator") {
                             result.logUrl = logUrl;
                         }
@@ -286,13 +286,14 @@ export class Wrapper {
                     }
                     await Promise.all(promises);
                 } finally {
-                    this.log(`Finalizing queue`);
+                    this.verbose && this.log(`Finalizing queue`);
                     this.stopCpuMonitoring();
                     timer && clearTimeout(timer);
                     this.queue.clear();
                 }
             } else {
-                this.log(`faast: Invoking '${call.name}', memory: ${memInfo}`);
+                this.verbose &&
+                    this.log(`faast: Invoking '${call.name}', memory: ${memInfo}`);
                 const func = this.lookupFunction(call);
                 if (!func) {
                     throw new Error(
@@ -303,10 +304,9 @@ export class Wrapper {
                 let value;
                 try {
                     value = await func.apply(undefined, args);
-                    this.log(`Finished call function`);
+                    this.verbose && this.log(`Finished call function`);
                 } catch (err) {
-                    this.log(`caught error`);
-                    this.log(`${err}`);
+                    this.log(`Function ${call.name} threw error: ${err}`);
                     throw err;
                 }
                 this.verbose &&
@@ -327,7 +327,7 @@ export class Wrapper {
                         let next = await value.next();
                         let sequence = 0;
                         while (true) {
-                            this.log(`next: ${p(next)}`);
+                            this.verbose && this.log(`next: ${p(next)}`);
                             let result: IteratorResponseMessage = {
                                 ...context,
                                 kind: "iterator",
@@ -364,7 +364,7 @@ export class Wrapper {
             this.log(`Error response: ${response}`);
             await onMessage(response);
         } finally {
-            this.log(`Exiting execute`);
+            this.verbose && this.log(`Exiting execute`);
             this.executing = false;
         }
     }
@@ -380,7 +380,7 @@ export class Wrapper {
     };
 
     protected setupChildProcess() {
-        this.log(`faast: creating child process`);
+        this.verbose && this.log(`faast: creating child process`);
 
         let execArgv = process.execArgv.slice();
         if (this.options.childProcessMemoryLimitMb) {
@@ -423,7 +423,7 @@ export class Wrapper {
         child.stderr!.on("data", this.logLines);
         child.stderr!.on("data", detectOom);
         child.on("message", (message: IteratorResult<Message>) => {
-            this.log(`child message: resolving with ${p(message)}`);
+            this.verbose && this.log(`child message: resolving with ${p(message)}`);
             if (message.done) {
                 this.queue.done();
             } else {
@@ -432,12 +432,12 @@ export class Wrapper {
         });
         /* istanbul ignore next  */
         child.on("error", err => {
-            this.log(`child error: rejecting with ${err}`);
+            this.verbose && this.log(`child error: rejecting with ${err}`);
             this.child = undefined;
             this.queue.push(Promise.reject(err));
         });
         child.on("exit", (code, signal) => {
-            this.log(`child exit: code: ${code}, signal: ${signal}`);
+            this.verbose && this.log(`child exit: code: ${code}, signal: ${signal}`);
             this.child = undefined;
             if (code) {
                 this.queue.push(
@@ -451,7 +451,7 @@ export class Wrapper {
                 }
                 this.queue.push(Promise.reject(new Error(errorMessage)));
             } else {
-                this.log(`child exiting normally`);
+                this.verbose && this.log(`child exiting normally`);
             }
         });
         return child;

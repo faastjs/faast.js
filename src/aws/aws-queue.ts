@@ -1,6 +1,7 @@
 import { SNSEvent } from "aws-lambda";
 import { SNS, SQS } from "aws-sdk";
 import { FaastError, FaastErrorNames } from "../error";
+import { log } from "../log";
 import { Message, PollResult } from "../provider";
 import { deserialize, serialize } from "../serialize";
 import { computeHttpResponseBytes, defined, sum } from "../shared";
@@ -22,8 +23,12 @@ export async function sendResponseQueueMessage(
     QueueUrl: string,
     message: Message
 ) {
-    const request = { QueueUrl, MessageBody: serialize(message) };
-    await sqs.sendMessage(request).promise();
+    try {
+        const request = { QueueUrl, MessageBody: serialize(message) };
+        await sqs.sendMessage(request).promise();
+    } catch (err) {
+        log.warn(err);
+    }
 }
 
 export function publishFunctionCallMessage(
