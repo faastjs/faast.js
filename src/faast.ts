@@ -39,7 +39,9 @@ export const providers: Provider[] = ["aws", "google", "local"];
 
 /**
  * `Async<T>` maps regular values to Promises and Iterators to AsyncIterators,
- * If `T` is already a Promise or an AsyncIterator, it remains the same.
+ * If `T` is already a Promise or an AsyncIterator, it remains the same. This
+ * type is used to infer the return value of cloud functions from the types of
+ * the functions in the user's input module.
  * @public
  */
 export type Async<T> = T extends AsyncGenerator<infer R>
@@ -49,6 +51,20 @@ export type Async<T> = T extends AsyncGenerator<infer R>
     : T extends Promise<infer R>
     ? Promise<R>
     : Promise<T>;
+
+/**
+ * `AsyncDetail<T>` is similar to {@link Async} except it maps retun values R to
+ * `Detail<R>`, which is the return value with additional information about each
+ * cloud function invocation.
+ * @public
+ */
+export type AsyncDetail<T> = T extends AsyncGenerator<infer R>
+    ? AsyncGenerator<Detail<R>>
+    : T extends Generator<infer R>
+    ? AsyncGenerator<Detail<R>>
+    : T extends Promise<infer R>
+    ? Promise<Detail<R>>
+    : Promise<Detail<T>>;
 
 /**
  * `ProxyModule<M>` is the type of {@link FaastModule.functions}.
@@ -64,6 +80,56 @@ export type ProxyModule<M> = {
         ? (...args: A) => Async<R>
         : never;
 };
+
+/**
+ * Similar to {@link ProxyModule} except each function returns a {@link Detail}
+ * object.
+ * @remarks
+ * See {@link FaastModule.functionsDetail}.
+ * @public
+ */
+export type ProxyModuleDetail<M> = {
+    [K in keyof M]: M[K] extends (...args: infer A) => infer R
+        ? (...args: A) => AsyncDetail<R>
+        : never;
+}
+
+/**
+ * A function return value with additional detailed information.
+ * @public
+ */
+export interface Detail<R> {
+    /**
+     * A Promise for the function's return value.
+     */
+    value: R;
+    /**
+     * The URL of the logs for the specific execution of this function call.
+     * @remarks
+     * This is different from the general logUrl from
+     * {@link FaastModule.logUrl}, which provides a link to the logs for all
+     * invocations of all functions within that module. Whereas this logUrl is
+     * only for this specific invocation.
+     */
+    logUrl?: string;
+    /**
+     * If available, the provider-specific execution identifier for this
+     * invocation.
+     * @remarks
+     * This ID may be added to the log entries for this invocation by the cloud
+     * provider.
+     */
+    executionId?: string;
+    /**
+     * If available, the provider-specific instance identifier for this
+     * invocation.
+     * @remarks
+     * This ID refers to the specific container or VM used to execute this
+     * function invocation. The instance may be reused across multiple
+     * invocations.
+     */
+    instanceId?: string;
+}
 
 interface FunctionReturnWithMetrics {
     response: PromiseResponseMessage | IteratorResponseMessage;
@@ -194,6 +260,16 @@ export interface FaastModule<M extends object> {
      * are passed along with arguments and contribute to the size limit.
      */
     functions: ProxyModule<M>;
+    /**
+     * Similar to {@link FaastModule.functions} except each function returns a
+     * {@link Detail} object
+     * @remarks
+     * Advanced users of faast.js may want more information about each function
+     * invocation than simply the result of the function call. For example, the
+     * specific logUrl for each invocation, to help with detailed debugging.
+     * This interface provides a way to get this detailed information.
+     */
+    functionsDetail: ProxyModuleDetail<M>;
     /**
      * Stop the faast.js runtime for this cloud function and clean up ephemeral
      * cloud resources.
@@ -336,6 +412,8 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
     provider = this.impl.name;
     /** {@inheritdoc FaastModule.functions} */
     functions: ProxyModule<M>;
+    /** {@inheritdoc FaastModule.functionsDetail} */
+    functionsDetail: ProxyModuleDetail<M>;
     /** @internal */
     private _stats = new FunctionStatsMap();
     private _cpuUsage = new FactoryMap(
@@ -376,18 +454,29 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             this._rateLimiter = new RateLimiter(options.rate, 1);
         }
         this._memoryLeakDetector = new MemoryLeakDetector(options.memorySize);
+        const functionsDetail: any = {};
         const functions: any = {};
         for (const name of Object.keys(fmodule)) {
             const origFunction = (fmodule as any)[name];
             if (typeof origFunction === "function") {
                 if (isGenerator(origFunction)) {
-                    functions[name] = this.wrapGenerator(origFunction);
+                    const func = this.wrapGenerator(origFunction);
+                    functionsDetail[name] = func;
+                    functions[name] = async function* (...args: any[])  {
+                        const generator = func(...args)
+                        for await (const iter of generator) {
+                            yield iter.value;
+                        }
+                    }
                 } else {
-                    functions[name] = this.wrapFunction(origFunction);
+                    const func = this.wrapFunction(origFunction);
+                    functionsDetail[name] = func
+                    functions[name] = (...args:any[]) => func(...args).then(p => p.value);
                 }
             }
         }
         this.functions = functions;
+        this.functionsDetail = functionsDetail;
         this._collectorPump = new Pump({ concurrency: 2 }, () => this.resultCollector());
         this._collectorPump.start();
     }
@@ -470,10 +559,10 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
         returned: FunctionReturnWithMetrics,
         functionName: string,
         localStartTime: number
-    ): R {
+    ): Promise<Detail<R>> {
         const { response } = returned;
         const { logUrl, instanceId, memoryUsage } = response;
-        let value: any;
+        let value: Promise<Detail<R>>;
 
         if (response.type === "reject") {
             const error = response.isErrorObject
@@ -486,7 +575,9 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             value = Promise.reject(error);
             value.catch((_silenceWarningLackOfSynchronousCatch: any) => {});
         } else {
-            value = Promise.resolve(returned.value[0]);
+            const { executionId } = returned.response;
+            const detail = { value: returned.value[0], logUrl, executionId, instanceId, memoryUsage }
+            value = Promise.resolve(detail);
         }
         const { localRequestSentTime, remoteResponseSentTime, localEndTime } = returned;
         const { remoteExecutionStartTime, remoteExecutionEndTime } = response;
@@ -553,7 +644,6 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 );
             }
         }
-
         return value;
     }
 
@@ -616,7 +706,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
 
     private wrapGenerator<A extends any[], R>(
         fn: ((...args: A) => AsyncGenerator<R>) | ((...args: A) => Generator<R>)
-    ): (...args: A) => AsyncIterableIterator<R> {
+    ): (...args: A) =>  AsyncIterableIterator<Detail<R>> {
         return (...args: A) => {
             const startTime = Date.now();
             let fname = this.lookupFname(fn);
@@ -628,17 +718,21 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                     return this;
                 },
                 next: () =>
-                    pending.queue.next().then(next => {
-                        const result = this.processResponse<IteratorYieldResult<R>>(
+                    pending.queue.next().then(async next => {
+                        const promise = this.processResponse<IteratorYieldResult<R>>(
                             next,
                             fname,
                             startTime
                         );
+                        const result = await promise;
                         log.calls(`yielded ${inspect(result)}`);
-                        if (result.done) {
+                        const {value, ...rest}  = result;
+                        if (result.value.done) {
                             this.clearPending(callId);
+                            return { done: true, value: rest };
+                        } else {
+                            return { done: false, value: {...rest, value: value.value} };
                         }
-                        return result;
                     })
             };
         };
@@ -653,7 +747,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
 
     private wrapFunction<A extends any[], R>(
         fn: (...args: A) => R
-    ): (...args: A) => Async<R> {
+    ): (...args: A) => Async<Detail<R>> {
         return (...args: A) => {
             const startTime = Date.now();
             let fname = this.lookupFname(fn);
@@ -701,9 +795,9 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 return funnel.push(
                     () => this._rateLimiter!.push(tryInvoke),
                     shouldRetry
-                ) as Async<R>;
+                ) as Async<Detail<R>>;
             } else {
-                return funnel.push(tryInvoke, shouldRetry) as Async<R>;
+                return funnel.push(tryInvoke, shouldRetry) as Async<Detail<R>>;
             }
         };
     }

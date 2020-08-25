@@ -9,7 +9,7 @@ hide_title: true
 
 ## Async type
 
-`Async<T>` maps regular values to Promises and Iterators to AsyncIterators, If `T` is already a Promise or an AsyncIterator, it remains the same.
+`Async<T>` maps regular values to Promises and Iterators to AsyncIterators, If `T` is already a Promise or an AsyncIterator, it remains the same. This type is used to infer the return value of cloud functions from the types of the functions in the user's input module.
 
 <b>Signature:</b>
 

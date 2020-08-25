@@ -129,11 +129,11 @@ export class Wrapper {
         if (process.env[FAAST_CHILD_ENV]) {
             this.options.childProcess = false;
             this.log(`faast: started child process for module wrapper.`);
-            process.on("message", async (call: FunctionCall) => {
+            process.on("message", async (cc: CallingContext) => {
                 const startTime = Date.now();
                 try {
                     await this.execute(
-                        { call, startTime },
+                        { ...cc, startTime },
                         {
                             onMessage: async msg => {
                                 this.log(`Received message ${msg.kind}`);
@@ -218,6 +218,7 @@ export class Wrapper {
             }
             this.executing = true;
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
+            const detail = {logUrl, executionId, instanceId};
             const { callId } = call;
             this.log(`calling: ${call.name}`);
             this.log(`   args: ${call.args}`);
@@ -243,7 +244,7 @@ export class Wrapper {
                     this.log(
                         `faast: invoking '${call.name}' in child process, memory: ${memInfo}`
                     );
-                this.child.send(call, err => {
+                this.child.send(callingContext, err => {
                     /* istanbul ignore if  */
                     if (err) {
                         this.log(`child send error: rejecting with ${err}`);
@@ -265,7 +266,7 @@ export class Wrapper {
                         const error = new FaastError(
                             {
                                 name: FaastErrorNames.ETIMEOUT,
-                                info: { logUrl, functionName: call.name }
+                                info: { ...detail, functionName: call.name }
                             },
                             `Request exceeded timeout of ${timeout}ms`
                         );
@@ -313,13 +314,7 @@ export class Wrapper {
                     this.log(`returned value: ${p(value)}, type: ${typeof value}`);
 
                 const validate = this.options.validateSerialization;
-                const context = {
-                    type: "fulfill",
-                    callId,
-                    logUrl,
-                    executionId,
-                    instanceId
-                } as const;
+                const context = { type: "fulfill", callId, ...detail } as const;
                 // Check for iterable.
 
                 if (value !== null && value !== undefined) {

@@ -15,7 +15,9 @@ export { CostAnalyzer, CostMetric, CostSnapshot } from "./src/cost";
 export { FaastError, FaastErrorNames } from "./src/error";
 export {
     Async,
+    AsyncDetail,
     AwsFaastModule,
+    Detail,
     faast,
     faastAws,
     faastGoogle,
@@ -26,7 +28,8 @@ export {
     GoogleFaastModule,
     LocalFaastModule,
     providers,
-    ProxyModule
+    ProxyModule,
+    ProxyModuleDetail
 } from "./src/faast";
 export { GoogleOptions, GoogleRegion } from "./src/google/google-faast";
 export { LocalOptions } from "./src/local/local-faast";

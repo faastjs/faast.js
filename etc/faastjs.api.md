@@ -26,6 +26,9 @@ import { Writable } from 'stream';
 // @public
 export type Async<T> = T extends AsyncGenerator<infer R> ? AsyncGenerator<R> : T extends Generator<infer R> ? AsyncGenerator<R> : T extends Promise<infer R> ? Promise<R> : Promise<T>;
 
+// @public
+export type AsyncDetail<T> = T extends AsyncGenerator<infer R> ? AsyncGenerator<Detail<R>> : T extends Generator<infer R> ? AsyncGenerator<Detail<R>> : T extends Promise<infer R> ? Promise<Detail<R>> : Promise<Detail<T>>;
+
 // Warning: (ae-forgotten-export) The symbol "AwsState" needs to be exported by the entry point index.d.ts
 //
 // @public
@@ -161,6 +164,14 @@ export class CostSnapshot {
 }
 
 // @public
+export interface Detail<R> {
+    executionId?: string;
+    instanceId?: string;
+    logUrl?: string;
+    value: R;
+}
+
+// @public
 export function faast<M extends object>(provider: Provider, fmodule: M, options?: CommonOptions): Promise<FaastModule<M>>;
 
 // @public
@@ -192,6 +203,7 @@ export interface FaastModule<M extends object> {
     cleanup(options?: CleanupOptions): Promise<void>;
     costSnapshot(): Promise<CostSnapshot>;
     functions: ProxyModule<M>;
+    functionsDetail: ProxyModuleDetail<M>;
     logUrl(): string;
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
@@ -210,6 +222,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
     cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
     costSnapshot(): Promise<CostSnapshot>;
     functions: ProxyModule<M>;
+    functionsDetail: ProxyModuleDetail<M>;
     logUrl(): string;
     off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
     on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
@@ -335,6 +348,11 @@ export const providers: Provider[];
 // @public
 export type ProxyModule<M> = {
     [K in keyof M]: M[K] extends (...args: infer A) => infer R ? (...args: A) => Async<R> : never;
+};
+
+// @public
+export type ProxyModuleDetail<M> = {
+    [K in keyof M]: M[K] extends (...args: infer A) => infer R ? (...args: A) => AsyncDetail<R> : never;
 };
 
 // @public
