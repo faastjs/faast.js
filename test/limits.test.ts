@@ -125,7 +125,7 @@ async function testLongInvoke(
     //
     // config.update({ httpOptions: { timeout: 20000 } });
     const opts: CommonOptions = {
-        timeout: 900,
+        timeout: 500,
         gc: "off",
         description: t.title,
         ...options
