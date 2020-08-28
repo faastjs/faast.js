@@ -231,6 +231,13 @@ export async function* generateThenInfiniteLoop(arg: string) {
     while (true) {}
 }
 
+export async function* asyncGeneratorDelay(args: string[], delay: number) {
+    for (const arg of args) {
+        await sleep(delay);
+        yield arg;
+    }
+}
+
 /**
  * Not supported.
  * @remarks

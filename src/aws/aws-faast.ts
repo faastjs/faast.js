@@ -225,7 +225,7 @@ export interface AwsResources {
 
 export interface AwsServices {
     readonly lambda: Lambda;
-    readonly lambda2: Lambda;
+    readonly lambda2: Lambda; // Special Lambda instance configured for invocations.
     readonly cloudwatch: CloudWatchLogs;
     readonly iam: IAM;
     readonly sqs: SQS;
@@ -289,10 +289,20 @@ export const createAwsApis = throttle(
     async (region: AwsRegion) => {
         const logger = log.awssdk.enabled ? { log: log.awssdk } : undefined;
         awsconfig.update({ correctClockSkew: true, maxRetries: 6, logger });
-        const services = {
+        const services: AwsServices = {
             iam: new IAM({ apiVersion: "2010-05-08", region }),
             lambda: new Lambda({ apiVersion: "2015-03-31", region }),
-            lambda2: new Lambda({ apiVersion: "2015-03-31", region, maxRetries: 0 }),
+            // Special Lambda instance with configuration optimized for
+            // invocations.
+            lambda2: new Lambda({
+                apiVersion: "2015-03-31",
+                region,
+                // Retries are handled by faast.js, not the sdk.
+                maxRetries: 0,
+                // The default 120s timeout is too short, especially for https
+                // mode.
+                httpOptions: { timeout: 0 }
+            }),
             cloudwatch: new CloudWatchLogs({ apiVersion: "2014-03-28", region }),
             sqs: new SQS({ apiVersion: "2012-11-05", region }),
             sns: new SNS({ apiVersion: "2010-03-31", region }),

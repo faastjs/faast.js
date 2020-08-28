@@ -8,6 +8,60 @@ hide_title: true
 
 A catalogue of common error messages and their root causes. Some of these errors are specific to the faast.js testsuite, but other errors may be encountered by users.
 
+## Connection timed out after 120000ms
+
+This error was observed when developing another application that uses faast.js. The symptoms of the problem included mysterious "phantom" retries that were not initiated by faast.js itself, nor by the application. Different errors were observed, including the following:
+
+_SQS: nonexistent queue warning_
+(node:58286) UnhandledPromiseRejectionWarning: AWS.SimpleQueueService.NonExistentQueue: The specified queue does not exist for this wsdl version.
+
+_Connection timed out after 120000ms_
+An exception was thrown with this error from the lambda invoke api in https mode.
+
+_Extra output files_
+Output files that were deleted were still present at the end of a batch run.
+
+The diagnosis ended up pointing to an interaction between two AWS node.js API configuration settings:
+
+```
+awsconfig.update({ maxRetries: 6 });
+```
+
+In faast.js we set AWS apis to automatically retry up to 6 times. This helps with robustness in making calls, especially in the CI testsuite where many API calls are happening in parallel and there are some implicit dependencies, such as creating a role before using it in creating a lambda function.
+
+Unfortunately this also applies to lambda's `invoke` API, which calls serverless functions. However, retries are only attempted for errors at the AWS api level, not the userspace code level. AWS's [documentation on retries](https://docs.aws.amazon.com/lambda/latest/dg/invocation-retries.html):
+
+    When you invoke a function directly, you determine the strategy for handling errors. You can retry, send the event to a queue for debugging, or ignore the error. Your function's code might have run completely, partially, or not at all. If you retry, ensure that your function's code can handle the same event multiple times without causing duplicate transactions or other unwanted side effects.
+
+Invoking a function directly means using faast.js' `https` mode, which uses the `invoke` API call. This makes it sound like Lambda won't automatically retry. However, the documentation also states:
+
+    When you invoke a function, two types of error can occur. Invocation errors occur when the invocation request is rejected before your function receives it. Function errors occur when your function's code or runtime returns an error. Depending on the type of error, the type of invocation, and the client or service that invokes the function, the retry behavior and the strategy for managing errors varies.
+    ...
+    Clients such as the AWS CLI and the AWS SDK retry on client timeouts, throttling errors (429), and other errors that aren't caused by a bad request (500 series). For a full list of invocation errors, see [Invoke](https://docs.aws.amazon.com/lambda/latest/dg/API_Invoke.html).
+
+This sounds reasonable but there is one pitfall not specifically mentioned: there is an http connection timeout that defaults to 120s, and it is one of the errors that causes the sdk to retry.
+
+This implies that by default, when invoking via the `invoke` api, any function that takes longer than 120s to respond will cause a client connection timeout, which triggers retries, all of which will probably fail due to the same timeout. The only reason faas.js seemed to have successful results was that we don't rely on the http connection to return results; they are returned via an SQS queue.
+
+The solution is to modify the https timeout:
+
+```
+awsconfig.update({
+    maxRetries: 6,
+    httpOptions: { timeout: 0 }
+});
+```
+
+This ensures that there will be no client-side connection timeout within the time that the lambda function has to run. The errors above can be explained as follows:
+
+SQS nonexistent queue - retries that were started continued to run after faast.js deleted the response queue upon cleanup. When the retry invocations tried to return results via the response queue, the queue name was no longer valid.
+
+Connection timed out after 120s - this was the error from the AWS SDK, the exception was thrown when a function exceeded the max retry count.
+
+Extra output files - multiple retry attempts were putting output files in S3.
+
+Note that the 0 timeout means no timeout, and is only applicable to the Lambda instance used with the `invoke` API call. Other AWS service calls are not affected. Also note that Lambda will automatically cut off the connection after it exceeds the maximum lambda execution timeout, so there is no chance of an infinite hang here.
+
 ## Cannot find any-observable
 
 This error was observed when developing another application that uses faast.js:

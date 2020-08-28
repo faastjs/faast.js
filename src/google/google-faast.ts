@@ -541,7 +541,8 @@ async function callFunctionHttps(
             headers: { "Content-Type": "application/json" },
             body: serialize(call),
             signal: source.signal,
-            responseType: "json"
+            responseType: "json",
+            retry: false
         };
         const rawResponse = await Promise.race([
             gaxios.request<void>(axiosConfig),

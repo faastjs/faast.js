@@ -3,6 +3,7 @@ import { inspect } from "util";
 import { CommonOptions, faast, Provider, FaastError, FaastErrorNames } from "../index";
 import * as funcs from "./fixtures/functions";
 import { title } from "./fixtures/util";
+import { config } from "aws-sdk";
 
 async function testTimeout(
     t: ExecutionContext,
@@ -109,14 +110,51 @@ async function memoryLimitFail(
     }
 }
 
-type LimitType = "memory" | "timeout" | "generator";
+// Note that this test takes 180s by default. Set the ava timeout to 2m or
+// longer otherwise it will fail with a timeout error.
+async function testLongInvoke(
+    t: ExecutionContext,
+    provider: Provider,
+    options: CommonOptions
+) {
+    // The http timeout is 120s in awssdk by default. Uncomment the following
+    // line to shorten it to 20s for focused testing. Note that shortening it
+    // below 20s causes (harmless) timeout error messages from SQS on the long
+    // polling response queue. If faast.js is working correctly, the shortened
+    // timeout should not cause a test failure.
+    //
+    // config.update({ httpOptions: { timeout: 20000 } });
+    const opts: CommonOptions = {
+        timeout: 900,
+        gc: "off",
+        description: t.title,
+        ...options
+    };
+    const faastModule = await faast(provider, funcs, opts);
+    const remote = faastModule.functions;
+    try {
+        let i = 0;
+        const args = ["a", "b", "c"];
+        // The use of an async generator is to mimick a real use case from a
+        // client of faast.js. The presence of an error should also be revealed
+        // with a regular remote function call.
+        for await (const arg of remote.asyncGeneratorDelay(args, 60000)) {
+            t.is(arg, args[i++]);
+        }
+    } finally {
+        await faastModule.cleanup();
+    }
+}
 
-const configurations: [Provider, CommonOptions, LimitType[]][] = [
-    ["aws", { mode: "https", childProcess: true }, ["memory", "timeout", "generator"]],
-    ["aws", { mode: "queue", childProcess: true }, ["memory", "timeout", "generator"]],
+type LimitType = "memory" | "timeout" | "generator" | "long";
+const allLimits = ["memory", "timeout", "long", "generator"] as const;
+
+const configurations: [Provider, CommonOptions, readonly LimitType[]][] = [
+    ["aws", { mode: "https", childProcess: true }, allLimits],
+    ["aws", { mode: "queue", childProcess: true }, allLimits],
     ["aws", { mode: "https", childProcess: false }, ["memory", "timeout", "generator"]],
     ["aws", { mode: "queue", childProcess: false }, ["memory", "timeout", "generator"]],
-    ["google", { mode: "https", childProcess: true }, ["memory", "timeout"]],
+    ["google", { mode: "https", childProcess: true }, ["memory", "timeout", "long"]],
     ["google", { mode: "queue", childProcess: true }, []],
     ["local", {}, ["timeout"]]
 ];
@@ -134,6 +172,9 @@ for (const [provider, config, limitTypes] of configurations) {
     }
     if (limitTypes.find(t => t === "timeout")) {
         test(title(provider, `timeout`, config), testTimeout, provider, config);
+    }
+    if (limitTypes.find(t => t === "long")) {
+        test(title(provider, `long invoke`, config), testLongInvoke, provider, config);
     }
     if (limitTypes.find(t => t === "generator")) {
         test(
