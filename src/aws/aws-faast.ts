@@ -519,7 +519,14 @@ export const initialize = throttle(
         }
         const { wrapperVerbose } = options.debugOptions;
         async function createCodeBundle() {
-            const wrapperOptions = { wrapperVerbose };
+            const { timeout, childProcess, mode } = options;
+            const hasLambdaTimeoutBug = mode !== "queue" && timeout >= 300;
+            const childProcessTimeoutMs =
+                hasLambdaTimeoutBug && childProcess ? (timeout - 5) * 1000 : 0;
+            const wrapperOptions: WrapperOptions = {
+                wrapperVerbose,
+                childProcessTimeoutMs
+            };
             const bundle = awsPacker(fModule, options, wrapperOptions, FunctionName);
             return { ZipFile: await streamToBuffer((await bundle).archive) };
         }

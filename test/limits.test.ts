@@ -5,6 +5,18 @@ import * as funcs from "./fixtures/functions";
 import { title } from "./fixtures/util";
 import { config } from "aws-sdk";
 
+/**
+ * Note that there is an AWS Lambda bug where timeouts are not delivered if the
+ * function has a timeout >= 300s, and the function is invoked directly with the
+ * Invoke API (e.g. in faast.js' "https" mode, which is the default.). In this
+ * case if faast.js has childProcess mode on (the default), then it will set its
+ * own timeout. This situation is not explicitly tested here because it would
+ * make the entire testsuite slower for just one test. To test this situation
+ * manually, change the timeout to 300 or more, and run one of these tests:
+ *
+ *    $ ava --timeout=10m -m="remote aws generator timeout { mode: 'https', childProcess: true }"
+ *    $ ava --timeout=10m -m="remote aws timeout { mode: 'https', childProcess: true }"
+ */
 async function testTimeout(
     t: ExecutionContext,
     provider: Provider,
@@ -23,11 +35,8 @@ async function testTimeout(
         try {
             await lambda.functions.infiniteLoop();
         } catch (err) {
-            t.is(
-                FaastError.hasCauseWithName(err, FaastErrorNames.ETIMEOUT),
-                true,
-                `${inspect(err)}`
-            );
+            const isTimeout = FaastError.hasCauseWithName(err, FaastErrorNames.ETIMEOUT);
+            t.is(isTimeout, true, `${inspect(err)}`);
         }
     } finally {
         await lambda.cleanup();
@@ -37,7 +46,7 @@ async function testTimeout(
 /**
  * The purpose of this test is to verify that a CPU hogging async generator
  * function won't starve the sending logic, so yield messages prior to the CPU
- * intensive work are  delivered.
+ * intensive work are delivered.
  */
 async function testGenerator(
     t: ExecutionContext,
@@ -58,6 +67,7 @@ async function testGenerator(
         for await (const result of lambda.functions.generateThenInfiniteLoop(arg)) {
             t.is(result, arg);
         }
+        t.fail("Did not timeout");
     } catch (err) {
         t.is(FaastError.hasCauseWithName(err, FaastErrorNames.ETIMEOUT), true);
     } finally {
