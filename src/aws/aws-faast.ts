@@ -520,7 +520,7 @@ export const initialize = throttle(
         const { wrapperVerbose } = options.debugOptions;
         async function createCodeBundle() {
             const { timeout, childProcess, mode } = options;
-            const hasLambdaTimeoutBug = mode !== "queue" && timeout >= 300;
+            const hasLambdaTimeoutBug = mode !== "queue" && timeout >= 180;
             const childProcessTimeoutMs =
                 hasLambdaTimeoutBug && childProcess ? (timeout - 5) * 1000 : 0;
             const wrapperOptions: WrapperOptions = {

@@ -218,7 +218,7 @@ export class Wrapper {
             }
             this.executing = true;
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
-            const detail = {logUrl, executionId, instanceId};
+            const detail = { logUrl, executionId, instanceId };
             const { callId } = call;
             this.log(`calling: ${call.name}`);
             this.log(`   args: ${call.args}`);
@@ -356,7 +356,7 @@ export class Wrapper {
         } catch (err) {
             this.log(`faast: wrapped function exception or promise rejection: ${err}`);
             const response = createErrorResponse(processError(err), callingContext);
-            this.log(`Error response: ${response}`);
+            this.log(`Error response: ${inspect(response)}`);
             await onMessage(response);
         } finally {
             this.verbose && this.log(`Exiting execute`);
