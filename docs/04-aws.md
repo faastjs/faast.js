@@ -79,8 +79,9 @@ There are two [modes of invocation](./api/faastjs.commonoptions.mode.md) for AWS
 | maximum argument size     | 6MB        | 256kb      |
 | maximum return value size | 6MB        | 256kb      |
 | max invocations / sec     | ~300/sec   | > 600/sec  |
+| default throttling        | 50         | 1000       |
 
-In practice, the lower invocations/sec possible with https mode is acceptable because real-world invocations often take longer than a few seconds. However, for microbenchmarks and certain applications where ops/s is most important, queue mode may be preferable.
+Experiments show that AWS Lambda throttles https mode (direct invoke) to 50 concurrency. Therefore for higher concurrency levels, use queue mode.
 
 The default is https mode.
 

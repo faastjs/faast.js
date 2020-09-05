@@ -449,7 +449,13 @@ export function logUrl(state: AwsState) {
 export const initialize = throttle(
     { concurrency: Infinity, rate: 2 },
     async (fModule: string, nonce: UUID, options: Required<AwsOptions>) => {
-        const { region, timeout, memorySize, env } = options;
+        const { region, timeout, memorySize, env, concurrency, mode } = options;
+        if (concurrency > 50 && mode !== "queue") {
+            log.warn(
+                `AWS Lambda throttles https mode concurrency to 50. Consider using queue mode:`
+            );
+            log.warn(`https://faastjs.org/docs/api/faastjs.commonoptions.mode`);
+        }
         log.info(`Creating AWS APIs`);
         const services = await createAwsApis(region);
         const { lambda } = services;
