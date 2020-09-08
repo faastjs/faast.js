@@ -7,6 +7,7 @@ import {
     GoogleApis,
     pubsub_v1
 } from "googleapis";
+import * as https from "https";
 import * as util from "util";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
@@ -40,7 +41,6 @@ import * as googleTrampolineQueue from "./google-trampoline-queue";
 import CloudFunctions = cloudfunctions_v1;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
-import { cloudfunctions } from "googleapis/build/src/apis/cloudfunctions";
 
 const gaxios = new Gaxios({
     retryConfig: {
@@ -527,6 +527,8 @@ export function getRequestSubscription(
     return `projects/${project}/subscriptions/gcf-${functionName}-${region}-${functionName}-Requests`;
 }
 
+const agent = new https.Agent({ keepAlive: true, timeout: 0, maxSockets: 1000 });
+
 async function callFunctionHttps(
     url: string,
     call: FunctionCall,
@@ -542,7 +544,8 @@ async function callFunctionHttps(
             body: serialize(call),
             signal: source.signal,
             responseType: "json",
-            retry: false
+            retry: false,
+            agent
         };
         const rawResponse = await Promise.race([
             gaxios.request<void>(axiosConfig),

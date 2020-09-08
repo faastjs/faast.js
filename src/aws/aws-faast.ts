@@ -11,8 +11,10 @@ import {
     SQS,
     STS
 } from "aws-sdk";
+import { ConfigurationOptions } from "aws-sdk/lib/config-base";
 import { createHash } from "crypto";
 import { readFile } from "fs-extra";
+import * as https from "https";
 import { inspect } from "util";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
@@ -284,35 +286,38 @@ export async function quietly<U>(arg: Request<U, AWSError>) {
     }
 }
 
-export const createAwsApis = throttle(
-    { concurrency: 1, memoize: true },
-    async (region: AwsRegion) => {
-        const logger = log.awssdk.enabled ? { log: log.awssdk } : undefined;
-        awsconfig.update({ correctClockSkew: true, maxRetries: 6, logger });
-        const services: AwsServices = {
-            iam: new IAM({ apiVersion: "2010-05-08", region }),
-            lambda: new Lambda({ apiVersion: "2015-03-31", region }),
-            // Special Lambda instance with configuration optimized for
-            // invocations.
-            lambda2: new Lambda({
-                apiVersion: "2015-03-31",
-                region,
-                // Retries are handled by faast.js, not the sdk.
-                maxRetries: 0,
-                // The default 120s timeout is too short, especially for https
-                // mode.
-                httpOptions: { timeout: 0 }
-            }),
-            cloudwatch: new CloudWatchLogs({ apiVersion: "2014-03-28", region }),
-            sqs: new SQS({ apiVersion: "2012-11-05", region }),
-            sns: new SNS({ apiVersion: "2010-03-31", region }),
-            pricing: new Pricing({ region: "us-east-1" }),
-            sts: new STS({ apiVersion: "2011-06-15", region }),
-            s3: new S3({ apiVersion: "2006-03-01", region })
-        };
-        return services;
-    }
-);
+export const createAwsApis = throttle({ concurrency: 1 }, async (region: AwsRegion) => {
+    const logger = log.awssdk.enabled ? { log: log.awssdk } : undefined;
+    const common: ConfigurationOptions = {
+        correctClockSkew: true,
+        maxRetries: 6,
+        logger,
+        region
+    };
+    const agent = new https.Agent({ keepAlive: true, maxSockets: 1000, timeout: 0 });
+    const services: AwsServices = {
+        iam: new IAM({ apiVersion: "2010-05-08", ...common }),
+        lambda: new Lambda({ apiVersion: "2015-03-31", ...common }),
+        // Special Lambda instance with configuration optimized for
+        // invocations.
+        lambda2: new Lambda({
+            apiVersion: "2015-03-31",
+            ...common,
+            // Retries are handled by faast.js, not the sdk.
+            maxRetries: 0,
+            // The default 120s timeout is too short, especially for https
+            // mode.
+            httpOptions: { timeout: 0, agent }
+        }),
+        cloudwatch: new CloudWatchLogs({ apiVersion: "2014-03-28", ...common }),
+        sqs: new SQS({ apiVersion: "2012-11-05", ...common }),
+        sns: new SNS({ apiVersion: "2010-03-31", ...common }),
+        pricing: new Pricing({ region: "us-east-1", ...common }),
+        sts: new STS({ apiVersion: "2011-06-15", ...common }),
+        s3: new S3({ apiVersion: "2006-03-01", ...common })
+    };
+    return services;
+});
 
 export async function ensureRoleRaw(
     RoleName: string,
@@ -450,10 +455,8 @@ export const initialize = throttle(
     { concurrency: Infinity, rate: 2 },
     async (fModule: string, nonce: UUID, options: Required<AwsOptions>) => {
         const { region, timeout, memorySize, env, concurrency, mode } = options;
-        if (concurrency > 50 && mode !== "queue") {
-            log.warn(
-                `AWS Lambda throttles https mode concurrency to 50. Consider using queue mode:`
-            );
+        if (concurrency > 100 && mode !== "queue") {
+            log.warn(`Consider using queue mode for higher levels of concurrency:`);
             log.warn(`https://faastjs.org/docs/api/faastjs.commonoptions.mode`);
         }
         log.info(`Creating AWS APIs`);

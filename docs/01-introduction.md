@@ -65,10 +65,11 @@ import { faast } from "faastjs";
 import * as funcs from "./functions";
 
 (async () => {
-    const m = await faast("aws", funcs);
+    const concurrency = 1000;
+    const m = await faast("aws", funcs, { concurrency });
     const promises = [];
     // Invoke m.functions.hello() 1000 times in parallel.
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < concurrency; i++) {
         promises.push(m.functions.hello("world " + i));
     }
     // Wait for all 1000 calls to complete.
