@@ -1,7 +1,6 @@
 import {
     AWSError,
     CloudWatchLogs,
-    config as awsconfig,
     IAM,
     Lambda,
     Pricing,
@@ -178,12 +177,28 @@ export interface AwsOptions extends CommonOptions {
      *       ...awsLambdaOptions
      *   };
      * ```
-     *
-     * One use case for this option is to use
-     * {@link https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html | Lambda Layers}
-     * with faast.js.
      */
     awsLambdaOptions?: Partial<Lambda.CreateFunctionRequest>;
+
+    /**
+     * Additional options to pass to all AWS services. See
+     * {@link https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Config.html | AWS.Config}.
+     * @remarks
+     * If you need to specify AWS options such as credentials, you can pass set
+     * these options here. Note that faast.js will override some options even if
+     * they are specified here, specifically the options used to create the
+     * `Lambda` service, to ensure they allow for faast to function correctly.
+     * Options set in {@link CommonOptions} override those set here.
+     *
+     * Example of passing in credentials:
+     *
+     * ```typescript
+     *   const credentials = { accessKeyId, secretAccessKey };
+     *   const m = await faastAws(funcs, { credentials });
+     * ```
+     */
+    awsConfig?: ConfigurationOptions;
+
     /** @internal */
     _gcWorker?: (work: AwsGcWork, services: AwsServices) => Promise<void>;
 }
@@ -194,6 +209,7 @@ export let defaults: Required<AwsOptions> = {
     RoleName: "faast-cached-lambda-role",
     memorySize: 1728,
     awsLambdaOptions: {},
+    awsConfig: {},
     _gcWorker: defaultGcWorker
 };
 
@@ -286,38 +302,42 @@ export async function quietly<U>(arg: Request<U, AWSError>) {
     }
 }
 
-export const createAwsApis = throttle({ concurrency: 1 }, async (region: AwsRegion) => {
-    const logger = log.awssdk.enabled ? { log: log.awssdk } : undefined;
-    const common: ConfigurationOptions = {
-        correctClockSkew: true,
-        maxRetries: 6,
-        logger,
-        region
-    };
-    const agent = new https.Agent({ keepAlive: true, maxSockets: 1000, timeout: 0 });
-    const services: AwsServices = {
-        iam: new IAM({ apiVersion: "2010-05-08", ...common }),
-        lambda: new Lambda({ apiVersion: "2015-03-31", ...common }),
-        // Special Lambda instance with configuration optimized for
-        // invocations.
-        lambda2: new Lambda({
-            apiVersion: "2015-03-31",
-            ...common,
-            // Retries are handled by faast.js, not the sdk.
-            maxRetries: 0,
-            // The default 120s timeout is too short, especially for https
-            // mode.
-            httpOptions: { timeout: 0, agent }
-        }),
-        cloudwatch: new CloudWatchLogs({ apiVersion: "2014-03-28", ...common }),
-        sqs: new SQS({ apiVersion: "2012-11-05", ...common }),
-        sns: new SNS({ apiVersion: "2010-03-31", ...common }),
-        pricing: new Pricing({ region: "us-east-1", ...common }),
-        sts: new STS({ apiVersion: "2011-06-15", ...common }),
-        s3: new S3({ apiVersion: "2006-03-01", ...common })
-    };
-    return services;
-});
+export const createAwsApis = throttle(
+    { concurrency: 1 },
+    async (region: AwsRegion, awsConfig: ConfigurationOptions = {}) => {
+        const logger = log.awssdk.enabled ? { log: log.awssdk } : undefined;
+        const common: ConfigurationOptions = {
+            maxRetries: 6,
+            correctClockSkew: true,
+            logger,
+            ...awsConfig,
+            region
+        };
+        const agent = new https.Agent({ keepAlive: true, maxSockets: 1000, timeout: 0 });
+        const services: AwsServices = {
+            iam: new IAM({ apiVersion: "2010-05-08", ...common }),
+            lambda: new Lambda({ apiVersion: "2015-03-31", ...common }),
+            // Special Lambda instance with configuration optimized for
+            // invocations.
+            lambda2: new Lambda({
+                apiVersion: "2015-03-31",
+                ...common,
+                // Retries are handled by faast.js, not the sdk.
+                maxRetries: 0,
+                // The default 120s timeout is too short, especially for https
+                // mode.
+                httpOptions: { timeout: 0, agent }
+            }),
+            cloudwatch: new CloudWatchLogs({ apiVersion: "2014-03-28", ...common }),
+            sqs: new SQS({ apiVersion: "2012-11-05", ...common }),
+            sns: new SNS({ apiVersion: "2010-03-31", ...common }),
+            pricing: new Pricing({ region: "us-east-1", ...common }),
+            sts: new STS({ apiVersion: "2011-06-15", ...common }),
+            s3: new S3({ apiVersion: "2006-03-01", ...common })
+        };
+        return services;
+    }
+);
 
 export async function ensureRoleRaw(
     RoleName: string,
@@ -460,7 +480,7 @@ export const initialize = throttle(
             log.warn(`https://faastjs.org/docs/api/faastjs.commonoptions.mode`);
         }
         log.info(`Creating AWS APIs`);
-        const services = await createAwsApis(region);
+        const services = await createAwsApis(region, options.awsConfig);
         const { lambda } = services;
         const FunctionName = `faast-${nonce}`;
         const { packageJson, useDependencyCaching, description } = options;

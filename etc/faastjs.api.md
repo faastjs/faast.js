@@ -8,6 +8,7 @@ import * as childProcess from 'child_process';
 import { cloudbilling_v1 } from 'googleapis';
 import { cloudfunctions_v1 } from 'googleapis';
 import { CloudWatchLogs } from 'aws-sdk';
+import { ConfigurationOptions } from 'aws-sdk/lib/config-base';
 import * as debug_2 from 'debug';
 import { GoogleApis } from 'googleapis';
 import { IAM } from 'aws-sdk';
@@ -36,6 +37,7 @@ export type AwsFaastModule<M extends object = object> = FaastModuleProxy<M, AwsO
 
 // @public
 export interface AwsOptions extends CommonOptions {
+    awsConfig?: ConfigurationOptions;
     awsLambdaOptions?: Partial<Lambda.CreateFunctionRequest>;
     // Warning: (ae-forgotten-export) The symbol "AwsGcWork" needs to be exported by the entry point index.d.ts
     // Warning: (ae-forgotten-export) The symbol "AwsServices" needs to be exported by the entry point index.d.ts
