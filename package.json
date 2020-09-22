@@ -146,7 +146,17 @@
         ],
         "automerge": true,
         "prHourlyLimit": 1,
-        "semanticCommits": true
+        "semanticCommits": true,
+        "packageRules": [
+            {
+                "packagePatterns": [
+                    "^@microsoft/api"
+                ],
+                "extends": [
+                    "schedule:monthly"
+                ]
+            }
+        ]
     },
     "release": {},
     "config": {
