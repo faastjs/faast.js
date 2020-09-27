@@ -10,7 +10,7 @@ Thanks for your interest in contributing to faast.js! The information on this pa
 
 ## Communication
 
-Sign up for our [Slack channel](https://join.slack.com/t/faastjs/shared_invite/enQtNTk0NTczMzI4NzQxLTA2MWU1NDA1ZjBkOTc3MTNkOGMzMDY0OWU1NGQ5MzM2NDY1YTJiZmNmODk4NzI0OWI1MzZhZDdiOTIzODNkOGY). If you're already signed up, [log in](https://faastjs.slack.com).
+Sign up for our [discord channel](https://discord.gg/F3aqjb3).
 
 Also check out the [`faast.js` tag on StackOverflow](https://stackoverflow.com/questions/tagged/faast.js).
 
@@ -245,4 +245,4 @@ The codecov token can be retrieved from the web console in a codecov account. Co
 
 ## Adding a new cloud provider
 
-We'd love your help in adding more cloud providers! Please reach out on Slack to discuss.
+We'd love your help in adding more cloud providers! Please reach out on Discord to discuss.

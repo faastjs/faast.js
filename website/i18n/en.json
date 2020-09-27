@@ -47,8 +47,14 @@
       "api/faastjs.async": {
         "title": "Async type"
       },
+      "api/faastjs.asyncdetail": {
+        "title": "AsyncDetail type"
+      },
       "api/faastjs.awsfaastmodule": {
         "title": "AwsFaastModule type"
+      },
+      "api/faastjs.awsoptions.awsconfig": {
+        "title": "AwsOptions.awsConfig property"
       },
       "api/faastjs.awsoptions.awslambdaoptions": {
         "title": "AwsOptions.awsLambdaOptions property"
@@ -79,6 +85,9 @@
       },
       "api/faastjs.commonoptions.concurrency": {
         "title": "CommonOptions.concurrency property"
+      },
+      "api/faastjs.commonoptions.description": {
+        "title": "CommonOptions.description property"
       },
       "api/faastjs.commonoptions.env": {
         "title": "CommonOptions.env property"
@@ -260,44 +269,32 @@
       "api/faastjs.costsnapshot.total": {
         "title": "CostSnapshot.total() method"
       },
+      "api/faastjs.detail.executionid": {
+        "title": "Detail.executionId property"
+      },
+      "api/faastjs.detail.instanceid": {
+        "title": "Detail.instanceId property"
+      },
+      "api/faastjs.detail.logurl": {
+        "title": "Detail.logUrl property"
+      },
+      "api/faastjs.detail": {
+        "title": "Detail interface"
+      },
+      "api/faastjs.detail.value": {
+        "title": "Detail.value property"
+      },
       "api/faastjs.faast": {
         "title": "faast() function"
       },
       "api/faastjs.faastaws": {
         "title": "faastAws() function"
       },
-      "api/faastjs.faasterror.args": {
-        "title": "FaastError.args property"
-      },
-      "api/faastjs.faasterror.cause": {
-        "title": "FaastError.cause() method"
-      },
-      "api/faastjs.faasterror.code": {
-        "title": "FaastError.code property"
-      },
-      "api/faastjs.faasterror.fullstack": {
-        "title": "FaastError.fullStack property"
-      },
-      "api/faastjs.faasterror.functionname": {
-        "title": "FaastError.functionName property"
-      },
-      "api/faastjs.faasterror.info": {
-        "title": "FaastError.info property"
-      },
-      "api/faastjs.faasterror.logurl": {
-        "title": "FaastError.logUrl property"
-      },
       "api/faastjs.faasterror": {
         "title": "FaastError class"
       },
-      "api/faastjs.faasterror.message": {
-        "title": "FaastError.message property"
-      },
-      "api/faastjs.faasterror.name": {
-        "title": "FaastError.name property"
-      },
-      "api/faastjs.faasterror.stack": {
-        "title": "FaastError.stack property"
+      "api/faastjs.faasterrornames": {
+        "title": "FaastErrorNames enum"
       },
       "api/faastjs.faastgoogle": {
         "title": "faastGoogle() function"
@@ -313,6 +310,9 @@
       },
       "api/faastjs.faastmodule.functions": {
         "title": "FaastModule.functions property"
+      },
+      "api/faastjs.faastmodule.functionsdetail": {
+        "title": "FaastModule.functionsDetail property"
       },
       "api/faastjs.faastmodule.logurl": {
         "title": "FaastModule.logUrl() method"
@@ -340,6 +340,9 @@
       },
       "api/faastjs.faastmoduleproxy.functions": {
         "title": "FaastModuleProxy.functions property"
+      },
+      "api/faastjs.faastmoduleproxy.functionsdetail": {
+        "title": "FaastModuleProxy.functionsDetail property"
       },
       "api/faastjs.faastmoduleproxy.logurl": {
         "title": "FaastModuleProxy.logUrl() method"
@@ -502,6 +505,9 @@
       },
       "api/faastjs.proxymodule": {
         "title": "ProxyModule type"
+      },
+      "api/faastjs.proxymoduledetail": {
+        "title": "ProxyModuleDetail type"
       },
       "api/faastjs.statistics._constructor_": {
         "title": "Statistics.(constructor)"

@@ -81,7 +81,7 @@ Work through some [examples](https://github.com/faastjs/examples)
 
 Review the detailed [API documentation](https://faastjs.org/docs/api/faastjs).
 
-Join our [slack channel](https://join.slack.com/t/faastjs/shared_invite/enQtNTk0NTczMzI4NzQxLTA2MWU1NDA1ZjBkOTc3MTNkOGMzMDY0OWU1NGQ5MzM2NDY1YTJiZmNmODk4NzI0OWI1MzZhZDdiOTIzODNkOGY). Already joined? [sign in](https://faastjs.slack.com/).
+Join our [discord channel](https://discord.gg/F3aqjb3).
 
 Follow us on [twitter](https://twitter.com/faastjs).
 

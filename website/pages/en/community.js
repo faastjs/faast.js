@@ -22,13 +22,11 @@ function Community(props) {
     const supportLinks = [
         {
             title: "Github",
-            content:
-                "View faast.js on [GitHub](https://github.com/faastjs/faast.js)."
+            content: "View faast.js on [GitHub](https://github.com/faastjs/faast.js)."
         },
         {
-            title: "Slack",
-            content:
-                "Join our [community on Slack](https://join.slack.com/t/faastjs/shared_invite/enQtNTk0NTczMzI4NzQxLTA2MWU1NDA1ZjBkOTc3MTNkOGMzMDY0OWU1NGQ5MzM2NDY1YTJiZmNmODk4NzI0OWI1MzZhZDdiOTIzODNkOGY). <br>Already joined? [Sign in](https://faastjs.slack.com/)."
+            title: "Discord",
+            content: "Join our [community on Discord](https://discord.gg/F3aqjb3)."
         },
         {
             title: "Stack Overflow",

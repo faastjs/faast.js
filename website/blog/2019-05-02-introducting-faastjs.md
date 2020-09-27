@@ -83,7 +83,7 @@ Here are a few ideas to get you started.
 
 This is just the tip of the iceberg. I'm excited to see what you'll build with faast.js!
 
-If you'd like to discuss faast.js ideas or issues, join our [slack channel](https://join.slack.com/t/faastjs/shared_invite/enQtNTk0NTczMzI4NzQxLTA2MWU1NDA1ZjBkOTc3MTNkOGMzMDY0OWU1NGQ5MzM2NDY1YTJiZmNmODk4NzI0OWI1MzZhZDdiOTIzODNkOGY). Also check out our [website](https://faastjs.org), [docs](https://faastjs.org/docs/introduction), and [github repository](https://github.com/faastjs/faast.js).
+If you'd like to discuss faast.js ideas or issues, join our [discord channel](https://discord.gg/F3aqjb3). Also check out our [website](https://faastjs.org), [docs](https://faastjs.org/docs/introduction), and [github repository](https://github.com/faastjs/faast.js).
 
 ## Up next
 
