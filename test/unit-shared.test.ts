@@ -28,6 +28,20 @@ test("deepCopyUndefined should not hang on cyclical references", t => {
     t.deepEqual(obj2, obj);
 });
 
+test("deepCopyUndefined copies symbol properties", t => {
+    const obj = { [Symbol()]: "value" };
+    const obj2 = {};
+    deepCopyUndefined(obj2, obj);
+    t.deepEqual(obj2, obj);
+});
+
+test("deepCopyUndefined copies symbol values", t => {
+    const obj = { symbolValuedKey: Symbol() };
+    const obj2 = {};
+    deepCopyUndefined(obj2, obj);
+    t.deepEqual(obj2, obj);
+});
+
 test("deep copy should not fail when objects are not shaped similarly", t => {
     const obj = { geometry: { theorem: { name: "Pythagorean" } } };
     const obj2 = { hypothesis: "Riemann" };

@@ -2,6 +2,9 @@ import { deepStrictEqual } from "assert";
 import { FaastError, FaastErrorNames } from "./error";
 import { inspect } from "util";
 
+// Deep copy undefined and symbol keys from source to dest. Mainly used to see
+// if the source and dest are deep equal once these differences are factored
+// out.
 export function deepCopyUndefined(dest: object, source: object) {
     const stack: object[] = [];
     function isBackReference(o: object) {
@@ -22,7 +25,12 @@ export function deepCopyUndefined(dest: object, source: object) {
                 recurse(d[key], s[key]);
             } else if (s[key] === undefined) {
                 d[key] = undefined;
+            } else if (typeof s[key] === "symbol") {
+                d[key] = s[key];
             }
+        });
+        Object.getOwnPropertySymbols(s).forEach(key => {
+            d[key] = s[key];
         });
         stack.pop();
     }
