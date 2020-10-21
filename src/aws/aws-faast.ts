@@ -15,6 +15,7 @@ import { createHash } from "crypto";
 import { readFile } from "fs-extra";
 import * as https from "https";
 import { inspect } from "util";
+import merge from "webpack-merge";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
 import { FaastError, FaastErrorNames } from "../error";
@@ -1106,10 +1107,9 @@ export async function awsPacker(
         functionModule,
         {
             ...options,
-            webpackOptions: {
-                externals: new RegExp("^aws-sdk/?"),
-                ...options.webpackOptions
-            }
+            webpackOptions: merge(options.webpackOptions ?? {}, {
+                externals: [new RegExp("^aws-sdk/?")]
+            })
         },
         wrapperOptions,
         FunctionName

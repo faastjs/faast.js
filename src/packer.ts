@@ -18,6 +18,7 @@ import { log } from "./log";
 import { commonDefaults, CommonOptions, IncludeOption } from "./provider";
 import { keysOf, streamToBuffer } from "./shared";
 import { TrampolineFactory, WrapperOptionDefaults, WrapperOptions } from "./wrapper";
+import { merge } from "webpack-merge";
 
 type ZipFile = yauzl.ZipFile;
 
@@ -126,12 +127,10 @@ export async function packer(
     }
 
     const dependencies = (packageJson && (await addPackageJson(packageJson))) || [];
-    const { externals = [] } = webpackOptions;
-    const externalsArray = Array.isArray(externals) ? externals : [externals];
 
     function runWebpack(entry: string, outputFilename: string) {
-        const config: webpack.Configuration = {
-            entry,
+        const coreConfig: webpack.Configuration = {
+            entry: [entry],
             mode: "development",
             output: {
                 path: "/",
@@ -140,14 +139,12 @@ export async function packer(
             },
             target: "node",
             resolveLoader: { modules: [__dirname, `${__dirname}/dist}`] },
-            node: { global: true, __dirname: false, __filename: false },
-            ...webpackOptions
+            node: { global: true, __dirname: false, __filename: false }
         };
-        config.externals = [
-            ...externalsArray,
-            ...dependencies,
-            ...dependencies.map(d => new RegExp(`^${d}/.*`))
-        ];
+        const dependencyExternals = {
+            externals: [...dependencies, ...dependencies.map(d => new RegExp(`^${d}/.*`))]
+        };
+        const config = merge(coreConfig, dependencyExternals, webpackOptions);
         log.webpack(`webpack config: %O`, config);
         const compiler = webpack(config);
         compiler.outputFileSystem = mfs as any;
