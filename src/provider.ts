@@ -345,31 +345,35 @@ export interface CommonOptions {
      * By default, faast.js uses webpack to bundle the code package. Webpack
      * automatically handles finding and bundling dependencies, adding source
      * mappings, etc. If you need specialized bundling, use this option to add
-     * or override the default webpack configuration:
+     * or override the default webpack configuration. The library
+     * {@link https://github.com/survivejs/webpack-merge | webpack-merge} is
+     * used to combine configurations.
      *
      * ```typescript
-     * const config: webpack.Configuration = {
-     *   entry,
-     *   mode: "development",
-     *   output: {
-     *       path: "/",
-     *       filename: outputFilename,
-     *       libraryTarget: "commonjs2"
+     * const config: webpack.Configuration = merge({
+     *     entry,
+     *     mode: "development",
+     *     output: {
+     *         path: "/",
+     *         filename: outputFilename,
+     *         libraryTarget: "commonjs2"
+     *     },
+     *     target: "node",
+     *     resolveLoader: { modules: [__dirname, `${__dirname}/dist}`] },
+     *     node: { global: true, __dirname: false, __filename: false }
      *   },
-     *   target: "node",
-     *   resolveLoader: { modules: [__dirname, `${__dirname}/dist}`] },
-     *   node: { global: true, __dirname: false, __filename: false },
-     *   ...webpackOptions
-     * };
+     *   webpackOptions);
      * ```
      *
-     * Take care not to override the values of `entry`, `output`, or
+     * Take care when setting the values of `entry`, `output`, or
      * `resolveLoader`. If these options are overwritten, faast.js may fail to
-     * bundle your code.
+     * bundle your code. In particular, setting `entry` to an array value will
+     * help `webpack-merge` to concatenate its value instead of replacing the
+     * value that faast.js inserts for you.
      *
      * Default:
      *
-     * - aws: `{ externals: new RegExp("^aws-sdk/?") }`. In the lambda
+     * - aws: `{ externals: [new RegExp("^aws-sdk/?")] }`. In the lambda
      *   environment `"aws-sdk"` is available in the ambient environment and
      *   does not need to be bundled.
      *
