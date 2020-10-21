@@ -128,13 +128,13 @@ export async function packer(
 
     const dependencies = (packageJson && (await addPackageJson(packageJson))) || [];
 
-    function runWebpack(entry: string, outputFilename: string) {
+    function runWebpack(entry: string, entryName: string) {
         const coreConfig: webpack.Configuration = {
-            entry: [entry],
+            entry: { [entryName]: entry },
             mode: "development",
             output: {
                 path: "/",
-                filename: outputFilename,
+                filename: "[name].js",
                 libraryTarget: "commonjs2"
             },
             target: "node",
@@ -211,7 +211,7 @@ export async function packer(
         functionModule
     })}!`;
     try {
-        await runWebpack(loader, "index.js");
+        await runWebpack(loader, "index");
     } catch (err) {
         throw new FaastError(err, "failed running webpack");
     }
