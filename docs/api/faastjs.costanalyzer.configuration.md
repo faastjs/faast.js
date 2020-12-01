@@ -22,3 +22,4 @@ type Configuration = {
         options: GoogleOptions;
     };
 ```
+<b>References:</b> [AwsOptions](./faastjs.awsoptions.md)<!-- -->, [GoogleOptions](./faastjs.googleoptions.md)

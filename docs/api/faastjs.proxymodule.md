@@ -18,6 +18,7 @@ export declare type ProxyModule<M> = {
     [K in keyof M]: M[K] extends (...args: infer A) => infer R ? (...args: A) => Async<R> : never;
 };
 ```
+<b>References:</b> [Async](./faastjs.async.md)
 
 ## Remarks
 

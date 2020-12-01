@@ -22,7 +22,7 @@ export interface AwsOptions extends CommonOptions
 
 |  Property | Type | Description |
 |  --- | --- | --- |
-|  [awsConfig](./faastjs.awsoptions.awsconfig.md) | ConfigurationOptions | Additional options to pass to all AWS services. See [AWS.Config](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Config.html)<!-- -->. |
-|  [awsLambdaOptions](./faastjs.awsoptions.awslambdaoptions.md) | Partial&lt;Lambda.CreateFunctionRequest&gt; | Additional options to pass to AWS Lambda creation. See [CreateFunction](https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html)<!-- -->. |
-|  [region](./faastjs.awsoptions.region.md) | [AwsRegion](./faastjs.awsregion.md) | The region to create resources in. Garbage collection is also limited to this region. Default: <code>&quot;us-west-2&quot;</code>. |
-|  [RoleName](./faastjs.awsoptions.rolename.md) | string | The role that the lambda function will assume when executing user code. Default: <code>&quot;faast-cached-lambda-role&quot;</code>. Rarely used. |
+|  [awsConfig?](./faastjs.awsoptions.awsconfig.md) | ConfigurationOptions | <i>(Optional)</i> Additional options to pass to all AWS services. See [AWS.Config](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Config.html)<!-- -->. |
+|  [awsLambdaOptions?](./faastjs.awsoptions.awslambdaoptions.md) | Partial&lt;Lambda.CreateFunctionRequest&gt; | <i>(Optional)</i> Additional options to pass to AWS Lambda creation. See [CreateFunction](https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html)<!-- -->. |
+|  [region?](./faastjs.awsoptions.region.md) | [AwsRegion](./faastjs.awsregion.md) | <i>(Optional)</i> The region to create resources in. Garbage collection is also limited to this region. Default: <code>&quot;us-west-2&quot;</code>. |
+|  [RoleName?](./faastjs.awsoptions.rolename.md) | string | <i>(Optional)</i> The role that the lambda function will assume when executing user code. Default: <code>&quot;faast-cached-lambda-role&quot;</code>. Rarely used. |

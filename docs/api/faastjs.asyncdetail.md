@@ -16,3 +16,4 @@ hide_title: true
 ```typescript
 export declare type AsyncDetail<T> = T extends AsyncGenerator<infer R> ? AsyncGenerator<Detail<R>> : T extends Generator<infer R> ? AsyncGenerator<Detail<R>> : T extends Promise<infer R> ? Promise<Detail<R>> : Promise<Detail<T>>;
 ```
+<b>References:</b> [Detail](./faastjs.detail.md)
