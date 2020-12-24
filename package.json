@@ -58,7 +58,7 @@
     "dependencies": {
         "@types/debug": "^4.1.4",
         "@types/verror": "^1.10.3",
-        "@types/webpack": "^4.41.2",
+        "@types/webpack": "^4.41.25",
         "archiver": "^5.0.0",
         "aws-sdk": "^2.745.0",
         "commander": "^6.0.0",
