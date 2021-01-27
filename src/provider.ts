@@ -476,11 +476,21 @@ export interface CleanupOptions {
      * FaastModules created before cleanup may use the cached Layers.
      */
     deleteCaches?: boolean;
+
+    /**
+     * Number of seconds to wait for garbage collection. Default: 10.
+     * @remarks
+     * Garbage collection can still be operating when cleanup is called; this
+     * option limits the amount of time faast waits for the garbage collector.
+     * If set to 0, the wait is unlimited.
+     */
+    gcTimeout?: number;
 }
 
 export const CleanupOptionDefaults: Required<CleanupOptions> = {
     deleteResources: true,
-    deleteCaches: false
+    deleteCaches: false,
+    gcTimeout: 10
 };
 
 /**

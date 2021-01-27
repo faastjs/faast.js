@@ -92,7 +92,7 @@ export type ProxyModuleDetail<M> = {
     [K in keyof M]: M[K] extends (...args: infer A) => infer R
         ? (...args: A) => AsyncDetail<R>
         : never;
-}
+};
 
 /**
  * A function return value with additional detailed information.
@@ -462,16 +462,17 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                 if (isGenerator(origFunction)) {
                     const func = this.wrapGenerator(origFunction);
                     functionsDetail[name] = func;
-                    functions[name] = async function* (...args: any[])  {
-                        const generator = func(...args)
+                    functions[name] = async function* (...args: any[]) {
+                        const generator = func(...args);
                         for await (const iter of generator) {
                             yield iter.value;
                         }
-                    }
+                    };
                 } else {
                     const func = this.wrapFunction(origFunction);
-                    functionsDetail[name] = func
-                    functions[name] = (...args:any[]) => func(...args).then(p => p.value);
+                    functionsDetail[name] = func;
+                    functions[name] = (...args: any[]) =>
+                        func(...args).then(p => p.value);
                 }
             }
         }
@@ -484,7 +485,6 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
     /** {@inheritdoc FaastModule.cleanup} */
     async cleanup(userCleanupOptions: CleanupOptions = {}) {
         try {
-            const options = { ...CleanupOptionDefaults, ...userCleanupOptions };
             this._stats.clear();
             this._memoryLeakDetector.clear();
             this._funnel.clear();
@@ -497,8 +497,20 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             this._callResultsPending.clear();
             this._collectorPump.stop();
             log.provider(`cleanup`);
-            await this.impl.cleanup(this.state, options);
-            log.provider(`cleanup done`);
+            const options = { ...CleanupOptionDefaults, ...userCleanupOptions };
+            const { gcTimeout } = options;
+            let timedout = false;
+            if (gcTimeout > 0) {
+                const timeout = sleep(gcTimeout * 1000).then(() => (timedout = true));
+                await Promise.race([this.impl.cleanup(this.state, options), timeout]);
+            } else {
+                await this.impl.cleanup(this.state, options);
+            }
+            if (timedout) {
+                log.provider(`cleanup timed out after ${gcTimeout}s`);
+            } else {
+                log.provider(`cleanup done`);
+            }
         } catch (err) {
             throw new FaastError(err, "failed in cleanup");
         }
@@ -576,7 +588,13 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             value.catch((_silenceWarningLackOfSynchronousCatch: any) => {});
         } else {
             const { executionId } = returned.response;
-            const detail = { value: returned.value[0], logUrl, executionId, instanceId, memoryUsage }
+            const detail = {
+                value: returned.value[0],
+                logUrl,
+                executionId,
+                instanceId,
+                memoryUsage
+            };
             value = Promise.resolve(detail);
         }
         const { localRequestSentTime, remoteResponseSentTime, localEndTime } = returned;
@@ -706,7 +724,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
 
     private wrapGenerator<A extends any[], R>(
         fn: ((...args: A) => AsyncGenerator<R>) | ((...args: A) => Generator<R>)
-    ): (...args: A) =>  AsyncIterableIterator<Detail<R>> {
+    ): (...args: A) => AsyncIterableIterator<Detail<R>> {
         return (...args: A) => {
             const startTime = Date.now();
             let fname = this.lookupFname(fn);
@@ -726,12 +744,15 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                         );
                         const result = await promise;
                         log.calls(`yielded ${inspect(result)}`);
-                        const {value, ...rest}  = result;
+                        const { value, ...rest } = result;
                         if (result.value.done) {
                             this.clearPending(callId);
                             return { done: true, value: rest };
                         } else {
-                            return { done: false, value: {...rest, value: value.value} };
+                            return {
+                                done: false,
+                                value: { ...rest, value: value.value }
+                            };
                         }
                     })
             };

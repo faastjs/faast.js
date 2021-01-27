@@ -45,7 +45,7 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
         const { cloudwatch } = mod.state.services;
         const { logGroupName } = mod.state.resources;
         await waitForLogGroupCreation(cloudwatch, logGroupName);
-        await mod.cleanup({ deleteResources: false });
+        await mod.cleanup({ deleteResources: false, gcTimeout: 0 });
 
         // Create some work for gc to do by removing the log retention policy, gc
         // should add it back.
@@ -83,11 +83,11 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
             }
         });
 
-        await mod2.cleanup();
+        await mod2.cleanup({ gcTimeout: 0 });
         t.true(deletedLayer, "Deleted layer is true");
         await checkResourcesCleanedUp(t, await getAWSResources(mod, true));
     } finally {
-        await mod.cleanup({ deleteResources: true, deleteCaches: true });
+        await mod.cleanup({ deleteResources: true, deleteCaches: true, gcTimeout: 0 });
     }
 });
 
@@ -98,7 +98,7 @@ test.serial(title("aws", "garbage collects functions that are never called"), as
         description: t.title
     });
     try {
-        await mod.cleanup({ deleteResources: false });
+        await mod.cleanup({ deleteResources: false, gcTimeout: 0 });
         const { FunctionName } = mod.state.resources;
         const mod2 = await faastAws(functions, {
             gc: "force",
@@ -115,7 +115,7 @@ test.serial(title("aws", "garbage collects functions that are never called"), as
             }
         });
 
-        await mod2.cleanup();
+        await mod2.cleanup({ gcTimeout: 0 });
         // Don't fail if a log group exists because we didn't wait for its
         // creation; it might be created by AWS after the cleanup occurs. The
         // reason is that the log group will only be created if there's an
@@ -125,7 +125,7 @@ test.serial(title("aws", "garbage collects functions that are never called"), as
         const { logGroupResult, ...resources } = await getAWSResources(mod, true);
         await checkResourcesCleanedUp(t, resources);
     } finally {
-        await mod.cleanup({ deleteResources: true, deleteCaches: true });
+        await mod.cleanup({ deleteResources: true, deleteCaches: true, gcTimeout: 0 });
     }
 });
 
@@ -133,7 +133,7 @@ test.skip(title("aws", "garbage collection caching"), async t => {
     {
         // Run a real gc so the build account doesn't accumulate garbage.
         const mod = await faastAws(functions, { gc: "force", description: t.title });
-        await mod.cleanup();
+        await mod.cleanup({ gcTimeout: 0 });
         t.is(await mod.state.gcPromise, "done");
     }
 

@@ -675,7 +675,11 @@ export const initialize = throttle(
             return state;
         } catch (err) {
             try {
-                await cleanup(state, { deleteResources: true, deleteCaches: false });
+                await cleanup(state, {
+                    deleteResources: true,
+                    deleteCaches: false,
+                    gcTimeout: 30
+                });
             } catch {}
             throw new FaastError(
                 { cause: err, name: FaastErrorNames.ECREATE },
