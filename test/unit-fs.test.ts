@@ -18,7 +18,7 @@ test(`fs module rmrf deletes directory recursively`, async t => {
     await mkdir(subdir);
     const file = path.join(subdir, "file.txt");
     const stream = createWriteStream(file);
-    await new Promise((resolve, reject) =>
+    await new Promise<void>((resolve, reject) =>
         stream.write("hello", err => (err ? reject(err) : resolve()))
     );
     stream.close();

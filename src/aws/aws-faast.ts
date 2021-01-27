@@ -915,7 +915,7 @@ function forEachPage<R>(
     process: (page: R) => Promise<void>
 ) {
     const throttlePaging = throttle({ concurrency: 1, rate: 1 }, async () => {});
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
         request.eachPage((err, page, done) => {
             if (err) {
                 log.warn(`GC: Error when listing ${description}: ${err}`);

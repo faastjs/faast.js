@@ -148,7 +148,7 @@ export async function packer(
         log.webpack(`webpack config: %O`, config);
         const compiler = webpack(config);
         compiler.outputFileSystem = mfs as any;
-        return new Promise((resolve, reject) =>
+        return new Promise<void>((resolve, reject) =>
             compiler.run((err, stats) => {
                 if (err) {
                     reject(err);
@@ -249,14 +249,14 @@ export async function processZip(
     if (typeof archive === "string") {
         zip = await new Promise<ZipFile>((resolve, reject) =>
             yauzl.open(archive, { lazyEntries: true }, (err, zipfile) =>
-                err ? reject(err) : resolve(zipfile)
+                err ? reject(err) : resolve(zipfile!)
             )
         );
     } else {
         const buf = await streamToBuffer(archive);
         zip = await new Promise<ZipFile>((resolve, reject) =>
             yauzl.fromBuffer(buf, { lazyEntries: true }, (err, zipfile) =>
-                err ? reject(err) : resolve(zipfile)
+                err ? reject(err) : resolve(zipfile!)
             )
         );
     }

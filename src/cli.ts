@@ -394,7 +394,7 @@ async function prompt() {
         output: process.stdout
     });
 
-    await new Promise(resolve => {
+    await new Promise<void>(resolve => {
         rl.question(
             "WARNING: this operation will delete resources. Confirm? [y/N] ",
             answer => {
