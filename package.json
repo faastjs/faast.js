@@ -101,7 +101,7 @@
         "codecov": "3.8.1",
         "commitizen": "4.2.3",
         "cz-conventional-changelog": "3.3.0",
-        "lolex": "5.1.2",
+        "lolex": "^6.0.0",
         "nyc": "15.1.0",
         "papaparse": "5.2.0",
         "prettier": "2.2.1",
