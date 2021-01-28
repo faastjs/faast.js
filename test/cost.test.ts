@@ -43,7 +43,7 @@ async function testCostAnalyzer(
         t.true(costSnapshot.total() > 0, `total > 0`);
     }
 
-    const parsed = ppp.parse(profile.csv(), {
+    const parsed = ppp.parse<any>(profile.csv(), {
         header: true,
         skipEmptyLines: true,
         dynamicTyping: true
