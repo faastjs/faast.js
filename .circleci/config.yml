@@ -62,7 +62,6 @@ jobs:
             - run: npm pack
             - run: mkdir ~/tmp
             - run: cd ~/tmp && git clone https://github.com/faastjs/examples
-            - run: sudo npm install -g typescript
             - run: cp faastjs-0.0.0-semantic-release.tgz ~/tmp/examples
             - run: cd ~/tmp/examples && node test-examples.js faastjs-0.0.0-semantic-release.tgz
     release:
