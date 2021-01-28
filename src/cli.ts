@@ -458,12 +458,12 @@ async function main() {
             cloud = arg;
         });
 
-    commander.parse(process.argv);
-    if (commander.verbose) {
+    const opts = commander.parse(process.argv).opts();
+    if (opts.verbose) {
         process.env.DEBUG = "faast:*";
     }
-    const execute = commander.execute || false;
-    let region = commander.region;
+    const execute = opts.execute || false;
+    let region = opts.region;
 
     if (!region) {
         switch (cloud) {
@@ -475,7 +475,7 @@ async function main() {
                 break;
         }
     }
-    const force = commander.force || false;
+    const force = opts.force || false;
 
     region && log(`Region: ${region}`);
     const options = { region, execute };
