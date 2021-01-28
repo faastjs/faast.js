@@ -97,8 +97,8 @@ async function main() {
             `Map over all keys in a given S3 bucket. E.g. arxiv-derivative-flattened`
         );
 
-    commander.parse(process.argv);
-    if (commander.verbose) {
+    const opts = commander.parse(process.argv).opts();
+    if (opts.verbose) {
         process.env.DEBUG = "faast:*";
     }
 
