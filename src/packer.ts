@@ -153,7 +153,7 @@ export async function packer(
                 if (err) {
                     reject(err);
                 } else {
-                    if (stats.hasErrors() || stats.hasWarnings()) {
+                    if (stats?.hasErrors() || stats?.hasWarnings()) {
                         const c = stats.compilation;
                         const messages = [];
                         if (c.warnings.length > 0) {
@@ -171,7 +171,7 @@ export async function packer(
                         );
                     }
                     if (log.webpack.enabled) {
-                        log.webpack(stats.toString());
+                        log.webpack(stats?.toString());
                         log.webpack(`Memory filesystem: `);
                         for (const file of Object.keys(mfs.data)) {
                             log.webpack(`  ${file}: ${mfs.data[file].length}`);
