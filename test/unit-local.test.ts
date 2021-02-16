@@ -69,7 +69,7 @@ async function testConcurrency(
         const N = maxConcurrency * 2;
         const promises = [];
         for (let i = 0; i < N; i++) {
-            promises.push(faastModule.functions.spin(500));
+            promises.push(faastModule.functions.spin(2000));
         }
 
         const timings = await Promise.all(promises);
