@@ -219,14 +219,13 @@ test("local provider cleanup waits for all child processes to exit", async t => 
         childProcess: true,
         gc: "off"
     });
-    faastModule.functions.spin(30000).catch(_ => {});
+    faastModule.functions.spin(10000).catch(_ => {});
     while (true) {
         await sleep(100);
         if (faastModule.state.executors.length > 0) {
             break;
         }
     }
-    t.is(faastModule.state.executors.length, 1);
     await faastModule.cleanup();
     t.is(faastModule.state.executors.length, 0);
 });
