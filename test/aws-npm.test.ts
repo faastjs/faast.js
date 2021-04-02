@@ -56,8 +56,7 @@ const puppeteerPackage = JSON.stringify({
         "chrome-aws-lambda": "latest",
         "puppeteer-core": "latest",
         typescript: "latest",
-        "aws-sdk": "latest",
-        googleapis: "latest"
+        "aws-sdk": "latest"
     }
 });
 
