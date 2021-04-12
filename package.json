@@ -87,7 +87,7 @@
         "@types/archiver": "5.1.0",
         "@types/aws-lambda": "8.10.75",
         "@types/express": "4.17.11",
-        "@types/fs-extra": "9.0.10",
+        "@types/fs-extra": "9.0.11",
         "@types/listr": "0.14.2",
         "@types/loader-utils": "2.0.2",
         "@types/lolex": "5.1.0",
