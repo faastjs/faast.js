@@ -13,6 +13,7 @@ import * as funcs from "./fixtures/functions";
 import { sleep } from "../src/shared";
 import { title } from "./fixtures/util";
 import { FaastError } from "../src/error";
+import { retryOp } from "../src/throttle";
 
 /**
  * The policies tested here should match those in the documentation at
@@ -38,13 +39,15 @@ test.serial(title("aws", "custom role"), async t => {
             ]
         });
         state = `creating role ${RoleName}`;
-        await iam
-            .createRole({
-                AssumeRolePolicyDocument,
-                RoleName,
-                Description: "test custom role for lambda functions created by faast"
-            })
-            .promise();
+        await retryOp(6, () =>
+            iam
+                .createRole({
+                    AssumeRolePolicyDocument,
+                    RoleName,
+                    Description: "test custom role for lambda functions created by faast"
+                })
+                .promise()
+        );
 
         const PolicyDocument = JSON.stringify({
             Version: "2012-10-17",
