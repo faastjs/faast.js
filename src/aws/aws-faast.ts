@@ -391,7 +391,7 @@ export async function ensureRoleRaw(
 }
 
 export const ensureRole = throttle(
-    { concurrency: 1, rate: 5, memoize: true },
+    { concurrency: 1, rate: 2, memoize: true, retry: 12 },
     ensureRoleRaw
 );
 

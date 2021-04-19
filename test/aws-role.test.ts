@@ -18,7 +18,7 @@ import { FaastError } from "../src/error";
  * The policies tested here should match those in the documentation at
  * {@link AwsOptions.RoleName}.
  */
-test(title("aws", "custom role"), async t => {
+test.serial(title("aws", "custom role"), async t => {
     t.plan(1);
     const iam = new IAM();
     const uuid = uuidv4();
@@ -102,7 +102,7 @@ test(title("aws", "custom role"), async t => {
     }
 });
 
-test(title("aws", "unit test ensureRole"), async t => {
+test.serial(title("aws", "unit test ensureRole"), async t => {
     let role: IAM.Role | undefined;
     t.plan(3);
     const RoleName = `faast-test-ensureRole-1-${uuidv4()}`;
@@ -123,7 +123,7 @@ test(title("aws", "unit test ensureRole"), async t => {
     }
 });
 
-test(title("aws", "unit test missing role name"), async t => {
+test.serial(title("aws", "unit test missing role name"), async t => {
     const RoleName = `faast-test-ensureRole-2-${uuidv4()}`;
     t.plan(1);
     const services = await createAwsApis("us-west-2");
@@ -134,7 +134,7 @@ test(title("aws", "unit test missing role name"), async t => {
     }
 });
 
-test(title("aws", "race condition in role creation"), async t => {
+test.serial(title("aws", "race condition in role creation"), async t => {
     const RoleName = `faast-test-ensureRole-3-${uuidv4()}`;
     t.plan(3);
     const services = await createAwsApis("us-west-2");
