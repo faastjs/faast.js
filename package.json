@@ -75,7 +75,7 @@
         "verror": "^1.10.0",
         "webpack": "^5.18.0",
         "webpack-merge": "^5.7.3",
-        "webpack-node-externals": "^2.5.2",
+        "webpack-node-externals": "^3.0.0",
         "yauzl": "^2.10.0"
     },
     "peerDependencies": {
