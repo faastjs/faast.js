@@ -25,7 +25,7 @@ test.serial(title("aws", "custom role"), async t => {
     const uuid = uuidv4();
     const RoleName = `faast-test-custom-role-${uuid}`;
     let faastModule;
-    let PolicyArn;
+    let PolicyArn: string | undefined;
     let state = "initial";
     try {
         const AssumeRolePolicyDocument = JSON.stringify({
@@ -66,17 +66,21 @@ test.serial(title("aws", "custom role"), async t => {
         });
 
         state = "creating policy";
-        const executionPolicy = await iam
-            .createPolicy({
-                Description: "test faast custom role policy",
-                PolicyName: RoleName,
-                PolicyDocument
-            })
-            .promise();
+        const executionPolicy = await retryOp(6, () =>
+            iam
+                .createPolicy({
+                    Description: "test faast custom role policy",
+                    PolicyName: RoleName,
+                    PolicyDocument
+                })
+                .promise()
+        );
 
         state = "attaching role policy";
         PolicyArn = executionPolicy.Policy!.Arn!;
-        await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
+        await retryOp(6, () =>
+            iam.attachRolePolicy({ RoleName, PolicyArn: PolicyArn! }).promise()
+        );
 
         await sleep(30 * 1000);
 
