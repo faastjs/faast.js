@@ -169,7 +169,7 @@ export interface AwsOptions extends CommonOptions {
      *   const request: aws.Lambda.CreateFunctionRequest = {
      *       FunctionName,
      *       Role,
-     *       Runtime: "nodejs12.x",
+     *       Runtime: "nodejs14.x",
      *       Handler: "index.trampoline",
      *       Code,
      *       Description: "faast trampoline function",
@@ -499,7 +499,7 @@ export const initialize = throttle(
             const request: Lambda.CreateFunctionRequest = {
                 FunctionName,
                 Role,
-                Runtime: "nodejs12.x",
+                Runtime: "nodejs14.x",
                 Handler: "index.trampoline",
                 Code,
                 Description: "faast trampoline function",
