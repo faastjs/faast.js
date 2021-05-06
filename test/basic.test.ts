@@ -120,6 +120,7 @@ async function testBasic(
         t.deepEqual(await toArray(remote.generator(elements)), elements);
         t.deepEqual(await toArray(remote.asyncGenerator(elements)), elements);
     } finally {
+        console.log(`error logs: ${faastModule.logUrl()}`);
         await faastModule.cleanup();
     }
 }
