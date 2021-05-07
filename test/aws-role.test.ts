@@ -1,7 +1,7 @@
 import test from "ava";
 import { IAM } from "aws-sdk";
 import { v4 as uuidv4 } from "uuid";
-import { faastAws } from "../index";
+import { faastAws, FaastModule } from "../index";
 import {
     deleteRole,
     ensureRole,
@@ -24,7 +24,7 @@ test.serial(title("aws", "custom role"), async t => {
     const iam = new IAM();
     const uuid = uuidv4();
     const RoleName = `faast-test-custom-role-${uuid}`;
-    let faastModule;
+    let faastModule: FaastModule<typeof funcs> | undefined;
     let PolicyArn: string | undefined;
     let state = "initial";
     try {
@@ -93,13 +93,17 @@ test.serial(title("aws", "custom role"), async t => {
 
         state = "testing invocation";
         t.is(await faastModule.functions.identityString("hello"), "hello");
+        state = "cleanup";
     } catch (err) {
         throw new FaastError(err, `Failed custom role test, last state: ${state}`);
     } finally {
         try {
-            faastModule && (await faastModule.cleanup());
-            await deleteRole(RoleName, iam);
-            PolicyArn && (await iam.deletePolicy({ PolicyArn }).promise());
+            await faastModule?.cleanup();
+            await retryOp(3, () => deleteRole(RoleName, iam));
+            PolicyArn &&
+                (await retryOp(3, () =>
+                    iam.deletePolicy({ PolicyArn: PolicyArn! }).promise()
+                ));
         } catch (err) {
             throw new FaastError(
                 err,
