@@ -3,7 +3,7 @@
 require("source-map-support").install();
 
 import { Request as AWSRequest, AWSError } from "aws-sdk";
-import * as commander from "commander";
+import { program } from "commander";
 import { readdir, remove } from "fs-extra";
 import { GaxiosPromise, GaxiosResponse } from "gaxios";
 import { google } from "googleapis";
@@ -436,7 +436,7 @@ async function runCleanup(cloud: string, options: CleanupOptions) {
 async function main() {
     let cloud!: string;
     let command: string | undefined;
-    commander
+    program
         .version("0.1.0")
         .option("-v, --verbose", "Verbose mode")
         .option(
@@ -453,12 +453,12 @@ async function main() {
             `Cleanup faast.js resources that may have leaked. The <cloud> argument must be "aws", "google", or "local".
         By default the output is a dry run and will only print the actions that would be performed if '-x' is specified.`
         )
-        .action(arg => {
+        .action((arg: string) => {
             command = "cleanup";
             cloud = arg;
         });
 
-    const opts = commander.parse(process.argv).opts();
+    const opts = program.parse(process.argv).opts();
     if (opts.verbose) {
         process.env.DEBUG = "faast:*";
     }
@@ -497,7 +497,7 @@ async function main() {
         }
     } else {
         log(`No command specified.`);
-        commander.help();
+        program.help();
     }
 }
 
