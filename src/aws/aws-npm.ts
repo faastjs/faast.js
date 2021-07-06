@@ -1,18 +1,17 @@
 import * as archiver from "archiver";
 import { Lambda, S3 } from "aws-sdk";
-import * as sys from "child_process";
+import { execSync } from "child_process";
 import { ensureDir, remove, writeFile } from "fs-extra";
 import { tmpdir } from "os";
 import * as path from "path";
 import { inspect } from "util";
 import { streamToBuffer, hasExpired } from "../shared";
 
-export function exec(log: (_: string) => void, cmds: string[]) {
+async function exec(cmds: string[]) {
     let rv = "";
     for (const cmd of cmds) {
-        rv += sys.execSync(cmd).toString();
+        rv += execSync(cmd).toString();
     }
-    log(rv);
     return rv;
 }
 
@@ -83,10 +82,9 @@ export async function npmInstall({
     }
 
     log("NOT CACHED, running npm install");
-    const npmQuiet = quiet ? "-s" : "";
-    installLog += exec(log, [`echo "hello world"`]);
-    installLog += exec(log, [
-        `export HOME=/tmp; npm install --prefix=${buildDir} --no-package-lock ${npmQuiet}`
+    installLog += await exec([`echo "hello world"`]);
+    installLog += await exec([
+        `export HOME=/tmp; npm install --prefix=${buildDir} --no-package-lock`
     ]);
     log(`Running archiver`);
     const cacheArchive = archiver("zip", { zlib: { level: 8 } });
