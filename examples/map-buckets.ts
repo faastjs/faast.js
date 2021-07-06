@@ -1,4 +1,4 @@
-import * as commander from "commander";
+import { program } from "commander";
 import { FaastError, faast, Statistics } from "faastjs";
 import * as m from "./map-buckets-module";
 import { listAllObjects, f1, GB } from "./util";
@@ -26,7 +26,7 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         // awsLambdaOptions: { TracingConfig: { Mode: "Active" } }
     });
     console.log(`Logs: ${faastModule.logUrl()} `);
-    faastModule.on("stats", s => {
+    faastModule.on("stats", (s: string) => {
         console.log(`${s}`);
     });
 
@@ -177,7 +177,7 @@ export async function emptyBucket(Bucket: string) {
 async function main() {
     let bucket!: string;
     let keys!: string[];
-    commander
+    program
         .version("0.1.0")
         .option("-v, --verbose", "verbose mode")
         .arguments("<bucket> [keys...]")
@@ -189,7 +189,7 @@ async function main() {
             `Map over all keys in a given S3 bucket. E.g. arxiv-derivative-flattened`
         );
 
-    const opts = commander.parse(process.argv).opts();
+    const opts = program.parse(process.argv).opts();
     if (opts.verbose) {
         process.env.DEBUG = "faast:*";
         verbose = true;

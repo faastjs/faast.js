@@ -1,4 +1,4 @@
-import * as commander from "commander";
+import { program } from "commander";
 import { CostAnalyzer, Statistics, FaastModule } from "faastjs";
 import * as funcs from "./map-buckets-module";
 import { listAllObjects, f1, GB, f2 } from "./util";
@@ -14,35 +14,35 @@ interface BandwidthMetrics {
     bandwidthMbps: number;
 }
 
-const workload = (Bucket: string, filter: FilterFn) => async (
-    faastModule: FaastModule<typeof funcs>
-) => {
-    const remote = faastModule.functions;
-    let allObjects = await listAllObjects(Bucket);
-    allObjects = allObjects.filter(obj => filter(obj.Key!));
-    const promises = [];
-    const start = Date.now();
-    for (const Obj of allObjects) {
-        promises.push(remote.processBucketObject(Bucket, Obj.Key!));
-        break;
-    }
-    const results = await Promise.all(promises);
-    const elapsed = Date.now() - start;
-    let bytes = 0;
-    const bandwidth = new Statistics();
-    for (const result of results) {
-        if (!result) {
-            continue;
+const workload =
+    (Bucket: string, filter: FilterFn) =>
+    async (faastModule: FaastModule<typeof funcs>) => {
+        const remote = faastModule.functions;
+        let allObjects = await listAllObjects(Bucket);
+        allObjects = allObjects.filter(obj => filter(obj.Key!));
+        const promises = [];
+        const start = Date.now();
+        for (const Obj of allObjects) {
+            promises.push(remote.processBucketObject(Bucket, Obj.Key!));
+            break;
         }
-        bytes += result.bytes;
-        bandwidth.update(result.bandwidthMbps);
-    }
-    const metrics: BandwidthMetrics = {
-        bytesGB: bytes / GB,
-        bandwidthMbps: bandwidth.mean
+        const results = await Promise.all(promises);
+        const elapsed = Date.now() - start;
+        let bytes = 0;
+        const bandwidth = new Statistics();
+        for (const result of results) {
+            if (!result) {
+                continue;
+            }
+            bytes += result.bytes;
+            bandwidth.update(result.bandwidthMbps);
+        }
+        const metrics: BandwidthMetrics = {
+            bytesGB: bytes / GB,
+            bandwidthMbps: bandwidth.mean
+        };
+        return metrics;
     };
-    return metrics;
-};
 
 function format(key: keyof BandwidthMetrics, value: number) {
     if (value === undefined) {
@@ -86,7 +86,7 @@ async function compareAws(Bucket: string, filter: FilterFn) {
 
 async function main() {
     let bucket!: string;
-    commander
+    program
         .version("0.1.0")
         .option("-v, --verbose", "verbose mode")
         .arguments("<bucket>")
@@ -97,7 +97,7 @@ async function main() {
             `Map over all keys in a given S3 bucket. E.g. arxiv-derivative-flattened`
         );
 
-    const opts = commander.parse(process.argv).opts();
+    const opts = program.parse(process.argv).opts();
     if (opts.verbose) {
         process.env.DEBUG = "faast:*";
     }
