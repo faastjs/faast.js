@@ -26,9 +26,7 @@ export async function mapBucket(Bucket: string, keyFilter: (key: string) => bool
         // awsLambdaOptions: { TracingConfig: { Mode: "Active" } }
     });
     console.log(`Logs: ${faastModule.logUrl()} `);
-    faastModule.on("stats", (s: string) => {
-        console.log(`${s}`);
-    });
+    faastModule.on("stats", console.log);
 
     const bandwidth = new Statistics();
 
