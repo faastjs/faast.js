@@ -7,21 +7,21 @@
 /// <reference types="node" />
 
 import * as childProcess from 'child_process';
-import { cloudbilling_v1 } from 'googleapis';
-import { cloudfunctions_v1 } from 'googleapis';
-import { CloudWatchLogs } from 'aws-sdk';
+import { cloudbilling_v1 } from 'googleapis/build/src/apis/cloudbilling';
+import { cloudfunctions_v1 } from 'googleapis/build/src/apis/cloudfunctions';
+import CloudWatchLogs from 'aws-sdk/clients/cloudwatchlogs';
 import { ConfigurationOptions } from 'aws-sdk/lib/config-base';
 import * as debug_2 from 'debug';
-import { GoogleApis } from 'googleapis';
-import { IAM } from 'aws-sdk';
-import { Lambda } from 'aws-sdk';
-import { Pricing } from 'aws-sdk';
-import { pubsub_v1 } from 'googleapis';
+import { GoogleApis } from 'googleapis/build/src/googleapis';
+import IAM from 'aws-sdk/clients/iam';
+import Lambda from 'aws-sdk/clients/lambda';
+import Pricing from 'aws-sdk/clients/pricing';
+import { pubsub_v1 } from 'googleapis/build/src/apis/pubsub';
 import { Readable } from 'stream';
-import { S3 } from 'aws-sdk';
-import { SNS } from 'aws-sdk';
-import { SQS } from 'aws-sdk';
-import { STS } from 'aws-sdk';
+import S3 from 'aws-sdk/clients/s3';
+import SNS from 'aws-sdk/clients/sns';
+import SQS from 'aws-sdk/clients/sqs';
+import STS from 'aws-sdk/clients/sts';
 import { VError } from 'verror';
 import * as webpack from 'webpack';
 import { Writable } from 'stream';

@@ -3,7 +3,6 @@ import { inspect } from "util";
 import { CommonOptions, faast, Provider, FaastError, FaastErrorNames } from "../index";
 import * as funcs from "./fixtures/functions";
 import { title } from "./fixtures/util";
-import { config } from "aws-sdk";
 
 /**
  * Note that there is an AWS Lambda bug where timeouts are not delivered if the

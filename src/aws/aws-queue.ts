@@ -1,5 +1,7 @@
-import { SNSEvent } from "aws-lambda";
-import { SNS, SQS } from "aws-sdk";
+import { AbortController } from "@aws-sdk/abort-controller";
+import { SNS } from "@aws-sdk/client-sns";
+import { CreateQueueRequest, Message as SQSMessage, SQS } from "@aws-sdk/client-sqs";
+import { SNSEvent } from "aws-lambda/trigger/sns";
 import { FaastError, FaastErrorNames } from "../error";
 import { log } from "../log";
 import { Message, PollResult } from "../provider";
@@ -10,7 +12,7 @@ import { createErrorResponse, FunctionCall } from "../wrapper";
 import { AwsMetrics } from "./aws-faast";
 
 export async function createSNSTopic(sns: SNS, Name: string) {
-    const topic = await sns.createTopic({ Name }).promise();
+    const topic = await sns.createTopic({ Name });
     return topic.TopicArn!;
 }
 
@@ -25,7 +27,7 @@ export async function sendResponseQueueMessage(
 ) {
     try {
         const request = { QueueUrl, MessageBody: serialize(message) };
-        await sqs.sendMessage(request).promise();
+        await sqs.sendMessage(request);
     } catch (err) {
         log.warn(err);
     }
@@ -41,29 +43,24 @@ export function publishFunctionCallMessage(
     metrics.sns64kRequests += countRequests(serialized.length);
     return retryOp(
         (err, n) => n < 6 && err?.message?.match(/does not exist/),
-        () =>
-            sns
-                .publish({
-                    TopicArn,
-                    Message: serialized
-                })
-                .promise()
+        () => sns.publish({ TopicArn, Message: serialized })
     );
 }
 
 export async function createSQSQueue(QueueName: string, VTimeout: number, sqs: SQS) {
     try {
-        const createQueueRequest: SQS.CreateQueueRequest = {
+        const createQueueRequest: CreateQueueRequest = {
             QueueName,
             Attributes: {
                 VisibilityTimeout: `${VTimeout}`
             }
         };
-        const response = await sqs.createQueue(createQueueRequest).promise();
+        const response = await sqs.createQueue(createQueueRequest);
         const QueueUrl = response.QueueUrl!;
-        const arnResponse = await sqs
-            .getQueueAttributes({ QueueUrl, AttributeNames: ["QueueArn"] })
-            .promise();
+        const arnResponse = await sqs.getQueueAttributes({
+            QueueUrl,
+            AttributeNames: ["QueueArn"]
+        });
         const QueueArn = arnResponse.Attributes?.QueueArn;
         return { QueueUrl, QueueArn };
     } catch (err) {
@@ -72,7 +69,7 @@ export async function createSQSQueue(QueueName: string, VTimeout: number, sqs: S
 }
 
 /* istanbul ignore next  */
-export function processAwsErrorMessage(message: string): Error {
+export function processAwsErrorMessage(message?: string): Error {
     let err = new FaastError(message);
     if (
         message?.match(/Process exited before completing/) ||
@@ -96,29 +93,33 @@ export async function receiveMessages(
 ): Promise<PollResult> {
     try {
         const MaxNumberOfMessages = 10;
-        const request = sqs.receiveMessage({
-            QueueUrl: ResponseQueueUrl!,
-            WaitTimeSeconds: 20,
-            MaxNumberOfMessages,
-            MessageAttributeNames: ["All"],
-            AttributeNames: ["SentTimestamp"]
-        });
-
-        const response = await Promise.race([request.promise(), cancel]);
+        const abortController = new AbortController();
+        const request = sqs.receiveMessage(
+            {
+                QueueUrl: ResponseQueueUrl!,
+                WaitTimeSeconds: 20,
+                MaxNumberOfMessages,
+                MessageAttributeNames: ["All"],
+                AttributeNames: ["SentTimestamp"]
+            },
+            { abortSignal: abortController.signal }
+        );
+        const response = await Promise.race([request, cancel]);
         if (!response) {
-            request.abort();
+            abortController.abort();
             return { Messages: [] };
         }
 
         const { Messages = [] } = response;
-        const { httpResponse } = response.$response;
-        const receivedBytes = computeHttpResponseBytes(httpResponse.headers);
-        metrics.outboundBytes += receivedBytes;
-        const inferredSqsRequestsReceived = countRequests(receivedBytes);
-        const inferredSqsRequestsSent = sum(
-            Messages.map(m => countRequests(m.Body?.length ?? 1))
-        );
-        metrics.sqs64kRequests += inferredSqsRequestsSent + inferredSqsRequestsReceived;
+        // XXX
+        // const { httpResponse } = response.$response;
+        // const receivedBytes = computeHttpResponseBytes(httpResponse.headers);
+        // metrics.outboundBytes += receivedBytes;
+        // const inferredSqsRequestsReceived = countRequests(receivedBytes);
+        // const inferredSqsRequestsSent = sum(
+        //     Messages.map(m => countRequests(m.Body?.length ?? 1))
+        // );
+        // metrics.sqs64kRequests += inferredSqsRequestsSent + inferredSqsRequestsReceived;
         if (Messages.length > 0) {
             sqs.deleteMessageBatch({
                 QueueUrl: ResponseQueueUrl!,
@@ -126,9 +127,7 @@ export async function receiveMessages(
                     Id: m.MessageId!,
                     ReceiptHandle: m.ReceiptHandle!
                 }))
-            })
-                .promise()
-                .catch(_ => {});
+            }).catch(_ => {});
             metrics.sqs64kRequests++;
         }
         return {
@@ -164,7 +163,7 @@ interface LambdaDestinationMessage {
     responsePayload: LambdaDestinationError | object;
 }
 
-function processIncomingQueueMessage(m: SQS.Message): Message | void {
+function processIncomingQueueMessage(m: SQSMessage): Message | void {
     // AWS Lambda Destinations
     // (https://aws.amazon.com/blogs/compute/introducing-aws-lambda-destinations/)
     // are used to route failures to the response queue. These

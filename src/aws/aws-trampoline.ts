@@ -1,5 +1,6 @@
-import { Context, SNSEvent } from "aws-lambda";
-import { SQS } from "aws-sdk";
+import { SNSEvent } from "aws-lambda/trigger/sns";
+import { Context } from "aws-lambda/handler";
+import { SQS } from "@aws-sdk/client-sqs";
 import { env } from "process";
 import { FaastError, FaastErrorNames } from "../error";
 import { deserialize } from "../serialize";
@@ -65,7 +66,7 @@ async function execute(cc: CallingContext, wrapper: Wrapper) {
         return;
     }
     const region = env.AWS_REGION!;
-    const sqs = new SQS({ apiVersion: "2012-11-05", maxRetries: 6, region });
+    const sqs = new SQS({ apiVersion: "2012-11-05", maxAttempts: 6, region });
     await wrapper.execute(cc, {
         errorCallback,
         onMessage: msg => sendResponseQueueMessage(sqs, Queue!, msg)

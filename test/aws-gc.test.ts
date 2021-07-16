@@ -1,5 +1,5 @@
 import test from "ava";
-import { CloudWatchLogs } from "aws-sdk";
+import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import { v4 as uuid } from "uuid";
 import { faastAws, log, throttle } from "../index";
 import { defaultGcWorker, clearLastGc } from "../src/aws/aws-faast";
@@ -11,9 +11,7 @@ async function waitForLogGroupCreation(cloudwatch: CloudWatchLogs, logGroupName:
     while (true) {
         await sleep(1000);
         try {
-            const logResult = await cloudwatch
-                .filterLogEvents({ logGroupName })
-                .promise();
+            const logResult = await cloudwatch.filterLogEvents({ logGroupName });
             const events = logResult.events ?? [];
             for (const event of events) {
                 if (event.message!.match(/REPORT RequestId/)) {
@@ -50,7 +48,7 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
         // Create some work for gc to do by removing the log retention policy, gc
         // should add it back.
         const deleteRetentionPolicy = throttle({ concurrency: 1, retry: 5 }, () =>
-            cloudwatch.deleteRetentionPolicy({ logGroupName }).promise()
+            cloudwatch.deleteRetentionPolicy({ logGroupName })
         );
         await deleteRetentionPolicy();
 

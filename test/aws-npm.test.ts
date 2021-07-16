@@ -1,5 +1,5 @@
 import test, { ExecutionContext } from "ava";
-import { Lambda } from "aws-sdk";
+import { Lambda } from "@aws-sdk/client-lambda";
 import { v4 as uuid } from "uuid";
 import { AwsLayerInfo, npmInstall } from "../src/aws/aws-npm";
 import { title } from "./fixtures/util";
@@ -44,9 +44,10 @@ async function testNpmInstall(
         t.deepEqual(cachedResult.layerInfo, layerInfo);
     } finally {
         if (layerInfo) {
-            await lambda
-                .deleteLayerVersion({ LayerName, VersionNumber: layerInfo.Version })
-                .promise();
+            await lambda.deleteLayerVersion({
+                LayerName,
+                VersionNumber: layerInfo.Version
+            });
         }
     }
 }

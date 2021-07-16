@@ -35,38 +35,36 @@ export async function getAWSResources(mod: AwsFaastModule, includeLogGroup = fal
     const _exhaustiveCheck: Required<typeof rest> = {};
 
     const functionResult = await quietly(
-        lambda.getFunctionConfiguration({ FunctionName }).promise()
+        lambda.getFunctionConfiguration({ FunctionName })
     );
 
     const layerResult =
         layer &&
         (await quietly(
-            lambda
-                .getLayerVersion({
-                    LayerName: layer!.LayerName,
-                    VersionNumber: layer!.Version
-                })
-                .promise()
+            lambda.getLayerVersion({
+                LayerName: layer!.LayerName,
+                VersionNumber: layer!.Version
+            })
         ));
 
     const snsResult = await quietly(
-        sns.getTopicAttributes({ TopicArn: RequestTopicArn! }).promise()
+        sns.getTopicAttributes({ TopicArn: RequestTopicArn! })
     );
     const sqsResult = await quietly(
-        sqs.getQueueAttributes({ QueueUrl: ResponseQueueUrl! }).promise()
+        sqs.getQueueAttributes({ QueueUrl: ResponseQueueUrl! })
     );
 
     const subscriptionResult = await quietly(
-        sns.listSubscriptionsByTopic({ TopicArn: RequestTopicArn! }).promise()
+        sns.listSubscriptionsByTopic({ TopicArn: RequestTopicArn! })
     );
 
-    const s3Result = Bucket && (await quietly(s3.listObjectsV2({ Bucket }).promise()));
+    const s3Result = Bucket && (await quietly(s3.listObjectsV2({ Bucket })));
 
     const logGroupResult =
         includeLogGroup &&
         logGroupName &&
         (await quietly(
-            cloudwatch.describeLogGroups({ logGroupNamePrefix: logGroupName }).promise()
+            cloudwatch.describeLogGroups({ logGroupNamePrefix: logGroupName })
         ));
 
     if (RoleName || SNSLambdaSubscriptionArn || region || ResponseQueueArn) {

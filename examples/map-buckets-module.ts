@@ -1,4 +1,4 @@
-import { S3 } from "aws-sdk";
+import S3 from "aws-sdk/clients/s3";
 import * as tar from "tar-stream";
 import { Readable } from "stream";
 import { escape } from "querystring";

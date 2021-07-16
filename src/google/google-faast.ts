@@ -1,12 +1,10 @@
 import { AbortController } from "abort-controller";
 import { Gaxios, GaxiosOptions, GaxiosPromise, GaxiosResponse } from "gaxios";
-import {
-    cloudbilling_v1,
-    cloudfunctions_v1,
-    google,
-    GoogleApis,
-    pubsub_v1
-} from "googleapis";
+import { google } from "googleapis";
+import { cloudbilling_v1 } from "googleapis/build/src/apis/cloudbilling";
+import { cloudfunctions_v1 } from "googleapis/build/src/apis/cloudfunctions";
+import { pubsub_v1 } from "googleapis/build/src/apis/pubsub";
+import { GoogleApis } from "googleapis/build/src/googleapis";
 import * as https from "https";
 import * as util from "util";
 import { caches } from "../cache";
@@ -740,12 +738,11 @@ async function collectGarbage(
 
         const fnPattern = new RegExp(`/functions/faast-${uuidv4Pattern}$`);
         do {
-            const funcListResponse = await cloudFunctions.projects.locations.functions.list(
-                {
+            const funcListResponse =
+                await cloudFunctions.projects.locations.functions.list({
                     parent: `projects/${proj}/locations/-`,
                     pageToken
-                }
-            );
+                });
 
             pageToken = funcListResponse.data.nextPageToken ?? undefined;
             const garbageFunctions = (funcListResponse.data.functions || [])

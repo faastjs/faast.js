@@ -103,7 +103,7 @@ async function testBasic(
             await remote.rejected();
             t.fail("remote.rejected() did not reject as expected");
         } catch (err) {
-            t.is(err, "intentionally rejected");
+            t.regex(err.message, /^intentionally rejected/);
         }
         try {
             await remote.customError();

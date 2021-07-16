@@ -1086,12 +1086,8 @@ export function faastLocal<M extends object>(
 }
 
 function estimateFunctionLatency(fnStats: FunctionStats) {
-    const {
-        executionTime,
-        localStartLatency,
-        remoteStartLatency,
-        returnLatency
-    } = fnStats;
+    const { executionTime, localStartLatency, remoteStartLatency, returnLatency } =
+        fnStats;
 
     return (
         localStartLatency.mean +

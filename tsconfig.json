@@ -6,6 +6,7 @@
         "target": "es2020",
         "lib": ["es2020"],
         // "sourceMap": true,
+        "composite": true,
         "inlineSourceMap": true,
         "inlineSources": true,
         "declaration": true,
@@ -23,7 +24,9 @@
         "noEmitHelpers": true,
         "importHelpers": true,
         "allowSyntheticDefaultImports": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "incremental": true
     },
-    "exclude": ["node_modules", "dist", "etc", "temp", "examples", "test-release"]
+    "include": ["src/**/*", "index.ts", "test/**/*", "types/**/*"],
+    "exclude": ["**/node_modules", "dist/**/*", "etc", "temp", "examples", "test-release"]
 }

@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
 require("source-map-support").install();
-
-import { Request as AWSRequest, AWSError } from "aws-sdk";
 import { program } from "commander";
 import { readdir, remove } from "fs-extra";
 import { GaxiosPromise, GaxiosResponse } from "gaxios";
@@ -10,11 +8,22 @@ import { google } from "googleapis";
 import * as ora from "ora";
 import { tmpdir } from "os";
 import * as path from "path";
+import * as readline from "readline";
 import * as awsFaast from "./aws/aws-faast";
 import { caches, PersistentCache } from "./cache";
 import * as googleFaast from "./google/google-faast";
 import { keysOf, uuidv4Pattern } from "./shared";
 import { throttle } from "./throttle";
+import {
+    paginateListFunctions,
+    paginateListLayers,
+    paginateListLayerVersions
+} from "@aws-sdk/client-lambda";
+import { paginateDescribeLogGroups } from "@aws-sdk/client-cloudwatch-logs";
+import { Paginator } from "@aws-sdk/types";
+import { paginateListSubscriptions, paginateListTopics } from "@aws-sdk/client-sns";
+import { paginateListQueues } from "@aws-sdk/client-sqs";
+import { paginateListRoles } from "@aws-sdk/client-iam";
 
 const warn = console.warn;
 const log = console.log;
@@ -76,37 +85,26 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
         region! as awsFaast.AwsRegion
     );
 
-    function listAWSResource<T, U>(
+    async function listAWSResource<T, U>(
         pattern: RegExp,
-        getList: () => AWSRequest<T, AWSError>,
+        getList: () => Paginator<T>,
         extractList: (arg: T) => U[] | undefined,
         extractElement: (arg: U) => string | undefined
     ) {
         const allResources: string[] = [];
-        return new Promise<string[]>((resolve, reject) => {
-            getList().eachPage((err, page) => {
-                if (err) {
-                    reject(err);
-                    return false;
-                }
-                const elems = (page && extractList(page)) || [];
-                allResources.push(...elems.map(elem => extractElement(elem) || ""));
-                if (page === null) {
-                    // console.log(`allResources: ${allResources.join("\n")}`);
-                    // console.log(`pattern: ${pattern}`);
-                    const matchingResources = allResources.filter(t => t.match(pattern));
-                    matchingResources.forEach(resource => output(`  ${resource}`));
-                    resolve(matchingResources);
-                }
-                return true;
-            });
-        });
+        for await (const page of getList()) {
+            const elems = (page && extractList(page)) || [];
+            allResources.push(...elems.map(elem => extractElement(elem) || ""));
+        }
+        const matchingResources = allResources.filter(t => t.match(pattern));
+        matchingResources.forEach(resource => output(`  ${resource}`));
+        return matchingResources;
     }
 
     async function deleteAWSResource<T, U>(
         name: string,
         pattern: RegExp,
-        getList: () => AWSRequest<T, AWSError>,
+        getList: () => Paginator<T>,
         extractList: (arg: T) => U[] | undefined,
         extractElement: (arg: U) => string | undefined,
         doRemove: (arg: string) => Promise<any>
@@ -131,48 +129,52 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
     await deleteAWSResource(
         "SNS subscription(s)",
         new RegExp(`:faast-${uuidv4Pattern}`),
-        () => sns.listSubscriptions(),
+        () => paginateListSubscriptions({ client: sns }, {}),
         page => page.Subscriptions,
         subscription => subscription.SubscriptionArn,
-        SubscriptionArn => sns.unsubscribe({ SubscriptionArn }).promise()
+        SubscriptionArn => sns.unsubscribe({ SubscriptionArn })
     );
 
     output(`SNS topics`);
     await deleteAWSResource(
         "SNS topic(s)",
         new RegExp(`:faast-${uuidv4Pattern}`),
-        () => sns.listTopics(),
+        () => paginateListTopics({ client: sns }, {}),
         page => page.Topics,
         topic => topic.TopicArn,
-        TopicArn => sns.deleteTopic({ TopicArn }).promise()
+        TopicArn => sns.deleteTopic({ TopicArn })
     );
 
     output(`SQS queues`);
     await deleteAWSResource(
         "SQS queue(s)",
         new RegExp(`/faast-${uuidv4Pattern}`),
-        () => sqs.listQueues(),
+        () => paginateListQueues({ client: sqs }, {}),
         page => page.QueueUrls,
         queueUrl => queueUrl,
-        QueueUrl => sqs.deleteQueue({ QueueUrl }).promise()
+        QueueUrl => sqs.deleteQueue({ QueueUrl })
     );
+
+    async function* listBuckets() {
+        const result = s3.listBuckets({});
+        yield result;
+        return result;
+    }
 
     output(`S3 buckets`);
     await deleteAWSResource(
         "S3 bucket(s)",
         new RegExp(`^faast-${uuidv4Pattern}`),
-        () => s3.listBuckets(),
+        () => listBuckets(),
         page => page.Buckets,
         Bucket => Bucket.Name,
         async Bucket => {
-            const objects = await s3
-                .listObjectsV2({ Bucket, Prefix: "faast-" })
-                .promise();
+            const objects = await s3.listObjectsV2({ Bucket, Prefix: "faast-" });
             const keys = (objects.Contents || []).map(entry => ({ Key: entry.Key! }));
             if (keys.length > 0) {
-                await s3.deleteObjects({ Bucket, Delete: { Objects: keys } }).promise();
+                await s3.deleteObjects({ Bucket, Delete: { Objects: keys } });
             }
-            await s3.deleteBucket({ Bucket }).promise();
+            await s3.deleteBucket({ Bucket });
         }
     );
 
@@ -180,17 +182,17 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
     await deleteAWSResource(
         "Lambda function(s)",
         new RegExp(`^faast-${uuidv4Pattern}`),
-        () => lambda.listFunctions(),
+        () => paginateListFunctions({ client: lambda }, {}),
         page => page.Functions,
         func => func.FunctionName,
-        FunctionName => lambda.deleteFunction({ FunctionName }).promise()
+        FunctionName => lambda.deleteFunction({ FunctionName })
     );
 
     output(`IAM roles`);
     await deleteAWSResource(
         "IAM role(s)",
         /^faast-cached-lambda-role$/,
-        () => iam.listRoles(),
+        () => paginateListRoles({ client: iam }, {}),
         page => page.Roles,
         role => role.RoleName,
         RoleName => awsFaast.deleteRole(RoleName, iam)
@@ -200,7 +202,7 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
     await deleteAWSResource(
         "IAM test role(s)",
         new RegExp(`^faast-test-.*${uuidv4Pattern}$`),
-        () => iam.listRoles(),
+        () => paginateListRoles({ client: iam }, {}),
         page => page.Roles,
         role => role.RoleName,
         RoleName => awsFaast.deleteRole(RoleName, iam)
@@ -211,18 +213,16 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
     await deleteAWSResource(
         "Lambda layer(s)",
         new RegExp(`^faast-(${uuidv4Pattern})|([a-f0-9]{64})`),
-        () => lambda.listLayers({ CompatibleRuntime: "nodejs" }),
+        () => paginateListLayers({ client: lambda }, { CompatibleRuntime: "nodejs" }),
         page => page.Layers,
         layer => layer.LayerName,
         async LayerName => {
-            const versions = await lambda.listLayerVersions({ LayerName }).promise();
+            const versions = await lambda.listLayerVersions({ LayerName });
             for (const layerVersion of versions.LayerVersions || []) {
-                await lambda
-                    .deleteLayerVersion({
-                        LayerName,
-                        VersionNumber: layerVersion.Version!
-                    })
-                    .promise();
+                await lambda.deleteLayerVersion({
+                    LayerName,
+                    VersionNumber: layerVersion.Version!
+                });
             }
         }
     );
@@ -247,10 +247,10 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
     await deleteAWSResource(
         "Cloudwatch log group(s)",
         new RegExp(`/faast-${uuidv4Pattern}$`),
-        () => cloudwatch.describeLogGroups(),
+        () => paginateDescribeLogGroups({ client: cloudwatch }, {}),
         page => page.logGroups,
         logGroup => logGroup.logGroupName,
-        logGroupName => cloudwatch.deleteLogGroup({ logGroupName }).promise()
+        logGroupName => cloudwatch.deleteLogGroup({ logGroupName })
     );
 
     return nResources;
@@ -385,8 +385,6 @@ async function cleanupLocal({ execute }: CleanupOptions) {
     }
     return nResources;
 }
-
-import * as readline from "readline";
 
 async function prompt() {
     const rl = readline.createInterface({
