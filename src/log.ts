@@ -44,12 +44,6 @@ import { inspect } from "util";
  * `awssdk` - Verbose logging of AWS SDK. This can be useful for identifying
  * which API calls are failing, retrying, or encountering rate limits.
  *
- * `retry` - Verbose logging of retry attempts in both SDK and invocations. This
- * can be useful for identifying transient errors in the testsuite, or for
- * understanding why calls are invoked multiple times. Currently this only logs
- * retries from the faast runtime itself (i.e. high level retries) and google
- * cloud. AWS provider-level retries are not logged.
- *
  * @public
  */
 export const log = {
