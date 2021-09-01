@@ -17,6 +17,8 @@ async function testBasic(
     provider: Provider,
     options: CommonOptions
 ) {
+    console.log(`Executing test: '${t.title}'`);
+
     const opts: CommonOptions = {
         timeout: 60,
         gc: "off",
@@ -26,12 +28,16 @@ async function testBasic(
     };
 
     const faastModule = await faast(provider, funcs, opts);
+    console.log(`Test '${t.title}' logUrl: ${faastModule.logUrl()}`);
     const remote = faastModule.functions;
 
     const awssdkEnabled = log.awssdk.enabled;
     const providerEnabled = log.provider.enabled;
+    const infoEnabled = log.info.enabled;
+
     log.awssdk.enabled = true;
     log.provider.enabled = true;
+    log.info.enabled = true;
 
     try {
         console.log(`remote.hello`);
@@ -223,6 +229,7 @@ async function testBasic(
     } finally {
         log.awssdk.enabled = awssdkEnabled;
         log.provider.enabled = providerEnabled;
+        log.info.enabled = infoEnabled;
 
         console.log(`error logs: ${faastModule.logUrl()}`);
         await faastModule.cleanup();
@@ -279,5 +286,5 @@ for (const provider of providers) {
     }
     // XXX Disable CPU metrics for now.
     // test(title(provider, `cpu metrics are received`), testCpuMetrics, provider);
-    test(title(provider, `basic calls with require`), testBasicRequire, provider);
+    test.serial(title(provider, `basic calls with require`), testBasicRequire, provider);
 }
