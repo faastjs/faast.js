@@ -31,7 +31,7 @@ import {
     sleep,
     uuidv4Pattern
 } from "../shared";
-import { throttle } from "../throttle";
+import { retryOp, throttle } from "../throttle";
 import { FunctionCall, WrapperOptions } from "../wrapper";
 import { publishPubSub, receiveMessages } from "./google-queue";
 import { shouldRetryRequest } from "./google-shared";
@@ -449,37 +449,37 @@ export async function initialize(
     }
     log.info(`Create function at ${location}`);
     log.info(`Request body: %O`, requestBody);
-    try {
-        log.info(`create function ${requestBody.name} [${options.description}]`);
-        await waitFor(cloudFunctions, () =>
-            cloudFunctions.projects.locations.functions.create({
-                location,
-                requestBody
-            })
-        );
-        await cloudFunctions.projects.locations.functions.setIamPolicy({
-            resource: trampoline,
-            requestBody: {
-                policy: {
-                    bindings: [
-                        {
-                            members: ["allUsers"],
-                            role: "roles/cloudfunctions.invoker"
-                        }
-                    ]
+    await retryOp(3, async () => {
+        try {
+            log.info(`create function ${requestBody.name} [${options.description}]`);
+            await waitFor(cloudFunctions, () =>
+                cloudFunctions.projects.locations.functions.create({
+                    location,
+                    requestBody
+                })
+            );
+            await cloudFunctions.projects.locations.functions.setIamPolicy({
+                resource: trampoline,
+                requestBody: {
+                    policy: {
+                        bindings: [
+                            {
+                                members: ["allUsers"],
+                                role: "roles/cloudfunctions.invoker"
+                            }
+                        ]
+                    }
                 }
-            }
-        });
-    } catch (err) {
-        /* istanbul ignore next  */
-        if (!err.message.match(/already exists/)) {
+            });
+        } catch (err) {
+            /* istanbul ignore next  */
             await deleteFunction(cloudFunctions, trampoline).catch(() => {});
             throw new FaastError(
                 { cause: err, name: FaastErrorNames.ECREATE },
                 "failed to create google cloud function"
             );
         }
-    }
+    });
     if (mode === "https" || mode === "auto") {
         try {
             const func = await cloudFunctions.projects.locations.functions.get({
@@ -740,12 +740,11 @@ async function collectGarbage(
 
         const fnPattern = new RegExp(`/functions/faast-${uuidv4Pattern}$`);
         do {
-            const funcListResponse = await cloudFunctions.projects.locations.functions.list(
-                {
+            const funcListResponse =
+                await cloudFunctions.projects.locations.functions.list({
                     parent: `projects/${proj}/locations/-`,
                     pageToken
-                }
-            );
+                });
 
             pageToken = funcListResponse.data.nextPageToken ?? undefined;
             const garbageFunctions = (funcListResponse.data.functions || [])
