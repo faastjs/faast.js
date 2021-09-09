@@ -68,7 +68,7 @@ export function inspectProvider(o: object) {
         return "";
     }
     /* istanbul ignore next  */
-    return truncate(inspect(o, false, 3).replace(/([ ][ ])/g, `. `), 1024);
+    return truncate(inspect(o, false, 3), 1024);
 }
 
 log.warn.enabled = true;
