@@ -31,14 +31,6 @@ async function testBasic(
     console.log(`Test '${t.title}' logUrl: ${faastModule.logUrl()}`);
     const remote = faastModule.functions;
 
-    const awssdkEnabled = log.awssdk.enabled;
-    const providerEnabled = log.provider.enabled;
-    const infoEnabled = log.info.enabled;
-
-    log.awssdk.enabled = true;
-    log.provider.enabled = true;
-    log.info.enabled = true;
-
     try {
         console.log(`remote.hello`);
         t.is(await remote.hello("Andy"), "Hello Andy!");
@@ -227,11 +219,6 @@ async function testBasic(
         console.log(`remote.asyncGenerator`);
         t.deepEqual(await toArray(remote.asyncGenerator(elements)), elements);
     } finally {
-        log.awssdk.enabled = awssdkEnabled;
-        log.provider.enabled = providerEnabled;
-        log.info.enabled = infoEnabled;
-
-        console.log(`error logs: ${faastModule.logUrl()}`);
         await faastModule.cleanup();
     }
 }
