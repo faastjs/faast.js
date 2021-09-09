@@ -730,6 +730,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             let fname = this.lookupFname(fn);
             const callId = this.createCallId();
             const pending = this.invoke(fname, args, callId);
+            log.provider(`invoke ${inspectProvider(pending.call)}`);
             this._stats.incr(fname, "invocations");
             return {
                 [Symbol.asyncIterator]() {
@@ -1086,12 +1087,8 @@ export function faastLocal<M extends object>(
 }
 
 function estimateFunctionLatency(fnStats: FunctionStats) {
-    const {
-        executionTime,
-        localStartLatency,
-        remoteStartLatency,
-        returnLatency
-    } = fnStats;
+    const { executionTime, localStartLatency, remoteStartLatency, returnLatency } =
+        fnStats;
 
     return (
         localStartLatency.mean +
