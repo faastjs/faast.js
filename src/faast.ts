@@ -775,7 +775,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             let fname = this.lookupFname(fn);
             const callId = this.createCallId();
             const tryInvoke = async () => {
-                const pending = await this.invoke(fname, args, callId);
+                const pending = this.invoke(fname, args, callId);
                 log.provider(`invoke ${inspectProvider(pending.call)}`);
                 this._stats.incr(fname, "invocations");
                 const responsePromise = pending.queue.next();
