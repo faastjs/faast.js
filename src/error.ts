@@ -21,7 +21,9 @@ export enum FaastErrorNames {
     /** The exception was thrown by user's remote code, not by faast.js or the cloud provider. */
     EEXCEPTION = "UserException",
     /** Could not create the remote cloud function or supporting infrastructure. */
-    ECREATE = "FaastCreateFunctionError"
+    ECREATE = "FaastCreateFunctionError",
+    /** The remote cloud function failed to execute because of limited concurrency. */
+    ECONCURRENCY = "FaastConcurrencyError"
 }
 
 /**

@@ -533,8 +533,8 @@ export const initialize = throttle(
                         lambda
                             .putFunctionEventInvokeConfig({
                                 FunctionName,
-                                MaximumRetryAttempts: 0,
-                                MaximumEventAgeInSeconds: 120,
+                                MaximumRetryAttempts: 2,
+                                MaximumEventAgeInSeconds: 21600,
                                 DestinationConfig: {
                                     OnFailure: { Destination: responseQueueArn }
                                 }
