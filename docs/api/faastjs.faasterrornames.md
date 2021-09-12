@@ -22,6 +22,7 @@ export declare enum FaastErrorNames
 |  Member | Value | Description |
 |  --- | --- | --- |
 |  ECANCEL | <code>&quot;FaastCancelError&quot;</code> | The function invocation was cancelled by user request. |
+|  ECONCURRENCY | <code>&quot;FaastConcurrencyError&quot;</code> | The remote cloud function failed to execute because of limited concurrency. |
 |  ECREATE | <code>&quot;FaastCreateFunctionError&quot;</code> | Could not create the remote cloud function or supporting infrastructure. |
 |  EEXCEPTION | <code>&quot;UserException&quot;</code> | The exception was thrown by user's remote code, not by faast.js or the cloud provider. |
 |  EGENERIC | <code>&quot;VError&quot;</code> | Generic error. See [FaastError](./faastjs.faasterror.md)<!-- -->. |

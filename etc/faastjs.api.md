@@ -189,6 +189,7 @@ export class FaastError extends VError {
 // @public
 export enum FaastErrorNames {
     ECANCEL = "FaastCancelError",
+    ECONCURRENCY = "FaastConcurrencyError",
     ECREATE = "FaastCreateFunctionError",
     EEXCEPTION = "UserException",
     EGENERIC = "VError",
@@ -236,7 +237,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
     // @internal (undocumented)
     readonly state: S;
     stats(functionName?: string): FunctionStats;
-    }
+}
 
 // @public
 export class FunctionStats {
@@ -379,6 +380,5 @@ export class Statistics {
 
 // @public
 export function throttle<A extends any[], R>(limits: Limits, fn: (...args: A) => Promise<R>): (...args: A) => Promise<R>;
-
 
 ```
