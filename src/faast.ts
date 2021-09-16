@@ -246,7 +246,7 @@ export interface FaastModule<M extends object> {
      * Arguments and return values have size limitations that vary by provider
      * and mode:
      *
-     * - AWS: 256KB in queue mode, 6MB in https mode. See
+     * - AWS: 256KB in queue mode, 6MB arguments and 256KB return values in https mode. See
      *   {@link https://docs.aws.amazon.com/lambda/latest/dg/limits.html | AWS Lambda Limits}.
      *
      * - Google: 10MB in https and queue modes. See

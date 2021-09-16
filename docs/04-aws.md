@@ -71,13 +71,13 @@ To inspect what the bundled code package looks like, see [`FAAST_PACKAGE_DIR`](.
 
 ## Queue vs Https mode
 
-There are two [modes of invocation](./api/faastjs.commonoptions.mode.md) for AWS with faast.js, https and queue. In AWS, queue mode uses SNS to invoke lambda, whereas https mode uses a direct Lambda API invocation. Here's how these compare on AWS:
+There are two [modes of invocation](./api/faastjs.commonoptions.mode.md) for AWS with faast.js, https and queue. In AWS, queue mode uses SNS to invoke lambda, whereas https mode uses a direct Lambda API invocation (however, return values are always returned via an SQS queue, and are bound by SQS message size limits). Here's how these compare on AWS:
 
 |                           | https mode | queue mode |
 | ------------------------- | ---------- | ---------- |
 | latency                   | low        | higher     |
 | maximum argument size     | 6MB        | 256kb      |
-| maximum return value size | 6MB        | 256kb      |
+| maximum return value size | 256kb      | 256kb      |
 | max invocations / sec     | ~300/sec   | > 600/sec  |
 
 In https mode, a socket connection is used for each invocation. This may encounter client-side limitations within configuration of a container or operating system. For more robust handling of higher concurrency levels, use queue mode, which avoids the use of large number of connections by routing requests and responses through AWS SQS.

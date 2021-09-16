@@ -37,7 +37,7 @@ If the cloud function throws an exception or rejects its promise with an instanc
 
 Arguments and return values have size limitations that vary by provider and mode:
 
-- AWS: 256KB in queue mode, 6MB in https mode. See [AWS Lambda Limits](https://docs.aws.amazon.com/lambda/latest/dg/limits.html)<!-- -->.
+- AWS: 256KB in queue mode, 6MB arguments and 256KB return values in https mode. See [AWS Lambda Limits](https://docs.aws.amazon.com/lambda/latest/dg/limits.html)<!-- -->.
 
 - Google: 10MB in https and queue modes. See [Google Cloud Function Quotas](https://cloud.google.com/functions/quotas)<!-- -->.
 
