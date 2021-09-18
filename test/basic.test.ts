@@ -17,8 +17,6 @@ async function testBasic(
     provider: Provider,
     options: CommonOptions
 ) {
-    console.log(`Executing test: '${t.title}'`);
-
     const opts: CommonOptions = {
         timeout: 60,
         gc: "off",
@@ -28,195 +26,117 @@ async function testBasic(
     };
 
     const faastModule = await faast(provider, funcs, opts);
-    console.log(`Test '${t.title}' logUrl: ${faastModule.logUrl()}`);
     const remote = faastModule.functions;
 
     try {
-        console.log(`remote.hello`);
         t.is(await remote.hello("Andy"), "Hello Andy!");
-
-        console.log(`remote.identityString`);
         t.is(await remote.identityString("你好"), "你好");
-
-        console.log(`remote.identityNum`);
         t.is(await remote.identityNum(42), 42);
-
-        console.log(`remote.identityNum`);
         t.is(await remote.identityNum(Infinity), Infinity);
-
-        console.log(`remote.identityNum`);
         t.is(await remote.identityNum(-Infinity), -Infinity);
-
         if (nodeMajorVersion() >= 10) {
-            console.log(`remote.identityNum`);
             t.is(await remote.identityNum(NaN), NaN);
         }
-        console.log(`remote.empty`);
         t.is(await remote.empty(), undefined);
-
-        console.log(`remote.arrow`);
         t.is(await remote.arrow("arrow"), "arrow");
-
-        console.log(`remote.asyncArrow`);
         t.is(await remote.asyncArrow("asyncArrow"), "asyncArrow");
-
-        console.log(`remote.fact`);
         t.is(await remote.fact(5), 120);
-
-        console.log(`remote.concat`);
         t.is(await remote.concat("abc", "def"), "abcdef");
-
-        console.log(`remote.error`);
         await t.throwsAsync(() => remote.error("hey"), {
             message: /Expected error. Arg: hey/
         });
-        console.log(`remote.noargs`);
         t.is(await remote.noargs(), "called function with no args.");
-
-        console.log(`remote.async`);
         t.is(await remote.async(), "async function: success");
-
-        console.log(`remote.path`);
         t.is(typeof (await remote.path()), "string");
-
-        console.log(`remote.optionalArg`);
         t.is(await remote.optionalArg(), "No arg");
-
-        console.log(`remote.optionalArg`);
         t.is(await remote.optionalArg("has arg"), "has arg");
 
         const date = new Date();
-        console.log(`remote.identityDate`);
         t.deepEqual(await remote.identityDate(date), date);
 
         const buffer = Buffer.from("contents");
-        console.log(`remote.identityBuffer`);
         t.deepEqual(await remote.identityBuffer(buffer), buffer);
 
-        console.log(`remote.identityArrayNum`);
         t.deepEqual(await remote.identityArrayNum([42, 8, 10]), [42, 8, 10]);
 
         const inf = [Infinity, -Infinity];
-        console.log(`remote.identityArrayNum`);
         t.deepEqual(await remote.identityArrayNum(inf), inf);
 
         if (nodeMajorVersion() >= 10) {
-            console.log(`remote.identityArrayNum`);
             t.deepEqual(await remote.identityArrayNum([NaN]), [NaN]);
         }
-        console.log(`remote.identityArrayString`);
         t.deepEqual(await remote.identityArrayString(["a", "there"]), ["a", "there"]);
-
-        console.log(`remote.identityBool`);
         t.is(await remote.identityBool(true), true);
-
-        console.log(`remote.identityBool`);
         t.is(await remote.identityBool(false), false);
-
-        console.log(`remote.identityUndefined`);
         t.is(await remote.identityUndefined(undefined), undefined);
-
-        console.log(`remote.identityNull`);
         t.is(await remote.identityNull(null), null);
-
-        console.log(`remote.identityObject`);
         t.deepEqual(await remote.identityObject({}), {});
-
-        console.log(`remote.identityObject`);
         t.deepEqual(await remote.identityObject({ a: 42, b: "hello" }), {
             a: 42,
             b: "hello"
         });
         const int8 = Int8Array.of(0, -8, 42);
-        console.log(`remote.identityInt8`);
         t.deepEqual(await remote.identityInt8(int8), int8);
 
         const uint8 = Uint8Array.of(0, 8, 42);
-        console.log(`remote.identityUint8`);
         t.deepEqual(await remote.identityUint8(uint8), uint8);
 
         const uint8Clamped = Uint8ClampedArray.of(0, 8, 42);
-        console.log(`remote.identityUint8Clamped`);
         t.deepEqual(await remote.identityUint8Clamped(uint8Clamped), uint8Clamped);
 
         const int16 = Int16Array.of(0, 8, 42, -1);
-        console.log(`remote.identityInt16`);
         t.deepEqual(await remote.identityInt16(int16), int16);
 
         const uint16 = Uint16Array.of(0, 8, 42, -1);
-        console.log(`remote.identityUint16`);
         t.deepEqual(await remote.identityUint16(uint16), uint16);
 
         const int32 = Int32Array.of(0, 8, 42, -1);
-        console.log(`remote.identityInt32`);
         t.deepEqual(await remote.identityInt32(int32), int32);
 
         const uint32 = Uint32Array.of(0, 8, 42, -1);
-        console.log(`remote.identityUint32`);
         t.deepEqual(await remote.identityUint32(uint32), uint32);
 
         const float32 = Float32Array.of(0, 0.3, 100.042, -1);
-        console.log(`remote.identityFloat32`);
         t.deepEqual(await remote.identityFloat32(float32), float32);
 
         const float64 = Float64Array.of(0, 0.3, 100.042, -1);
-        console.log(`remote.identityFloat64`);
         t.deepEqual(await remote.identityFloat64(float64), float64);
 
         const m = new Map([
             [1, 2],
             [42, 10]
         ]);
-        console.log(`remote.identityMap`);
         t.deepEqual(await remote.identityMap(m), m);
 
         const s = new Set([1, 42, 100]);
-        console.log(`remote.identitySet`);
         t.deepEqual(await remote.identitySet(s), s);
 
         try {
-            console.log(`remote.emptyReject`);
             await remote.emptyReject();
-
-            console.log(`remote.emptyReject`);
             t.fail("remote.emptyReject() did not reject as expected");
         } catch (err) {
             t.is(err, undefined);
         }
         try {
-            console.log(`remote.rejected`);
             await remote.rejected();
-
-            console.log(`remote.rejected`);
             t.fail("remote.rejected() did not reject as expected");
         } catch (err) {
             t.is(err, "intentionally rejected");
         }
         try {
-            console.log(`remote.customError`);
             await remote.customError();
-
-            console.log(`remote.customError`);
             t.fail("remote.customError() did not reject as expected");
         } catch (err) {
             t.true(err instanceof FaastError);
             t.truthy(err.message.match(/^custom error message/));
             t.is(FaastError.info(err).custom, "custom value");
         }
-        console.log(`remote.getEnv`);
         t.is(await remote.getEnv("faastEnvironmentVariable"), "the_answer_is_42");
-
-        console.log(`remote.getEnv 2`);
         t.is(await remote.getEnv("faastNonexistent"), undefined);
-
-        console.log(`remote.returnsError`);
         t.deepEqual(await remote.returnsError(), funcs.returnsError());
 
         const elements = ["bar", "baz"];
-        console.log(`remote.generator`);
         t.deepEqual(await toArray(remote.generator(elements)), elements);
-
-        console.log(`remote.asyncGenerator`);
         t.deepEqual(await toArray(remote.asyncGenerator(elements)), elements);
     } finally {
         await faastModule.cleanup();
@@ -229,10 +149,7 @@ async function testBasicRequire(t: ExecutionContext, provider: Provider) {
     const faastModule = await faast(provider, requiredFuncs, opts);
     const remote = faastModule.functions;
     try {
-        console.log(`remote.identityString`);
         t.is(await remote.identityString("id"), "id");
-
-        console.log(`remote.arrow`);
         t.is(await remote.arrow("arrow"), "arrow");
     } finally {
         await faastModule.cleanup();
