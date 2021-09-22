@@ -513,6 +513,7 @@ export const initialize = throttle(
             let func;
             try {
                 func = await lambda.createFunction(request).promise();
+                await lambda.waitFor("functionActive", { FunctionName }).promise();
             } catch (err) {
                 if (err?.message?.match(/Function already exist/)) {
                     func = (await lambda.getFunction({ FunctionName }).promise())
