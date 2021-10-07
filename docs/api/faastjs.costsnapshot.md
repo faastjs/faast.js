@@ -36,7 +36,6 @@ try {
     console.log(`Cost estimate:`);
     console.log(`${await faastModule.costSnapshot()}`);
 }
-
 ```
 AWS example output:
 
@@ -59,7 +58,6 @@ logIngestion          $0.50000000/GB                  0 GB         $0           
 [4]: https://aws.amazon.com/lambda/pricing
 [5]: https://aws.amazon.com/ec2/pricing/on-demand/#Data_Transfer
 [6]: https://aws.amazon.com/cloudwatch/pricing/ - Log ingestion costs not currently included.
-
 ```
 A cost snapshot contains several [CostMetric](./faastjs.costmetric.md) values. Each `CostMetric` summarizes one component of the overall cost of executing the functions so far. Some cost metrics are common to all faast providers, and other metrics are provider-specific. The common metrics are:
 

@@ -34,5 +34,4 @@ outboundDataTransfer,GB,0.09000000,0.00000844,0.00000076,2.9% ,"https://aws.amaz
 sqs,request,0.00000040,13,0.00000520,19.7% ,"https://aws.amazon.com/sqs/pricing"
 sns,request,0.00000050,5,0.00000250,9.5% ,"https://aws.amazon.com/sns/pricing"
 logIngestion,GB,0.50000000,0,0,0.0% ,"https://aws.amazon.com/cloudwatch/pricing/ - Log ingestion costs not currently included."
-
 ```

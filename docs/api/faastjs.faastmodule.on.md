@@ -34,5 +34,4 @@ The callback is invoked once for each cloud function that was invoked within the
 
 ```typescript
 faastModule.on("stats", console.log);
-
 ```

@@ -41,7 +41,6 @@ try {
     // Note the `await`
     await faastModule.cleanup();
 }
-
 ```
 After the cleanup promise resolves, the cloud function instance can no longer invoke new calls on [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. However, other methods on [FaastModule](./faastjs.faastmodule.md) are safe to call, such as [FaastModule.costSnapshot()](./faastjs.faastmodule.costsnapshot.md)<!-- -->.
 

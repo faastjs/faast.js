@@ -32,6 +32,5 @@ Each google cost analyzer configuration follows this template:
         childProcess: true
     }
 }
-
 ```
 where `memorySize` is in `[128, 256, 512, 1024, 2048]`<!-- -->.

@@ -45,7 +45,6 @@ for(let i = 0; i < 100; i++) {
     // at most 10 concurrent executions at a rate of 5 invocations per second.
     throttledOperation();
 }
-
 ```
 Note that each invocation to `throttle` creates a separate function with a separate limits. Therefore it is likely that you want to use `throttle` in a global context, not within a dynamic context:
 
@@ -56,7 +55,6 @@ for(let i = 0; i < 100; i++) {
     const throttledOperation = throttle({ concurrency: 10, rate: 5 }, operation);
     throttledOperation();
 }
-
 ```
 A better way to use throttle avoids creating a named `operation` function altogether, ensuring it cannot be accidentally called without throttling:
 
@@ -64,7 +62,6 @@ A better way to use throttle avoids creating a named `operation` function altoge
 const operation = throttle({ concurrency: 10, rate: 5 }, async () => {
     ...
 });
-
 ```
 Throttle supports functions with arguments automatically infers the correct type for the returned function:
 
@@ -73,6 +70,5 @@ Throttle supports functions with arguments automatically infers the correct type
 const operation = throttle({ concurrency: 10, rate: 5 }, async (str: string) => {
     return string;
 });
-
 ```
 In addition to limiting concurrency and invocation rate, `throttle` also supports retrying failed invocations, memoizing calls, and on-disk caching. See [Limits](./faastjs.limits.md) for details.

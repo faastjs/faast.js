@@ -46,5 +46,4 @@ import * as mod from "./path/to/module";
         await faastModule.cleanup();
     }
 })();
-
 ```

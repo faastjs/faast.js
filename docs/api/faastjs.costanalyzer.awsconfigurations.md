@@ -32,12 +32,10 @@ The default AWS cost analyzer configurations include every memory size from 128M
         childProcess: true
     }
 }
-
 ```
 Use `Array.map` to change or `Array.filter` to remove some of these configurations. For example:
 
 ```typescript
 const configsWithAtLeast1GB = awsConfigurations.filter(c => c.memorySize > 1024)
 const shorterTimeout = awsConfigurations.map(c => ({...c, timeout: 60 }));
-
 ```

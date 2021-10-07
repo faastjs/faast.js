@@ -32,6 +32,5 @@ FaastError.hasCauseWithName(err, cause) - returns true if the FaastError or any 
 
 ```typescript
   FaastError.hasCauseWithName(err, FaastErrorNames.ETIMEOUT)
-
 ```
 FaastError.findCauseByName(err, cause) - like FaastError.hasCauseWithName() except it returns the Error in the causal chain with the given name instead of a boolean, otherwise null.

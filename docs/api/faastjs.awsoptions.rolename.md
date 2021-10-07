@@ -43,7 +43,6 @@ You can [create a custom role](https://console.aws.amazon.com/iam/home#/roles) t
           }
       ]
   }
-
 ```
 - Trust relationship (also known as `AssumeRolePolicyDocument` in the AWS SDK):
 
@@ -60,5 +59,4 @@ You can [create a custom role](https://console.aws.amazon.com/iam/home#/roles) t
       }
     ]
   }
-
 ```

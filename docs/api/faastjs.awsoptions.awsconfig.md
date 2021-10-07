@@ -26,5 +26,4 @@ Example of passing in credentials:
 ```typescript
   const credentials = { accessKeyId, secretAccessKey };
   const m = await faastAws(funcs, { credentials });
-
 ```

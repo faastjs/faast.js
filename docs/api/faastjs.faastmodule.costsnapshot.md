@@ -37,5 +37,4 @@ try {
      const costSnapshot = await faastModule.costSnapshot();
      console.log(costSnapshot);
 }
-
 ```

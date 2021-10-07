@@ -34,7 +34,6 @@ Unless otherwise specified, each log is disabled by default unless the value of 
 ```
   $ DEBUG=faast:info,faast:provider <cmd>
   $ DEBUG=faast:* <cmd>
-
 ```
 Logs can also be enabled or disabled programmatically:
 
@@ -42,7 +41,6 @@ Logs can also be enabled or disabled programmatically:
 import { log } from "faastjs"
 log.info.enabled = true;
 log.provider.enabled = true;
-
 ```
 Each log outputs specific information:
 

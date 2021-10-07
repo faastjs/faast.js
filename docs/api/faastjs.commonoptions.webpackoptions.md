@@ -35,7 +35,6 @@ const config: webpack.Configuration = merge({
     node: { global: true, __dirname: false, __filename: false }
   },
   webpackOptions);
-
 ```
 Take care when setting the values of `entry`<!-- -->, `output`<!-- -->, or `resolveLoader`<!-- -->. If these options are overwritten, faast.js may fail to bundle your code. In particular, setting `entry` to an array value will help `webpack-merge` to concatenate its value instead of replacing the value that faast.js inserts for you.
 

@@ -31,5 +31,4 @@ If you need specialized options, you can pass them to the Google Cloud Functions
      runtime: "nodejs14",
      ...googleCloudFunctionOptions
  };
-
 ```

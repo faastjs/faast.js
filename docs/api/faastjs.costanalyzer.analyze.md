@@ -53,7 +53,6 @@ It can be deceptively difficult to set optimal parameters for AWS Lambda and sim
                                              │     ┌───────┐
                                              └────▶│ 256MB │
                                                    └───────┘
-
 ```
 `costAnalyzer` is the entry point. It automatically runs this workload against multiple configurations in parallel. Then it uses faast.js' cost snapshot mechanism to automatically determine the price of running the workload with each configuration.
 
@@ -84,7 +83,6 @@ async function main() {
 }
 
 main();
-
 ```
 Example output (this is printed to `console.log` unless the [CostAnalyzer.Workload.silent](./faastjs.costanalyzer.workload.silent.md) is `true`<!-- -->):
 
@@ -100,7 +98,6 @@ Example output (this is printed to `console.log` unless the [CostAnalyzer.Worklo
          size         │
                 average cloud
                 execution time
-
 ```
 The output lists the provider, memory size, ([CommonOptions.mode](./faastjs.commonoptions.mode.md)<!-- -->), average time of a single execution of the workload, the standard deviation (in seconds) of the execution time, and average estimated cost for a single run of the workload.
 

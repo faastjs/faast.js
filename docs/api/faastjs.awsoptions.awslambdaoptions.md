@@ -33,5 +33,4 @@ If you need specialized options, you can pass them to the AWS Lambda SDK directl
       MemorySize,
       ...awsLambdaOptions
   };
-
 ```
