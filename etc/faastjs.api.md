@@ -342,7 +342,7 @@ export class PersistentCache {
     readonly expiration: number;
     get(key: string): Promise<Buffer | undefined>;
     // Warning: (ae-forgotten-export) The symbol "Blob" needs to be exported by the entry point index.d.ts
-    set(key: string, value: Buffer | string | Uint8Array | Readable | Blob): Promise<void>;
+    set(key: string, value: Buffer | string | Uint8Array | Readable | Blob_2): Promise<void>;
 }
 
 // @public
