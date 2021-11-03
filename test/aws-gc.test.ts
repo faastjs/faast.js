@@ -6,11 +6,23 @@ import { defaultGcWorker, clearLastGc } from "../src/aws/aws-faast";
 import { getAWSResources } from "./fixtures/util-aws";
 import * as functions from "./fixtures/functions";
 import { checkResourcesCleanedUp, sleep, title } from "./fixtures/util";
+import assert from "assert";
 
 async function waitForLogGroupCreation(cloudwatch: CloudWatchLogs, logGroupName: string) {
     while (true) {
         await sleep(1000);
         try {
+            const described = await cloudwatch
+                .describeLogGroups({ logGroupNamePrefix: logGroupName })
+                .promise();
+            if (!described.logGroups) {
+                continue;
+            }
+            const retrievedLogGroup = described.logGroups[0].logGroupName;
+            assert(
+                retrievedLogGroup === logGroupName,
+                `Unexpected logGroupName: ${retrievedLogGroup}, expecting ${logGroupName}`
+            );
             const logResult = await cloudwatch
                 .filterLogEvents({ logGroupName })
                 .promise();
@@ -38,7 +50,8 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
             dependencies: {
                 tslib: "^1.9.1"
             }
-        }
+        },
+        maxRetries: 0
     });
     try {
         await mod.functions.hello("gc-test");
@@ -95,7 +108,8 @@ test.serial(title("aws", "garbage collects functions that are never called"), as
     const mod = await faastAws(functions, {
         gc: "off",
         mode: "queue",
-        description: t.title
+        description: t.title,
+        maxRetries: 0
     });
     try {
         await mod.cleanup({ deleteResources: false, gcTimeout: 0 });
