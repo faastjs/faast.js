@@ -92,7 +92,7 @@
         "@types/loader-utils": "2.0.3",
         "@types/lolex": "5.1.2",
         "@types/memory-fs": "0.3.3",
-        "@types/node": "16.11.10",
+        "@types/node": "16.11.11",
         "@types/papaparse": "5.3.1",
         "@types/tar-stream": "2.2.2",
         "@types/uuid": "8.3.3",
