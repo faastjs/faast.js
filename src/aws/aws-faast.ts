@@ -1076,7 +1076,6 @@ function garbageCollectLogGroups(
 
     const garbageFunctions = logGroups
         .filter(g => hasExpired(g.creationTime, retentionInDays))
-        .filter(g => g.storedBytes! === 0)
         .map(g => functionNameFromLogGroup(g.logGroupName!))
         .filter(defined);
 
