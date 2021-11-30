@@ -5,9 +5,9 @@
 version: 2.1
 
 executors:
-    node14:
+    nodelts:
         docker:
-            - image: circleci/node:14
+            - image: cimg/node:lts
         working_directory: ~/repo
 
 jobs:
@@ -66,13 +66,13 @@ jobs:
             - run: cd ~/tmp/examples && node test-examples.js faastjs-0.0.0-semantic-release.tgz
     release:
         description: "semantic release"
-        executor: node14
+        executor: nodelts
         steps:
             - checkout
             - restore_cache:
                   keys:
-                      - node14-{{ checksum "package.json" }}
-                      - node14
+                      - nodelts-{{ checksum "package.json" }}
+                      - nodelts
             - run: npm install --no-save
             - run: npm run build
             - run: npm run test-git-status
@@ -80,7 +80,7 @@ jobs:
             - run: npm run semantic-release
     cleanup:
         description: "cleanup cloud accounts"
-        executor: node14
+        executor: nodelts
         steps:
             - checkout
             - run: npm install
@@ -93,22 +93,22 @@ workflows:
     faastjs:
         jobs:
             - build_and_test:
-                  name: "aws-node14"
-                  nodeVersion: "node14"
-                  executor: node14
+                  name: "aws-nodelts"
+                  nodeVersion: "nodelts"
+                  executor: nodelts
                   target: "test-aws"
             - build_and_test:
-                  name: "google-node14"
-                  nodeVersion: "node14"
-                  executor: node14
+                  name: "google-nodelts"
+                  nodeVersion: "nodelts"
+                  executor: nodelts
                   target: "test-google-remote"
             - examples:
-                  nodeVersion: "node14"
-                  executor: node14
+                  nodeVersion: "nodelts"
+                  executor: nodelts
             - release:
                   requires:
-                      - aws-node14
-                      - google-node14
+                      - aws-nodelts
+                      - google-nodelts
                       - examples
                   filters:
                       branches:
@@ -124,21 +124,21 @@ workflows:
         jobs:
             - cleanup
             - build_and_test:
-                  name: "aws-node14"
-                  nodeVersion: "node14"
-                  executor: node14
+                  name: "aws-nodelts"
+                  nodeVersion: "nodelts"
+                  executor: nodelts
                   target: "test-aws"
                   requires:
                       - cleanup
             - build_and_test:
-                  name: "google-node14"
-                  nodeVersion: "node14"
-                  executor: node14
+                  name: "google-nodelts"
+                  nodeVersion: "nodelts"
+                  executor: nodelts
                   target: "test-google-remote"
                   requires:
                       - cleanup
             - examples:
-                  nodeVersion: "node14"
-                  executor: node14
+                  nodeVersion: "nodelts"
+                  executor: nodelts
                   requires:
                       - cleanup
