@@ -5,9 +5,9 @@
 version: 2.1
 
 executors:
-    nodelts:
+    node16:
         docker:
-            - image: cimg/node:lts
+            - image: cimg/node:16
         working_directory: ~/repo
 
 jobs:
@@ -66,13 +66,13 @@ jobs:
             - run: cd ~/tmp/examples && node test-examples.js faastjs-0.0.0-semantic-release.tgz
     release:
         description: "semantic release"
-        executor: nodelts
+        executor: node16
         steps:
             - checkout
             - restore_cache:
                   keys:
-                      - nodelts-{{ checksum "package.json" }}
-                      - nodelts
+                      - node16-{{ checksum "package.json" }}
+                      - node16
             - run: npm install --no-save
             - run: npm run build
             - run: npm run test-git-status
@@ -80,7 +80,7 @@ jobs:
             - run: npm run semantic-release
     cleanup:
         description: "cleanup cloud accounts"
-        executor: nodelts
+        executor: node16
         steps:
             - checkout
             - run: npm install
@@ -93,22 +93,22 @@ workflows:
     faastjs:
         jobs:
             - build_and_test:
-                  name: "aws-nodelts"
-                  nodeVersion: "nodelts"
-                  executor: nodelts
+                  name: "aws-node16"
+                  nodeVersion: "node16"
+                  executor: node16
                   target: "test-aws"
             - build_and_test:
-                  name: "google-nodelts"
-                  nodeVersion: "nodelts"
-                  executor: nodelts
+                  name: "google-node16"
+                  nodeVersion: "node16"
+                  executor: node16
                   target: "test-google-remote"
             - examples:
-                  nodeVersion: "nodelts"
-                  executor: nodelts
+                  nodeVersion: "node16"
+                  executor: node16
             - release:
                   requires:
-                      - aws-nodelts
-                      - google-nodelts
+                      - aws-node16
+                      - google-node16
                       - examples
                   filters:
                       branches:
@@ -124,21 +124,21 @@ workflows:
         jobs:
             - cleanup
             - build_and_test:
-                  name: "aws-nodelts"
-                  nodeVersion: "nodelts"
-                  executor: nodelts
+                  name: "aws-node16"
+                  nodeVersion: "node16"
+                  executor: node16
                   target: "test-aws"
                   requires:
                       - cleanup
             - build_and_test:
-                  name: "google-nodelts"
-                  nodeVersion: "nodelts"
-                  executor: nodelts
+                  name: "google-node16"
+                  nodeVersion: "node16"
+                  executor: node16
                   target: "test-google-remote"
                   requires:
                       - cleanup
             - examples:
-                  nodeVersion: "nodelts"
-                  executor: nodelts
+                  nodeVersion: "node16"
+                  executor: node16
                   requires:
                       - cleanup
