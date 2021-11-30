@@ -142,7 +142,7 @@ export class Wrapper {
                         }
                     );
                     this.log(`Done with this.execute()`);
-                } catch (err) {
+                } catch (err: any) {
                     this.log(err);
                 } finally {
                     process.send!({ done: true });
@@ -306,7 +306,7 @@ export class Wrapper {
                 try {
                     value = await func.apply(undefined, args);
                     this.verbose && this.log(`Finished call function`);
-                } catch (err) {
+                } catch (err: any) {
                     this.log(`Function ${call.name} threw error: ${err}`);
                     throw err;
                 }
@@ -353,7 +353,7 @@ export class Wrapper {
                     memoryUsage
                 });
             }
-        } catch (err) {
+        } catch (err: any) {
             this.log(`faast: wrapped function exception or promise rejection: ${err}`);
             const response = createErrorResponse(processError(err), callingContext);
             this.log(`Error response: ${inspect(response)}`);

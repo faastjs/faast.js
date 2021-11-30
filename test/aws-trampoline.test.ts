@@ -49,7 +49,7 @@ async function deleteResponseQueue(QueueUrl: string) {
         // a short while seems to make this less common.
         await sleep(5000);
         return await sqs.deleteQueue({ QueueUrl }).promise();
-    } catch (err) {
+    } catch (err: any) {
         console.error(`Could not delete response queue: ${err}`);
         throw err;
     }

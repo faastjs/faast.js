@@ -26,7 +26,7 @@ export async function sendResponseQueueMessage(
     try {
         const request = { QueueUrl, MessageBody: serialize(message) };
         await sqs.sendMessage(request).promise();
-    } catch (err) {
+    } catch (err: any) {
         log.warn(err);
     }
 }
@@ -66,7 +66,7 @@ export async function createSQSQueue(QueueName: string, VTimeout: number, sqs: S
             .promise();
         const QueueArn = arnResponse.Attributes?.QueueArn;
         return { QueueUrl, QueueArn };
-    } catch (err) {
+    } catch (err: any) {
         throw new FaastError(err, "create sqs queue");
     }
 }
@@ -140,7 +140,7 @@ export async function receiveMessages(
             Messages: Messages.map(processIncomingQueueMessage).filter(defined),
             isFullMessageBatch: Messages.length === MaxNumberOfMessages
         };
-    } catch (err) {
+    } catch (err: any) {
         throw new FaastError(err, "receiveMessages");
     }
 }

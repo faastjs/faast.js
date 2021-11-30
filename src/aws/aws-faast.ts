@@ -289,7 +289,7 @@ export type AwsGcWork =
 export async function carefully<U>(arg: Request<U, AWSError>) {
     try {
         return await arg.promise();
-    } catch (err) {
+    } catch (err: any) {
         log.warn(err);
         return;
     }
@@ -298,7 +298,7 @@ export async function carefully<U>(arg: Request<U, AWSError>) {
 export async function quietly<U>(arg: Request<U, AWSError>) {
     try {
         return await arg.promise();
-    } catch (err) {
+    } catch (err: any) {
         return;
     }
 }
@@ -350,7 +350,7 @@ export async function ensureRoleRaw(
     try {
         const response = await iam.getRole({ RoleName }).promise();
         return response.Role;
-    } catch (err) {
+    } catch (err: any) {
         if (!createRole) {
             throw new FaastError(err, `could not find role "${RoleName}"`);
         }
@@ -379,7 +379,7 @@ export async function ensureRoleRaw(
         log.info(`Attaching administrator role policy`);
         await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
         return roleResponse.Role;
-    } catch (err) {
+    } catch (err: any) {
         if (err.code === "EntityAlreadyExists") {
             await sleep(5000);
             const roleResponse = await iam.getRole({ RoleName }).promise();
@@ -462,7 +462,7 @@ export async function createLayer(
         } finally {
             await faastModule.cleanup();
         }
-    } catch (err) {
+    } catch (err: any) {
         throw new FaastError(err, "failed to create lambda layer from packageJson");
     }
 }
@@ -516,7 +516,7 @@ export const initialize = throttle(
                 await retryOp(2, () =>
                     lambda.waitFor("functionActive", { FunctionName }).promise()
                 );
-            } catch (err) {
+            } catch (err: any) {
                 if (err?.message?.match(/Function already exist/)) {
                     func = (await lambda.getFunction({ FunctionName }).promise())
                         .Configuration!;
@@ -545,7 +545,7 @@ export const initialize = throttle(
                             .promise()
                 );
                 log.info(`Function event invocation config: %O`, config);
-            } catch (err) {
+            } catch (err: any) {
                 throw new FaastError(err, "putFunctionEventInvokeConfig failure");
             }
             return func;
@@ -655,7 +655,7 @@ export const initialize = throttle(
                             invokeHttps(lambda, fn, emptyFcall, metrics, never)
                         );
                     }
-                } catch (err) {
+                } catch (err: any) {
                     /* istanbul ignore next */ {
                         await lambda
                             .deleteFunction({ FunctionName })
@@ -676,7 +676,7 @@ export const initialize = throttle(
             await pricingPromise;
             log.info(`Lambda function initialization complete.`);
             return state;
-        } catch (err) {
+        } catch (err: any) {
             try {
                 await cleanup(state, {
                     deleteResources: true,
@@ -710,7 +710,7 @@ async function invoke(
             const { RequestTopicArn } = resources;
             try {
                 await publishFunctionCallMessage(sns, RequestTopicArn!, call, metrics);
-            } catch (err) {
+            } catch (err: any) {
                 throw new FaastError(
                     err,
                     `invoke sns error ${inspect(call, undefined, 9)}`
@@ -959,7 +959,7 @@ export async function collectGarbage(
                         lastGc = lastGcPersistent;
                         return "skipped";
                     }
-                } catch (err) {
+                } catch (err: any) {
                     log.warn(err);
                 }
             }
@@ -1297,7 +1297,7 @@ export const awsPrice = throttle(
             const pList: any = priceResult.PriceList![0];
             const price = extractPrice(first(pList.terms.OnDemand));
             return price;
-        } catch (err) {
+        } catch (err: any) {
             /* istanbul ignore next  */
             {
                 const { message: m } = err;

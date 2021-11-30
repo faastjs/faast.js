@@ -88,8 +88,9 @@ export class CostMetric {
 
     /** Describe this cost metric, including comments. */
     toString() {
-        return `${this.describeCostOnly()}${(this.comment && `// ${this.comment}`) ||
-            ""}`;
+        return `${this.describeCostOnly()}${
+            (this.comment && `// ${this.comment}`) || ""
+        }`;
     }
 }
 
@@ -673,7 +674,7 @@ export namespace CostAnalyzer {
         );
 
         const { concurrency = workloadDefaults.concurrency } = userWorkload;
-        const workload = {
+        const workload: Required<Workload<T, A>> = {
             ...workloadDefaults,
             ...userWorkload,
             work: throttle({ concurrency }, userWorkload.work)
@@ -798,13 +799,8 @@ export namespace CostAnalyzer {
             this.estimates.forEach(({ costSnapshot, extraMetrics }) => {
                 const { memorySize, mode, ...rest } = costSnapshot.options;
                 const options = `"${inspect(rest).replace('"', '""')}"`;
-                const {
-                    completed,
-                    errors,
-                    retries,
-                    executionTime,
-                    estimatedBilledTime
-                } = costSnapshot.stats;
+                const { completed, errors, retries, executionTime, estimatedBilledTime } =
+                    costSnapshot.stats;
                 const cost = (costSnapshot.total() / this.workload.repetitions).toFixed(
                     8
                 );

@@ -212,7 +212,7 @@ export async function packer(
     })}!`;
     try {
         await runWebpack(loader, "index");
-    } catch (err) {
+    } catch (err: any) {
         throw new FaastError(err, "failed running webpack");
     }
     try {
@@ -231,7 +231,7 @@ export async function packer(
             });
         }
         return { archive };
-    } catch (err) {
+    } catch (err: any) {
         throw new FaastError(err, "failed creating zip archive");
     }
 }

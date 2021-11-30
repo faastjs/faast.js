@@ -94,7 +94,7 @@ test.serial(title("aws", "custom role"), async t => {
         state = "testing invocation";
         t.is(await faastModule.functions.identityString("hello"), "hello");
         state = "cleanup";
-    } catch (err) {
+    } catch (err: any) {
         throw new FaastError(err, `Failed custom role test, last state: ${state}`);
     } finally {
         try {
@@ -104,7 +104,7 @@ test.serial(title("aws", "custom role"), async t => {
                 (await retryOp(3, () =>
                     iam.deletePolicy({ PolicyArn: PolicyArn! }).promise()
                 ));
-        } catch (err) {
+        } catch (err: any) {
             throw new FaastError(
                 err,
                 `Could not cleanup test role, last state: ${state}`
@@ -140,7 +140,7 @@ test.serial(title("aws", "unit test missing role name"), async t => {
     const services = await createAwsApis("us-west-2");
     try {
         await ensureRole(RoleName, services, false);
-    } catch (err) {
+    } catch (err: any) {
         t.true(true);
     }
 });

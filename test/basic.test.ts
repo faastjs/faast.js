@@ -114,19 +114,19 @@ async function testBasic(
         try {
             await remote.emptyReject();
             t.fail("remote.emptyReject() did not reject as expected");
-        } catch (err) {
+        } catch (err: any) {
             t.is(err, undefined);
         }
         try {
             await remote.rejected();
             t.fail("remote.rejected() did not reject as expected");
-        } catch (err) {
+        } catch (err: any) {
             t.is(err, "intentionally rejected");
         }
         try {
             await remote.customError();
             t.fail("remote.customError() did not reject as expected");
-        } catch (err) {
+        } catch (err: any) {
             t.true(err instanceof FaastError);
             t.truthy(err.message.match(/^custom error message/));
             t.is(FaastError.info(err).custom, "custom value");

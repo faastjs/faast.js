@@ -21,7 +21,7 @@ test("remote google cleanup removes ephemeral resources", async t => {
         checkResourcesExist(t, await getGoogleResources(func));
         await func.cleanup();
         checkResourcesCleanedUp(t, await getGoogleResources(func));
-    } catch (err) {
+    } catch (err: any) {
         log.warn(`google cleanup error: ${err.stack}`);
         throw err;
     }

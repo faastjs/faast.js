@@ -22,7 +22,7 @@ test("FaastError nested error", t => {
     let nested;
     try {
         foo();
-    } catch (err) {
+    } catch (err: any) {
         nested = err;
     }
     const error = new FaastError(nested, "bad error");

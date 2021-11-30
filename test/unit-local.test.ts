@@ -40,7 +40,7 @@ async function testOrder(t: ExecutionContext, options: LocalOptions) {
     t.is(await b, undefined);
     try {
         await a;
-    } catch (err) {
+    } catch (err: any) {
         t.is(err, undefined);
     } finally {
         await faastModule.cleanup();
@@ -138,7 +138,7 @@ test("local provider log files should be appended, not truncated, after child pr
         await faastModule.functions.consoleLog("output 1");
         try {
             await faastModule.functions.processExit();
-        } catch (err) {}
+        } catch (err: any) {}
         await faastModule.functions.consoleWarn("output 2");
 
         // Wait for flush
@@ -162,7 +162,7 @@ test("local provider child process exceptions should result in errors with logUr
     t.plan(1);
     try {
         await faastModule.functions.error("synthetic error");
-    } catch (err) {
+    } catch (err: any) {
         const info = FaastError.info(err);
         t.true(
             typeof info.logUrl === "string" && info.logUrl.startsWith(" file:///"),
@@ -183,7 +183,7 @@ test("local provider child process crashes should result in errors with logUrl",
     t.plan(1);
     try {
         await faastModule.functions.processExit(-1);
-    } catch (err) {
+    } catch (err: any) {
         const info = FaastError.info(err);
         t.true(
             typeof info.logUrl === "string" && info.logUrl.startsWith(" file:///"),
@@ -235,7 +235,7 @@ test("local unresolved module", async t => {
     t.plan(1);
     try {
         await faastLocal({});
-    } catch (err) {
+    } catch (err: any) {
         t.regex(err.message, /Could not find file/);
     }
 });

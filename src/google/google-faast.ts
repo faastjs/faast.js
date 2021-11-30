@@ -248,7 +248,7 @@ async function quietly<T>(promise: GaxiosPromise<T>) {
     try {
         const result = await promise;
         return result.data;
-    } catch (err) {
+    } catch (err: any) {
         return;
     }
 }
@@ -280,7 +280,7 @@ async function waitFor(
         let operation: GaxiosResponse<CloudFunctions.Schema$Operation>;
         try {
             operation = await response();
-        } catch (err) {
+        } catch (err: any) {
             throw new FaastError(err, "could not get operation");
         }
         const operationName = operation.data.name!;
@@ -303,7 +303,7 @@ async function waitFor(
                     return result.done || false;
                 }
             });
-        } catch (err) {
+        } catch (err: any) {
             throw new FaastError(err, "poll operation failed");
         }
     });
@@ -316,7 +316,7 @@ async function deleteFunction(api: CloudFunctions.Cloudfunctions, path: string) 
                 name: path
             })
         );
-    } catch (err) {
+    } catch (err: any) {
         if (err.message.match(/does not exist/)) {
             return;
         }
@@ -471,7 +471,7 @@ export async function initialize(
                     }
                 }
             });
-        } catch (err) {
+        } catch (err: any) {
             /* istanbul ignore next  */
             await deleteFunction(cloudFunctions, trampoline).catch(() => {});
             throw new FaastError(
@@ -495,7 +495,7 @@ export async function initialize(
             }
             log.info(`Function URL: ${url}`);
             state.url = url;
-        } catch (err) {
+        } catch (err: any) {
             throw new FaastError(
                 err,
                 `Could not get function ${trampoline} or its url, despite it being created`
@@ -559,13 +559,13 @@ async function callFunctionHttps(
         }
         try {
             metrics.outboundBytes += computeHttpResponseBytes(rawResponse!.headers);
-        } catch (err) {
+        } catch (err: any) {
             throw new FaastError(
                 err,
                 `Could not parse ${util.inspect(rawResponse.data)}`
             );
         }
-    } catch (err) {
+    } catch (err: any) {
         const { response } = err;
         if (response) {
             if (response.status === 503) {
@@ -641,7 +641,7 @@ async function deleteResources(
     const check = async <T>(request: Promise<T>) => {
         try {
             await request;
-        } catch (err) {
+        } catch (err: any) {
             /* istanbul ignore next  */
             if (err.message.match(/Resource not found/)) {
                 return;
@@ -687,7 +687,7 @@ export async function cleanup(state: GoogleState, options: CleanupOptions) {
     if (options.deleteResources) {
         try {
             await deleteResources(state.services, state.resources);
-        } catch (err) {
+        } catch (err: any) {
             throw new FaastError(err, "delete resources failed");
         }
     }
@@ -855,7 +855,7 @@ function ensureGooglePriceCache(cloudBilling: CloudBilling.Cloudbilling) {
                     `Found price for ${serviceName}, ${description}, ${region}: ${price}`
                 );
                 return price;
-            } catch (err) {
+            } catch (err: any) {
                 throw new FaastError(
                     err,
                     `failed to get google pricing for "${description}"`

@@ -167,7 +167,7 @@ export function serializeFunctionArgs(
 ): string {
     try {
         return serialize(args, validate);
-    } catch (err) {
+    } catch (err: any) {
         const error = new FaastError(
             { cause: err, name: FaastErrorNames.ESERIALIZE },
             `faast: Detected '${name}' argument cannot be serialized by JSON.stringify`
@@ -183,7 +183,7 @@ export function serializeReturnValue(
 ): string {
     try {
         return serialize(returned, validate);
-    } catch (err) {
+    } catch (err: any) {
         const error = new FaastError(
             { cause: err, name: FaastErrorNames.ESERIALIZE },
             `faast: Detected return value from ${name} cannot be serialized by JSON.stringify: ${inspect(

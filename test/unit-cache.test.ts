@@ -28,18 +28,18 @@ test("persistent cache can set and get cache entries", async t => {
         const { cache } = t.context;
         try {
             await cache.set("foo", "bar");
-        } catch (err) {
+        } catch (err: any) {
             console.log(`persistent cache set error: ${err}`);
             throw err;
         }
         try {
             const result = await cache.get("foo");
             t.is(result?.toString(), "bar");
-        } catch (err) {
+        } catch (err: any) {
             console.log(`persistent cache get error ${err}`);
             throw err;
         }
-    } catch (err) {
+    } catch (err: any) {
         console.log(`persistent cache test error: ${err.stack || err.message}`);
     }
 });

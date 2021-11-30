@@ -156,7 +156,7 @@ async function createFaastModuleProxy<M extends object, O extends CommonOptions,
             resolvedModule,
             options as Required<CommonOptions>
         );
-    } catch (err) {
+    } catch (err: any) {
         throw new FaastError(err, "could not initialize cloud function");
     }
 }
@@ -511,7 +511,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
             } else {
                 log.provider(`cleanup done`);
             }
-        } catch (err) {
+        } catch (err: any) {
             throw new FaastError(err, "failed in cleanup");
         }
     }
@@ -901,7 +901,7 @@ export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
                         } else {
                             log.info(`Pending promise not found for CallId: ${m.callId}`);
                         }
-                    } catch (err) {
+                    } catch (err: any) {
                         log.warn(err);
                     }
                     break;

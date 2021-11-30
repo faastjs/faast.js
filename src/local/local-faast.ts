@@ -137,7 +137,7 @@ async function initialize(
         try {
             log.info(`Creating write stream ${logFile}`);
             logStream = createWriteStream(logFile);
-        } catch (err) {
+        } catch (err: any) {
             log.warn(`ERROR: Could not create log`);
             log.warn(err);
             childlog = console.log;
@@ -282,10 +282,10 @@ async function collectGarbage(
                         log.gc(faastDir);
                         await gcWorker(faastDir);
                     }
-                } catch (err) {}
+                } catch (err: any) {}
             }
         }
-    } catch (err) {
+    } catch (err: any) {
         log.gc(err);
     } finally {
         if (gcWorker === defaultGcWorker) {

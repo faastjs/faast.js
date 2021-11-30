@@ -32,7 +32,7 @@ async function waitForLogGroupCreation(cloudwatch: CloudWatchLogs, logGroupName:
                     return;
                 }
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
         }
     }

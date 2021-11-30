@@ -33,7 +33,7 @@ async function testTimeout(
     try {
         try {
             await lambda.functions.infiniteLoop();
-        } catch (err) {
+        } catch (err: any) {
             const isTimeout = FaastError.hasCauseWithName(err, FaastErrorNames.ETIMEOUT);
             t.is(isTimeout, true, `${inspect(err)}`);
         }
@@ -67,7 +67,7 @@ async function testGenerator(
             t.is(result, arg);
         }
         t.fail("Did not timeout");
-    } catch (err) {
+    } catch (err: any) {
         t.is(FaastError.hasCauseWithName(err, FaastErrorNames.ETIMEOUT), true);
     } finally {
         await lambda.cleanup();

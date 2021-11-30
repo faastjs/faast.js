@@ -32,7 +32,7 @@ export class DeferredWorker<T = void> extends Deferred<T> {
             try {
                 const rv = await this.worker();
                 this.resolve(rv);
-            } catch (err) {
+            } catch (err: any) {
                 this.reject(err);
             }
         }
@@ -59,7 +59,7 @@ export async function retryOp<T>(retryN: RetryType, fn: (retries: number) => Pro
     for (let i = 0; true; i++) {
         try {
             return await fn(i);
-        } catch (err) {
+        } catch (err: any) {
             if (!retryTest(err, i)) {
                 throw err;
             }
@@ -164,7 +164,7 @@ export class Pump<T = void> extends Funnel<T | void> {
                 this.push(async () => {
                     try {
                         return await this.worker();
-                    } catch (err) {
+                    } catch (err: any) {
                         this.options.verbose && console.error(err);
                         return;
                     } finally {
