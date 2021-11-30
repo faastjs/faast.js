@@ -1,4 +1,3 @@
-import { getOptions } from "loader-utils";
 import { WrapperOptions } from "./wrapper";
 import { log } from "./log";
 
@@ -9,7 +8,7 @@ export interface LoaderOptions {
 }
 
 export default function webpackLoader(this: any, _source: string) {
-    const options = getOptions(this);
+    const options = this.getOptions();
     const rv = `
   const trampolineFactory = require(${options.trampolineFactoryModule});
   const fModule = require(${options.functionModule});
