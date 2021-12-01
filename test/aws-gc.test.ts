@@ -33,7 +33,7 @@ async function waitForLogGroupCreation(cloudwatch: CloudWatchLogs, logGroupName:
                 }
             }
         } catch (err: any) {
-            console.error(err);
+            console.error(`Transient error waiting for log group creation: ${err}`);
         }
     }
 }
