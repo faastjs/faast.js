@@ -60,6 +60,7 @@ jobs:
                   key: <<parameters.nodeVersion>>-{{ checksum "package.json" }}
             - run: npm run build
             - run: npm pack
+            - run: npm run set-gcp-key
             - run: mkdir ~/tmp
             - run: cd ~/tmp && git clone https://github.com/faastjs/examples
             - run: cp faastjs-0.0.0-semantic-release.tgz ~/tmp/examples
