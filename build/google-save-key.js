@@ -10,6 +10,7 @@ async function saveKey() {
         const key = process.env["GOOGLE_KEY_VALUE"];
         const keyFile = join(cwd(), "gcp-key.json");
         await writeFile(keyFile, key, { mode: 0o600 });
+        console.log(`Wrote ${keyFile} with contents from $GOOGLE_KEY_VALUE`);
     } catch (err) {
         console.warn(`Could not find Google service account key: ${err}`);
     }
