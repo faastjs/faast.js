@@ -71,6 +71,7 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
 
         let deletedLayer = false;
         const { layer, FunctionName } = mod.state.resources;
+        log.gc.enabled = true;
         const mod2 = await faastAws(functions, {
             gc: "force",
             retentionInDays: 0,
@@ -102,6 +103,7 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
         t.true(deletedLayer, "Deleted layer is true");
         await checkResourcesCleanedUp(t, await getAWSResources(mod, true));
     } finally {
+        log.gc.enabled = false;
         await mod.cleanup({ deleteResources: true, deleteCaches: true, gcTimeout: 0 });
     }
 });
