@@ -9,9 +9,11 @@ import { checkResourcesCleanedUp, sleep, title } from "./fixtures/util";
 import * as assert from "assert";
 
 async function waitForLogGroupCreation(cloudwatch: CloudWatchLogs, logGroupName: string) {
+    let n = 0;
     while (true) {
         await sleep(1000);
         try {
+            n++;
             const described = await cloudwatch
                 .describeLogGroups({ logGroupNamePrefix: logGroupName })
                 .promise();
@@ -27,7 +29,11 @@ async function waitForLogGroupCreation(cloudwatch: CloudWatchLogs, logGroupName:
                 .filterLogEvents({ logGroupName })
                 .promise();
             const events = logResult.events ?? [];
+            console.log(`[${n}] Found log group: ${logGroupName}`);
             for (const event of events) {
+                console.log(
+                    `[${n}] ${event.logStreamName} ${event.eventId} ${event.timestamp} ${event.message}`
+                );
                 if (event.message!.match(/REPORT RequestId/)) {
                     return;
                 }
