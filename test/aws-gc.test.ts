@@ -8,7 +8,11 @@ import * as functions from "./fixtures/functions";
 import { checkResourcesCleanedUp, sleep, title } from "./fixtures/util";
 import * as assert from "assert";
 
-async function waitForLogGroupCreation(cloudwatch: CloudWatchLogs, logGroupName: string) {
+async function waitForLogGroupCreation(
+    cloudwatch: CloudWatchLogs,
+    logGroupName: string,
+    message: string
+) {
     let n = 0;
     while (true) {
         await sleep(1000);
@@ -30,11 +34,15 @@ async function waitForLogGroupCreation(cloudwatch: CloudWatchLogs, logGroupName:
                 .promise();
             const events = logResult.events ?? [];
             console.log(`[${n}] Found log group: ${logGroupName}`);
+            let foundMessage = false;
             for (const event of events) {
                 console.log(
                     `[${n}] ${event.logStreamName} ${event.eventId} ${event.timestamp} ${event.message}`
                 );
-                if (event.message!.match(/REPORT RequestId/)) {
+                if (event.message!.includes(message)) {
+                    foundMessage = true;
+                }
+                if (foundMessage && event.message!.match(/REPORT RequestId/)) {
                     return;
                 }
             }
@@ -62,10 +70,10 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
         maxRetries: 0
     });
     try {
-        await mod.functions.hello("gc-test");
+        await mod.functions.consoleLog("gc-test-string");
         const { cloudwatch } = mod.state.services;
         const { logGroupName } = mod.state.resources;
-        await waitForLogGroupCreation(cloudwatch, logGroupName);
+        await waitForLogGroupCreation(cloudwatch, logGroupName, "gc-test-string");
         await mod.cleanup({ deleteResources: false, gcTimeout: 0 });
 
         // Create some work for gc to do by removing the log retention policy, gc
