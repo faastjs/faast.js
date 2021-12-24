@@ -33,12 +33,12 @@ async function waitForLogGroupCreation(
                 .filterLogEvents({ logGroupName })
                 .promise();
             const events = logResult.events ?? [];
-            console.log(`[${n}] Found log group: ${logGroupName}`);
+            // console.log(`[${n}] Found log group: ${logGroupName}`);
             let foundMessage = false;
             for (const event of events) {
-                console.log(
-                    `[${n}] ${event.logStreamName} ${event.eventId} ${event.timestamp} ${event.message}`
-                );
+                // console.log(
+                //     `[${n}] ${event.logStreamName} ${event.eventId} ${event.timestamp} ${event.message}`
+                // );
                 if (event.message!.includes(message)) {
                     foundMessage = true;
                 }
@@ -85,7 +85,7 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
 
         let deletedLayer = false;
         const { layer, FunctionName } = mod.state.resources;
-        log.gc.enabled = true;
+        // log.gc.enabled = true;
         const mod2 = await faastAws(functions, {
             gc: "force",
             retentionInDays: 0,
