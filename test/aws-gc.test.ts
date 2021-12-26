@@ -24,7 +24,10 @@ async function waitForLogGroupCreation(
             if (!described.logGroups) {
                 continue;
             }
-            const retrievedLogGroup = described.logGroups[0].logGroupName;
+            const retrievedLogGroup = described.logGroups?.[0]?.logGroupName;
+            if (!retrievedLogGroup) {
+                continue;
+            }
             assert(
                 retrievedLogGroup === logGroupName,
                 `Unexpected logGroupName: ${retrievedLogGroup}, expecting ${logGroupName}`
