@@ -123,7 +123,7 @@ const siteConfig = {
     repoUrl,
 
     algolia: {
-        apiKey: "8e3fe27d018892ea446f21935e453b86",
+        apiKey: "a2a1ff6bf7b32888704b1e7b13f47d6c",
         indexName: "faastjs",
         algoliaOptions: {} // Optional, if provided by Algolia
     }
