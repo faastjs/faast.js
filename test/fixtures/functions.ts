@@ -238,6 +238,11 @@ export async function* asyncGeneratorDelay(args: string[], delay: number) {
     }
 }
 
+export async function* asyncGeneratorError(msg: string) {
+    yield 1;
+    throw new Error(msg);
+}
+
 /**
  * Not supported.
  * @remarks

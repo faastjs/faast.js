@@ -1,6 +1,5 @@
 import test, { ExecutionContext } from "ava";
 import { CommonOptions, faast, FaastError, Provider, providers } from "../index";
-import { log } from "../src/log";
 import * as funcs from "./fixtures/functions";
 import { configs, noValidateConfigs, title, toArray } from "./fixtures/util";
 
@@ -138,6 +137,15 @@ async function testBasic(
         const elements = ["bar", "baz"];
         t.deepEqual(await toArray(remote.generator(elements)), elements);
         t.deepEqual(await toArray(remote.asyncGenerator(elements)), elements);
+        try {
+            for await (const _ of remote.asyncGeneratorError("async generator failed")) {
+                // ignore
+            }
+            t.fail(`remote.asyncGeneratorError() did not reject as expected (2)`);
+        } catch (err: any) {
+            t.true(err instanceof FaastError);
+            t.truthy((err as FaastError).message.match(/^async generator failed/));
+        }
     } finally {
         await faastModule.cleanup();
     }
