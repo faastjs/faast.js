@@ -89,3 +89,15 @@ The default is https mode.
 Faast.js will create an IAM role `faast-cached-lambda-role` for the lambda function it creates. By default this role will have administrator access. The role will be created dynamically and will remain in your account cached even after cleanup function is called.
 
 If you remove this role, it will be created again the next time faast.js runs.
+
+## Support for ARM with Graviton2
+
+AWS Graviton2 is a new version of AWS Lambda that supports ARM (see this [blog post](https://aws.amazon.com/blogs/aws/aws-lambda-functions-powered-by-aws-graviton2-processor-run-your-functions-on-arm-and-get-up-to-34-better-price-performance/) for more details:). To use Graviton2:
+
+```typescript
+const faastModule = await faastAws(funcs, {
+    awsLambdaOptions: {
+        Architectures: ["arm64"]
+    }
+});
+```
