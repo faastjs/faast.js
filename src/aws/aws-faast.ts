@@ -404,7 +404,8 @@ export async function createLayer(
     useDependencyCaching: boolean,
     FunctionName: string,
     region: AwsRegion,
-    retentionInDays: number
+    retentionInDays: number,
+    awsLambdaOptions: Partial<Lambda.CreateFunctionRequest>
 ): Promise<AwsLayerInfo | undefined> {
     if (!packageJson) {
         return;
@@ -444,7 +445,8 @@ export async function createLayer(
             maxRetries: 0,
             webpackOptions: {
                 externals: []
-            }
+            },
+            awsLambdaOptions
         });
         try {
             const installArgs: awsNpm.NpmInstallArgs = {
@@ -610,7 +612,8 @@ export const initialize = throttle(
                 useDependencyCaching,
                 FunctionName,
                 region,
-                retentionInDays
+                retentionInDays,
+                options.awsLambdaOptions
             );
 
             const codeBundle = await codeBundlePromise;
