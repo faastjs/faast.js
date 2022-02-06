@@ -421,6 +421,7 @@ export async function createLayer(
     if (useDependencyCaching) {
         const hasher = createHash("sha256");
         hasher.update(packageJsonContents);
+        hasher.update(JSON.stringify(awsLambdaOptions.Architectures ?? ""));
         const cacheKey = hasher.digest("hex");
         LayerName = `faast-${cacheKey}`;
         const layers = await quietly(lambda.listLayerVersions({ LayerName }));
