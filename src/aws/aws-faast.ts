@@ -667,7 +667,7 @@ export const initialize = throttle(
                             .catch(_ => {});
                         throw new FaastError(
                             err,
-                            "New lambda function failed invocation test"
+                            `New lambda function ${FunctionName} failed invocation test`
                         );
                     }
                 }
