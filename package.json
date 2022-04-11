@@ -95,7 +95,7 @@
         "@types/tar-stream": "2.2.2",
         "@types/uuid": "8.3.4",
         "@types/webpack-node-externals": "2.5.3",
-        "@types/yauzl": "2.9.2",
+        "@types/yauzl": "2.10.0",
         "ava": "3.15.0",
         "codecov": "3.8.3",
         "commitizen": "4.2.4",
