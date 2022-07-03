@@ -19,11 +19,11 @@ export interface FaastModule<M extends object>
 
 ## Properties
 
-|  Property | Type | Description |
-|  --- | --- | --- |
-|  [functions](./faastjs.faastmodule.functions.md) | [ProxyModule](./faastjs.proxymodule.md)<!-- -->&lt;M&gt; | Each call of a cloud function creates a separate remote invocation. |
-|  [functionsDetail](./faastjs.faastmodule.functionsdetail.md) | [ProxyModuleDetail](./faastjs.proxymoduledetail.md)<!-- -->&lt;M&gt; | Similar to [FaastModule.functions](./faastjs.faastmodule.functions.md) except each function returns a [Detail](./faastjs.detail.md) object |
-|  [provider](./faastjs.faastmodule.provider.md) | [Provider](./faastjs.provider.md) | See [Provider](./faastjs.provider.md)<!-- -->. |
+|  Property | Modifiers | Type | Description |
+|  --- | --- | --- | --- |
+|  [functions](./faastjs.faastmodule.functions.md) |  | [ProxyModule](./faastjs.proxymodule.md)<!-- -->&lt;M&gt; | Each call of a cloud function creates a separate remote invocation. |
+|  [functionsDetail](./faastjs.faastmodule.functionsdetail.md) |  | [ProxyModuleDetail](./faastjs.proxymoduledetail.md)<!-- -->&lt;M&gt; | Similar to [FaastModule.functions](./faastjs.faastmodule.functions.md) except each function returns a [Detail](./faastjs.detail.md) object |
+|  [provider](./faastjs.faastmodule.provider.md) |  | [Provider](./faastjs.provider.md) | See [Provider](./faastjs.provider.md)<!-- -->. |
 
 ## Methods
 

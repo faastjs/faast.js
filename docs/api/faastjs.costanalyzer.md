@@ -34,7 +34,7 @@ export declare namespace CostAnalyzer
 |  Interface | Description |
 |  --- | --- |
 |  [Estimate](./faastjs.costanalyzer.estimate.md) | A cost estimate result for a specific cost analyzer configuration. |
-|  [Workload](./faastjs.costanalyzer.workload.md) | A user-defined cost analyzer workload for [CostAnalyzer.analyze()](./faastjs.costanalyzer.analyze.md)<!-- -->.<!-- -->Example: |
+|  [Workload](./faastjs.costanalyzer.workload.md) | <p>A user-defined cost analyzer workload for [CostAnalyzer.analyze()](./faastjs.costanalyzer.analyze.md)<!-- -->.</p><p>Example:</p> |
 
 ## Variables
 

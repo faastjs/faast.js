@@ -20,7 +20,7 @@ export interface GoogleOptions extends CommonOptions
 
 ## Properties
 
-|  Property | Type | Description |
-|  --- | --- | --- |
-|  [googleCloudFunctionOptions?](./faastjs.googleoptions.googlecloudfunctionoptions.md) | CloudFunctions.Schema$CloudFunction | <i>(Optional)</i> Additional options to pass to Google Cloud Function creation. See [projects.locations.functions](https://cloud.google.com/functions/docs/reference/rest/v1/projects.locations.functions#CloudFunction)<!-- -->. |
-|  [region?](./faastjs.googleoptions.region.md) | [GoogleRegion](./faastjs.googleregion.md) | <i>(Optional)</i> The region to create resources in. Garbage collection is also limited to this region. Default: <code>&quot;us-central1&quot;</code>. |
+|  Property | Modifiers | Type | Description |
+|  --- | --- | --- | --- |
+|  [googleCloudFunctionOptions?](./faastjs.googleoptions.googlecloudfunctionoptions.md) |  | CloudFunctions.Schema$CloudFunction | <i>(Optional)</i> Additional options to pass to Google Cloud Function creation. See [projects.locations.functions](https://cloud.google.com/functions/docs/reference/rest/v1/projects.locations.functions#CloudFunction)<!-- -->. |
+|  [region?](./faastjs.googleoptions.region.md) |  | [GoogleRegion](./faastjs.googleregion.md) | <i>(Optional)</i> The region to create resources in. Garbage collection is also limited to this region. Default: <code>&quot;us-central1&quot;</code>. |
