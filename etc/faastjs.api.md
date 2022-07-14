@@ -63,6 +63,7 @@ export interface CleanupOptions {
 // @public
 export interface CommonOptions {
     childProcess?: boolean;
+    childProcessMemoryMb?: number;
     concurrency?: number;
     // @internal
     debugOptions?: {

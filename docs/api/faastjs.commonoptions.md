@@ -26,6 +26,7 @@ There are also more specific options for each provider. See [AwsOptions](./faast
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
 |  [childProcess?](./faastjs.commonoptions.childprocess.md) |  | boolean | <i>(Optional)</i> If true, create a child process to isolate user code from faast scaffolding. Default: true. |
+|  [childProcessMemoryMb?](./faastjs.commonoptions.childprocessmemorymb.md) |  | number | <i>(Optional)</i> When childProcess is true, the child process will be spawned with the value of this property as the setting for --max-old-space-size. |
 |  [concurrency?](./faastjs.commonoptions.concurrency.md) |  | number | <i>(Optional)</i> The maximum number of concurrent invocations to allow. Default: 100, except for the <code>local</code> provider, where the default is 10. |
 |  [description?](./faastjs.commonoptions.description.md) |  | string | <i>(Optional)</i> A user-supplied description for this function, which may make it easier to track different functions when multiple functions are created. |
 |  [env?](./faastjs.commonoptions.env.md) |  | { \[key: string\]: string; } | <i>(Optional)</i> Environment variables available during serverless function execution. Default: {<!-- -->}<!-- -->. |
