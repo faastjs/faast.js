@@ -340,9 +340,11 @@ export async function initialize(
     const { timeout } = options;
     const { wrapperVerbose } = options.debugOptions;
     async function createCodeBundle() {
+        const childProcessMemoryLimitMb = options.childProcessMemoryMb;
         const wrapperOptions = {
             childProcessTimeoutMs: Math.max(1000, (timeout - 5) * 1000),
-            wrapperVerbose
+            wrapperVerbose,
+            childProcessMemoryLimitMb
         };
         const { archive } = await googlePacker(
             fmodule,

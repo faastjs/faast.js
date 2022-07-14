@@ -559,9 +559,11 @@ export const initialize = throttle(
             const hasLambdaTimeoutBug = mode !== "queue" && timeout >= 180;
             const childProcessTimeoutMs =
                 hasLambdaTimeoutBug && childProcess ? (timeout - 5) * 1000 : 0;
+            const childProcessMemoryLimitMb = options.childProcessMemoryMb;
             const wrapperOptions: WrapperOptions = {
                 wrapperVerbose,
-                childProcessTimeoutMs
+                childProcessTimeoutMs,
+                childProcessMemoryLimitMb
             };
             const bundle = awsPacker(fModule, options, wrapperOptions, FunctionName);
             return { ZipFile: await streamToBuffer((await bundle).archive) };

@@ -58,6 +58,17 @@ export interface CommonOptions {
      * creating another node process.
      */
     childProcess?: boolean;
+
+    /**
+     * When childProcess is true, the child process will be spawned with the
+     * value of this property as the setting for --max-old-space-size.
+     * @remarks
+     * This is useful if a function requires the node process to limit its
+     * memory so that another spawned process (e.g. a browser instance) can use
+     * the rest.
+     * @public
+     */
+    childProcessMemoryMb?: number;
     /**
      * The maximum number of concurrent invocations to allow. Default: 100,
      * except for the `local` provider, where the default is 10.
@@ -421,6 +432,7 @@ export interface CommonOptions {
 
 export const commonDefaults: Required<CommonOptions> = {
     childProcess: true,
+    childProcessMemoryMb: 0,
     concurrency: 100,
     description: "",
     exclude: [],

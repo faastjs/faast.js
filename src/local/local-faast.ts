@@ -142,10 +142,11 @@ async function initialize(
             log.warn(err);
             childlog = console.log;
         }
+        const childProcessMemoryLimitMb = options.childProcessMemoryMb;
         const wrapperOptions2: Required<WrapperOptions> = {
             wrapperLog: childlog,
             childProcess,
-            childProcessMemoryLimitMb: memorySize,
+            childProcessMemoryLimitMb,
             childProcessTimeoutMs: timeout * 1000 - (childProcess ? 50 : 0),
             childProcessEnvironment: env,
             childDir: tempDir,
