@@ -31,7 +31,7 @@ const config: webpack.Configuration = merge({
         libraryTarget: "commonjs2"
     },
     target: "node",
-    resolveLoader: { modules: [__dirname, `${__dirname}/dist}`] },
+    resolveLoader: { modules: [__dirname, `${__dirname}/dist`] },
     node: { global: true, __dirname: false, __filename: false }
   },
   webpackOptions);
