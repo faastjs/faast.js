@@ -4,38 +4,42 @@ import * as funcs from "../test/fixtures/functions";
 import { sleep, title } from "../test/fixtures/util";
 import { Pump } from "../src/throttle";
 
-async function throughput(
-    t: ExecutionContext,
-    provider: Provider,
-    options: CommonOptions & { duration: number }
-) {
-    const lambda = await faast(provider, funcs, {
-        gc: "off",
-        description: t.title,
-        ...options
-    });
-    lambda.on("stats", s => console.log(s.toString()));
+const throughput = test.macro(
+    async (
+        t: ExecutionContext,
+        provider: Provider,
+        options: CommonOptions & { duration: number }
+    ) => {
+        const lambda = await faast(provider, funcs, {
+            gc: "off",
+            description: t.title,
+            ...options
+        });
+        lambda.on("stats", s => console.log(s.toString()));
 
-    try {
-        let completed = 0;
-        const nSamplesPerFunction = 100000000;
-        const pump = new Pump({ concurrency: options.concurrency! }, () =>
-            lambda.functions.monteCarloPI(nSamplesPerFunction).then(() => completed++)
-        );
-        pump.start();
-        await sleep(options.duration);
-        await pump.drain();
-        const cost = await lambda.costSnapshot();
-        console.log(`Stats: ${lambda.stats()}`);
-        console.log(`Cost:`);
-        console.log(`${cost}`);
-        console.log(
-            `Completed ${completed} calls in ${options.duration / (60 * 1000)} minute(s)`
-        );
-    } finally {
-        await lambda.cleanup();
+        try {
+            let completed = 0;
+            const nSamplesPerFunction = 100000000;
+            const pump = new Pump({ concurrency: options.concurrency! }, () =>
+                lambda.functions.monteCarloPI(nSamplesPerFunction).then(() => completed++)
+            );
+            pump.start();
+            await sleep(options.duration);
+            await pump.drain();
+            const cost = await lambda.costSnapshot();
+            console.log(`Stats: ${lambda.stats()}`);
+            console.log(`Cost:`);
+            console.log(`${cost}`);
+            console.log(
+                `Completed ${completed} calls in ${
+                    options.duration / (60 * 1000)
+                } minute(s)`
+            );
+        } finally {
+            await lambda.cleanup();
+        }
     }
-}
+);
 
 async function rampUp(t: ExecutionContext, provider: Provider, options: CommonOptions) {
     const lambda = await faast(provider, funcs, {

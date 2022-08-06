@@ -1,10 +1,10 @@
-import anytest, { TestInterface } from "ava";
+import anytest, { TestFn } from "ava";
 import { createHash } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { PersistentCache } from "../src/cache";
 import { sleep } from "./fixtures/functions";
 
-const test = anytest as TestInterface<{ cache: PersistentCache }>;
+const test = anytest as TestFn<{ cache: PersistentCache }>;
 
 test.beforeEach(t => {
     const nonce = uuidv4();

@@ -8,7 +8,7 @@ test("FaastError basic error", t => {
     const _exhaustiveCheck: Required<typeof rest> = {};
     t.is(name, FaastErrorNames.EGENERIC);
     t.regex(stack!, /unit-error.test/);
-    t.is(FaastError.fullStack(error), stack);
+    t.is(FaastError.fullStack(error), stack ?? "");
     t.deepEqual(FaastError.info(error), {});
     t.is(message, "bad error");
     t.is(error.cause(), undefined);
@@ -30,7 +30,7 @@ test("FaastError nested error", t => {
     const _exhaustiveCheck: Required<typeof rest> = {};
     t.is(name, FaastErrorNames.EGENERIC);
     t.regex(stack!, /unit-error.test/);
-    t.regex(FaastError.fullStack(error), /at foo /);
+    t.regex(FaastError.fullStack(error), /foo/);
     t.deepEqual(FaastError.info(error), {});
     t.is(message, "bad error: underlying error");
     t.is(error.cause(), nested);
@@ -67,7 +67,7 @@ test("FaastError synthesized error", t => {
     t.is(info.functionName, "functionName");
     t.deepEqual(info.args, ["arg"]);
     t.true(cause.stack!.indexOf("faast.js cloud function invocation") >= 0);
-    t.is(FaastError.fullStack(cause), cause.stack);
+    t.is(FaastError.fullStack(cause), cause.stack ?? "");
     t.true(FaastError.fullStack(cause).indexOf(logUrlString) >= 0);
 });
 

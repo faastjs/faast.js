@@ -1,4 +1,4 @@
-import test, { ExecutionContext, Macro } from "ava";
+import test, { ExecutionContext } from "ava";
 import * as sys from "child_process";
 import { pathExists, remove, stat } from "fs-extra";
 import * as path from "path";
@@ -30,40 +30,41 @@ type Packer = (
     FunctionName: string
 ) => Promise<PackerResult>;
 
-const testPacker: Macro<[Provider, Packer, PackageConfiguration, number]> = async (
-    t: ExecutionContext,
-    provider: Provider,
-    pack: Packer,
-    config: PackageConfiguration,
-    size: number
-) => {
-    const identifier = `${provider}-${config.name}`;
-    const tmpDir = path.join("tmp", identifier);
-    exec(`mkdir -p ${tmpDir}`);
+const testPacker = test.macro({
+    exec: async (
+        t: ExecutionContext,
+        provider: Provider,
+        pack: Packer,
+        config: PackageConfiguration,
+        size: number
+    ) => {
+        const identifier = `${provider}-${config.name}`;
+        const tmpDir = path.join("tmp", identifier);
+        exec(`mkdir -p ${tmpDir}`);
 
-    process.env["FAAST_PACKAGE_DIR"] = "tmp";
+        process.env["FAAST_PACKAGE_DIR"] = "tmp";
 
-    const { archive } = await pack(
-        require.resolve("./fixtures/functions"),
-        config,
-        {},
-        identifier
-    );
+        const { archive } = await pack(
+            require.resolve("./fixtures/functions"),
+            config,
+            {},
+            identifier
+        );
 
-    await remove(tmpDir);
-    const writePromise = new Promise(resolve => archive.on("end", resolve));
-    const unzipPromise = unzipInDir(tmpDir, archive);
+        await remove(tmpDir);
+        const writePromise = new Promise(resolve => archive.on("end", resolve));
+        const unzipPromise = unzipInDir(tmpDir, archive);
 
-    await Promise.all([writePromise, unzipPromise]);
-    const zipFile = path.join("tmp", identifier + ".zip");
-    const bytes = (await stat(zipFile)).size;
-    t.true(bytes < size, `package size ${bytes} exceeded maximum ${size}`);
-    t.is(exec(`cd ${tmpDir} && node index.js`), "faast: successful cold start.\n");
-    config.check && (await config.check(t, tmpDir));
-};
-
-testPacker.title = (_title = "", provider, _packer, options) =>
-    `packer ${provider}-${options.name}`;
+        await Promise.all([writePromise, unzipPromise]);
+        const zipFile = path.join("tmp", identifier + ".zip");
+        const bytes = (await stat(zipFile)).size;
+        t.true(bytes < size, `package size ${bytes} exceeded maximum ${size}`);
+        t.is(exec(`cd ${tmpDir} && node index.js`), "faast: successful cold start.\n");
+        config.check && (await config.check(t, tmpDir));
+    },
+    title: (_title = "", provider, _packer, options) =>
+        `packer ${provider}-${options.name}`
+});
 
 function added(dir: string) {
     return async (t: ExecutionContext, root: string) => {
