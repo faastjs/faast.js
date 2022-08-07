@@ -7,7 +7,7 @@
     },
     "dependencies": {
         "aws-sdk": "^2.937.0",
-        "tar-stream": "^2.2.2"
+        "tar-stream": "^2.2.0"
     },
     "devDependencies": {
         "@types/tar-stream": "2.2.2",
