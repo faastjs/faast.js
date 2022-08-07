@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import assert from "assert";
 import { createHash } from "crypto";
 import { PersistentCache } from "./cache";
 import { FaastError, FaastErrorNames } from "./error";

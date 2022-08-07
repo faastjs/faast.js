@@ -1,4 +1,4 @@
-import * as asyncHooks from "async_hooks";
+import asyncHooks from "async_hooks";
 import { inspect } from "util";
 
 let hook: () => void | undefined;

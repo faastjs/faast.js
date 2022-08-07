@@ -25,13 +25,13 @@ The constructor for this class is marked as internal. Third-party code should no
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [comment?](./faastjs.costmetric.comment.md) |  | string | <i>(Optional)</i> An optional comment, usually providing a link to the provider's pricing page and other data. |
-|  [informationalOnly?](./faastjs.costmetric.informationalonly.md) |  | boolean | <i>(Optional)</i> True if this cost metric is only for informational purposes (e.g. AWS's <code>logIngestion</code>) and does not contribute cost. |
-|  [measured](./faastjs.costmetric.measured.md) |  | number | The measured value of the cost metric, in units. |
-|  [name](./faastjs.costmetric.name.md) |  | string | The name of the cost metric, e.g. <code>functionCallDuration</code> |
-|  [pricing](./faastjs.costmetric.pricing.md) |  | number | The price in USD per unit measured. |
-|  [unit](./faastjs.costmetric.unit.md) |  | string | The name of the units that pricing is measured in for this metric. |
-|  [unitPlural?](./faastjs.costmetric.unitplural.md) |  | string | <i>(Optional)</i> The plural form of the unit name. By default the plural form will be the name of the unit with "s" appended at the end, unless the last letter is capitalized, in which case there is no plural form (e.g. "GB"). |
+|  [comment?](./faastjs.costmetric.comment.md) | <code>readonly</code> | string | <i>(Optional)</i> An optional comment, usually providing a link to the provider's pricing page and other data. |
+|  [informationalOnly?](./faastjs.costmetric.informationalonly.md) | <code>readonly</code> | boolean | <i>(Optional)</i> True if this cost metric is only for informational purposes (e.g. AWS's <code>logIngestion</code>) and does not contribute cost. |
+|  [measured](./faastjs.costmetric.measured.md) | <code>readonly</code> | number | The measured value of the cost metric, in units. |
+|  [name](./faastjs.costmetric.name.md) | <code>readonly</code> | string | The name of the cost metric, e.g. <code>functionCallDuration</code> |
+|  [pricing](./faastjs.costmetric.pricing.md) | <code>readonly</code> | number | The price in USD per unit measured. |
+|  [unit](./faastjs.costmetric.unit.md) | <code>readonly</code> | string | The name of the units that pricing is measured in for this metric. |
+|  [unitPlural?](./faastjs.costmetric.unitplural.md) | <code>readonly</code> | string | <i>(Optional)</i> The plural form of the unit name. By default the plural form will be the name of the unit with "s" appended at the end, unless the last letter is capitalized, in which case there is no plural form (e.g. "GB"). |
 
 ## Methods
 

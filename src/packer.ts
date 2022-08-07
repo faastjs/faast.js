@@ -1,4 +1,4 @@
-import { Archiver } from "archiver";
+import archiver, { Archiver } from "archiver";
 import {
     createWriteStream,
     ensureDir,
@@ -7,23 +7,21 @@ import {
     readFile,
     stat
 } from "fs-extra";
-import * as path from "path";
+import MemoryFileSystem from "memory-fs";
+import path from "path";
 import { join } from "path";
 import { PassThrough, Readable } from "stream";
-import * as webpack from "webpack";
-import * as yauzl from "yauzl";
+import webpack from "webpack";
+import { merge } from "webpack-merge";
+import yauzl from "yauzl";
 import { FaastError } from "./error";
 import { LoaderOptions } from "./loader";
 import { log } from "./log";
 import { commonDefaults, CommonOptions, IncludeOption } from "./provider";
 import { keysOf, streamToBuffer } from "./shared";
 import { TrampolineFactory, WrapperOptionDefaults, WrapperOptions } from "./wrapper";
-import { merge } from "webpack-merge";
 
 type ZipFile = yauzl.ZipFile;
-
-import MemoryFileSystem = require("memory-fs");
-import archiver = require("archiver");
 
 export interface PackerResult {
     archive: NodeJS.ReadableStream;

@@ -1,4 +1,4 @@
-import * as webpack from "webpack";
+import webpack from "webpack";
 import { CostSnapshot } from "./cost";
 import { keysOf, Statistics } from "./shared";
 import { CpuMeasurement, FunctionCall } from "./wrapper";

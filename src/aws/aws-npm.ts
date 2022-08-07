@@ -1,9 +1,9 @@
-import * as archiver from "archiver";
+import archiver from "archiver";
 import { Lambda, S3 } from "aws-sdk";
 import { execSync } from "child_process";
 import { ensureDir, remove, writeFile } from "fs-extra";
 import { tmpdir } from "os";
-import * as path from "path";
+import path from "path";
 import { inspect } from "util";
 import { streamToBuffer, hasExpired } from "../shared";
 

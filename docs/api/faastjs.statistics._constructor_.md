@@ -22,4 +22,4 @@ constructor(
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  printFixedPrecision | number | The number of decimal places to print in [Statistics.toString()](./faastjs.statistics.tostring.md)<!-- -->. |
+|  printFixedPrecision | number | <i>(Optional)</i> The number of decimal places to print in [Statistics.toString()](./faastjs.statistics.tostring.md)<!-- -->. |

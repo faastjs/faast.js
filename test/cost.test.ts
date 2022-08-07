@@ -1,5 +1,5 @@
 import test, { ExecutionContext } from "ava";
-import * as ppp from "papaparse";
+import ppp from "papaparse";
 import {
     CommonOptions,
     faast,

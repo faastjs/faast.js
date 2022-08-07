@@ -6,12 +6,12 @@
 
 /// <reference types="node" />
 
-import * as childProcess from 'child_process';
+import childProcess from 'child_process';
 import { cloudbilling_v1 } from 'googleapis';
 import { cloudfunctions_v1 } from 'googleapis';
 import { CloudWatchLogs } from 'aws-sdk';
 import { ConfigurationOptions } from 'aws-sdk/lib/config-base';
-import * as debug_2 from 'debug';
+import { default as debug_2 } from 'debug';
 import { GoogleApis } from 'googleapis';
 import { IAM } from 'aws-sdk';
 import { Lambda } from 'aws-sdk';
@@ -23,7 +23,7 @@ import { SNS } from 'aws-sdk';
 import { SQS } from 'aws-sdk';
 import { STS } from 'aws-sdk';
 import { VError } from 'verror';
-import * as webpack from 'webpack';
+import webpack from 'webpack';
 import { Writable } from 'stream';
 
 // @public

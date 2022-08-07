@@ -13,7 +13,7 @@ import {
 import { ConfigurationOptions } from "aws-sdk/lib/config-base";
 import { createHash } from "crypto";
 import { readFile } from "fs-extra";
-import * as https from "https";
+import https from "https";
 import { inspect } from "util";
 import merge from "webpack-merge";
 import { caches } from "../cache";

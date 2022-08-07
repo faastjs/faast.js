@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import Module from "module";
 import { inspect } from "util";
 import { v4 as uuidv4 } from "uuid";
 import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
@@ -29,7 +30,6 @@ import { deserialize, serialize, serializeFunctionArgs } from "./serialize";
 import { ExponentiallyDecayingAverageValue, roundTo100ms, sleep } from "./shared";
 import { AsyncOrderedQueue, Deferred, Funnel, Pump, RateLimiter } from "./throttle";
 import { FunctionCall, isGenerator } from "./wrapper";
-import Module = require("module");
 
 /**
  * An array of all available provider.

@@ -25,8 +25,8 @@ The constructor for this class is marked as internal. Third-party code should no
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [fn](./faastjs.functionstatsevent.fn.md) |  | string | The name of the cloud function the statistics are about. |
-|  [stats](./faastjs.functionstatsevent.stats.md) |  | [FunctionStats](./faastjs.functionstats.md) | See [FunctionStats](./faastjs.functionstats.md)<!-- -->. |
+|  [fn](./faastjs.functionstatsevent.fn.md) | <code>readonly</code> | string | The name of the cloud function the statistics are about. |
+|  [stats](./faastjs.functionstatsevent.stats.md) | <code>readonly</code> | [FunctionStats](./faastjs.functionstats.md) | See [FunctionStats](./faastjs.functionstats.md)<!-- -->. |
 
 ## Methods
 

@@ -1,5 +1,5 @@
 import { ExecutionContext } from "ava";
-import * as lolex from "lolex";
+import lolex from "lolex";
 import { inspect } from "util";
 import { CommonOptions, log, Provider } from "../../index";
 import { IteratorResponseMessage, Message } from "../../src/provider";

@@ -16,7 +16,7 @@ Implementation of [FaastModule](./faastjs.faastmodule.md)<!-- -->.
 ```typescript
 export declare class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
 ```
-<b>Implements:</b> [FaastModule](./faastjs.faastmodule.md)<!-- -->&lt;M&gt;
+<b>Implements:</b> [FaastModule](./faastjs.faastmodule.md)
 
 ## Remarks
 
@@ -30,7 +30,7 @@ The constructor for this class is marked as internal. Third-party code should no
 |  --- | --- | --- | --- |
 |  [functions](./faastjs.faastmoduleproxy.functions.md) |  | [ProxyModule](./faastjs.proxymodule.md)<!-- -->&lt;M&gt; | Each call of a cloud function creates a separate remote invocation. |
 |  [functionsDetail](./faastjs.faastmoduleproxy.functionsdetail.md) |  | [ProxyModuleDetail](./faastjs.proxymoduledetail.md)<!-- -->&lt;M&gt; | Similar to [FaastModule.functions](./faastjs.faastmodule.functions.md) except each function returns a [Detail](./faastjs.detail.md) object |
-|  [options](./faastjs.faastmoduleproxy.options.md) |  | Required&lt;[CommonOptions](./faastjs.commonoptions.md)<!-- -->&gt; | The options set for this instance, which includes default values. |
+|  [options](./faastjs.faastmoduleproxy.options.md) | <code>readonly</code> | Required&lt;[CommonOptions](./faastjs.commonoptions.md)<!-- -->&gt; | The options set for this instance, which includes default values. |
 |  [provider](./faastjs.faastmoduleproxy.provider.md) |  | [Provider](./faastjs.provider.md) | The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" or "google". |
 
 ## Methods

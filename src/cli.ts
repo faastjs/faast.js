@@ -7,9 +7,9 @@ import { program } from "commander";
 import { readdir, remove } from "fs-extra";
 import { GaxiosPromise, GaxiosResponse } from "gaxios";
 import { google } from "googleapis";
-import * as ora from "ora";
+import ora from "ora";
 import { tmpdir } from "os";
-import * as path from "path";
+import path from "path";
 import * as awsFaast from "./aws/aws-faast";
 import { caches, PersistentCache } from "./cache";
 import * as googleFaast from "./google/google-faast";
@@ -386,7 +386,7 @@ async function cleanupLocal({ execute }: CleanupOptions) {
     return nResources;
 }
 
-import * as readline from "readline";
+import readline from "readline";
 
 async function prompt() {
     const rl = readline.createInterface({

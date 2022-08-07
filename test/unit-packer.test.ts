@@ -1,7 +1,7 @@
 import test, { ExecutionContext } from "ava";
-import * as sys from "child_process";
+import sys from "child_process";
 import { pathExists, remove, stat } from "fs-extra";
-import * as path from "path";
+import path from "path";
 import { join } from "path";
 import { CommonOptions, log, Provider, providers } from "../index";
 import { awsPacker } from "../src/aws/aws-faast";

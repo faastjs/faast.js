@@ -21,7 +21,7 @@ cleanup(userCleanupOptions?: CleanupOptions): Promise<void>;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  userCleanupOptions | [CleanupOptions](./faastjs.cleanupoptions.md) |  |
+|  userCleanupOptions | [CleanupOptions](./faastjs.cleanupoptions.md) | <i>(Optional)</i> |
 
 <b>Returns:</b>
 

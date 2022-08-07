@@ -24,4 +24,4 @@ constructor(
 |  Parameter | Type | Description |
 |  --- | --- | --- |
 |  dirRelativeToHomeDir | string | The directory under the user's home directory that will be used to store cached values. The directory will be created if it doesn't exist. |
-|  expiration | number | The age (in ms) after which a cached entry is invalid. Default: <code>24*3600*1000</code> (1 day). |
+|  expiration | number | <i>(Optional)</i> The age (in ms) after which a cached entry is invalid. Default: <code>24*3600*1000</code> (1 day). |

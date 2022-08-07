@@ -6,7 +6,7 @@ import { defaultGcWorker, clearLastGc } from "../src/aws/aws-faast";
 import { getAWSResources } from "./fixtures/util-aws";
 import * as functions from "./fixtures/functions";
 import { checkResourcesCleanedUp, sleep, title } from "./fixtures/util";
-import * as assert from "assert";
+import assert from "assert";
 
 async function waitForLogGroupCreation(
     cloudwatch: CloudWatchLogs,

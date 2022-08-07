@@ -1,9 +1,9 @@
 import { S3 } from "aws-sdk";
-import * as tar from "tar-stream";
+import tar from "tar-stream";
 import { Readable } from "stream";
 import { escape } from "querystring";
 import { createHash } from "crypto";
-import * as process from "process";
+import process from "process";
 
 const s3 = new S3({ region: "us-west-2" });
 

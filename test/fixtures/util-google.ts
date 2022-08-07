@@ -17,11 +17,15 @@ export async function getGoogleResources(mod: GoogleFaastModule) {
     } = mod.state.resources;
     const _exhaustiveCheck: Required<typeof rest> = {};
 
-    const functionResult = await quietly(
+    let functionResult = await quietly(
         cloudFunctions.projects.locations.functions.get({
             name: trampoline
         })
     );
+
+    if (functionResult?.data.status === "DELETE_IN_PROGRESS") {
+        functionResult = undefined;
+    }
 
     const requestQueueResult = await quietly(
         pubsub.projects.topics.get({

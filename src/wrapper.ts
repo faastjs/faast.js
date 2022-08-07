@@ -1,6 +1,6 @@
-import * as childProcess from "child_process";
-import * as process from "process";
-import * as proctor from "process-doctor";
+import childProcess from "child_process";
+import process from "process";
+import proctor from "process-doctor";
 import { inspect } from "util";
 import { IteratorResponseMessage, Message, PromiseResponseMessage } from "./provider";
 import { deserialize, serializeReturnValue } from "./serialize";

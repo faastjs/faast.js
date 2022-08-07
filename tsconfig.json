@@ -2,8 +2,8 @@
     "compilerOptions": {
         "outDir": "dist",
         "rootDir": ".",
-        "module": "commonjs",
-        "target": "es2020",
+        "module": "Node16",
+        "target": "ES2020",
         "lib": ["es2020"],
         // "sourceMap": true,
         "inlineSourceMap": true,
@@ -20,10 +20,9 @@
         "allowUnusedLabels": false,
         "noUnusedParameters": true,
         "strict": true,
-        "noEmitHelpers": true,
         "importHelpers": true,
-        "allowSyntheticDefaultImports": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "esModuleInterop": true
     },
     "exclude": ["node_modules", "dist", "etc", "temp", "examples", "test-release"]
 }

@@ -7,8 +7,8 @@ import {
     GoogleApis,
     pubsub_v1
 } from "googleapis";
-import * as https from "https";
-import * as util from "util";
+import https from "https";
+import util from "util";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
 import { FaastError, FaastErrorNames } from "../error";

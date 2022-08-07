@@ -1,4 +1,4 @@
-import * as sys from "child_process";
+import sys from "child_process";
 import {
     createWriteStream,
     mkdir,
