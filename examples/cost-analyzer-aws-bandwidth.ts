@@ -1,6 +1,6 @@
 import { program } from "commander";
 import { CostAnalyzer, Statistics, FaastModule } from "faastjs";
-import funcs from "./map-buckets-module";
+import * as funcs from "./map-buckets-module";
 import { listAllObjects, f1, GB, f2 } from "./util";
 import { writeFile as fsWriteFile } from "fs";
 import { promisify } from "util";

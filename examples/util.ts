@@ -3,7 +3,7 @@ const s3 = new S3();
 
 export async function listAllObjects(Bucket: string) {
     const allObjects: S3.Object[] = [];
-    await new Promise(resolve =>
+    await new Promise<void>(resolve =>
         s3.listObjectsV2({ Bucket }).eachPage((err, data) => {
             if (err) {
                 console.warn(err);

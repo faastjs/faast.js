@@ -1,5 +1,5 @@
 import { faast } from "faastjs";
-import funcs from "./functions";
+import * as funcs from "./functions";
 
 (async () => {
     const m = await faast("aws", funcs);
