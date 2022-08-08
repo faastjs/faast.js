@@ -995,7 +995,7 @@ function resolve(fmodule: object | { FAAST_URL: string }) {
     if (!modulePath) {
         throw new FaastError(
             { info: { module: fmodule } },
-            `Could not find file for module, must use "import * as X from Y" or "X = require(Y)" to load a module for faast.`
+            `Could not find file for module, must use "import * as X from Y" or "X = require(Y)" to load a module for faast. For ESM modules, export const FAAST_URL = import.meta.url from the functions module.`
         );
     }
     log.info(`Found file: ${modulePath}`);
