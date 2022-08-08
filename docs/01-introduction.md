@@ -33,6 +33,17 @@ export function hello(name: string) {
 }
 ```
 
+If using ECMAScript modules (ESM), you also need to export a special variable FAAST_URL:
+
+```typescript
+// functions.ts
+export function hello(name: string) {
+    return "hello " + name + "!";
+}
+
+export FAAST_URL = import.meta.url;
+```
+
 The `faast` function transforms ordinary modules into faast.js modules. This means the `functions` property will contain proxies for all of the functions from the original module, modified to return a `Promise`:
 
 ```typescript

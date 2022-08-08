@@ -1,5 +1,6 @@
 import { EventEmitter } from "events";
 import Module from "module";
+import { fileURLToPath } from "url";
 import { inspect } from "util";
 import { v4 as uuidv4 } from "uuid";
 import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
@@ -972,7 +973,17 @@ export type LocalFaastModule<M extends object = object> = FaastModuleProxy<
     LocalState
 >;
 
-function resolve(fmodule: object) {
+function resolve(fmodule: object | { FAAST_URL: string }) {
+    if ("FAAST_URL" in fmodule) {
+        const url = fmodule["FAAST_URL"];
+        if (typeof url !== "string") {
+            throw new FaastError(
+                { info: { module: fmodule } },
+                `FAAST_URL must be a string.`
+            );
+        }
+        return fileURLToPath(url);
+    }
     const cache = (Module as any)._cache;
     let modulePath: string | undefined;
     for (const key of Object.keys(cache).reverse()) {

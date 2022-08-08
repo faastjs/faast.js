@@ -45,7 +45,7 @@ export interface LocalState {
     /** @internal */
     executors: Executor[];
     /** @internal */
-    getExecutor: () => Executor;
+    getExecutor: () => Promise<Executor>;
     /** The temporary directory where the local function is deployed. */
     tempDir: string;
     /** The file:// URL for the local function log file directory.  */
@@ -112,15 +112,16 @@ async function initialize(
 
     log.info(`logURL: ${url}`);
 
-    const { childProcess, memorySize, timeout, env, validateSerialization } = options;
+    const { childProcess, timeout, env, validateSerialization } = options;
 
     if (!childProcess) {
         process.env = { ...process.env, ...env };
     }
     const { wrapperVerbose } = options.debugOptions;
-    const getWrapperInfo = () => {
-        const idleWrapper = wrappers.find(w => w.wrapper.executing === false);
+    const getWrapperInfo = async () => {
+        const idleWrapper = wrappers.find(w => w.wrapper.selected === false);
         if (idleWrapper) {
+            idleWrapper.wrapper.selected = true;
             return idleWrapper;
         }
         let logStream!: Writable;
@@ -153,7 +154,8 @@ async function initialize(
             wrapperVerbose: wrapperVerbose || log.provider.enabled,
             validateSerialization
         };
-        const wrapper = new Wrapper(require(serverModule), wrapperOptions2);
+        const wrapper = new Wrapper(await import(serverModule), wrapperOptions2);
+        wrapper.selected = true;
         const rv = { wrapper, logUrl: `file://${logFile}`, logStream };
         wrappers.push(rv);
         return rv;
@@ -215,11 +217,13 @@ async function invoke(
 ): Promise<void> {
     const {} = state;
     const startTime = Date.now();
-    const { wrapper, logUrl: url } = state.getExecutor();
-    await wrapper.execute(
-        { call, startTime, logUrl: url },
-        { onMessage: async msg => state.queue.enqueue(msg) }
-    );
+    const { wrapper, logUrl: url } = await state.getExecutor();
+    await wrapper
+        .execute(
+            { call, startTime, logUrl: url },
+            { onMessage: async msg => state.queue.enqueue(msg) }
+        )
+        .finally(() => (wrapper.selected = false));
 }
 
 async function poll(state: LocalState, cancel: Promise<void>): Promise<PollResult> {

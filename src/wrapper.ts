@@ -109,6 +109,7 @@ const FAAST_CHILD_ENV = "FAAST_CHILD";
 
 export class Wrapper {
     executing = false;
+    selected = false;
     protected verbose = false;
     protected funcs: ModuleType = {};
     protected child?: childProcess.ChildProcess;
