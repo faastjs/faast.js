@@ -102,7 +102,7 @@ workflows:
                   name: "google-node16"
                   nodeVersion: "node16"
                   executor: node16
-                  target: "test-google-remote"
+                  target: "test-google"
             - examples:
                   nodeVersion: "node16"
                   executor: node16
@@ -135,7 +135,7 @@ workflows:
                   name: "google-node16"
                   nodeVersion: "node16"
                   executor: node16
-                  target: "test-google-remote"
+                  target: "test-google"
                   requires:
                       - cleanup
             - examples:
