@@ -288,11 +288,10 @@ async function waitFor(
             return pollOperation({
                 request: () => quietly(api.operations.get({ name: operationName })),
                 checkDone: result => {
-                    /* istanbul ignore if  */
+                    /* c8 ignore start */
                     if (!result) {
                         return false;
                     }
-                    /* istanbul ignore if */
                     if (result.error) {
                         const underlying = new FaastError(
                             result.error.message ?? undefined
@@ -300,6 +299,7 @@ async function waitFor(
                         underlying.stack = "";
                         throw new FaastError(underlying, "Error polling operation");
                     }
+                    /* c8 ignore end */
                     return result.done || false;
                 }
             });
@@ -474,7 +474,7 @@ export async function initialize(
                 }
             });
         } catch (err: any) {
-            /* istanbul ignore next  */
+            /* c8 ignore next  */
             await deleteFunction(cloudFunctions, trampoline).catch(() => {});
             throw new FaastError(
                 { cause: err, name: FaastErrorNames.ECREATE },
@@ -644,7 +644,7 @@ async function deleteResources(
         try {
             await request;
         } catch (err: any) {
-            /* istanbul ignore next  */
+            /* c8 ignore next  */
             if (err.message.match(/Resource not found/)) {
                 return;
             }

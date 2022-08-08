@@ -71,7 +71,7 @@ export async function createSQSQueue(QueueName: string, VTimeout: number, sqs: S
     }
 }
 
-/* istanbul ignore next  */
+/* c8 ignore next  */
 export function processAwsErrorMessage(message: string): Error {
     let err = new FaastError(message);
     if (

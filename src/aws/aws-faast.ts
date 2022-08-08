@@ -662,7 +662,7 @@ export const initialize = throttle(
                         );
                     }
                 } catch (err: any) {
-                    /* istanbul ignore next */ {
+                    /* c8 ignore next */ {
                         await lambda
                             .deleteFunction({ FunctionName })
                             .promise()
@@ -1304,7 +1304,7 @@ export const awsPrice = throttle(
             const price = extractPrice(first(pList.terms.OnDemand));
             return price;
         } catch (err: any) {
-            /* istanbul ignore next  */
+            /* c8 ignore next  */
             {
                 const { message: m } = err;
                 if (
@@ -1332,7 +1332,7 @@ export const requestAwsPrices = async (
     region: AwsRegion
 ): Promise<AwsPrices> => {
     const location = locations[region];
-    /* istanbul ignore next  */
+    /* c8 ignore next  */
     return {
         lambdaPerRequest: await awsPrice(pricing, "AWSLambda", {
             location,

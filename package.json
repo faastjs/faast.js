@@ -97,11 +97,11 @@
         "@types/webpack-node-externals": "2.5.3",
         "@types/yauzl": "2.10.0",
         "ava": "4.3.1",
+        "c8": "^7.12.0",
         "codecov": "3.8.3",
         "commitizen": "4.2.5",
         "cz-conventional-changelog": "3.3.0",
         "lolex": "6.0.0",
-        "nyc": "15.1.0",
         "papaparse": "5.3.2",
         "prettier": "2.7.1",
         "semantic-release": "19.0.3",
@@ -112,7 +112,8 @@
     },
     "ava": {
         "files": [
-            "dist/test/*.test.js"
+            "dist/test/*.test.js",
+            "dist/test/*.test.mjs"
         ]
     },
     "prettier": {
@@ -122,20 +123,31 @@
         "arrowParens": "avoid",
         "trailingComma": "none"
     },
-    "nyc": {
+    "c8": {
+        "reporter": [
+            "lcov",
+            "text"
+        ],
+        "useSpawnWrap": true,
+        "all": true,
         "exclude": [
             "tmp/**",
             "test/fixtures/**",
             "coverage/**",
             "**/node_modules/**",
-            "src/trace.ts"
+            "src/trace.ts",
+            "**/*.d.ts",
+            "**/*.d.mts",
+            "website/**",
+            "build/**",
+            "examples/**",
+            "test-perf/**"
         ],
         "extension": [
-            ".ts"
-        ],
-        "reporter": [
-            "lcov",
-            "text"
+            ".ts",
+            ".js",
+            ".mts",
+            ".mjs"
         ],
         "check-coverage": true,
         "lines": 10

@@ -58,7 +58,7 @@ export const log = {
     awssdk: debug("faast:awssdk")
 };
 
-/* istanbul ignore next  */
+/* c8 ignore next  */
 function truncate(s: string, len: number) {
     return s.length > len ? `${s.substr(0, len)}...` : s;
 }
@@ -67,7 +67,7 @@ export function inspectProvider(o: object) {
     if (!log.provider.enabled) {
         return "";
     }
-    /* istanbul ignore next  */
+    /* c8 ignore next  */
     return truncate(inspect(o, false, 3), 1024);
 }
 

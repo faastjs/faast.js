@@ -126,7 +126,7 @@ export class Wrapper {
         this.funcs = fModule;
         this.queue = new AsyncIterableQueue();
 
-        /* istanbul ignore if  */
+        /* c8 ignore start */
         if (process.env[FAAST_CHILD_ENV]) {
             this.options.childProcess = false;
             this.log(`faast: started child process for module wrapper.`);
@@ -154,6 +154,7 @@ export class Wrapper {
                 this.log(`faast: successful cold start.`);
             }
         }
+        /* c8 ignore stop */
     }
 
     protected lookupFunction(request: object): AnyFunction {
@@ -212,11 +213,12 @@ export class Wrapper {
         const processError = (err: any) =>
             err instanceof Error && errorCallback ? errorCallback(err) : err;
         try {
-            /* istanbul ignore if  */
+            /* c8 ignore start  */
             if (this.executing) {
                 this.log(`faast: warning: module wrapper execute is not re-entrant`);
                 throw new Error(`faast: module wrapper is not re-entrant`);
             }
+            /* c8 ignore stop  */
             this.executing = true;
             const { call, startTime, logUrl, executionId, instanceId } = callingContext;
             const detail = { logUrl, executionId, instanceId };
@@ -246,11 +248,12 @@ export class Wrapper {
                         `faast: invoking '${call.name}' in child process, memory: ${memInfo}`
                     );
                 this.child.send(callingContext, err => {
-                    /* istanbul ignore if  */
+                    /* c8 ignore start */
                     if (err) {
                         this.log(`child send error: rejecting with ${err}`);
                         this.queue.push(Promise.reject(err));
                     }
+                    /* c8 ignore stop */
                 });
                 if (measureCpuUsage) {
                     this.verbose &&
@@ -380,7 +383,7 @@ export class Wrapper {
 
         let execArgv = process.execArgv.slice();
         if (this.options.childProcessMemoryLimitMb) {
-            /* istanbul ignore next  */
+            /* c8 ignore next */
             execArgv = process.execArgv.filter(
                 arg => !arg.match(/^--max-old-space-size/) && !arg.match(/^--inspect/)
             );
@@ -426,7 +429,7 @@ export class Wrapper {
                 this.queue.push(message.value);
             }
         });
-        /* istanbul ignore next  */
+        /* c8 ignore next  */
         child.on("error", err => {
             this.verbose && this.log(`child error: rejecting with ${err}`);
             this.child = undefined;
