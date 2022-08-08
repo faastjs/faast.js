@@ -41,7 +41,7 @@ export function hello(name: string) {
     return "hello " + name + "!";
 }
 
-export FAAST_URL = import.meta.url;
+export const FAAST_URL = import.meta.url;
 ```
 
 The `faast` function transforms ordinary modules into faast.js modules. This means the `functions` property will contain proxies for all of the functions from the original module, modified to return a `Promise`:
