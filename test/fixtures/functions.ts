@@ -195,6 +195,12 @@ export async function allocate(bytes: number) {
     return { bytes, elems };
 }
 
+export function returnSize(size: number) {
+    // return a string of size characters
+    const str = "a".repeat(size);
+    return str;
+}
+
 export function getEnv(key: string) {
     return process.env[key];
 }

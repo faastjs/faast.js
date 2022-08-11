@@ -68,6 +68,6 @@ async function execute(cc: CallingContext, wrapper: Wrapper) {
     const sqs = new SQS({ apiVersion: "2012-11-05", maxRetries: 6, region });
     await wrapper.execute(cc, {
         errorCallback,
-        onMessage: msg => sendResponseQueueMessage(sqs, Queue!, msg)
+        onMessage: msg => sendResponseQueueMessage(sqs, Queue!, msg, cc)
     });
 }

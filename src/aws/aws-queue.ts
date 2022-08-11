@@ -6,7 +6,7 @@ import { Message, PollResult } from "../provider";
 import { deserialize, serialize } from "../serialize";
 import { computeHttpResponseBytes, defined, sum } from "../shared";
 import { retryOp } from "../throttle";
-import { createErrorResponse, FunctionCall } from "../wrapper";
+import { CallingContext, createErrorResponse, FunctionCall } from "../wrapper";
 import { AwsMetrics } from "./aws-faast";
 
 export async function createSNSTopic(sns: SNS, Name: string) {
@@ -21,13 +21,23 @@ function countRequests(bytes: number) {
 export async function sendResponseQueueMessage(
     sqs: SQS,
     QueueUrl: string,
-    message: Message
+    message: Message,
+    cc: CallingContext
 ) {
     try {
         const request = { QueueUrl, MessageBody: serialize(message) };
         await sqs.sendMessage(request).promise();
     } catch (err: any) {
         log.warn(err);
+        const errorResponse = createErrorResponse(err, cc);
+        const errorRequest = { QueueUrl, MessageBody: serialize(errorResponse) };
+        try {
+            await sqs.sendMessage(errorRequest).promise();
+        } catch (errorResponseError: any) {
+            log.warn(
+                `Error sending error response to response queue: ${errorResponseError}`
+            );
+        }
     }
 }
 

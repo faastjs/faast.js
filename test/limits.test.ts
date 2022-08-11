@@ -155,14 +155,49 @@ async function testLongInvoke(
     }
 }
 
-type LimitType = "memory" | "timeout" | "generator" | "long";
-const allLimits = ["memory", "timeout", "long", "generator"] as const;
+async function testReturnSize(
+    t: ExecutionContext,
+    provider: Provider,
+    options: CommonOptions
+) {
+    const lambda = await faast(provider, funcs, {
+        ...options,
+        timeout: 20,
+        maxRetries: 0,
+        gc: "off",
+        memorySize: 1024,
+        description: t.title
+    });
+    t.plan(1);
+    try {
+        try {
+            await lambda.functions.returnSize(10000000);
+        } catch (err: any) {
+            const isSizeError =
+                err.message.includes("bytes") || err.message.includes("Too Large");
+            t.is(isSizeError, true, `${inspect(err)}`);
+        }
+    } finally {
+        await lambda.cleanup();
+    }
+}
+
+type LimitType = "memory" | "timeout" | "generator" | "long" | "returnSize";
+const allLimits = ["memory", "timeout", "long", "generator", "returnSize"] as const;
 
 const configurations: [Provider, CommonOptions, readonly LimitType[]][] = [
     ["aws", { mode: "https", childProcess: true }, allLimits],
     ["aws", { mode: "queue", childProcess: true }, allLimits],
-    ["aws", { mode: "https", childProcess: false }, ["memory", "timeout", "generator"]],
-    ["aws", { mode: "queue", childProcess: false }, ["memory", "timeout", "generator"]],
+    [
+        "aws",
+        { mode: "https", childProcess: false },
+        ["memory", "timeout", "generator", "returnSize"]
+    ],
+    [
+        "aws",
+        { mode: "queue", childProcess: false },
+        ["memory", "timeout", "generator", "returnSize"]
+    ],
     ["google", { mode: "https", childProcess: true }, ["memory", "timeout", "long"]],
     ["google", { mode: "queue", childProcess: true }, []],
     ["local", {}, ["timeout"]]
@@ -189,6 +224,14 @@ for (const [provider, config, limitTypes] of configurations) {
         test(
             title(provider, `generator timeout`, config),
             testGenerator,
+            provider,
+            config
+        );
+    }
+    if (limitTypes.find(t => t === "returnSize")) {
+        test(
+            title(provider, `return size limit`, config),
+            testReturnSize,
             provider,
             config
         );
