@@ -1,4 +1,4 @@
-import { AbortController } from "abort-controller";
+import AbortController from "abort-controller";
 import { pubsub_v1 } from "googleapis";
 import { Message, PollResult } from "../provider";
 import { deserialize, serialize } from "../serialize";

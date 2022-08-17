@@ -1,4 +1,4 @@
-import { AbortController } from "abort-controller";
+import AbortController from "abort-controller";
 import { Gaxios, GaxiosOptions, GaxiosPromise, GaxiosResponse } from "gaxios";
 import {
     cloudbilling_v1,
