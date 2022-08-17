@@ -4,7 +4,7 @@ import { synthesizeFaastError, FaastErrorNames } from "../src/error";
 
 test("FaastError basic error", t => {
     const error = new FaastError("bad error");
-    const { name, stack, message, ...rest } = error;
+    const { name, stack, message, cause, ...rest } = error;
     const _exhaustiveCheck: Required<typeof rest> = {};
     t.is(name, FaastErrorNames.EGENERIC);
     t.regex(stack!, /unit-error.test/);
@@ -26,7 +26,7 @@ test("FaastError nested error", t => {
         nested = err;
     }
     const error = new FaastError(nested, "bad error");
-    const { name, stack, message, ...rest } = error;
+    const { name, stack, message, cause, ...rest } = error;
     const _exhaustiveCheck: Required<typeof rest> = {};
     t.is(name, FaastErrorNames.EGENERIC);
     t.regex(stack!, /unit-error.test/);
@@ -50,7 +50,7 @@ test("FaastError synthesized error", t => {
         functionName: "functionName",
         args: ["arg"]
     });
-    const { name, stack, message, ...rest } = error;
+    const { name, stack, message, cause, ...rest } = error;
     const _exhaustiveCheck: Required<typeof rest> = {};
 
     t.is(name, errObj.name);
@@ -62,18 +62,18 @@ test("FaastError synthesized error", t => {
     }
     t.true(FaastError.info(error).logUrl.trim() === logUrlString);
     t.true(message.indexOf(errObj.message) >= 0);
-    const cause = error.cause()! as FaastError;
-    t.is(cause.message, logUrlString);
+    const c = cause()!;
+    t.is(c.message, logUrlString);
     t.is(info.functionName, "functionName");
     t.deepEqual(info.args, ["arg"]);
-    t.true(cause.stack!.indexOf("faast.js cloud function invocation") >= 0);
-    t.is(FaastError.fullStack(cause), cause.stack ?? "");
-    t.true(FaastError.fullStack(cause).indexOf(logUrlString) >= 0);
+    t.true(c.stack!.indexOf("faast.js cloud function invocation") >= 0);
+    t.is(FaastError.fullStack(c), c.stack ?? "");
+    t.true(FaastError.fullStack(c).indexOf(logUrlString) >= 0);
 });
 
 test("FaastError using option constructor", t => {
     const error = new FaastError({ name: FaastErrorNames.ETIMEOUT }, "message");
-    const { name, stack, message, ...rest } = error;
+    const { name, stack, message, cause, ...rest } = error;
     const _exhaustiveCheck: Required<typeof rest> = {};
     t.is(name, FaastErrorNames.ETIMEOUT);
 });
