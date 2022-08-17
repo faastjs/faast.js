@@ -4,6 +4,9 @@
 #
 version: 2.1
 
+orbs:
+    codecov: codecov/codecov@3.2.3
+
 executors:
     node16:
         docker:
@@ -36,9 +39,8 @@ jobs:
             - run: npm run set-gcp-key
             - run: npx c8 npm run <<parameters.target>>
             - run: if [ -s coverage/lcov.info ]; then echo "coverage found"; else echo "no coverage information!"; exit 1; fi
-            - run:
-                  command: npm run codecov
-                  when: always
+            - codecov/upload
+
     examples:
         description: "test examples repository"
         parameters:
