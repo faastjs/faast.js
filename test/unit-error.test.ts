@@ -62,7 +62,7 @@ test("FaastError synthesized error", t => {
     }
     t.true(FaastError.info(error).logUrl.trim() === logUrlString);
     t.true(message.indexOf(errObj.message) >= 0);
-    const c = cause()!;
+    const c = error.cause()!;
     t.is(c.message, logUrlString);
     t.is(info.functionName, "functionName");
     t.deepEqual(info.args, ["arg"]);
