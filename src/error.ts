@@ -1,4 +1,4 @@
-import { VError, Options } from "verror";
+import { VError } from "verror";
 import { log } from "./log";
 
 /**
