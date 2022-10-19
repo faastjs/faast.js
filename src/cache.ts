@@ -9,7 +9,7 @@ import {
     writeFile
 } from "fs-extra";
 import { homedir } from "os";
-import { join } from "path";
+import { join, sep } from "path";
 import { Readable } from "stream";
 import { v4 as uuidv4 } from "uuid";
 
@@ -76,6 +76,10 @@ export class PersistentCache {
      * key is not found.
      */
     async get(key: string) {
+        // return undefined if key is an unsafe path
+        if (key.includes('\\') || key.includes('/') || key === '..' || key === '.') {
+            return undefined;
+        }
         await this.initialized;
         const entry = join(this.dir, key);
         const statEntry = await stat(entry).catch(_ => {});
@@ -93,6 +97,10 @@ export class PersistentCache {
      * @returns a Promise that resolves when the cache entry has been persisted.
      */
     async set(key: string, value: Buffer | string | Uint8Array | Readable | Blob) {
+        // return undefined if key is an unsafe path
+        if (key.includes('\\') || key.includes('/') || key === '..' || key === '.') {
+            throw Error('Please make sure that `key` is a single path component.')
+        }
         await this.initialized;
         const entry = join(this.dir, key);
         const tmpEntry = join(this.dir, uuidv4());
