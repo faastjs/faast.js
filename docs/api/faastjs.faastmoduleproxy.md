@@ -14,7 +14,7 @@ Implementation of [FaastModule](./faastjs.faastmodule.md)<!-- -->.
 <b>Signature:</b>
 
 ```typescript
-export declare class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> 
+export declare class FaastModuleProxy<M extends object, O extends CommonOptions, S> implements FaastModule<M> 
 ```
 <b>Implements:</b> [FaastModule](./faastjs.faastmodule.md)
 

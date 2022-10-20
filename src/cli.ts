@@ -257,7 +257,7 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
 }
 
 interface HasNextPageToken {
-    nextPageToken?: string;
+    nextPageToken?: string | null;
 }
 
 async function iterate<T extends HasNextPageToken>(
@@ -278,7 +278,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
 
     async function listGoogleResource<T, U>(
         pattern: RegExp,
-        getList: (pageToken?: string) => GaxiosPromise<T>,
+        getList: (pageToken?: string) => GaxiosPromise<T & HasNextPageToken>,
         extractList: (arg: T) => U[] | undefined,
         extractElement: (arg: U) => string | undefined
     ) {
@@ -299,7 +299,7 @@ async function cleanupGoogle({ execute }: CleanupOptions) {
     async function deleteGoogleResource<T, U>(
         name: string,
         pattern: RegExp,
-        getList: (pageToken?: string) => GaxiosPromise<T>,
+        getList: (pageToken?: string) => GaxiosPromise<T & HasNextPageToken>,
         extractList: (arg: T) => U[] | undefined,
         extractElement: (arg: U) => string | undefined,
         doRemove: (arg: string) => Promise<any>

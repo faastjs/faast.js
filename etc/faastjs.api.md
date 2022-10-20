@@ -219,7 +219,7 @@ export interface FaastModule<M extends object> {
 }
 
 // @public
-export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> {
+export class FaastModuleProxy<M extends object, O extends CommonOptions, S> implements FaastModule<M> {
     // Warning: (ae-forgotten-export) The symbol "ProviderImpl" needs to be exported by the entry point index.d.ts
     //
     // @internal

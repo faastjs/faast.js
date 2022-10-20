@@ -408,7 +408,9 @@ export interface FaastModule<M extends object> {
  * testing.
  * @public
  */
-export class FaastModuleProxy<M extends object, O, S> implements FaastModule<M> {
+export class FaastModuleProxy<M extends object, O extends CommonOptions, S>
+    implements FaastModule<M>
+{
     /** The {@link Provider}, e.g. "aws" or "google". */
     provider = this.impl.name;
     /** {@inheritdoc FaastModule.functions} */
