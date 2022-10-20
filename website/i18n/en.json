@@ -77,11 +77,17 @@
       "api/faastjs.cleanupoptions.deleteresources": {
         "title": "CleanupOptions.deleteResources property"
       },
+      "api/faastjs.cleanupoptions.gctimeout": {
+        "title": "CleanupOptions.gcTimeout property"
+      },
       "api/faastjs.cleanupoptions": {
         "title": "CleanupOptions interface"
       },
       "api/faastjs.commonoptions.childprocess": {
         "title": "CommonOptions.childProcess property"
+      },
+      "api/faastjs.commonoptions.childprocessmemorymb": {
+        "title": "CommonOptions.childProcessMemoryMb property"
       },
       "api/faastjs.commonoptions.concurrency": {
         "title": "CommonOptions.concurrency property"
