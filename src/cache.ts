@@ -12,6 +12,7 @@ import { homedir } from "os";
 import { join } from "path";
 import { Readable } from "stream";
 import { v4 as uuidv4 } from "uuid";
+import { createHash } from "crypto";
 
 interface Blob {}
 
@@ -71,13 +72,19 @@ export class PersistentCache {
         this.initialized = this.initialize(this.dir);
     }
 
+    private hash(key: string) {
+        const hasher = createHash("sha256");
+        hasher.update(key);
+        return hasher.digest("hex");
+    }
+
     /**
      * Retrieves the value previously set for the given key, or undefined if the
      * key is not found.
      */
     async get(key: string) {
         await this.initialized;
-        const entry = join(this.dir, key);
+        const entry = join(this.dir, this.hash(key));
         const statEntry = await stat(entry).catch(_ => {});
         if (statEntry) {
             if (Date.now() - statEntry.mtimeMs > this.expiration) {
@@ -94,7 +101,7 @@ export class PersistentCache {
      */
     async set(key: string, value: Buffer | string | Uint8Array | Readable | Blob) {
         await this.initialized;
-        const entry = join(this.dir, key);
+        const entry = join(this.dir, this.hash(key));
         const tmpEntry = join(this.dir, uuidv4());
         await writeFile(tmpEntry, value, { mode: 0o600, encoding: "binary" });
         await rename(tmpEntry, entry);
