@@ -89,7 +89,7 @@
         "@types/lolex": "5.1.2",
         "@types/memory-fs": "0.3.3",
         "@types/node": "18.11.7",
-        "@types/papaparse": "5.3.3",
+        "@types/papaparse": "5.3.5",
         "@types/tar-stream": "2.2.2",
         "@types/uuid": "8.3.4",
         "@types/webpack-node-externals": "2.5.3",
