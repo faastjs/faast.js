@@ -40,6 +40,7 @@ jobs:
             - run: npx c8 npm run <<parameters.target>>
             - run: if [ -s coverage/lcov.info ]; then echo "coverage found"; else echo "no coverage information!"; exit 1; fi
             - codecov/upload
+        parallelism: 2
 
     examples:
         description: "test examples repository"
@@ -67,6 +68,8 @@ jobs:
             - run: cd ~/tmp && git clone https://github.com/faastjs/examples
             - run: cp faastjs-0.0.0-semantic-release.tgz ~/tmp/examples
             - run: cd ~/tmp/examples && node test-examples.js faastjs-0.0.0-semantic-release.tgz
+        parallelism: 1
+
     release:
         description: "semantic release"
         executor: node16
@@ -81,6 +84,8 @@ jobs:
             - run: npm run test-git-status
             - run: npm run test-release
             - run: npm run semantic-release
+        parallelism: 1
+
     cleanup:
         description: "cleanup cloud accounts"
         executor: node16
@@ -90,6 +95,7 @@ jobs:
             - run: npm run build
             - run: npm run set-gcp-key
             - run: npm run cleanup-cloud
+        parallelism: 1
 
 workflows:
     version: 2
