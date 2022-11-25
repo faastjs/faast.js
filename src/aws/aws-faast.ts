@@ -516,7 +516,7 @@ export const initialize = throttle(
             let func;
             try {
                 func = await lambda.createFunction(request).promise();
-                await retryOp(2, () =>
+                await retryOp(5, () =>
                     lambda.waitFor("functionActive", { FunctionName }).promise()
                 );
             } catch (err: any) {
