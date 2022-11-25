@@ -885,29 +885,43 @@ async function getGoogleCloudFunctionsPricing(
     cloudBilling: CloudBilling.Cloudbilling,
     region: string
 ): Promise<GoogleCloudPricing> {
-    const services = await listGoogleServices(cloudBilling);
-    ensureGooglePriceCache(cloudBilling);
+    try {
+        const services = await listGoogleServices(cloudBilling);
+        ensureGooglePriceCache(cloudBilling);
 
-    const getPricing = (
-        serviceName: string,
-        description: string,
-        conversionFactor: number = 1
-    ) => {
-        const service = services.find(s => s.displayName === serviceName)!;
-        return getGooglePrice!(region, service.name!, description, conversionFactor);
-    };
+        const getPricing = (
+            serviceName: string,
+            description: string,
+            conversionFactor: number = 1
+        ) => {
+            const service = services.find(s => s.displayName === serviceName)!;
+            return getGooglePrice!(region, service.name!, description, conversionFactor);
+        };
 
-    return {
-        perInvocation: await getPricing("Cloud Functions", "Invocations"),
-        perGhzSecond: await getPricing("Cloud Functions", "CPU Time"),
-        perGbSecond: await getPricing("Cloud Functions", "Memory Time", 2 ** 30),
-        perGbOutboundData: await getPricing(
-            "Cloud Functions",
-            `Network Egress from ${region}`,
-            2 ** 30
-        ),
-        perGbPubSub: await getPricing("Cloud Pub/Sub", "Message Delivery Basic", 2 ** 30)
-    };
+        return {
+            perInvocation: await getPricing("Cloud Functions", "Invocations"),
+            perGhzSecond: await getPricing("Cloud Functions", "CPU Time"),
+            perGbSecond: await getPricing("Cloud Functions", "Memory Time", 2 ** 30),
+            perGbOutboundData: await getPricing(
+                "Cloud Functions",
+                `Network Egress from ${region}`,
+                2 ** 30
+            ),
+            perGbPubSub: await getPricing(
+                "Cloud Pub/Sub",
+                "Message Delivery Basic",
+                2 ** 30
+            )
+        };
+    } catch (err) {
+        return {
+            perInvocation: 0.0000004,
+            perGhzSecond: 0.00001,
+            perGbSecond: 0.0000025,
+            perGbOutboundData: 0.12,
+            perGbPubSub: 40 / 1024
+        };
+    }
 }
 
 // https://cloud.google.com/functions/pricing
