@@ -14,6 +14,6 @@ The return type of [faastLocal()](./faastjs.faastlocal.md)<!-- -->. See [FaastMo
 <b>Signature:</b>
 
 ```typescript
-export declare type LocalFaastModule<M extends object = object> = FaastModuleProxy<M, LocalOptions, LocalState>;
+export type LocalFaastModule<M extends object = object> = FaastModuleProxy<M, LocalOptions, LocalState>;
 ```
 <b>References:</b> [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->, [LocalOptions](./faastjs.localoptions.md)

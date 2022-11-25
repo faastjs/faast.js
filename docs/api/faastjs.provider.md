@@ -14,5 +14,5 @@ The type of all supported cloud providers.
 <b>Signature:</b>
 
 ```typescript
-export declare type Provider = "aws" | "google" | "local";
+export type Provider = "aws" | "google" | "local";
 ```

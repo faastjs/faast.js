@@ -14,5 +14,5 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-export declare type Async<T> = T extends AsyncGenerator<infer R> ? AsyncGenerator<R> : T extends Generator<infer R> ? AsyncGenerator<R> : T extends Promise<infer R> ? Promise<R> : Promise<T>;
+export type Async<T> = T extends AsyncGenerator<infer R> ? AsyncGenerator<R> : T extends Generator<infer R> ? AsyncGenerator<R> : T extends Promise<infer R> ? Promise<R> : Promise<T>;
 ```

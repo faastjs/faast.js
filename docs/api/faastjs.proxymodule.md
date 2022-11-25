@@ -14,7 +14,7 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-export declare type ProxyModule<M> = {
+export type ProxyModule<M> = {
     [K in keyof M]: M[K] extends (...args: infer A) => infer R ? (...args: A) => Async<R> : never;
 };
 ```

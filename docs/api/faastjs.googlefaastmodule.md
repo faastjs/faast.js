@@ -14,6 +14,6 @@ The return type of [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->. See [Faast
 <b>Signature:</b>
 
 ```typescript
-export declare type GoogleFaastModule<M extends object = object> = FaastModuleProxy<M, GoogleOptions, GoogleState>;
+export type GoogleFaastModule<M extends object = object> = FaastModuleProxy<M, GoogleOptions, GoogleState>;
 ```
 <b>References:</b> [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->, [GoogleOptions](./faastjs.googleoptions.md)
