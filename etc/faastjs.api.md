@@ -48,6 +48,7 @@ export interface AwsOptions extends CommonOptions {
     _gcWorker?: (work: AwsGcWork, services: AwsServices) => Promise<void>;
     region?: AwsRegion;
     RoleName?: string;
+    webpackAwsSdk?: boolean;
 }
 
 // @public

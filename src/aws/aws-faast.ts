@@ -200,6 +200,14 @@ export interface AwsOptions extends CommonOptions {
      */
     awsConfig?: ConfigurationOptions;
 
+    /**
+     * Use webpack to pack up the aws-sdk dependency, instead of relying on the
+     * preinstalled version on AWS Lambda. This is useful for using the node18
+     * runtime, because it uses the aws-sdk v3, whereas faast.js currently only
+     * supports v2.
+     */
+    webpackAwsSdk?: boolean;
+
     /** @internal */
     _gcWorker?: (work: AwsGcWork, services: AwsServices) => Promise<void>;
 }
@@ -211,6 +219,7 @@ export let defaults: Required<AwsOptions> = {
     memorySize: 1728,
     awsLambdaOptions: {},
     awsConfig: {},
+    webpackAwsSdk: false,
     _gcWorker: defaultGcWorker
 };
 
@@ -405,7 +414,8 @@ export async function createLayer(
     FunctionName: string,
     region: AwsRegion,
     retentionInDays: number,
-    awsLambdaOptions: Partial<Lambda.CreateFunctionRequest>
+    awsLambdaOptions: Partial<Lambda.CreateFunctionRequest>,
+    webpackAwsSdk: boolean
 ): Promise<AwsLayerInfo | undefined> {
     if (!packageJson) {
         return;
@@ -447,7 +457,8 @@ export async function createLayer(
             webpackOptions: {
                 externals: []
             },
-            awsLambdaOptions
+            awsLambdaOptions,
+            webpackAwsSdk
         });
         try {
             const installArgs: awsNpm.NpmInstallArgs = {
@@ -616,7 +627,8 @@ export const initialize = throttle(
                 FunctionName,
                 region,
                 retentionInDays,
-                options.awsLambdaOptions
+                options.awsLambdaOptions,
+                options.webpackAwsSdk
             );
 
             const codeBundle = await codeBundlePromise;
@@ -1110,19 +1122,23 @@ function deleteGarbageFunctions(
 
 export async function awsPacker(
     functionModule: string,
-    options: CommonOptions,
+    options: AwsOptions,
     wrapperOptions: WrapperOptions,
     FunctionName: string
 ): Promise<PackerResult> {
+    const webpackOptions = merge(
+        options.webpackOptions ?? {},
+        options.webpackAwsSdk
+            ? {}
+            : {
+                  externals: [new RegExp("^aws-sdk/?")]
+              }
+    );
+
     return packer(
         awsTrampoline,
         functionModule,
-        {
-            ...options,
-            webpackOptions: merge(options.webpackOptions ?? {}, {
-                externals: [new RegExp("^aws-sdk/?")]
-            })
-        },
+        { ...options, webpackOptions },
         wrapperOptions,
         FunctionName
     );
