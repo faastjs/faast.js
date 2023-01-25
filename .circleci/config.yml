@@ -41,6 +41,7 @@ jobs:
             - run: if [ -s coverage/lcov.info ]; then echo "coverage found"; else echo "no coverage information!"; exit 1; fi
             - codecov/upload
         parallelism: 2
+        resource_class: large
 
     examples:
         description: "test examples repository"
@@ -69,6 +70,7 @@ jobs:
             - run: cp faastjs-0.0.0-semantic-release.tgz ~/tmp/examples
             - run: cd ~/tmp/examples && node test-examples.js faastjs-0.0.0-semantic-release.tgz
         parallelism: 1
+        resource_class: large
 
     release:
         description: "semantic release"
@@ -85,6 +87,7 @@ jobs:
             - run: npm run test-release
             - run: npm run semantic-release
         parallelism: 1
+        resource_class: large
 
     cleanup:
         description: "cleanup cloud accounts"
