@@ -570,7 +570,7 @@ async function callFunctionHttps(
     } catch (err: any) {
         const { response } = err;
         if (response) {
-            if (response.status === 503) {
+            if (response.status === 503 || response.status === 500) {
                 throw new FaastError(
                     { cause: err, name: FaastErrorNames.EMEMORY },
                     "google cloud function: possibly out of memory"
