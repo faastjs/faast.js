@@ -109,7 +109,7 @@ export async function packer(
                     entry = join(entry, "/**/*");
                 }
             } catch {}
-            archive.glob(entry, { ignore: exclude, cwd });
+            archive.glob(entry, { ignore: exclude as any, cwd });
         }
     }
 
