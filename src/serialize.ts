@@ -1,6 +1,6 @@
 import { deepStrictEqual } from "assert";
 import { FaastError, FaastErrorNames } from "./error";
-import { inspect } from "util";
+import { inspect, TextDecoder, TextEncoder } from "util";
 
 // Deep copy undefined and symbol keys from source to dest. Mainly used to see
 // if the source and dest are deep equal once these differences are factored
@@ -95,6 +95,11 @@ export function serialize(arg: any, validate: boolean = false) {
     return str;
 }
 
+export function serializeToUint8Array(arg: any, validate: boolean = false) {
+    const encoder = new TextEncoder();
+    return encoder.encode(serialize(arg, validate));
+}
+
 function reviver(this: any, _: any, value: any) {
     try {
         if (typeof value === "object") {
@@ -156,15 +161,16 @@ function reviver(this: any, _: any, value: any) {
     return value;
 }
 
-export function deserialize<T = any>(str: string): T {
-    return JSON.parse(str, reviver);
+export function deserializeUint8Array<T = any>(data: Uint8Array): T {
+    const decoder = new TextDecoder();
+    return JSON.parse(decoder.decode(data), reviver);
 }
 
-export function serializeFunctionArgs(
-    name: string,
-    args: any[],
-    validate: boolean
-): string {
+export function deserialize<T = any>(data: string): T {
+    return JSON.parse(data, reviver);
+}
+
+export function serializeFunctionArgs(name: string, args: any[], validate: boolean) {
     try {
         return serialize(args, validate);
     } catch (err: any) {
@@ -176,11 +182,7 @@ export function serializeFunctionArgs(
     }
 }
 
-export function serializeReturnValue(
-    name: string,
-    returned: any,
-    validate: boolean
-): string {
+export function serializeReturnValue(name: string, returned: any, validate: boolean) {
     try {
         return serialize(returned, validate);
     } catch (err: any) {

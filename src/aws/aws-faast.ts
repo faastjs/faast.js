@@ -1,45 +1,45 @@
+import { AbortController } from "@aws-sdk/abort-controller";
 import {
-    AWSError,
     CloudWatchLogs,
-    IAM,
+    LogGroup,
+    paginateDescribeLogGroups
+} from "@aws-sdk/client-cloudwatch-logs";
+import { CreateRoleRequest, IAM } from "@aws-sdk/client-iam";
+import {
+    CreateFunctionRequest,
+    FunctionCode,
+    InvocationRequest,
     Lambda,
-    Pricing,
-    Request,
-    S3,
-    SNS,
-    SQS,
-    STS
-} from "aws-sdk";
-import { ConfigurationOptions } from "aws-sdk/lib/config-base";
+    paginateListFunctions,
+    paginateListLayerVersions,
+    paginateListLayers
+} from "@aws-sdk/client-lambda";
+import { Pricing } from "@aws-sdk/client-pricing";
+import { S3 } from "@aws-sdk/client-s3";
+import { SNS } from "@aws-sdk/client-sns";
+import { SQS } from "@aws-sdk/client-sqs";
+import { STS } from "@aws-sdk/client-sts";
 import { createHash } from "crypto";
 import { readFile } from "fs-extra";
 import https from "https";
 import { inspect } from "util";
-import merge from "webpack-merge";
 import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
 import { FaastError, FaastErrorNames } from "../error";
 import { faastAws } from "../faast";
 import { log } from "../log";
-import { packer, PackerResult } from "../packer";
+import { PackerResult, packer } from "../packer";
 import {
     CleanupOptions,
-    commonDefaults,
     CommonOptions,
     FunctionStats,
     PollResult,
     ProviderImpl,
-    UUID
+    UUID,
+    commonDefaults
 } from "../provider";
-import { serialize } from "../serialize";
-import {
-    computeHttpResponseBytes,
-    defined,
-    hasExpired,
-    sleep,
-    streamToBuffer,
-    uuidv4Pattern
-} from "../shared";
+import { serializeToUint8Array } from "../serialize";
+import { defined, hasExpired, sleep, streamToBuffer, uuidv4Pattern } from "../shared";
 import { retryOp, throttle } from "../throttle";
 import { FunctionCall, WrapperOptions } from "../wrapper";
 import * as awsNpm from "./aws-npm";
@@ -88,6 +88,49 @@ export const defaultGcWorker = throttle(
         }
     }
 );
+
+/**
+ * Factory for AWS service clients, which allows for custom construction and configuration.
+ * {@link https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/index.html#configuration | AWS Configuration}.
+ * @remarks
+ * This is an advanced option. This provides a way for a faast.js client to
+ * instantiate AWS service objects for itself to provide custom options.
+ * Note that if you create a service object yourself, it won't have the
+ * default options that faast.js would use, which are:
+ *
+ * - maxAttempts (faast.js default: 6)
+ * - region (faast.js default: "us-west-2")
+ * - logger (faast.js default: log.awssdk)
+ */
+export interface AwsConfig {
+    createCloudWatchLogs?: () => CloudWatchLogs;
+    createIAM?: () => IAM;
+    createLambda?: () => Lambda;
+    /**
+     * A special AWS Lambda factory for creating lambda functions that are
+     * used for faast.js invocations. These special clients have the following
+     * options set by default in faast.js:
+     *
+     *  // Retries are handled by faast.js, not the sdk.
+     *  maxAttempts: 0,
+     *
+     *  // The default 120s timeout is too short, especially for https
+     *  // mode.
+     *   requestHandler: new NodeHttpHandler({
+     *     httpsAgent: new https.Agent({
+     *       keepAlive: true,
+     *       maxSockets: 1000,
+     *       timeout: 0
+     *     })
+     *   })
+     */
+    createLambdaForInvocations?: () => Lambda;
+    createPricing?: () => Pricing;
+    createS3?: () => S3;
+    createSNS?: () => SNS;
+    createSQS?: () => SQS;
+    createSts?: () => STS;
+}
 
 /**
  * AWS-specific options for {@link faastAws}.
@@ -179,34 +222,12 @@ export interface AwsOptions extends CommonOptions {
      *   };
      * ```
      */
-    awsLambdaOptions?: Partial<Lambda.CreateFunctionRequest>;
+    awsLambdaOptions?: Partial<CreateFunctionRequest>;
 
     /**
-     * Additional options to pass to all AWS services. See
-     * {@link https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Config.html | AWS.Config}.
-     * @remarks
-     * If you need to specify AWS options such as credentials, you can pass set
-     * these options here. Note that faast.js will override some options even if
-     * they are specified here, specifically the options used to create the
-     * `Lambda` service, to ensure they allow for faast to function correctly.
-     * Options set in {@link CommonOptions} override those set here.
-     *
-     * Example of passing in credentials:
-     *
-     * ```typescript
-     *   const credentials = { accessKeyId, secretAccessKey };
-     *   const m = await faastAws(funcs, { credentials });
-     * ```
+     * AWS service factories. See {@link AwsConfig}.
      */
-    awsConfig?: ConfigurationOptions;
-
-    /**
-     * Use webpack to pack up the aws-sdk dependency, instead of relying on the
-     * preinstalled version on AWS Lambda. This is useful for using the node18
-     * runtime, because it uses the aws-sdk v3, whereas faast.js currently only
-     * supports v2.
-     */
-    webpackAwsSdk?: boolean;
+    awsConfig?: AwsConfig;
 
     /** @internal */
     _gcWorker?: (work: AwsGcWork, services: AwsServices) => Promise<void>;
@@ -219,7 +240,6 @@ export let defaults: Required<AwsOptions> = {
     memorySize: 1728,
     awsLambdaOptions: {},
     awsConfig: {},
-    webpackAwsSdk: false,
     _gcWorker: defaultGcWorker
 };
 
@@ -295,55 +315,50 @@ export type AwsGcWork =
           VersionNumber: number;
       };
 
-export async function carefully<U>(arg: Request<U, AWSError>) {
+export async function carefully<U>(arg: Promise<U>) {
     try {
-        return await arg.promise();
-    } catch (err: any) {
+        return await arg;
+    } catch (err) {
         log.warn(err);
         return;
     }
 }
 
-export async function quietly<U>(arg: Request<U, AWSError>) {
+export async function quietly<U>(arg: Promise<U>) {
     try {
-        return await arg.promise();
-    } catch (err: any) {
+        return await arg;
+    } catch (err) {
         return;
     }
 }
 
 export const createAwsApis = throttle(
     { concurrency: 1 },
-    async (region: AwsRegion, awsConfig: ConfigurationOptions = {}) => {
-        const logger = log.awssdk.enabled ? { log: log.awssdk } : undefined;
-        const common: ConfigurationOptions = {
-            maxRetries: 6,
-            correctClockSkew: true,
-            logger,
-            ...awsConfig,
-            region
-        };
-        const agent = new https.Agent({ keepAlive: true, maxSockets: 1000, timeout: 0 });
+    async (region: AwsRegion, awsConfig: AwsConfig = {}) => {
+        const logger = log.awssdk.enabled
+            ? { warn: log.awssdk, debug: log.awssdk, info: log.awssdk, error: log.awssdk }
+            : undefined;
+        const common = { maxAttempts: 6, region, logger };
         const services: AwsServices = {
-            iam: new IAM({ apiVersion: "2010-05-08", ...common }),
-            lambda: new Lambda({ apiVersion: "2015-03-31", ...common }),
+            iam: awsConfig?.createIAM?.() ?? new IAM(common),
+            lambda: awsConfig?.createLambda?.() ?? new Lambda(common),
             // Special Lambda instance with configuration optimized for
             // invocations.
-            lambda2: new Lambda({
-                apiVersion: "2015-03-31",
-                ...common,
-                // Retries are handled by faast.js, not the sdk.
-                maxRetries: 0,
-                // The default 120s timeout is too short, especially for https
-                // mode.
-                httpOptions: { timeout: 0, agent }
-            }),
-            cloudwatch: new CloudWatchLogs({ apiVersion: "2014-03-28", ...common }),
-            sqs: new SQS({ apiVersion: "2012-11-05", ...common }),
-            sns: new SNS({ apiVersion: "2010-03-31", ...common }),
-            pricing: new Pricing({ region: "us-east-1", ...common }),
-            sts: new STS({ apiVersion: "2011-06-15", ...common }),
-            s3: new S3({ apiVersion: "2006-03-01", ...common })
+            lambda2:
+                awsConfig?.createLambdaForInvocations?.() ??
+                new Lambda({
+                    ...common,
+                    // Retries are handled by faast.js, not the sdk.
+                    maxAttempts: 0
+                    // The default 120s timeout is too short, especially for https
+                    // mode.,
+                }),
+            cloudwatch: awsConfig?.createCloudWatchLogs?.() ?? new CloudWatchLogs(common),
+            sqs: awsConfig.createSQS?.() ?? new SQS(common),
+            sns: awsConfig.createSNS?.() ?? new SNS(common),
+            pricing: awsConfig.createPricing?.() ?? new Pricing(common),
+            sts: awsConfig.createSts?.() ?? new STS(common),
+            s3: awsConfig.createS3?.() ?? new S3(common)
         };
         return services;
     }
@@ -357,11 +372,16 @@ export async function ensureRoleRaw(
     const { iam } = services;
     log.info(`Checking for cached lambda role`);
     try {
-        const response = await iam.getRole({ RoleName }).promise();
-        return response.Role;
-    } catch (err: any) {
+        const response = await iam.getRole({ RoleName });
+        if (!response.Role) {
+            throw new Error();
+        }
+    } catch (err) {
         if (!createRole) {
-            throw new FaastError(err, `could not find role "${RoleName}"`);
+            throw new FaastError(
+                err instanceof Error ? err : {},
+                `could not find role "${RoleName}"`
+            );
         }
     }
     log.info(`Creating default role "${RoleName}" for faast trampoline function`);
@@ -375,7 +395,7 @@ export async function ensureRoleRaw(
             }
         ]
     });
-    const roleParams: IAM.CreateRoleRequest = {
+    const roleParams: CreateRoleRequest = {
         AssumeRolePolicyDocument,
         RoleName,
         Description: "role for lambda functions created by faast",
@@ -384,23 +404,23 @@ export async function ensureRoleRaw(
     log.info(`Calling createRole`);
     const PolicyArn = "arn:aws:iam::aws:policy/AdministratorAccess";
     try {
-        const roleResponse = await iam.createRole(roleParams).promise();
+        const roleResponse = await iam.createRole(roleParams);
         log.info(`Attaching administrator role policy`);
-        await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
-        return roleResponse.Role;
-    } catch (err: any) {
-        if (err.code === "EntityAlreadyExists") {
+        await iam.attachRolePolicy({ RoleName, PolicyArn });
+        return roleResponse.Role!;
+    } catch (err) {
+        if ((err as any).code === "EntityAlreadyExists") {
             await sleep(5000);
-            const roleResponse = await iam.getRole({ RoleName }).promise();
-            await iam.attachRolePolicy({ RoleName, PolicyArn }).promise();
-            return roleResponse.Role;
+            const roleResponse = await iam.getRole({ RoleName });
+            await iam.attachRolePolicy({ RoleName, PolicyArn });
+            return roleResponse.Role!;
         }
-        throw new FaastError(err, `failed to create role "${RoleName}"`);
+        throw new FaastError(err ?? {}, `failed to create role "${RoleName}"`);
     }
 }
 
 export const ensureRole = throttle(
-    { concurrency: 1, rate: 2, memoize: true, retry: 12 },
+    { concurrency: 1, rate: 2, memoize: false, retry: 12 },
     ensureRoleRaw
 );
 
@@ -414,8 +434,7 @@ export async function createLayer(
     FunctionName: string,
     region: AwsRegion,
     retentionInDays: number,
-    awsLambdaOptions: Partial<Lambda.CreateFunctionRequest>,
-    webpackAwsSdk: boolean
+    awsLambdaOptions: Partial<CreateFunctionRequest>
 ): Promise<AwsLayerInfo | undefined> {
     if (!packageJson) {
         return;
@@ -457,8 +476,7 @@ export async function createLayer(
             webpackOptions: {
                 externals: []
             },
-            awsLambdaOptions,
-            webpackAwsSdk
+            awsLambdaOptions
         });
         try {
             const installArgs: awsNpm.NpmInstallArgs = {
@@ -496,12 +514,20 @@ export const initialize = throttle(
         }
         log.info(`Creating AWS APIs`);
         const services = await createAwsApis(region, options.awsConfig);
+        const metrics = new AwsMetrics();
+        services.lambda.middlewareStack.add(next => async args => {
+            const start = process.hrtime.bigint();
+            const result = await next(args);
+            const end = process.hrtime.bigint();
+            console.info(`API call round trip uses ${end - start} nanoseconds`);
+            return result;
+        });
         const { lambda } = services;
         const FunctionName = `faast-${nonce}`;
         const { packageJson, useDependencyCaching, description } = options;
 
         async function createFunctionRequest(
-            Code: Lambda.FunctionCode,
+            Code: FunctionCode,
             Role: string,
             responseQueueArn: string,
             layerInfo?: AwsLayerInfo
@@ -510,7 +536,7 @@ export const initialize = throttle(
             if (layerInfo) {
                 Layers.push(layerInfo.LayerVersionArn);
             }
-            const request: Lambda.CreateFunctionRequest = {
+            const request: CreateFunctionRequest = {
                 FunctionName,
                 Role,
                 Runtime: "nodejs14.x",
@@ -526,16 +552,15 @@ export const initialize = throttle(
             log.info(`createFunctionRequest: %O`, request);
             let func;
             try {
-                func = await lambda.createFunction(request).promise();
-                await retryOp(5, () =>
-                    lambda.waitFor("functionActive", { FunctionName }).promise()
-                );
-            } catch (err: any) {
-                if (err?.message?.match(/Function already exist/)) {
-                    func = (await lambda.getFunction({ FunctionName }).promise())
-                        .Configuration!;
+                func = await lambda.createFunction(request);
+            } catch (err) {
+                if (
+                    err instanceof Error &&
+                    err?.message?.match(/Function already exist/)
+                ) {
+                    func = (await lambda.getFunction({ FunctionName })).Configuration!;
                 } else {
-                    throw new FaastError(err, "Create function failure");
+                    throw new FaastError(err ?? {}, "Create function failure");
                 }
             }
             log.info(
@@ -547,16 +572,14 @@ export const initialize = throttle(
                     (err, n) =>
                         n < 5 && err?.message?.match(/destination ARN.*is invalid/),
                     () =>
-                        lambda
-                            .putFunctionEventInvokeConfig({
-                                FunctionName,
-                                MaximumRetryAttempts: 0,
-                                MaximumEventAgeInSeconds: 21600,
-                                DestinationConfig: {
-                                    OnFailure: { Destination: responseQueueArn }
-                                }
-                            })
-                            .promise()
+                        lambda.putFunctionEventInvokeConfig({
+                            FunctionName,
+                            MaximumRetryAttempts: 0,
+                            MaximumEventAgeInSeconds: 120,
+                            DestinationConfig: {
+                                OnFailure: { Destination: responseQueueArn }
+                            }
+                        })
                 );
                 log.info(`Function event invocation config: %O`, config);
             } catch (err: any) {
@@ -589,7 +612,7 @@ export const initialize = throttle(
                 logGroupName: getLogGroupName(FunctionName)
             },
             services,
-            metrics: new AwsMetrics(),
+            metrics,
             options
         };
 
@@ -627,8 +650,7 @@ export const initialize = throttle(
                 FunctionName,
                 region,
                 retentionInDays,
-                options.awsLambdaOptions,
-                options.webpackAwsSdk
+                options.awsLambdaOptions
             );
 
             const codeBundle = await codeBundlePromise;
@@ -652,7 +674,7 @@ export const initialize = throttle(
                 try {
                     const lambdaFn = await createFunctionRequest(
                         codeBundle,
-                        role.Arn,
+                        role.Arn!,
                         responseQueueArn,
                         layer
                     );
@@ -665,7 +687,7 @@ export const initialize = throttle(
                     // deleted and re-deployed. Empirically, this is the way
                     // to ensure successful lambda creation when an IAM role
                     // is recently created.
-                    if (Date.now() - role.CreateDate.getTime() < 300 * 1000) {
+                    if (Date.now() - role.CreateDate!.getTime() < 300 * 1000) {
                         const { metrics } = state;
                         const fn = FunctionName;
                         const never = new Promise<void>(_ => {});
@@ -677,7 +699,7 @@ export const initialize = throttle(
                     /* c8 ignore next */ {
                         await lambda
                             .deleteFunction({ FunctionName })
-                            .promise()
+
                             .catch(_ => {});
                         throw new FaastError(
                             err,
@@ -755,31 +777,34 @@ async function invokeHttps(
     lambda: Lambda,
     FunctionName: string,
     message: FunctionCall,
-    metrics: AwsMetrics,
+    _metrics: AwsMetrics,
     cancel: Promise<void>
 ): Promise<void> {
-    const request: Lambda.InvocationRequest = {
+    const abortController = new AbortController();
+
+    const request: InvocationRequest = {
         FunctionName,
-        Payload: serialize(message),
+        Payload: serializeToUint8Array(message),
         LogType: "None"
     };
-    const awsRequest = lambda.invoke(request);
-    const rawResponse = await Promise.race([awsRequest.promise(), cancel]);
+    const awsRequest = lambda.invoke(request, { abortSignal: abortController.signal });
+    const rawResponse = await Promise.race([awsRequest, cancel]);
     if (!rawResponse) {
         log.info(`cancelling lambda invoke`);
-        awsRequest.abort();
+        abortController.abort();
         return;
     }
-    metrics.outboundBytes += computeHttpResponseBytes(
-        rawResponse.$response.httpResponse.headers
-    );
+    // XXX
+    // metrics.outboundBytes += computeHttpResponseBytes(
+    //     rawResponse.$response.httpResponse.headers
+    // );
 
     if (rawResponse.LogResult) {
         log.info(Buffer.from(rawResponse.LogResult!, "base64").toString());
     }
 
     if (rawResponse.FunctionError) {
-        const error = processAwsErrorMessage(rawResponse.Payload as string);
+        const error = processAwsErrorMessage(rawResponse.Payload?.toString());
         throw error;
     }
 }
@@ -930,29 +955,6 @@ export function clearLastGc() {
     lastGc = undefined;
 }
 
-function forEachPage<R>(
-    description: string,
-    request: Request<R, AWSError>,
-    process: (page: R) => Promise<void>
-) {
-    const throttlePaging = throttle({ concurrency: 1, rate: 1 }, async () => {});
-    return new Promise<void>((resolve, reject) => {
-        request.eachPage((err, page, done) => {
-            if (err) {
-                log.warn(`GC: Error when listing ${description}: ${err}`);
-                reject(err);
-                return false;
-            }
-            if (page === null) {
-                resolve();
-            } else {
-                process(page).then(() => throttlePaging().then(done));
-            }
-            return true;
-        });
-    });
-}
-
 export async function collectGarbage(
     executor: typeof defaultGcWorker,
     services: AwsServices,
@@ -993,12 +995,12 @@ export async function collectGarbage(
         promises.push(executor(work, services));
     }
     const functionsWithLogGroups = new Set();
-
-    const logGroupRequest = services.cloudwatch.describeLogGroups({
-        logGroupNamePrefix: "/aws/lambda/faast-"
-    });
     const accountId = await getAccountId(services.sts);
-    await forEachPage("log groups", logGroupRequest, async ({ logGroups = [] }) => {
+
+    for await (const { logGroups = [] } of paginateDescribeLogGroups(
+        { client: services.cloudwatch },
+        { logGroupNamePrefix: "/aws/lambda/faast-" }
+    )) {
         logGroups.forEach(g => {
             const FunctionName = functionNameFromLogGroup(g.logGroupName!);
             functionsWithLogGroups.add(FunctionName);
@@ -1013,66 +1015,59 @@ export async function collectGarbage(
             accountId,
             scheduleWork
         );
-    });
+    }
 
-    const listFunctionsRequest = services.lambda.listFunctions();
-    await forEachPage(
-        "lambda functions",
-        listFunctionsRequest,
-        async ({ Functions = [] }) => {
-            const fnPattern = new RegExp(`^faast-${uuidv4Pattern}$`);
-            const funcs = (Functions || [])
-                .filter(fn => fn.FunctionName!.match(fnPattern))
-                .filter(fn => !functionsWithLogGroups.has(fn.FunctionName))
-                .filter(fn => hasExpired(fn.LastModified, retentionInDays))
-                .map(fn => fn.FunctionName!);
-            deleteGarbageFunctions(region, accountId, funcs, scheduleWork);
-        }
-    );
+    for await (const { Functions = [] } of paginateListFunctions(
+        { client: services.lambda },
+        {}
+    )) {
+        const fnPattern = new RegExp(`^faast-${uuidv4Pattern}$`);
+        const funcs = (Functions || [])
+            .filter(fn => fn.FunctionName!.match(fnPattern))
+            .filter(fn => !functionsWithLogGroups.has(fn.FunctionName))
+            .filter(fn => hasExpired(fn.LastModified, retentionInDays))
+            .map(fn => fn.FunctionName!);
+        deleteGarbageFunctions(region, accountId, funcs, scheduleWork);
+    }
 
     // Collect Lambda Layers
-    const layersRequest = services.lambda.listLayers({
-        CompatibleRuntime: "nodejs"
-    });
-    await forEachPage("Lambda Layers", layersRequest, async ({ Layers = [] }) => {
+    for await (const { Layers = [] } of paginateListLayers(
+        { client: services.lambda },
+        { CompatibleRuntime: "nodejs" }
+    )) {
         for (const layer of Layers) {
             if (layer.LayerName!.match(/^faast-/)) {
-                const layerVersionRequest = services.lambda.listLayerVersions({
-                    LayerName: layer.LayerName!,
-                    CompatibleRuntime: "nodejs"
-                });
-                await forEachPage(
-                    "Lambda Layer Versions",
-                    layerVersionRequest,
-                    async ({ LayerVersions = [] }) => {
-                        LayerVersions.forEach(layerVersion => {
-                            if (hasExpired(layerVersion.CreatedDate, retentionInDays)) {
-                                scheduleWork({
-                                    type: "DeleteLayerVersion",
-                                    LayerName: layer.LayerName!,
-                                    VersionNumber: layerVersion.Version!
-                                });
-                            }
-                        });
+                for await (const { LayerVersions = [] } of paginateListLayerVersions(
+                    { client: services.lambda },
+                    { LayerName: layer.LayerName!, CompatibleRuntime: "nodejs" }
+                )) {
+                    for (const layerVersion of LayerVersions) {
+                        if (hasExpired(layerVersion.CreatedDate, retentionInDays)) {
+                            scheduleWork({
+                                type: "DeleteLayerVersion",
+                                LayerName: layer.LayerName!,
+                                VersionNumber: layerVersion.Version!
+                            });
+                        }
                     }
-                );
+                }
             }
         }
-    });
+    }
     log.gc(`Awaiting ${promises.length} scheduled work promises`);
     await Promise.all(promises);
     return "done";
 }
 
 export async function getAccountId(sts: STS) {
-    const response = await sts.getCallerIdentity().promise();
+    const response = await sts.getCallerIdentity({});
     const { Account, Arn, UserId } = response;
     log.info(`Account ID: %O`, { Account, Arn, UserId });
     return response.Account!;
 }
 
 function garbageCollectLogGroups(
-    logGroups: CloudWatchLogs.LogGroup[],
+    logGroups: LogGroup[],
     retentionInDays: number,
     region: AwsRegion,
     accountId: string,
@@ -1126,15 +1121,7 @@ export async function awsPacker(
     wrapperOptions: WrapperOptions,
     FunctionName: string
 ): Promise<PackerResult> {
-    const webpackOptions = merge(
-        options.webpackOptions ?? {},
-        options.webpackAwsSdk
-            ? {}
-            : {
-                  externals: [new RegExp("^aws-sdk/?")]
-              }
-    );
-
+    const webpackOptions = options.webpackOptions ?? {};
     return packer(
         awsTrampoline,
         functionModule,
@@ -1184,13 +1171,11 @@ function createRequestQueueImpl(
 
     const subscribePromise = createTopicPromise.then(topic => {
         log.info(`Subscribing SNS to invoke lambda function`);
-        return sns
-            .subscribe({
-                TopicArn: topic,
-                Protocol: "lambda",
-                Endpoint: FunctionArn
-            })
-            .promise();
+        return sns.subscribe({
+            TopicArn: topic,
+            Protocol: "lambda",
+            Endpoint: FunctionArn
+        });
     });
 
     const assignSNSResponsePromise = subscribePromise.then(
@@ -1234,7 +1219,6 @@ function addSnsInvokePermissionsToFunction(
             StatementId: `${FunctionName}-Invoke`,
             SourceArn: RequestTopicArn
         })
-        .promise()
         .catch(err => {
             if (err.match(/already exists/)) {
             } else {
@@ -1299,16 +1283,14 @@ export const awsPrice = throttle(
                 );
                 return Math.max(...prices);
             }
-            const priceResult = await pricing
-                .getProducts({
-                    ServiceCode,
-                    Filters: Object.keys(filter).map(key => ({
-                        Field: key,
-                        Type: "TERM_MATCH",
-                        Value: filter[key]
-                    }))
-                })
-                .promise();
+            const priceResult = await pricing.getProducts({
+                ServiceCode,
+                Filters: Object.keys(filter).map(key => ({
+                    Field: key,
+                    Type: "TERM_MATCH",
+                    Value: filter[key]
+                }))
+            });
             if (priceResult.PriceList!.length > 1) {
                 log.warn(
                     `Price query returned more than one product '${ServiceCode}' ($O)`,

@@ -1,11 +1,13 @@
 import archiver from "archiver";
-import { Lambda, S3 } from "aws-sdk";
 import { execSync } from "child_process";
 import { ensureDir, remove, writeFile } from "fs-extra";
 import { tmpdir } from "os";
 import path from "path";
 import { inspect } from "util";
-import { streamToBuffer, hasExpired } from "../shared";
+import { hasExpired, streamToBuffer } from "../shared";
+import { Lambda, LayerVersionContentInput } from "@aws-sdk/client-lambda";
+import { S3 } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
 
 async function exec(cmds: string[]) {
     let rv = "";
@@ -58,7 +60,7 @@ export async function npmInstall({
     await ensureDir(buildDir);
     await writeFile(path.join(buildDir, "package.json"), packageJsonContents);
 
-    const awsconfig = { correctClockSkew: true, maxRetries: 6 };
+    const awsconfig = { maxRetries: 6 };
 
     let installLog = "";
     log("Checking cache");
@@ -67,7 +69,6 @@ export async function npmInstall({
 
     const cached = await lambda
         .listLayerVersions({ LayerName, CompatibleRuntime: "nodejs" })
-        .promise()
         .catch(_ => undefined);
 
     const layerVersion = cached?.LayerVersions?.[0];
@@ -94,7 +95,7 @@ export async function npmInstall({
     log(`Code ZipFile size: ${ZipFile.length}`);
     log(`Removing ${buildParentDir}`);
     const removePromise = remove(buildParentDir);
-    let Content: Lambda.LayerVersionContentInput | undefined;
+    let Content: LayerVersionContentInput | undefined;
     const Bucket = FunctionName;
     const s3 = new S3({ region, ...awsconfig });
     const zipSize = ZipFile.length;
@@ -102,25 +103,24 @@ export async function npmInstall({
         if (ZipFile.length > 50 * 2 ** 20) {
             // Try to use S3 to allow for a larger limit
             log(`Creating s3 bucket ${Bucket}`);
-            await s3
-                .createBucket({ Bucket })
-                .promise()
-                .catch(_ => {});
+            await s3.createBucket({ Bucket }).catch(_ => {});
             log(`Uploading bucket: ${Bucket}, object: ${LayerName}`);
-            await s3.upload({ Bucket, Key: LayerName, Body: ZipFile }).promise();
+            const upload = new Upload({
+                client: s3,
+                params: { Bucket, Key: LayerName, Body: ZipFile }
+            });
+            await upload.done();
             Content = { S3Bucket: Bucket, S3Key: LayerName };
         } else {
             Content = { ZipFile };
         }
         log(`Creating lambda layer: ${LayerName}, zip file size: ${ZipFile.length}`);
-        const publishResponse = await lambda
-            .publishLayerVersion({
-                LayerName,
-                Description: `faast packageJson layer with LayerName ${LayerName}`,
-                Content,
-                CompatibleRuntimes: ["nodejs"]
-            })
-            .promise();
+        const publishResponse = await lambda.publishLayerVersion({
+            LayerName,
+            Description: `faast packageJson layer with LayerName ${LayerName}`,
+            Content,
+            CompatibleRuntimes: ["nodejs"]
+        });
         const { Version } = publishResponse;
         log(`Created lambda layer: ${LayerName}:${Version}`);
         log(`DONE`);
@@ -136,8 +136,8 @@ export async function npmInstall({
     } finally {
         if (Content?.S3Bucket) {
             try {
-                await s3.deleteObject({ Bucket, Key: LayerName }).promise();
-                await s3.deleteBucket({ Bucket }).promise();
+                await s3.deleteObject({ Bucket, Key: LayerName });
+                await s3.deleteBucket({ Bucket });
             } catch {}
         }
         await removePromise;

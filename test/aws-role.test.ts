@@ -1,5 +1,5 @@
 import test from "ava";
-import { IAM } from "aws-sdk";
+import { IAM, Role } from "@aws-sdk/client-iam";
 import { v4 as uuidv4 } from "uuid";
 import { faastAws, FaastModule } from "../index";
 import {
@@ -21,7 +21,7 @@ import { retryOp } from "../src/throttle";
  */
 test.serial(title("aws", "custom role"), async t => {
     t.plan(1);
-    const iam = new IAM();
+    const iam = new IAM({});
     const uuid = uuidv4();
     const RoleName = `faast-test-custom-role-${uuid}`;
     let faastModule: FaastModule<typeof funcs> | undefined;
@@ -40,13 +40,11 @@ test.serial(title("aws", "custom role"), async t => {
         });
         state = `creating role ${RoleName}`;
         await retryOp(6, () =>
-            iam
-                .createRole({
-                    AssumeRolePolicyDocument,
-                    RoleName,
-                    Description: "test custom role for lambda functions created by faast"
-                })
-                .promise()
+            iam.createRole({
+                AssumeRolePolicyDocument,
+                RoleName,
+                Description: "test custom role for lambda functions created by faast"
+            })
         );
 
         const PolicyDocument = JSON.stringify({
@@ -67,20 +65,16 @@ test.serial(title("aws", "custom role"), async t => {
 
         state = "creating policy";
         const executionPolicy = await retryOp(6, () =>
-            iam
-                .createPolicy({
-                    Description: "test faast custom role policy",
-                    PolicyName: RoleName,
-                    PolicyDocument
-                })
-                .promise()
+            iam.createPolicy({
+                Description: "test faast custom role policy",
+                PolicyName: RoleName,
+                PolicyDocument
+            })
         );
 
         state = "attaching role policy";
         PolicyArn = executionPolicy.Policy!.Arn!;
-        await retryOp(6, () =>
-            iam.attachRolePolicy({ RoleName, PolicyArn: PolicyArn! }).promise()
-        );
+        await retryOp(6, () => iam.attachRolePolicy({ RoleName, PolicyArn: PolicyArn! }));
 
         await sleep(30 * 1000);
 
@@ -101,10 +95,8 @@ test.serial(title("aws", "custom role"), async t => {
             await faastModule?.cleanup();
             await retryOp(3, () => deleteRole(RoleName, iam));
             PolicyArn &&
-                (await retryOp(3, () =>
-                    iam.deletePolicy({ PolicyArn: PolicyArn! }).promise()
-                ));
-        } catch (err: any) {
+                (await retryOp(3, () => iam.deletePolicy({ PolicyArn: PolicyArn! })));
+        } catch (err) {
             throw new FaastError(
                 err,
                 `Could not cleanup test role, last state: ${state}`
@@ -114,7 +106,7 @@ test.serial(title("aws", "custom role"), async t => {
 });
 
 test.serial(title("aws", "unit test ensureRole"), async t => {
-    let role: IAM.Role | undefined;
+    let role: Role | undefined;
     t.plan(3);
     const RoleName = `faast-test-ensureRole-1-${uuidv4()}`;
     try {
@@ -126,10 +118,7 @@ test.serial(title("aws", "unit test ensureRole"), async t => {
     } finally {
         const services = await createAwsApis("us-west-2");
         await deleteResources({ RoleName }, services, () => {});
-        const role3 = await services.iam
-            .getRole({ RoleName })
-            .promise()
-            .catch(_ => {});
+        const role3 = await services.iam.getRole({ RoleName }).catch(_ => {});
         t.true(role3 === undefined);
     }
 });
@@ -149,7 +138,7 @@ test.serial(title("aws", "race condition in role creation"), async t => {
     const RoleName = `faast-test-ensureRole-3-${uuidv4()}`;
     t.plan(3);
     const services = await createAwsApis("us-west-2");
-    const promises: Promise<IAM.Role>[] = [];
+    const promises: Promise<Role>[] = [];
     try {
         for (let i = 0; i < 3; i++) {
             promises.push(ensureRoleRaw(RoleName, services, true));

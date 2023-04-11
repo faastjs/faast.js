@@ -1,9 +1,9 @@
-import { S3 } from "aws-sdk";
-import tar from "tar-stream";
-import { Readable } from "stream";
-import { escape } from "querystring";
+import { S3 } from "@aws-sdk/client-s3";
 import { createHash } from "crypto";
 import process from "process";
+import { escape } from "querystring";
+import { Readable } from "stream";
+import tar from "tar-stream";
 
 const s3 = new S3({ region: "us-west-2" });
 
@@ -26,6 +26,7 @@ export async function extractTarStream(
         processEntry(header, buf);
         next();
     });
+
     content.pipe(tarExtract);
     await new Promise(resolve => tarExtract.on("finish", resolve));
 }
@@ -50,7 +51,8 @@ export async function processBucketObject(Bucket: string, Key: string) {
     }
 
     log(`Starting download`);
-    const result = await s3.getObject({ Bucket, Key }).createReadStream();
+    // Body is always a Readable in nodejs.
+    const result = (await s3.getObject({ Bucket, Key })).Body as Readable;
 
     log(`Extracting tar file stream`);
     let nExtracted = 0;
@@ -137,24 +139,20 @@ export async function copyObject(
     toBucket: string,
     toKey: string
 ) {
-    await s3
-        .copyObject({
-            Bucket: toBucket,
-            Key: toKey,
-            CopySource: escape(fromBucket + "/" + fromKey)
-        })
-        .promise();
+    await s3.copyObject({
+        Bucket: toBucket,
+        Key: toKey,
+        CopySource: escape(fromBucket + "/" + fromKey)
+    });
 }
 
 export async function deleteObjects(Bucket: string, Keys: string[]) {
-    await s3
-        .deleteObjects({
-            Bucket,
-            Delete: {
-                Objects: Keys.map(Key => ({
-                    Key
-                }))
-            }
-        })
-        .promise();
+    await s3.deleteObjects({
+        Bucket,
+        Delete: {
+            Objects: Keys.map(Key => ({
+                Key
+            }))
+        }
+    });
 }

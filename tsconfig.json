@@ -5,6 +5,8 @@
         "module": "Node16",
         "target": "ES2020",
         "lib": ["es2020"],
+        // "sourceMap": true,
+        "composite": true,
         "inlineSourceMap": true,
         "inlineSources": true,
         "declaration": true,
@@ -19,8 +21,11 @@
         "noUnusedParameters": true,
         "strict": true,
         "importHelpers": true,
+        "allowSyntheticDefaultImports": true,
         "skipLibCheck": true,
+        "incremental": true,
         "esModuleInterop": true
     },
-    "exclude": ["node_modules", "dist", "etc", "temp", "examples", "test-release"]
+    "include": ["src/**/*", "index.ts", "test/**/*", "types/**/*"],
+    "exclude": ["**/node_modules", "dist/**/*", "etc", "temp", "examples", "test-release"]
 }

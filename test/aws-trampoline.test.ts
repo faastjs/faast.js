@@ -3,9 +3,9 @@
  * route calls, invoke the wrapper, and return values correctly, without
  * actually creating a cloud function. However, it does use real cloud queues.
  */
+import { SQS } from "@aws-sdk/client-sqs";
 import test from "ava";
 import { Context, SNSEvent } from "aws-lambda";
-import { SQS } from "aws-sdk";
 import { v4 as uuidv4 } from "uuid";
 import { AwsMetrics } from "../src/aws/aws-faast";
 import { receiveMessages } from "../src/aws/aws-queue";
@@ -38,7 +38,7 @@ const lambdaContext: Context = {
 
 async function makeResponseQueue() {
     const QueueName = `faast-${uuidv4()}-test`;
-    const { QueueUrl } = await sqs.createQueue({ QueueName }).promise();
+    const { QueueUrl } = await sqs.createQueue({ QueueName });
     return QueueUrl!;
 }
 
@@ -48,8 +48,8 @@ async function deleteResponseQueue(QueueUrl: string) {
         // deleting it. This manifests as a NonExistentQueue error. Waiting
         // a short while seems to make this less common.
         await sleep(5000);
-        return await sqs.deleteQueue({ QueueUrl }).promise();
-    } catch (err: any) {
+        return await sqs.deleteQueue({ QueueUrl });
+    } catch (err) {
         console.error(`Could not delete response queue: ${err}`);
         throw err;
     }

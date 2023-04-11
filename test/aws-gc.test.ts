@@ -1,11 +1,11 @@
+import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import test from "ava";
-import { CloudWatchLogs } from "aws-sdk";
 import { v4 as uuid } from "uuid";
 import { faastAws, log, throttle } from "../index";
-import { defaultGcWorker, clearLastGc } from "../src/aws/aws-faast";
-import { getAWSResources } from "./fixtures/util-aws";
+import { clearLastGc, defaultGcWorker } from "../src/aws/aws-faast";
 import * as functions from "./fixtures/functions";
 import { checkResourcesCleanedUp, sleep, title } from "./fixtures/util";
+import { getAWSResources } from "./fixtures/util-aws";
 import assert from "assert";
 
 async function waitForLogGroupCreation(
@@ -18,9 +18,9 @@ async function waitForLogGroupCreation(
         await sleep(1000);
         try {
             n++;
-            const described = await cloudwatch
-                .describeLogGroups({ logGroupNamePrefix: logGroupName })
-                .promise();
+            const described = await cloudwatch.describeLogGroups({
+                logGroupNamePrefix: logGroupName
+            });
             if (!described.logGroups) {
                 continue;
             }
@@ -32,9 +32,7 @@ async function waitForLogGroupCreation(
                 retrievedLogGroup === logGroupName,
                 `Unexpected logGroupName: ${retrievedLogGroup}, expecting ${logGroupName}`
             );
-            const logResult = await cloudwatch
-                .filterLogEvents({ logGroupName })
-                .promise();
+            const logResult = await cloudwatch.filterLogEvents({ logGroupName });
             const events = logResult.events ?? [];
             // console.log(`[${n}] Found log group: ${logGroupName}`);
             let foundMessage = false;
@@ -82,7 +80,7 @@ test.serial(title("aws", "garbage collects functions that are called"), async t 
         // Create some work for gc to do by removing the log retention policy, gc
         // should add it back.
         const deleteRetentionPolicy = throttle({ concurrency: 1, retry: 5 }, () =>
-            cloudwatch.deleteRetentionPolicy({ logGroupName }).promise()
+            cloudwatch.deleteRetentionPolicy({ logGroupName })
         );
         await deleteRetentionPolicy();
 
