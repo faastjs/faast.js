@@ -21,7 +21,7 @@ import { retryOp } from "../src/throttle";
  */
 test.serial(title("aws", "custom role"), async t => {
     t.plan(1);
-    const iam = new IAM({});
+    const iam = new IAM({ region: "us-west-2" });
     const uuid = uuidv4();
     const RoleName = `faast-test-custom-role-${uuid}`;
     let faastModule: FaastModule<typeof funcs> | undefined;
