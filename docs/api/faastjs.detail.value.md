@@ -11,7 +11,7 @@ hide_title: true
 
 A Promise for the function's return value.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 value: R;

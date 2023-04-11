@@ -11,7 +11,7 @@ hide_title: true
 
 Possible FaastError names. See [FaastError](./faastjs.faasterror.md)<!-- -->. To test for errors matching these names, use the static method [FaastError](./faastjs.faasterror.md)<!-- -->.hasCauseWithName().
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export declare enum FaastErrorNames 

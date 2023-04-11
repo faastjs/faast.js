@@ -7,8 +7,8 @@ export function quietly<T>(p: Promise<T>) {
             // ResponseMetadata field when an object is recently destroyed. We
             // check for this case and return undefined as if the object were
             // not there. This fixes occassional testsuite failures.
-            const { ResponseMetadata, ...rest } = x as any;
-            if (ResponseMetadata && Object.keys(rest).length === 0) {
+            const { ResponseMetadata, $metadata, ...rest } = x as any;
+            if (Object.keys(rest).length === 0) {
                 return;
             }
             return x;

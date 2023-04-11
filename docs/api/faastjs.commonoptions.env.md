@@ -11,7 +11,7 @@ hide_title: true
 
 Environment variables available during serverless function execution. Default: {<!-- -->}<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 env?: {

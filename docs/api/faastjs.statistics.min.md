@@ -11,7 +11,7 @@ hide_title: true
 
 The minimum value observed. Initialized to `Number.POSITIVE_INFINITY`<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 min: number;

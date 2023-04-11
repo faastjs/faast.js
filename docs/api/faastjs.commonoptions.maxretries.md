@@ -11,7 +11,7 @@ hide_title: true
 
 Maximum number of times that faast will retry each invocation. Default: 2 (invocations can therefore be attemped 3 times in total).
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 maxRetries?: number;

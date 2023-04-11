@@ -11,9 +11,9 @@ hide_title: true
 
 The return type of [faastAws()](./faastjs.faastaws.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export type AwsFaastModule<M extends object = object> = FaastModuleProxy<M, AwsOptions, AwsState>;
 ```
-<b>References:</b> [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->, [AwsOptions](./faastjs.awsoptions.md)
+**References:** [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->, [AwsOptions](./faastjs.awsoptions.md)

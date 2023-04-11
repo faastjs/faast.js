@@ -11,7 +11,7 @@ hide_title: true
 
 If true, delete provider cloud resources. Default: true.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 deleteResources?: boolean;

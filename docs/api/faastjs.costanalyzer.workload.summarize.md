@@ -11,7 +11,7 @@ hide_title: true
 
 Combine [CostAnalyzer.WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md) instances returned from multiple workload executions (caused by value of [CostAnalyzer.Workload.repetitions](./faastjs.costanalyzer.workload.repetitions.md)<!-- -->). The default is a function that takes the average of each attribute.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 summarize?: (summaries: WorkloadAttribute<A>[]) => WorkloadAttribute<A>;

@@ -11,7 +11,7 @@ hide_title: true
 
 Cost analyzer results for each workload and configuration.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 class Result<T extends object, A extends string> 

@@ -11,7 +11,7 @@ hide_title: true
 
 The variance of the values observed.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 variance: number;

@@ -11,7 +11,7 @@ hide_title: true
 
 A function that executes cloud functions on `faastModule.functions.*`<!-- -->. The work function should return `void` if there are no custom workload attributes. Otherwise, it should return a [CostAnalyzer.WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md) object which maps user-defined attribute names to numerical values for the workload. For example, this might measure bandwidth or some other metric not tracked by faast.js, but are relevant for evaluating the cost-performance tradeoff of the configurations analyzed by the cost analyzer.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 work: (faastModule: FaastModule<T>) => Promise<WorkloadAttribute<A> | void>;

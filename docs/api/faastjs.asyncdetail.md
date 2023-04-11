@@ -11,9 +11,9 @@ hide_title: true
 
 `AsyncDetail<T>` is similar to [Async](./faastjs.async.md) except it maps retun values R to `Detail<R>`<!-- -->, which is the return value with additional information about each cloud function invocation.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export type AsyncDetail<T> = T extends AsyncGenerator<infer R> ? AsyncGenerator<Detail<R>> : T extends Generator<infer R> ? AsyncGenerator<Detail<R>> : T extends Promise<infer R> ? Promise<Detail<R>> : Promise<Detail<T>>;
 ```
-<b>References:</b> [Detail](./faastjs.detail.md)
+**References:** [Detail](./faastjs.detail.md)

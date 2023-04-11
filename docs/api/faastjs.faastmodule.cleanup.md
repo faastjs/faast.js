@@ -11,7 +11,7 @@ hide_title: true
 
 Stop the faast.js runtime for this cloud function and clean up ephemeral cloud resources.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 cleanup(options?: CleanupOptions): Promise<void>;
@@ -21,9 +21,9 @@ cleanup(options?: CleanupOptions): Promise<void>;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  options | [CleanupOptions](./faastjs.cleanupoptions.md) | <i>(Optional)</i> |
+|  options | [CleanupOptions](./faastjs.cleanupoptions.md) | _(Optional)_ |
 
-<b>Returns:</b>
+**Returns:**
 
 Promise&lt;void&gt;
 

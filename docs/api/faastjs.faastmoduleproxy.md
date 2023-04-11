@@ -11,12 +11,12 @@ hide_title: true
 
 Implementation of [FaastModule](./faastjs.faastmodule.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export declare class FaastModuleProxy<M extends object, O extends CommonOptions, S> implements FaastModule<M> 
 ```
-<b>Implements:</b> [FaastModule](./faastjs.faastmodule.md)
+**Implements:** [FaastModule](./faastjs.faastmodule.md)<!-- -->&lt;M&gt;
 
 ## Remarks
 

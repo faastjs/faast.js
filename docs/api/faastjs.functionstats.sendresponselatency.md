@@ -11,7 +11,7 @@ hide_title: true
 
 Statistics for how long it takes to send the response to the response queue.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 sendResponseLatency: Statistics;

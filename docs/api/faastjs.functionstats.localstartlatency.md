@@ -11,7 +11,7 @@ hide_title: true
 
 Statistics for how long invocations stay in the local queue before being sent to the cloud provider.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 localStartLatency: Statistics;

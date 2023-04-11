@@ -11,7 +11,7 @@ hide_title: true
 
 The function statistics that were used to compute prices.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly stats: FunctionStats;

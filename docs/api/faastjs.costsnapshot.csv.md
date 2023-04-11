@@ -11,12 +11,12 @@ hide_title: true
 
 Comma separated value output for a cost snapshot.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 csv(): string;
 ```
-<b>Returns:</b>
+**Returns:**
 
 string
 

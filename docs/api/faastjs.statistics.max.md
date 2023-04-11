@@ -11,7 +11,7 @@ hide_title: true
 
 The maximum value observed. Initialized to `Number.NEGATIVE_INFINITY`<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 max: number;

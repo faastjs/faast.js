@@ -11,7 +11,7 @@ hide_title: true
 
 Register a callback for statistics events.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
@@ -24,7 +24,7 @@ on(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
 |  name | "stats" |  |
 |  listener | (statsEvent: [FunctionStatsEvent](./faastjs.functionstatsevent.md)<!-- -->) =&gt; void |  |
 
-<b>Returns:</b>
+**Returns:**
 
 void
 

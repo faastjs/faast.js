@@ -11,7 +11,7 @@ hide_title: true
 
 The price in USD per unit measured.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly pricing: number;

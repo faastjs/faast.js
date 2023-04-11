@@ -11,7 +11,7 @@ hide_title: true
 
 User-defined custom metrics for a workload. These are automatically summarized in the output; see [CostAnalyzer.Workload](./faastjs.costanalyzer.workload.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 type WorkloadAttribute<A extends string> = {

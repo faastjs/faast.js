@@ -11,7 +11,7 @@ hide_title: true
 
 The workload analyzed.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly workload: Required<Workload<T, A>>;

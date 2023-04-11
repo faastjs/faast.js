@@ -11,7 +11,7 @@ hide_title: true
 
 If true, delete cached resources. Default: false.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 deleteCaches?: boolean;

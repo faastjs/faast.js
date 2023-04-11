@@ -114,7 +114,7 @@ export function emptyReject() {
 }
 
 export function rejected(): Promise<void> {
-    return Promise.reject(new Error("intentionally rejected"));
+    return Promise.reject("intentionally rejected");
 }
 
 export interface Timing {

@@ -11,7 +11,7 @@ hide_title: true
 
 See [FunctionStats](./faastjs.functionstats.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly stats: FunctionStats;

@@ -11,7 +11,7 @@ hide_title: true
 
 The measured value of the cost metric, in units.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly measured: number;

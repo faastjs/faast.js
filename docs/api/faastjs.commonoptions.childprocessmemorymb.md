@@ -11,7 +11,7 @@ hide_title: true
 
 When childProcess is true, the child process will be spawned with the value of this property as the setting for --max-old-space-size.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 childProcessMemoryMb?: number;

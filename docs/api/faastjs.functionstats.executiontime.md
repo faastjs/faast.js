@@ -11,7 +11,7 @@ hide_title: true
 
 Statistics for function execution time in milliseconds. This is measured as wall clock time inside the cloud function, and does not include the time taken to send the response to the response queue. Note that most cloud providers round up to the next 100ms for pricing.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 executionTime: Statistics;

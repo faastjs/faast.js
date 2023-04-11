@@ -11,11 +11,11 @@ hide_title: true
 
 Print the mean of the observations seen, with the precision specified in the constructor.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 toString(): string;
 ```
-<b>Returns:</b>
+**Returns:**
 
 string

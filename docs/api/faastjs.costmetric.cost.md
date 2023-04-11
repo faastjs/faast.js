@@ -11,11 +11,11 @@ hide_title: true
 
 The cost contribution of this cost metric. Equal to [CostMetric.pricing](./faastjs.costmetric.pricing.md) \* [CostMetric.measured](./faastjs.costmetric.measured.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 cost(): number;
 ```
-<b>Returns:</b>
+**Returns:**
 
 number

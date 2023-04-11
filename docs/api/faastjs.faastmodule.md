@@ -11,7 +11,7 @@ hide_title: true
 
 The main interface for invoking, cleaning up, and managing faast.js cloud functions. Returned by [faast()](./faastjs.faast.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export interface FaastModule<M extends object> 

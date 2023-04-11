@@ -11,7 +11,7 @@ hide_title: true
 
 Summary statistics for function invocations.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export declare class FunctionStats 

@@ -11,7 +11,7 @@ hide_title: true
 
 The name of the units that pricing is measured in for this metric.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly unit: string;

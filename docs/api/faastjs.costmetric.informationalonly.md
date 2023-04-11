@@ -11,7 +11,7 @@ hide_title: true
 
 True if this cost metric is only for informational purposes (e.g. AWS's `logIngestion`<!-- -->) and does not contribute cost.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly informationalOnly?: boolean;

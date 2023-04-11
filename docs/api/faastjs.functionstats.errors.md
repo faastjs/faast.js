@@ -11,7 +11,7 @@ hide_title: true
 
 The number of invocations that resulted in an error. If an invocation is retried, an error is only counted once, no matter how many retries were attempted.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 errors: number;

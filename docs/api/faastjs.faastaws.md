@@ -11,7 +11,7 @@ hide_title: true
 
 The main entry point for faast with AWS provider.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export declare function faastAws<M extends object>(fmodule: M, options?: AwsOptions): Promise<AwsFaastModule<M>>;
@@ -22,8 +22,8 @@ export declare function faastAws<M extends object>(fmodule: M, options?: AwsOpti
 |  Parameter | Type | Description |
 |  --- | --- | --- |
 |  fmodule | M | A module imported with <code>import * as X from &quot;Y&quot;;</code>. Using <code>require</code> also works but loses type information. |
-|  options | [AwsOptions](./faastjs.awsoptions.md) | <i>(Optional)</i> Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional AWS-specific options are in [AwsOptions](./faastjs.awsoptions.md)<!-- -->. |
+|  options | [AwsOptions](./faastjs.awsoptions.md) | _(Optional)_ Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional AWS-specific options are in [AwsOptions](./faastjs.awsoptions.md)<!-- -->. |
 
-<b>Returns:</b>
+**Returns:**
 
 Promise&lt;[AwsFaastModule](./faastjs.awsfaastmodule.md)<!-- -->&lt;M&gt;&gt;

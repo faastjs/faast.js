@@ -11,7 +11,7 @@ hide_title: true
 
 Retrieves the value previously set for the given key, or undefined if the key is not found.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 get(key: string): Promise<Buffer | undefined>;
@@ -23,6 +23,6 @@ get(key: string): Promise<Buffer | undefined>;
 |  --- | --- | --- |
 |  key | string |  |
 
-<b>Returns:</b>
+**Returns:**
 
 Promise&lt;Buffer \| undefined&gt;

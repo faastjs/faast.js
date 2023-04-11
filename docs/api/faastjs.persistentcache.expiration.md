@@ -11,7 +11,7 @@ hide_title: true
 
 The age (in ms) after which a cached entry is invalid. Default: `24*3600*1000` (1 day).
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly expiration: number;

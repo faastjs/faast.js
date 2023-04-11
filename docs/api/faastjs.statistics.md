@@ -11,7 +11,7 @@ hide_title: true
 
 Incrementally updated statistics on a set of values.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export declare class Statistics 

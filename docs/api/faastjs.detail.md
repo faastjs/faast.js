@@ -11,7 +11,7 @@ hide_title: true
 
 A function return value with additional detailed information.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export interface Detail<R> 
@@ -21,7 +21,7 @@ export interface Detail<R>
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [executionId?](./faastjs.detail.executionid.md) |  | string | <i>(Optional)</i> If available, the provider-specific execution identifier for this invocation. |
-|  [instanceId?](./faastjs.detail.instanceid.md) |  | string | <i>(Optional)</i> If available, the provider-specific instance identifier for this invocation. |
-|  [logUrl?](./faastjs.detail.logurl.md) |  | string | <i>(Optional)</i> The URL of the logs for the specific execution of this function call. |
+|  [executionId?](./faastjs.detail.executionid.md) |  | string | _(Optional)_ If available, the provider-specific execution identifier for this invocation. |
+|  [instanceId?](./faastjs.detail.instanceid.md) |  | string | _(Optional)_ If available, the provider-specific instance identifier for this invocation. |
+|  [logUrl?](./faastjs.detail.logurl.md) |  | string | _(Optional)_ The URL of the logs for the specific execution of this function call. |
 |  [value](./faastjs.detail.value.md) |  | R | A Promise for the function's return value. |

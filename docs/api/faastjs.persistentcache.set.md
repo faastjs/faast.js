@@ -11,10 +11,10 @@ hide_title: true
 
 Set the cache key to the given value.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
-set(key: string, value: Buffer | string | Uint8Array | Readable | Blob): Promise<void>;
+set(key: string, value: Buffer | string | Uint8Array): Promise<void>;
 ```
 
 ## Parameters
@@ -22,9 +22,9 @@ set(key: string, value: Buffer | string | Uint8Array | Readable | Blob): Promise
 |  Parameter | Type | Description |
 |  --- | --- | --- |
 |  key | string |  |
-|  value | Buffer &#124; string &#124; Uint8Array &#124; Readable &#124; Blob |  |
+|  value | Buffer &#124; string &#124; Uint8Array |  |
 
-<b>Returns:</b>
+**Returns:**
 
 Promise&lt;void&gt;
 

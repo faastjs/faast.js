@@ -11,7 +11,7 @@ hide_title: true
 
 The main entry point for faast with Local provider.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export declare function faastLocal<M extends object>(fmodule: M, options?: LocalOptions): Promise<LocalFaastModule<M>>;
@@ -22,9 +22,9 @@ export declare function faastLocal<M extends object>(fmodule: M, options?: Local
 |  Parameter | Type | Description |
 |  --- | --- | --- |
 |  fmodule | M | A module imported with <code>import * as X from &quot;Y&quot;;</code>. Using <code>require</code> also works but loses type information. |
-|  options | [LocalOptions](./faastjs.localoptions.md) | <i>(Optional)</i> Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional Local-specific options are in [LocalOptions](./faastjs.localoptions.md)<!-- -->. |
+|  options | [LocalOptions](./faastjs.localoptions.md) | _(Optional)_ Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional Local-specific options are in [LocalOptions](./faastjs.localoptions.md)<!-- -->. |
 
-<b>Returns:</b>
+**Returns:**
 
 Promise&lt;[LocalFaastModule](./faastjs.localfaastmodule.md)<!-- -->&lt;M&gt;&gt;
 

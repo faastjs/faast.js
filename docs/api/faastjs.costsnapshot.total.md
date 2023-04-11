@@ -11,11 +11,11 @@ hide_title: true
 
 Sum of cost metrics.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 total(): number;
 ```
-<b>Returns:</b>
+**Returns:**
 
 number

@@ -11,7 +11,7 @@ hide_title: true
 
 Options that apply to the [FaastModule.cleanup()](./faastjs.faastmodule.cleanup.md) method.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export interface CleanupOptions 
@@ -21,6 +21,6 @@ export interface CleanupOptions
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [deleteCaches?](./faastjs.cleanupoptions.deletecaches.md) |  | boolean | <i>(Optional)</i> If true, delete cached resources. Default: false. |
-|  [deleteResources?](./faastjs.cleanupoptions.deleteresources.md) |  | boolean | <i>(Optional)</i> If true, delete provider cloud resources. Default: true. |
-|  [gcTimeout?](./faastjs.cleanupoptions.gctimeout.md) |  | number | <i>(Optional)</i> Number of seconds to wait for garbage collection. Default: 10. |
+|  [deleteCaches?](./faastjs.cleanupoptions.deletecaches.md) |  | boolean | _(Optional)_ If true, delete cached resources. Default: false. |
+|  [deleteResources?](./faastjs.cleanupoptions.deleteresources.md) |  | boolean | _(Optional)_ If true, delete provider cloud resources. Default: true. |
+|  [gcTimeout?](./faastjs.cleanupoptions.gctimeout.md) |  | number | _(Optional)_ Number of seconds to wait for garbage collection. Default: 10. |

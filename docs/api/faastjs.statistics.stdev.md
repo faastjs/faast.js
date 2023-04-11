@@ -11,7 +11,7 @@ hide_title: true
 
 The standard deviation of the values observed.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 stdev: number;

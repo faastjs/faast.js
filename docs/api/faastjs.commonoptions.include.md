@@ -11,7 +11,7 @@ hide_title: true
 
 Include files to make available in the remote function. See [IncludeOption](./faastjs.includeoption.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 include?: (string | IncludeOption)[];

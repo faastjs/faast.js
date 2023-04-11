@@ -11,7 +11,7 @@ hide_title: true
 
 Faast.js loggers.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 log: {

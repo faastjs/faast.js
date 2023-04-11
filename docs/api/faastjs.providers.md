@@ -11,7 +11,7 @@ hide_title: true
 
 An array of all available provider.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 providers: Provider[]

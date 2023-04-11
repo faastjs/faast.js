@@ -11,12 +11,12 @@ hide_title: true
 
 Get a near real-time cost estimate of cloud function invocations.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 costSnapshot(): Promise<CostSnapshot>;
 ```
-<b>Returns:</b>
+**Returns:**
 
 Promise&lt;[CostSnapshot](./faastjs.costsnapshot.md)<!-- -->&gt;
 

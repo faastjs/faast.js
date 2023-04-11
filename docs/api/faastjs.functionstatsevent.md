@@ -11,7 +11,7 @@ hide_title: true
 
 Summarize statistics about cloud function invocations.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export declare class FunctionStatsEvent 

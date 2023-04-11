@@ -11,7 +11,7 @@ hide_title: true
 
 The cost metric components for this cost snapshot. See [CostMetric](./faastjs.costmetric.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly costMetrics: CostMetric[];

@@ -11,7 +11,7 @@ hide_title: true
 
 Cache installed dependencies from [CommonOptions.packageJson](./faastjs.commonoptions.packagejson.md)<!-- -->. Only applies to AWS. Default: true.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 useDependencyCaching?: boolean;

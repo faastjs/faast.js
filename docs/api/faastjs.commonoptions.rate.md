@@ -11,7 +11,7 @@ hide_title: true
 
 Rate limit invocations (invocations/sec). Default: no rate limit.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 rate?: number;

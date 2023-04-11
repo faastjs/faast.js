@@ -11,11 +11,11 @@ hide_title: true
 
 Retrieve all keys stored in the cache, including expired entries.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 entries(): Promise<string[]>;
 ```
-<b>Returns:</b>
+**Returns:**
 
 Promise&lt;string\[\]&gt;

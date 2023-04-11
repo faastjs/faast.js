@@ -11,7 +11,7 @@ hide_title: true
 
 Number of seconds to wait for garbage collection. Default: 10.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 gcTimeout?: number;

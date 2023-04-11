@@ -11,7 +11,7 @@ hide_title: true
 
 Specify invocation mode. Default: `"auto"`<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 mode?: "https" | "queue" | "auto";

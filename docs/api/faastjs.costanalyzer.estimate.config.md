@@ -11,7 +11,7 @@ hide_title: true
 
 The worload configuration that was analyzed. See [CostAnalyzer.Configuration](./faastjs.costanalyzer.configuration.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 config: Configuration;

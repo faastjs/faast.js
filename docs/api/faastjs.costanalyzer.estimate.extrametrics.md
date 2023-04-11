@@ -11,7 +11,7 @@ hide_title: true
 
 Additional workload metrics returned from the work function. See [CostAnalyzer.WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 extraMetrics: WorkloadAttribute<A>;

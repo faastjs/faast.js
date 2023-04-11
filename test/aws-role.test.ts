@@ -96,7 +96,7 @@ test.serial(title("aws", "custom role"), async t => {
             await retryOp(3, () => deleteRole(RoleName, iam));
             PolicyArn &&
                 (await retryOp(3, () => iam.deletePolicy({ PolicyArn: PolicyArn! })));
-        } catch (err) {
+        } catch (err: any) {
             throw new FaastError(
                 err,
                 `Could not cleanup test role, last state: ${state}`

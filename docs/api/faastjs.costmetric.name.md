@@ -11,7 +11,7 @@ hide_title: true
 
 The name of the cost metric, e.g. `functionCallDuration`
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly name: string;

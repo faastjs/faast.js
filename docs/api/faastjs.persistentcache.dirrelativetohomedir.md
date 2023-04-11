@@ -11,7 +11,7 @@ hide_title: true
 
 The directory under the user's home directory that will be used to store cached values. The directory will be created if it doesn't exist.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly dirRelativeToHomeDir: string;

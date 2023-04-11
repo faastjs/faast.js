@@ -11,7 +11,7 @@ hide_title: true
 
 An optional comment, usually providing a link to the provider's pricing page and other data.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly comment?: string;

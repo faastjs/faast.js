@@ -11,7 +11,7 @@ hide_title: true
 
 Memory limit for each function in MB. This setting has an effect on pricing. Default varies by provider.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 memorySize?: number;

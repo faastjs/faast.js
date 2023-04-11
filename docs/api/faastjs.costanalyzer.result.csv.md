@@ -11,12 +11,12 @@ hide_title: true
 
 Comma-separated output of cost analyzer. One line per cost analyzer configuration.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 csv(): string;
 ```
-<b>Returns:</b>
+**Returns:**
 
 string
 

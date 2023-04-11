@@ -11,7 +11,7 @@ hide_title: true
 
 Find a specific cost metric by name.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 find(name: string): CostMetric | undefined;
@@ -23,7 +23,7 @@ find(name: string): CostMetric | undefined;
 |  --- | --- | --- |
 |  name | string |  |
 
-<b>Returns:</b>
+**Returns:**
 
 [CostMetric](./faastjs.costmetric.md) \| undefined
 

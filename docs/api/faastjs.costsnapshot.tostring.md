@@ -11,11 +11,11 @@ hide_title: true
 
 A summary of all cost metrics and prices in this cost snapshot.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 toString(): string;
 ```
-<b>Returns:</b>
+**Returns:**
 
 string

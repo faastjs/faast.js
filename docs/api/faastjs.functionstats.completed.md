@@ -11,7 +11,7 @@ hide_title: true
 
 The number of invocations that were successfully completed.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 completed: number;

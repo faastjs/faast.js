@@ -11,7 +11,7 @@ hide_title: true
 
 The imported module that contains the cloud functions to test.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 funcs: T;

@@ -11,7 +11,7 @@ hide_title: true
 
 Specify how many days to wait before reclaiming cloud garbage. Default: 1.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 retentionInDays?: number;

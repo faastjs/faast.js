@@ -11,7 +11,7 @@ hide_title: true
 
 Number of values observed.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 samples: number;

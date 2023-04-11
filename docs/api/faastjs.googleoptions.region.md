@@ -11,7 +11,7 @@ hide_title: true
 
 The region to create resources in. Garbage collection is also limited to this region. Default: `"us-central1"`<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 region?: GoogleRegion;

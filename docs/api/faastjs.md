@@ -45,6 +45,7 @@ The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, 
 
 |  Interface | Description |
 |  --- | --- |
+|  [AwsClientFactory](./faastjs.awsclientfactory.md) | Factory for AWS service clients, which allows for custom construction and configuration. [AWS Configuration](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/index.html#configuration)<!-- -->. |
 |  [AwsOptions](./faastjs.awsoptions.md) | AWS-specific options for [faastAws()](./faastjs.faastaws.md)<!-- -->. |
 |  [CleanupOptions](./faastjs.cleanupoptions.md) | Options that apply to the [FaastModule.cleanup()](./faastjs.faastmodule.cleanup.md) method. |
 |  [CommonOptions](./faastjs.commonoptions.md) | Options common across all faast.js providers. Used as argument to [faast()](./faastjs.faast.md)<!-- -->. |

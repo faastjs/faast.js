@@ -11,7 +11,7 @@ hide_title: true
 
 Default AWS cost analyzer configurations include all memory sizes for AWS Lambda.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 awsConfigurations: Configuration[]

@@ -11,7 +11,7 @@ hide_title: true
 
 The main entry point for faast with Google provider.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export declare function faastGoogle<M extends object>(fmodule: M, options?: GoogleOptions): Promise<GoogleFaastModule<M>>;
@@ -22,8 +22,8 @@ export declare function faastGoogle<M extends object>(fmodule: M, options?: Goog
 |  Parameter | Type | Description |
 |  --- | --- | --- |
 |  fmodule | M | A module imported with <code>import * as X from &quot;Y&quot;;</code>. Using <code>require</code> also works but loses type information. |
-|  options | [GoogleOptions](./faastjs.googleoptions.md) | <i>(Optional)</i> Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional Google-specific options are in [GoogleOptions](./faastjs.googleoptions.md)<!-- -->. |
+|  options | [GoogleOptions](./faastjs.googleoptions.md) | _(Optional)_ Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional Google-specific options are in [GoogleOptions](./faastjs.googleoptions.md)<!-- -->. |
 
-<b>Returns:</b>
+**Returns:**
 
 Promise&lt;[GoogleFaastModule](./faastjs.googlefaastmodule.md)<!-- -->&lt;M&gt;&gt;

@@ -11,7 +11,7 @@ hide_title: true
 
 The number of decimal places to print in [Statistics.toString()](./faastjs.statistics.tostring.md)
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 protected printFixedPrecision: number;

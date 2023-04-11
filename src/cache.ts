@@ -99,7 +99,7 @@ export class PersistentCache {
      * Set the cache key to the given value.
      * @returns a Promise that resolves when the cache entry has been persisted.
      */
-    async set(key: string, value: Buffer | string | Uint8Array | Readable | Blob) {
+    async set(key: string, value: Buffer | string | Uint8Array) {
         await this.initialized;
         const entry = join(this.dir, this.hash(key));
         const tmpEntry = join(this.dir, uuidv4());

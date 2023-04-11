@@ -11,7 +11,7 @@ hide_title: true
 
 Garbage collector mode. Default: `"auto"`<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 gc?: "auto" | "force" | "off";

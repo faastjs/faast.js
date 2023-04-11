@@ -11,7 +11,7 @@ hide_title: true
 
 The mean (average) of the values observed.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 mean: number;

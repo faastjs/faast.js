@@ -11,7 +11,7 @@ hide_title: true
 
 The maximum number of calls per second to allow to the underlying function. Default: no rate limit.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 rate?: number;

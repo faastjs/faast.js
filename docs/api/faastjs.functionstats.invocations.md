@@ -11,7 +11,7 @@ hide_title: true
 
 The number of invocations attempted. If an invocation is retried, this only counts the invocation once.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 invocations: number;

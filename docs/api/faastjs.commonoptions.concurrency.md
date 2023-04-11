@@ -11,7 +11,7 @@ hide_title: true
 
 The maximum number of concurrent invocations to allow. Default: 100, except for the `local` provider, where the default is 10.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 concurrency?: number;

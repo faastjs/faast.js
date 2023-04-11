@@ -1,10 +1,10 @@
 import AbortController from "abort-controller";
 import { Gaxios, GaxiosOptions, GaxiosPromise, GaxiosResponse } from "gaxios";
 import {
+    GoogleApis,
     cloudbilling_v1,
     cloudfunctions_v1,
     google,
-    GoogleApis,
     pubsub_v1
 } from "googleapis";
 import https from "https";
@@ -13,15 +13,15 @@ import { caches } from "../cache";
 import { CostMetric, CostSnapshot } from "../cost";
 import { FaastError, FaastErrorNames } from "../error";
 import { log } from "../log";
-import { packer, PackerResult } from "../packer";
+import { PackerResult, packer } from "../packer";
 import {
     CleanupOptions,
-    commonDefaults,
     CommonOptions,
     FunctionStats,
     PollResult,
     ProviderImpl,
-    UUID
+    UUID,
+    commonDefaults
 } from "../provider";
 import { serialize } from "../serialize";
 import {

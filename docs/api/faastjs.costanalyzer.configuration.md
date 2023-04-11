@@ -11,7 +11,7 @@ hide_title: true
 
 An input to [CostAnalyzer.analyze()](./faastjs.costanalyzer.analyze.md)<!-- -->, specifying one configuration of faast.js to run against a workload. See [AwsOptions](./faastjs.awsoptions.md) and [GoogleOptions](./faastjs.googleoptions.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 type Configuration = {
@@ -22,4 +22,4 @@ type Configuration = {
         options: GoogleOptions;
     };
 ```
-<b>References:</b> [AwsOptions](./faastjs.awsoptions.md)<!-- -->, [GoogleOptions](./faastjs.googleoptions.md)
+**References:** [AwsOptions](./faastjs.awsoptions.md)<!-- -->, [GoogleOptions](./faastjs.googleoptions.md)

@@ -11,11 +11,11 @@ hide_title: true
 
 Return a string with the cost estimate for this metric, omitting comments.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 describeCostOnly(): string;
 ```
-<b>Returns:</b>
+**Returns:**
 
 string

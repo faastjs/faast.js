@@ -11,7 +11,7 @@ hide_title: true
 
 A user-supplied description for this function, which may make it easier to track different functions when multiple functions are created.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 description?: string;

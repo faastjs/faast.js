@@ -11,7 +11,7 @@ hide_title: true
 
 See [Provider](./faastjs.provider.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 provider: Provider;

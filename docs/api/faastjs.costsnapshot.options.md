@@ -11,7 +11,7 @@ hide_title: true
 
 The options used to initialize the faast.js module where this cost snapshot was generated.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly options: CommonOptions | AwsOptions | GoogleOptions;

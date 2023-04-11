@@ -11,7 +11,7 @@ hide_title: true
 
 If available, the provider-specific instance identifier for this invocation.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 instanceId?: string;

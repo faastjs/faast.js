@@ -11,7 +11,7 @@ hide_title: true
 
 The role that the lambda function will assume when executing user code. Default: `"faast-cached-lambda-role"`<!-- -->. Rarely used.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 RoleName?: string;

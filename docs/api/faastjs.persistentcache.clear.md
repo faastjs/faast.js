@@ -11,7 +11,7 @@ hide_title: true
 
 Deletes all cached entries from disk.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 clear({ leaveEmptyDir }?: {
@@ -23,8 +23,8 @@ clear({ leaveEmptyDir }?: {
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  { leaveEmptyDir } | { leaveEmptyDir?: boolean &#124; undefined; } | <i>(Optional)</i> |
+|  { leaveEmptyDir } | { leaveEmptyDir?: boolean &#124; undefined; } | _(Optional)_ |
 
-<b>Returns:</b>
+**Returns:**
 
 Promise&lt;void&gt;

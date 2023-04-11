@@ -11,7 +11,7 @@ hide_title: true
 
 `Async<T>` maps regular values to Promises and Iterators to AsyncIterators, If `T` is already a Promise or an AsyncIterator, it remains the same. This type is used to infer the return value of cloud functions from the types of the functions in the user's input module.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export type Async<T> = T extends AsyncGenerator<infer R> ? AsyncGenerator<R> : T extends Generator<infer R> ? AsyncGenerator<R> : T extends Promise<infer R> ? Promise<R> : Promise<T>;

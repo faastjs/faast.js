@@ -11,7 +11,7 @@ hide_title: true
 
 Exclude a subset of files included by [CommonOptions.include](./faastjs.commonoptions.include.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 exclude?: string[];

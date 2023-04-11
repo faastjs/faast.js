@@ -31,12 +31,7 @@ export function makeTrampoline(wrapper: Wrapper) {
         context.callbackWaitsForEmptyEventLoop = false;
         const executionId = context.awsRequestId;
         const { logGroupName, logStreamName } = context;
-        const logUrl = getExecutionLogUrl(
-            region,
-            logGroupName,
-            logStreamName,
-            executionId
-        );
+        const logUrl = getExecutionLogUrl(region, logGroupName, logStreamName);
         const callingContext = {
             startTime,
             logUrl,

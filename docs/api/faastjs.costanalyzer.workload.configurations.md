@@ -11,7 +11,7 @@ hide_title: true
 
 An array of configurations to run the work function against (see [CostAnalyzer.Configuration](./faastjs.costanalyzer.configuration.md)<!-- -->). For example, each entry in the array may specify a provider, memory size, and other options. Default: [CostAnalyzer.awsConfigurations](./faastjs.costanalyzer.awsconfigurations.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 configurations?: Configuration[];

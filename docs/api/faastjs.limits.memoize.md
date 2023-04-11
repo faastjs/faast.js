@@ -13,7 +13,7 @@ If `memoize` is `true`<!-- -->, then every call to the throttled function will b
 
 The arguments will be captured with `JSON.stringify`<!-- -->, therefore types that do not stringify uniquely won't be distinguished from each other. Care must be taken when specifying `memoize` to ensure avoid incorrect results.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 memoize?: boolean;

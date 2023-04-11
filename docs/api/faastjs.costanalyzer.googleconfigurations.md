@@ -11,7 +11,7 @@ hide_title: true
 
 Default Google Cloud Functions cost analyzer configurations include all available memory sizes.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 googleConfigurations: Configuration[]

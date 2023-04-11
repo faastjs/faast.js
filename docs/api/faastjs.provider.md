@@ -11,7 +11,7 @@ hide_title: true
 
 The type of all supported cloud providers.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export type Provider = "aws" | "google" | "local";

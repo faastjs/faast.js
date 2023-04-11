@@ -11,14 +11,14 @@ hide_title: true
 
 Similar to [ProxyModule](./faastjs.proxymodule.md) except each function returns a [Detail](./faastjs.detail.md) object.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export type ProxyModuleDetail<M> = {
     [K in keyof M]: M[K] extends (...args: infer A) => infer R ? (...args: A) => AsyncDetail<R> : never;
 };
 ```
-<b>References:</b> [AsyncDetail](./faastjs.asyncdetail.md)
+**References:** [AsyncDetail](./faastjs.asyncdetail.md)
 
 ## Remarks
 

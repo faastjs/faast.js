@@ -11,7 +11,7 @@ hide_title: true
 
 Check arguments and return values from cloud functions are serializable without losing information. Default: true.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 validateSerialization?: boolean;

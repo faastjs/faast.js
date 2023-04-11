@@ -11,7 +11,7 @@ hide_title: true
 
 If true, create a child process to isolate user code from faast scaffolding. Default: true.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 childProcess?: boolean;

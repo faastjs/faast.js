@@ -11,7 +11,7 @@ hide_title: true
 
 Specify a package.json file to include with the code package.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 packageJson?: string | object;

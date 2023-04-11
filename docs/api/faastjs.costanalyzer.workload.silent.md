@@ -11,7 +11,7 @@ hide_title: true
 
 If true, do not output live results to the console. Can be useful for running the cost analyzer as part of automated tests. Default: false.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 silent?: boolean;

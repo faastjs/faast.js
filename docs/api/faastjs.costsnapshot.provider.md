@@ -11,7 +11,7 @@ hide_title: true
 
 The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" or "google"
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly provider: string;

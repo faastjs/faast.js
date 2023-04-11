@@ -11,10 +11,10 @@ hide_title: true
 
 Additional options to pass to AWS Lambda creation. See [CreateFunction](https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
-awsLambdaOptions?: Partial<Lambda.CreateFunctionRequest>;
+awsLambdaOptions?: Partial<CreateFunctionRequest>;
 ```
 
 ## Remarks
@@ -25,7 +25,7 @@ If you need specialized options, you can pass them to the AWS Lambda SDK directl
   const request: aws.Lambda.CreateFunctionRequest = {
       FunctionName,
       Role,
-      Runtime: "nodejs14.x",
+      Runtime: "nodejs18.x",
       Handler: "index.trampoline",
       Code,
       Description: "faast trampoline function",

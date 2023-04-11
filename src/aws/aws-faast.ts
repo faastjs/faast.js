@@ -4,7 +4,11 @@ import {
     LogGroup,
     paginateDescribeLogGroups
 } from "@aws-sdk/client-cloudwatch-logs";
-import { CreateRoleRequest, IAM } from "@aws-sdk/client-iam";
+import {
+    CreateRoleRequest,
+    IAM,
+    EntityAlreadyExistsException
+} from "@aws-sdk/client-iam";
 import {
     CreateFunctionRequest,
     FunctionCode,
@@ -12,9 +16,13 @@ import {
     Lambda,
     paginateListFunctions,
     paginateListLayerVersions,
-    paginateListLayers
+    paginateListLayers,
+    ResourceConflictException,
+    ResourceNotFoundException,
+    waitUntilFunctionExists,
+    waitUntilFunctionActiveV2
 } from "@aws-sdk/client-lambda";
-import { Pricing } from "@aws-sdk/client-pricing";
+import { InternalErrorException, Pricing } from "@aws-sdk/client-pricing";
 import { S3 } from "@aws-sdk/client-s3";
 import { SNS } from "@aws-sdk/client-sns";
 import { SQS } from "@aws-sdk/client-sqs";
@@ -53,6 +61,7 @@ import {
 } from "./aws-queue";
 import { getLogGroupName, getLogUrl } from "./aws-shared";
 import * as awsTrampoline from "./aws-trampoline";
+import merge from "webpack-merge";
 
 export const defaultGcWorker = throttle(
     { concurrency: 5, rate: 5, burst: 2 },
@@ -92,6 +101,7 @@ export const defaultGcWorker = throttle(
 /**
  * Factory for AWS service clients, which allows for custom construction and configuration.
  * {@link https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/index.html#configuration | AWS Configuration}.
+ * @public
  * @remarks
  * This is an advanced option. This provides a way for a faast.js client to
  * instantiate AWS service objects for itself to provide custom options.
@@ -102,7 +112,7 @@ export const defaultGcWorker = throttle(
  * - region (faast.js default: "us-west-2")
  * - logger (faast.js default: log.awssdk)
  */
-export interface AwsConfig {
+export interface AwsClientFactory {
     createCloudWatchLogs?: () => CloudWatchLogs;
     createIAM?: () => IAM;
     createLambda?: () => Lambda;
@@ -113,16 +123,6 @@ export interface AwsConfig {
      *
      *  // Retries are handled by faast.js, not the sdk.
      *  maxAttempts: 0,
-     *
-     *  // The default 120s timeout is too short, especially for https
-     *  // mode.
-     *   requestHandler: new NodeHttpHandler({
-     *     httpsAgent: new https.Agent({
-     *       keepAlive: true,
-     *       maxSockets: 1000,
-     *       timeout: 0
-     *     })
-     *   })
      */
     createLambdaForInvocations?: () => Lambda;
     createPricing?: () => Pricing;
@@ -212,7 +212,7 @@ export interface AwsOptions extends CommonOptions {
      *   const request: aws.Lambda.CreateFunctionRequest = {
      *       FunctionName,
      *       Role,
-     *       Runtime: "nodejs14.x",
+     *       Runtime: "nodejs18.x",
      *       Handler: "index.trampoline",
      *       Code,
      *       Description: "faast trampoline function",
@@ -225,9 +225,9 @@ export interface AwsOptions extends CommonOptions {
     awsLambdaOptions?: Partial<CreateFunctionRequest>;
 
     /**
-     * AWS service factories. See {@link AwsConfig}.
+     * AWS service factories. See {@link AwsClientFactory}.
      */
-    awsConfig?: AwsConfig;
+    awsClientFactory?: AwsClientFactory;
 
     /** @internal */
     _gcWorker?: (work: AwsGcWork, services: AwsServices) => Promise<void>;
@@ -239,7 +239,7 @@ export let defaults: Required<AwsOptions> = {
     RoleName: "faast-cached-lambda-role",
     memorySize: 1728,
     awsLambdaOptions: {},
-    awsConfig: {},
+    awsClientFactory: {},
     _gcWorker: defaultGcWorker
 };
 
@@ -334,18 +334,18 @@ export async function quietly<U>(arg: Promise<U>) {
 
 export const createAwsApis = throttle(
     { concurrency: 1 },
-    async (region: AwsRegion, awsConfig: AwsConfig = {}) => {
+    async (region: AwsRegion, awsClientFactory: AwsClientFactory = {}) => {
         const logger = log.awssdk.enabled
             ? { warn: log.awssdk, debug: log.awssdk, info: log.awssdk, error: log.awssdk }
             : undefined;
         const common = { maxAttempts: 6, region, logger };
         const services: AwsServices = {
-            iam: awsConfig?.createIAM?.() ?? new IAM(common),
-            lambda: awsConfig?.createLambda?.() ?? new Lambda(common),
+            iam: awsClientFactory?.createIAM?.() ?? new IAM(common),
+            lambda: awsClientFactory?.createLambda?.() ?? new Lambda(common),
             // Special Lambda instance with configuration optimized for
             // invocations.
             lambda2:
-                awsConfig?.createLambdaForInvocations?.() ??
+                awsClientFactory?.createLambdaForInvocations?.() ??
                 new Lambda({
                     ...common,
                     // Retries are handled by faast.js, not the sdk.
@@ -353,12 +353,13 @@ export const createAwsApis = throttle(
                     // The default 120s timeout is too short, especially for https
                     // mode.,
                 }),
-            cloudwatch: awsConfig?.createCloudWatchLogs?.() ?? new CloudWatchLogs(common),
-            sqs: awsConfig.createSQS?.() ?? new SQS(common),
-            sns: awsConfig.createSNS?.() ?? new SNS(common),
-            pricing: awsConfig.createPricing?.() ?? new Pricing(common),
-            sts: awsConfig.createSts?.() ?? new STS(common),
-            s3: awsConfig.createS3?.() ?? new S3(common)
+            cloudwatch:
+                awsClientFactory?.createCloudWatchLogs?.() ?? new CloudWatchLogs(common),
+            sqs: awsClientFactory.createSQS?.() ?? new SQS(common),
+            sns: awsClientFactory.createSNS?.() ?? new SNS(common),
+            pricing: awsClientFactory.createPricing?.() ?? new Pricing(common),
+            sts: awsClientFactory.createSts?.() ?? new STS(common),
+            s3: awsClientFactory.createS3?.() ?? new S3(common)
         };
         return services;
     }
@@ -409,7 +410,7 @@ export async function ensureRoleRaw(
         await iam.attachRolePolicy({ RoleName, PolicyArn });
         return roleResponse.Role!;
     } catch (err) {
-        if ((err as any).code === "EntityAlreadyExists") {
+        if (err instanceof EntityAlreadyExistsException) {
             await sleep(5000);
             const roleResponse = await iam.getRole({ RoleName });
             await iam.attachRolePolicy({ RoleName, PolicyArn });
@@ -495,7 +496,11 @@ export async function createLayer(
             await faastModule.cleanup();
         }
     } catch (err: any) {
-        throw new FaastError(err, "failed to create lambda layer from packageJson");
+        console.log(err);
+        throw new FaastError(
+            err instanceof Error ? err : {},
+            "failed to create lambda layer from packageJson"
+        );
     }
 }
 
@@ -513,15 +518,8 @@ export const initialize = throttle(
             log.warn(`https://faastjs.org/docs/api/faastjs.commonoptions.mode`);
         }
         log.info(`Creating AWS APIs`);
-        const services = await createAwsApis(region, options.awsConfig);
+        const services = await createAwsApis(region, options.awsClientFactory);
         const metrics = new AwsMetrics();
-        services.lambda.middlewareStack.add(next => async args => {
-            const start = process.hrtime.bigint();
-            const result = await next(args);
-            const end = process.hrtime.bigint();
-            console.info(`API call round trip uses ${end - start} nanoseconds`);
-            return result;
-        });
         const { lambda } = services;
         const FunctionName = `faast-${nonce}`;
         const { packageJson, useDependencyCaching, description } = options;
@@ -539,7 +537,7 @@ export const initialize = throttle(
             const request: CreateFunctionRequest = {
                 FunctionName,
                 Role,
-                Runtime: "nodejs14.x",
+                Runtime: "nodejs18.x",
                 Handler: "index.trampoline",
                 Code,
                 Description: "faast trampoline function",
@@ -553,11 +551,12 @@ export const initialize = throttle(
             let func;
             try {
                 func = await lambda.createFunction(request);
+                await waitUntilFunctionExists(
+                    { client: lambda, maxWaitTime: 120 },
+                    { FunctionName }
+                );
             } catch (err) {
-                if (
-                    err instanceof Error &&
-                    err?.message?.match(/Function already exist/)
-                ) {
+                if (err instanceof ResourceConflictException) {
                     func = (await lambda.getFunction({ FunctionName })).Configuration!;
                 } else {
                     throw new FaastError(err ?? {}, "Create function failure");
@@ -567,10 +566,23 @@ export const initialize = throttle(
                 `Created function ${func.FunctionName}, FunctionArn: ${func.FunctionArn} [${description}]`
             );
             log.minimal(`Created function ${func.FunctionName} [${description}]`);
+
+            try {
+                await waitUntilFunctionActiveV2(
+                    { client: lambda, maxWaitTime: 240 },
+                    { FunctionName }
+                );
+            } catch (err) {
+                throw new FaastError(
+                    err ?? {},
+                    "Lambda function did not enter Active state"
+                );
+            }
+            log.info(`Function ${func.FunctionName} is Active`);
+
             try {
                 const config = await retryOp(
-                    (err, n) =>
-                        n < 5 && err?.message?.match(/destination ARN.*is invalid/),
+                    (err, n) => n < 5 && err instanceof ResourceNotFoundException,
                     () =>
                         lambda.putFunctionEventInvokeConfig({
                             FunctionName,
@@ -697,10 +709,7 @@ export const initialize = throttle(
                     }
                 } catch (err: any) {
                     /* c8 ignore next */ {
-                        await lambda
-                            .deleteFunction({ FunctionName })
-
-                            .catch(_ => {});
+                        await lambda.deleteFunction({ FunctionName }).catch(_ => {});
                         throw new FaastError(
                             err,
                             `New lambda function ${FunctionName} failed invocation test`
@@ -777,7 +786,7 @@ async function invokeHttps(
     lambda: Lambda,
     FunctionName: string,
     message: FunctionCall,
-    _metrics: AwsMetrics,
+    metrics: AwsMetrics,
     cancel: Promise<void>
 ): Promise<void> {
     const abortController = new AbortController();
@@ -794,17 +803,16 @@ async function invokeHttps(
         abortController.abort();
         return;
     }
-    // XXX
-    // metrics.outboundBytes += computeHttpResponseBytes(
-    //     rawResponse.$response.httpResponse.headers
-    // );
+
+    metrics.outboundBytes += rawResponse.Payload?.byteLength ?? 0;
 
     if (rawResponse.LogResult) {
         log.info(Buffer.from(rawResponse.LogResult!, "base64").toString());
     }
 
     if (rawResponse.FunctionError) {
-        const error = processAwsErrorMessage(rawResponse.Payload?.toString());
+        const msg = new TextDecoder().decode(rawResponse.Payload);
+        const error = processAwsErrorMessage(msg);
         throw error;
     }
 }
@@ -1121,7 +1129,10 @@ export async function awsPacker(
     wrapperOptions: WrapperOptions,
     FunctionName: string
 ): Promise<PackerResult> {
-    const webpackOptions = options.webpackOptions ?? {};
+    const webpackOptions = merge(options.webpackOptions ?? {}, {
+        externals: [new RegExp("^@aws-sdk/")]
+    });
+
     return packer(
         awsTrampoline,
         functionModule,
@@ -1220,7 +1231,7 @@ function addSnsInvokePermissionsToFunction(
             SourceArn: RequestTopicArn
         })
         .catch(err => {
-            if (err.match(/already exists/)) {
+            if (err instanceof ResourceConflictException) {
             } else {
                 throw err;
             }
@@ -1301,15 +1312,10 @@ export const awsPrice = throttle(
             const pList: any = priceResult.PriceList![0];
             const price = extractPrice(first(pList.terms.OnDemand));
             return price;
-        } catch (err: any) {
+        } catch (err) {
             /* c8 ignore next  */
             {
-                const { message: m } = err;
-                if (
-                    !m.match(/Rate exceeded/) &&
-                    !m.match(/EPROTO/) &&
-                    !m.match(/socket hang up/)
-                ) {
+                if (err instanceof InternalErrorException) {
                     log.warn(
                         `Could not get AWS pricing for '${ServiceCode}' (%O)`,
                         filter
@@ -1317,7 +1323,7 @@ export const awsPrice = throttle(
                     log.warn(err);
                 }
                 throw new FaastError(
-                    err,
+                    err instanceof Error ? err : {},
                     `failed to get AWS pricing for "${ServiceCode}"`
                 );
             }

@@ -11,7 +11,7 @@ hide_title: true
 
 The working directory if `path` is relative. Defaults to `process.cwd()`<!-- -->. For example, if `cwd` is `"foo"` and `path` is `"bar"`<!-- -->, then the contents of the directory `foo/bar/` will be added to the remote function under the path `bar/`<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 cwd?: string;

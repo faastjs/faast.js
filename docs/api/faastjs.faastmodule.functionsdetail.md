@@ -11,7 +11,7 @@ hide_title: true
 
 Similar to [FaastModule.functions](./faastjs.faastmodule.functions.md) except each function returns a [Detail](./faastjs.detail.md) object
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 functionsDetail: ProxyModuleDetail<M>;

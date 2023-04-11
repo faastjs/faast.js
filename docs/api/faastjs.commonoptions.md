@@ -11,7 +11,7 @@ hide_title: true
 
 Options common across all faast.js providers. Used as argument to [faast()](./faastjs.faast.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export interface CommonOptions 
@@ -25,22 +25,22 @@ There are also more specific options for each provider. See [AwsOptions](./faast
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [childProcess?](./faastjs.commonoptions.childprocess.md) |  | boolean | <i>(Optional)</i> If true, create a child process to isolate user code from faast scaffolding. Default: true. |
-|  [childProcessMemoryMb?](./faastjs.commonoptions.childprocessmemorymb.md) |  | number | <i>(Optional)</i> When childProcess is true, the child process will be spawned with the value of this property as the setting for --max-old-space-size. |
-|  [concurrency?](./faastjs.commonoptions.concurrency.md) |  | number | <i>(Optional)</i> The maximum number of concurrent invocations to allow. Default: 100, except for the <code>local</code> provider, where the default is 10. |
-|  [description?](./faastjs.commonoptions.description.md) |  | string | <i>(Optional)</i> A user-supplied description for this function, which may make it easier to track different functions when multiple functions are created. |
-|  [env?](./faastjs.commonoptions.env.md) |  | { \[key: string\]: string; } | <i>(Optional)</i> Environment variables available during serverless function execution. Default: {<!-- -->}<!-- -->. |
-|  [exclude?](./faastjs.commonoptions.exclude.md) |  | string\[\] | <i>(Optional)</i> Exclude a subset of files included by [CommonOptions.include](./faastjs.commonoptions.include.md)<!-- -->. |
-|  [gc?](./faastjs.commonoptions.gc.md) |  | "auto" &#124; "force" &#124; "off" | <i>(Optional)</i> Garbage collector mode. Default: <code>&quot;auto&quot;</code>. |
-|  [include?](./faastjs.commonoptions.include.md) |  | (string &#124; [IncludeOption](./faastjs.includeoption.md)<!-- -->)\[\] | <i>(Optional)</i> Include files to make available in the remote function. See [IncludeOption](./faastjs.includeoption.md)<!-- -->. |
-|  [maxRetries?](./faastjs.commonoptions.maxretries.md) |  | number | <i>(Optional)</i> Maximum number of times that faast will retry each invocation. Default: 2 (invocations can therefore be attemped 3 times in total). |
-|  [memorySize?](./faastjs.commonoptions.memorysize.md) |  | number | <i>(Optional)</i> Memory limit for each function in MB. This setting has an effect on pricing. Default varies by provider. |
-|  [mode?](./faastjs.commonoptions.mode.md) |  | "https" &#124; "queue" &#124; "auto" | <i>(Optional)</i> Specify invocation mode. Default: <code>&quot;auto&quot;</code>. |
-|  [packageJson?](./faastjs.commonoptions.packagejson.md) |  | string &#124; object | <i>(Optional)</i> Specify a package.json file to include with the code package. |
-|  [rate?](./faastjs.commonoptions.rate.md) |  | number | <i>(Optional)</i> Rate limit invocations (invocations/sec). Default: no rate limit. |
-|  [retentionInDays?](./faastjs.commonoptions.retentionindays.md) |  | number | <i>(Optional)</i> Specify how many days to wait before reclaiming cloud garbage. Default: 1. |
-|  [speculativeRetryThreshold?](./faastjs.commonoptions.speculativeretrythreshold.md) |  | number | <b><i>(BETA)</i></b> <i>(Optional)</i> Reduce tail latency by retrying invocations that take substantially longer than other invocations of the same function. Default: 3. |
-|  [timeout?](./faastjs.commonoptions.timeout.md) |  | number | <i>(Optional)</i> Execution time limit for each invocation, in seconds. Default: 60. |
-|  [useDependencyCaching?](./faastjs.commonoptions.usedependencycaching.md) |  | boolean | <i>(Optional)</i> Cache installed dependencies from [CommonOptions.packageJson](./faastjs.commonoptions.packagejson.md)<!-- -->. Only applies to AWS. Default: true. |
-|  [validateSerialization?](./faastjs.commonoptions.validateserialization.md) |  | boolean | <i>(Optional)</i> Check arguments and return values from cloud functions are serializable without losing information. Default: true. |
-|  [webpackOptions?](./faastjs.commonoptions.webpackoptions.md) |  | webpack.Configuration | <i>(Optional)</i> Extra webpack options to use to bundle the code package. |
+|  [childProcess?](./faastjs.commonoptions.childprocess.md) |  | boolean | _(Optional)_ If true, create a child process to isolate user code from faast scaffolding. Default: true. |
+|  [childProcessMemoryMb?](./faastjs.commonoptions.childprocessmemorymb.md) |  | number | _(Optional)_ When childProcess is true, the child process will be spawned with the value of this property as the setting for --max-old-space-size. |
+|  [concurrency?](./faastjs.commonoptions.concurrency.md) |  | number | _(Optional)_ The maximum number of concurrent invocations to allow. Default: 100, except for the <code>local</code> provider, where the default is 10. |
+|  [description?](./faastjs.commonoptions.description.md) |  | string | _(Optional)_ A user-supplied description for this function, which may make it easier to track different functions when multiple functions are created. |
+|  [env?](./faastjs.commonoptions.env.md) |  | { \[key: string\]: string; } | _(Optional)_ Environment variables available during serverless function execution. Default: {<!-- -->}<!-- -->. |
+|  [exclude?](./faastjs.commonoptions.exclude.md) |  | string\[\] | _(Optional)_ Exclude a subset of files included by [CommonOptions.include](./faastjs.commonoptions.include.md)<!-- -->. |
+|  [gc?](./faastjs.commonoptions.gc.md) |  | "auto" &#124; "force" &#124; "off" | _(Optional)_ Garbage collector mode. Default: <code>&quot;auto&quot;</code>. |
+|  [include?](./faastjs.commonoptions.include.md) |  | (string &#124; [IncludeOption](./faastjs.includeoption.md)<!-- -->)\[\] | _(Optional)_ Include files to make available in the remote function. See [IncludeOption](./faastjs.includeoption.md)<!-- -->. |
+|  [maxRetries?](./faastjs.commonoptions.maxretries.md) |  | number | _(Optional)_ Maximum number of times that faast will retry each invocation. Default: 2 (invocations can therefore be attemped 3 times in total). |
+|  [memorySize?](./faastjs.commonoptions.memorysize.md) |  | number | _(Optional)_ Memory limit for each function in MB. This setting has an effect on pricing. Default varies by provider. |
+|  [mode?](./faastjs.commonoptions.mode.md) |  | "https" &#124; "queue" &#124; "auto" | _(Optional)_ Specify invocation mode. Default: <code>&quot;auto&quot;</code>. |
+|  [packageJson?](./faastjs.commonoptions.packagejson.md) |  | string &#124; object | _(Optional)_ Specify a package.json file to include with the code package. |
+|  [rate?](./faastjs.commonoptions.rate.md) |  | number | _(Optional)_ Rate limit invocations (invocations/sec). Default: no rate limit. |
+|  [retentionInDays?](./faastjs.commonoptions.retentionindays.md) |  | number | _(Optional)_ Specify how many days to wait before reclaiming cloud garbage. Default: 1. |
+|  [speculativeRetryThreshold?](./faastjs.commonoptions.speculativeretrythreshold.md) |  | number | **_(BETA)_** _(Optional)_ Reduce tail latency by retrying invocations that take substantially longer than other invocations of the same function. Default: 3. |
+|  [timeout?](./faastjs.commonoptions.timeout.md) |  | number | _(Optional)_ Execution time limit for each invocation, in seconds. Default: 60. |
+|  [useDependencyCaching?](./faastjs.commonoptions.usedependencycaching.md) |  | boolean | _(Optional)_ Cache installed dependencies from [CommonOptions.packageJson](./faastjs.commonoptions.packagejson.md)<!-- -->. Only applies to AWS. Default: true. |
+|  [validateSerialization?](./faastjs.commonoptions.validateserialization.md) |  | boolean | _(Optional)_ Check arguments and return values from cloud functions are serializable without losing information. Default: true. |
+|  [webpackOptions?](./faastjs.commonoptions.webpackoptions.md) |  | webpack.Configuration | _(Optional)_ Extra webpack options to use to bundle the code package. |

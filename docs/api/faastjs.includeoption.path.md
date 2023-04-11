@@ -11,7 +11,7 @@ hide_title: true
 
 The path to the directory or glob to add to the cloud function.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 path: string;

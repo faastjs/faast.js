@@ -11,7 +11,7 @@ hide_title: true
 
 The directory on disk where cached values are stored.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly dir: string;

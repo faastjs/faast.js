@@ -11,12 +11,12 @@ hide_title: true
 
 FaastError is a subclass of VError (https://github.com/joyent/node-verror). that is thrown by faast.js APIs and cloud function invocations.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export declare class FaastError extends VError 
 ```
-<b>Extends:</b> VError
+**Extends:** VError
 
 ## Remarks
 

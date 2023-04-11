@@ -11,7 +11,7 @@ hide_title: true
 
 Each call of a cloud function creates a separate remote invocation.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 functions: ProxyModule<M>;

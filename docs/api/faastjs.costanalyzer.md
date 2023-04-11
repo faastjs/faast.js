@@ -11,7 +11,7 @@ hide_title: true
 
 Analyze the cost of a workload across many provider configurations.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export declare namespace CostAnalyzer 

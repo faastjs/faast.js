@@ -1,12 +1,12 @@
-import { stringify } from "querystring";
 import { GaxiosError } from "gaxios";
+import { URLSearchParams } from "url";
 
 export function getLogUrl(project: string, functionName: string) {
-    const params = stringify({
+    const params = new URLSearchParams({
         project,
         resource: `cloud_function/function_name/${functionName}`
     });
-    return `https://console.cloud.google.com/logs/viewer?${params}`;
+    return `https://console.cloud.google.com/logs/viewer?${params.toString()}`;
 }
 
 export function getExecutionLogUrl(
@@ -14,17 +14,21 @@ export function getExecutionLogUrl(
     functionName: string,
     executionId: string
 ) {
-    const params = stringify({
-        project,
+    const params = new URLSearchParams({
+        project: project,
         resource: `cloud_function/function_name/${functionName}`,
         advancedFilter: `labels."execution_id"="${executionId}"`
     });
-    return `https://console.cloud.google.com/logs/viewer?${params}`;
+    return `https://console.cloud.google.com/logs/viewer?${params.toString()}`;
 }
 
 export const httpMethodsToRetry = ["POST", "PUT", "GET", "HEAD", "OPTIONS", "DELETE"];
-export const statusCodesToRetry = [[100, 199], [429, 429], [405, 405], [500, 599]];
-
+export const statusCodesToRetry = [
+    [100, 199],
+    [429, 429],
+    [405, 405],
+    [500, 599]
+];
 /**
  * Determine based on config if we should retry the request.
  * @param err The GaxiosError passed to the interceptor.
@@ -82,11 +86,7 @@ export function shouldRetryRequest(log: (msg: string) => void) {
         }
 
         log(
-            `google: attempts: ${config.currentRetryAttempt}/${config.retry}, code: ${
-                err.code
-            }, status: ${err.response?.status} name: ${
-                err.name
-            }, message: ${err.message}`
+            `google: attempts: ${config.currentRetryAttempt}/${config.retry}, code: ${err.code}, status: ${err.response?.status} name: ${err.name}, message: ${err.message}`
         );
 
         return true;

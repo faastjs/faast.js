@@ -1,4 +1,4 @@
-import { escape, stringify } from "querystring";
+import { URLSearchParams } from "url";
 
 export function getLogGroupName(FunctionName: string) {
     return `/aws/lambda/${FunctionName}`;
@@ -6,30 +6,19 @@ export function getLogGroupName(FunctionName: string) {
 
 export function getLogUrl(region: string, FunctionName: string) {
     const logGroupName = getLogGroupName(FunctionName);
-    const params = stringify(
-        {
-            group: logGroupName
-        },
-        ";"
-    );
-    const rg = escape(region);
-    return `https://${rg}.console.aws.amazon.com/cloudwatch/home?region=${rg}#logStream:${params}`;
+    const group = encodeURIComponent(logGroupName);
+    const rg = encodeURIComponent(region);
+
+    return `https://console.aws.amazon.com/cloudwatch/home?region=${rg}#logsV2:log-groups/log-group/${group}`;
 }
 
 export function getExecutionLogUrl(
     region: string,
     logGroupName: string,
-    logStreamName: string,
-    executionId: string
+    logStreamName: string
 ) {
-    const params = stringify(
-        {
-            group: logGroupName,
-            stream: logStreamName,
-            filter: `"${executionId}"`
-        },
-        ";"
-    );
-    const rg = escape(region);
-    return `https://${rg}.console.aws.amazon.com/cloudwatch/home?region=${rg}#logEventViewer:${params}`;
+    const rg = encodeURIComponent(region);
+    const group = encodeURIComponent(logGroupName);
+    const stream = encodeURIComponent(logStreamName);
+    return `https://console.aws.amazon.com/cloudwatch/home?region=${rg}#logsV2:log-groups/log-group/${group}/log-events/${stream}`;
 }

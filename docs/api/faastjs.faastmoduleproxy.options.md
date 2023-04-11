@@ -11,7 +11,7 @@ hide_title: true
 
 The options set for this instance, which includes default values.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly options: Required<CommonOptions>;

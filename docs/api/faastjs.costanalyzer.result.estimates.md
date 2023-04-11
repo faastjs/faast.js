@@ -11,7 +11,7 @@ hide_title: true
 
 Cost estimates for each configuration of the workload. See [CostAnalyzer.Estimate](./faastjs.costanalyzer.estimate.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly estimates: Estimate<A>[];

@@ -11,7 +11,7 @@ hide_title: true
 
 The number of invocation retries attempted. This counts retries attempted by faast.js to recover from transient errors, but does not count retries by the cloud provider.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 retries: number;

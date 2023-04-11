@@ -11,7 +11,7 @@ hide_title: true
 
 Statistics for amount of time billed. This is similar to [FunctionStats.executionTime](./faastjs.functionstats.executiontime.md) except each sampled time is rounded up to the next 100ms.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 estimatedBilledTime: Statistics;

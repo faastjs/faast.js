@@ -11,7 +11,7 @@ hide_title: true
 
 Execution time limit for each invocation, in seconds. Default: 60.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 timeout?: number;

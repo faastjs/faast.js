@@ -11,9 +11,9 @@ hide_title: true
 
 Local provider options for [faastLocal()](./faastjs.faastlocal.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export interface LocalOptions extends CommonOptions 
 ```
-<b>Extends:</b> [CommonOptions](./faastjs.commonoptions.md)
+**Extends:** [CommonOptions](./faastjs.commonoptions.md)

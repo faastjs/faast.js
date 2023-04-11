@@ -9,7 +9,7 @@
  * that invokes faast.js and calls the resulting cloud functions.
  * @packageDocumentation
  */
-export { AwsOptions, AwsRegion } from "./src/aws/aws-faast";
+export { AwsClientFactory, AwsOptions, AwsRegion } from "./src/aws/aws-faast";
 export { PersistentCache } from "./src/cache";
 export { CostAnalyzer, CostMetric, CostSnapshot } from "./src/cost";
 export { FaastError, FaastErrorNames } from "./src/error";
@@ -18,18 +18,18 @@ export {
     AsyncDetail,
     AwsFaastModule,
     Detail,
-    faast,
-    faastAws,
-    faastGoogle,
-    faastLocal,
     FaastModule,
     FaastModuleProxy,
     FunctionStatsEvent,
     GoogleFaastModule,
     LocalFaastModule,
-    providers,
     ProxyModule,
-    ProxyModuleDetail
+    ProxyModuleDetail,
+    faast,
+    faastAws,
+    faastGoogle,
+    faastLocal,
+    providers
 } from "./src/faast";
 export { GoogleOptions, GoogleRegion } from "./src/google/google-faast";
 export { LocalOptions } from "./src/local/local-faast";

@@ -11,7 +11,7 @@ hide_title: true
 
 The cost snapshot for the cost analysis of the specific (workload, configuration) combination. See [CostSnapshot](./faastjs.costsnapshot.md)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 costSnapshot: CostSnapshot;

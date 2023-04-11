@@ -11,7 +11,7 @@ hide_title: true
 
 The name of the cloud function the statistics are about.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 readonly fn: string;

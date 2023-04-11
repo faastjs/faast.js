@@ -11,7 +11,7 @@ hide_title: true
 
 A cost estimate result for a specific cost analyzer configuration.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 interface Estimate<A extends string> 

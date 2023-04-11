@@ -11,7 +11,7 @@ hide_title: true
 
 Extra webpack options to use to bundle the code package.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 webpackOptions?: webpack.Configuration;

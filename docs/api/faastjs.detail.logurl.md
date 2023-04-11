@@ -11,7 +11,7 @@ hide_title: true
 
 The URL of the logs for the specific execution of this function call.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 logUrl?: string;

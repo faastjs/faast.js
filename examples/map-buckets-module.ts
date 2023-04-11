@@ -1,7 +1,6 @@
 import { S3 } from "@aws-sdk/client-s3";
 import { createHash } from "crypto";
 import process from "process";
-import { escape } from "querystring";
 import { Readable } from "stream";
 import tar from "tar-stream";
 

@@ -1,14 +1,14 @@
 import { AbortController } from "@aws-sdk/abort-controller";
 import { SNS } from "@aws-sdk/client-sns";
-import { CreateQueueRequest, Message as SQSMessage, SQS } from "@aws-sdk/client-sqs";
+import { CreateQueueRequest, SQS, Message as SQSMessage } from "@aws-sdk/client-sqs";
 import { SNSEvent } from "aws-lambda/trigger/sns";
 import { FaastError, FaastErrorNames } from "../error";
 import { log } from "../log";
 import { Message, PollResult } from "../provider";
 import { deserialize, serialize } from "../serialize";
-import { computeHttpResponseBytes, defined, sum } from "../shared";
+import { defined } from "../shared";
 import { retryOp } from "../throttle";
-import { CallingContext, createErrorResponse, FunctionCall } from "../wrapper";
+import { CallingContext, FunctionCall, createErrorResponse } from "../wrapper";
 import { AwsMetrics } from "./aws-faast";
 
 export async function createSNSTopic(sns: SNS, Name: string) {
@@ -28,9 +28,13 @@ export async function sendResponseQueueMessage(
 ) {
     try {
         const request = { QueueUrl, MessageBody: serialize(message) };
+        const len = request.MessageBody.length;
+        if (len > 262144) {
+            throw new Error(`Response length (${len} bytes) exceeds limit of 256KiB`);
+        }
         await sqs.sendMessage(request);
     } catch (err) {
-        log.warn(err);
+        log.warn(`sendResponseQueueMessage failed: ${err}`);
         const errorResponse = createErrorResponse(err, cc);
         const errorRequest = { QueueUrl, MessageBody: serialize(errorResponse) };
         try {
@@ -83,7 +87,8 @@ export function processAwsErrorMessage(message?: string): Error {
     let err = new FaastError(message);
     if (
         message?.match(/Process exited before completing/) ||
-        message?.match(/signal: killed/)
+        message?.match(/signal: killed/) ||
+        message?.match(/Runtime exited/)
     ) {
         err = new FaastError(
             { cause: err, name: FaastErrorNames.EMEMORY },
@@ -126,15 +131,12 @@ export async function receiveMessages(
         }
 
         const { Messages = [] } = response;
-        // XXX
-        // const { httpResponse } = response.$response;
-        // const receivedBytes = computeHttpResponseBytes(httpResponse.headers);
-        // metrics.outboundBytes += receivedBytes;
-        // const inferredSqsRequestsReceived = countRequests(receivedBytes);
-        // const inferredSqsRequestsSent = sum(
-        //     Messages.map(m => countRequests(m.Body?.length ?? 1))
-        // );
-        // metrics.sqs64kRequests += inferredSqsRequestsSent + inferredSqsRequestsReceived;
+        const receivedBytes = Messages.reduce((sum, m) => sum + (m.Body?.length ?? 0), 0);
+        metrics.outboundBytes += receivedBytes;
+        const inferredSqsRequestsReceived = countRequests(receivedBytes);
+        // Each request is counted as both sent and received.
+        metrics.sqs64kRequests += inferredSqsRequestsReceived * 2;
+
         if (Messages.length > 0) {
             sqs.deleteMessageBatch({
                 QueueUrl: ResponseQueueUrl!,

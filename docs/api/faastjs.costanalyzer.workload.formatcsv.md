@@ -11,7 +11,7 @@ hide_title: true
 
 Format an attribute value for CSV. The default returns `value.toFixed(1)`<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 formatCSV?: (attr: A, value: number) => string;

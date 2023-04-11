@@ -11,7 +11,7 @@ hide_title: true
 
 Incrementally track mean, stdev, min, max, of a sequence of values.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 constructor(
@@ -22,4 +22,4 @@ constructor(
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  printFixedPrecision | number | <i>(Optional)</i> The number of decimal places to print in [Statistics.toString()](./faastjs.statistics.tostring.md)<!-- -->. |
+|  printFixedPrecision | number | _(Optional)_ The number of decimal places to print in [Statistics.toString()](./faastjs.statistics.tostring.md)<!-- -->. |

@@ -1,7 +1,7 @@
 import test from "ava";
-import { Lambda } from "aws-sdk";
 import { faast, faastAws, log } from "../index";
 import * as funcs from "./fixtures/functions";
+import { Lambda } from "@aws-sdk/client-lambda";
 
 test("remote aws throttling to no concurrency", async t => {
     const faastModule = await faast("aws", funcs, {
@@ -45,16 +45,15 @@ test("remote aws async invocation queue throttling EventAgeExceeded", async t =>
     const { FunctionName } = lambda.state.resources;
     const awsLambda = new Lambda({ region: "us-west-2" });
 
-    await awsLambda
-        .putFunctionConcurrency({ FunctionName, ReservedConcurrentExecutions: 1 })
-        .promise();
+    await awsLambda.putFunctionConcurrency({
+        FunctionName,
+        ReservedConcurrentExecutions: 1
+    });
 
-    await awsLambda
-        .updateFunctionEventInvokeConfig({
-            FunctionName,
-            MaximumEventAgeInSeconds: 60
-        })
-        .promise();
+    await awsLambda.updateFunctionEventInvokeConfig({
+        FunctionName,
+        MaximumEventAgeInSeconds: 60
+    });
 
     try {
         const invoke = () =>

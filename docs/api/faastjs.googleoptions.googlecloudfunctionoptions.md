@@ -11,7 +11,7 @@ hide_title: true
 
 Additional options to pass to Google Cloud Function creation. See [projects.locations.functions](https://cloud.google.com/functions/docs/reference/rest/v1/projects.locations.functions#CloudFunction)<!-- -->.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 googleCloudFunctionOptions?: CloudFunctions.Schema$CloudFunction;

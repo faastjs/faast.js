@@ -11,11 +11,11 @@ hide_title: true
 
 Describe this cost metric, including comments.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 toString(): string;
 ```
-<b>Returns:</b>
+**Returns:**
 
 string

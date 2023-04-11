@@ -11,12 +11,12 @@ hide_title: true
 
 Returns a string summarizing the statistics event.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 toString(): string;
 ```
-<b>Returns:</b>
+**Returns:**
 
 string
 

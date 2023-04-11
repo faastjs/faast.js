@@ -14,7 +14,7 @@ hide_title: true
 
 Reduce tail latency by retrying invocations that take substantially longer than other invocations of the same function. Default: 3.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 speculativeRetryThreshold?: number;

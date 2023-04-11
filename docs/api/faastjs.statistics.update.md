@@ -11,7 +11,7 @@ hide_title: true
 
 Update statistics with a new value in the sequence.
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 update(value: number | undefined): void;
@@ -23,6 +23,6 @@ update(value: number | undefined): void;
 |  --- | --- | --- |
 |  value | number &#124; undefined |  |
 
-<b>Returns:</b>
+**Returns:**
 
 void
