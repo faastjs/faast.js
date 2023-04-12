@@ -26,6 +26,6 @@
         "incremental": true,
         "esModuleInterop": true
     },
-    "include": ["*.ts"],
+    "include": ["src/**/*", "index.ts", "test/**/*", "types/**/*", "*.ts"],
     "exclude": ["**/node_modules", "dist/**/*", "etc", "temp", "examples", "test-release"]
 }
