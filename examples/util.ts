@@ -1,22 +1,12 @@
-import S3 from "aws-sdk/clients/s3";
-const s3 = new S3();
+import { S3, _Object, paginateListObjectsV2 } from "@aws-sdk/client-s3";
 
-export async function listAllObjects(Bucket: string) {
-    const allObjects: S3.Object[] = [];
-    await new Promise<void>(resolve =>
-        s3.listObjectsV2({ Bucket }).eachPage((err, data) => {
-            if (err) {
-                console.warn(err);
-                return false;
-            }
-            if (data) {
-                allObjects.push(...data.Contents!);
-            } else {
-                resolve();
-            }
-            return true;
-        })
-    );
+const s3Client = new S3({ region: "us-west-2" });
+
+export async function listAllObjects(Bucket: string): Promise<_Object[]> {
+    const allObjects: _Object[] = [];
+    for await (const obj of paginateListObjectsV2({ client: s3Client }, { Bucket })) {
+        allObjects.push(...(obj.Contents ?? []));
+    }
     return allObjects;
 }
 
