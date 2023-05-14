@@ -14,7 +14,7 @@ Additional options to pass to Google Cloud Function creation. See [projects.loca
 **Signature:**
 
 ```typescript
-googleCloudFunctionOptions?: CloudFunctions.Schema$CloudFunction;
+googleCloudFunctionOptions?: CloudFunctions.Params$Resource$Projects$Locations$Functions$Create;
 ```
 
 ## Remarks

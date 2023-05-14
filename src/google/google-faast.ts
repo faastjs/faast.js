@@ -3,7 +3,7 @@ import { Gaxios, GaxiosOptions, GaxiosPromise, GaxiosResponse } from "gaxios";
 import {
     GoogleApis,
     cloudbilling_v1,
-    cloudfunctions_v1,
+    cloudfunctions_v2,
     google,
     pubsub_v1
 } from "googleapis";
@@ -38,7 +38,7 @@ import { shouldRetryRequest } from "./google-shared";
 import * as googleTrampolineHttps from "./google-trampoline-https";
 import * as googleTrampolineQueue from "./google-trampoline-queue";
 
-import CloudFunctions = cloudfunctions_v1;
+import CloudFunctions = cloudfunctions_v2;
 import PubSubApi = pubsub_v1;
 import CloudBilling = cloudbilling_v1;
 
@@ -111,7 +111,7 @@ export interface GoogleOptions extends CommonOptions {
      * ```
      *
      */
-    googleCloudFunctionOptions?: CloudFunctions.Schema$CloudFunction;
+    googleCloudFunctionOptions?: CloudFunctions.Params$Resource$Projects$Locations$Functions$Create;
 
     /** @internal */
     _gcWorker?: (resources: GoogleResources, services: GoogleServices) => Promise<void>;
@@ -198,7 +198,7 @@ export async function initializeGoogleServices(): Promise<GoogleServices> {
         }
     });
     return {
-        cloudFunctions: google.cloudfunctions("v1"),
+        cloudFunctions: google.cloudfunctions("v2"),
         pubsub: google.pubsub("v1"),
         cloudBilling: google.cloudbilling("v1"),
         google
@@ -286,7 +286,10 @@ async function waitFor(
         const operationName = operation.data.name!;
         try {
             return pollOperation({
-                request: () => quietly(api.operations.get({ name: operationName })),
+                request: () =>
+                    quietly(
+                        api.projects.locations.operations.get({ name: operationName })
+                    ),
                 checkDone: result => {
                     /* c8 ignore start */
                     if (!result) {
@@ -360,7 +363,7 @@ export async function initialize(
 
         const uploadResult = await uploadZip(uploadUrlResponse.data.uploadUrl!, archive);
         log.info(`Upload zip file response: ${uploadResult?.statusText}`);
-        return uploadUrlResponse.data.uploadUrl;
+        return uploadUrlResponse.data.storageSource;
     }
 
     const trampoline = `projects/${project}/locations/${region}/functions/${functionName}`;
@@ -425,29 +428,34 @@ export async function initialize(
         );
     }
 
-    const sourceUploadUrl = await createCodeBundle();
+    const storageSource = await createCodeBundle();
     const { memorySize, googleCloudFunctionOptions, env } = options;
     if (!GoogleCloudFunctionsMemorySizes.find(size => size === memorySize)) {
         log.warn(`Invalid memorySize ${memorySize} for Google Cloud Functions`);
     }
-    const requestBody: CloudFunctions.Schema$CloudFunction = {
+    const requestBody: CloudFunctions.Schema$Function = {
         name: trampoline,
-        entryPoint: "trampoline",
-        timeout: `${timeout}s`,
-        availableMemoryMb: memorySize,
-        sourceUploadUrl,
-        environmentVariables: env,
-        runtime: "nodejs14",
+        buildConfig: {
+            entryPoint: "trampoline",
+            source: {
+                storageSource
+            },
+            environmentVariables: env,
+            runtime: "nodejs18"
+        },
+        serviceConfig: {
+            timeoutSeconds: timeout,
+            availableMemory: `${memorySize}M`
+        },
         ...googleCloudFunctionOptions
     };
     if (mode === "queue") {
         await requestQueuePromise;
         requestBody.eventTrigger = {
             eventType: "providers/cloud.pubsub/eventTypes/topic.publish",
-            resource: resources.requestQueueTopic
+            pubsubTopic: resources.requestQueueTopic
         };
     } else {
-        requestBody.httpsTrigger = {};
     }
     log.info(`Create function at ${location}`);
     log.info(`Request body: %O`, requestBody);
@@ -456,7 +464,7 @@ export async function initialize(
             log.info(`create function ${requestBody.name} [${options.description}]`);
             await waitFor(cloudFunctions, () =>
                 cloudFunctions.projects.locations.functions.create({
-                    location,
+                    parent: location,
                     requestBody
                 })
             );
@@ -488,10 +496,10 @@ export async function initialize(
                 name: trampoline
             });
 
-            if (!func.data.httpsTrigger) {
+            if (!func.data.serviceConfig?.uri) {
                 throw new FaastError("Could not get http trigger url");
             }
-            const { url } = func.data.httpsTrigger!;
+            const url = func.data.serviceConfig?.uri;
             if (!url) {
                 throw new FaastError("Could not get http trigger url");
             }
@@ -722,10 +730,7 @@ async function collectGarbage(
                 rate: 5,
                 burst: 2
             },
-            async (
-                gServices: GoogleServices,
-                fn: CloudFunctions.Schema$CloudFunction
-            ) => {
+            async (gServices: GoogleServices, fn: CloudFunctions.Schema$Function) => {
                 const { region, name, project } = parseFunctionName(fn.name!)!;
 
                 const resources: GoogleResources = {

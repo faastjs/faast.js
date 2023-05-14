@@ -8,7 +8,7 @@
 
 import childProcess from 'child_process';
 import { cloudbilling_v1 } from 'googleapis';
-import { cloudfunctions_v1 } from 'googleapis';
+import { cloudfunctions_v2 } from 'googleapis';
 import { CloudWatchLogs } from '@aws-sdk/client-cloudwatch-logs';
 import { CreateFunctionRequest } from '@aws-sdk/client-lambda';
 import { default as debug_2 } from 'debug';
@@ -300,7 +300,7 @@ export interface GoogleOptions extends CommonOptions {
     //
     // @internal (undocumented)
     _gcWorker?: (resources: GoogleResources, services: GoogleServices) => Promise<void>;
-    googleCloudFunctionOptions?: cloudfunctions_v1.Schema$CloudFunction;
+    googleCloudFunctionOptions?: cloudfunctions_v2.Params$Resource$Projects$Locations$Functions$Create;
     region?: GoogleRegion;
 }
 

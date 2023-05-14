@@ -23,7 +23,7 @@ export async function getGoogleResources(mod: GoogleFaastModule) {
         })
     );
 
-    if (functionResult?.data.status === "DELETE_IN_PROGRESS") {
+    if (functionResult?.data.state === "DELETING") {
         functionResult = undefined;
     }
 
