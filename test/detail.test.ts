@@ -42,6 +42,8 @@ async function testDetail(
 }
 
 for (const provider of providers) {
+    // Google isn't reliable enough to handle this test in ci.
+    if (provider === "google") continue;
     for (const config of [...configs, ...noValidateConfigs]) {
         test(title(provider, `detailed calls`, config), testDetail, provider, config);
     }
