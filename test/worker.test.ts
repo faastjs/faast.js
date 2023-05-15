@@ -24,7 +24,7 @@ async function testWorker(
     }
 }
 
-for (const provider of providers.filter(p => p !== "google")) {
+for (const provider of providers) {
     for (const config of [{ childProcess: true }, { childProcess: false }]) {
         test(title(provider, `node worker thread`, config), testWorker, provider, config);
     }

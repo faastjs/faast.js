@@ -7,7 +7,7 @@ import { CpuMeasurement, FunctionCall } from "./wrapper";
  * The type of all supported cloud providers.
  * @public
  */
-export type Provider = "aws" | "google" | "local";
+export type Provider = "aws" | "local";
 
 /**
  * Options for the {@link CommonOptions.include} option.
@@ -31,7 +31,7 @@ export interface IncludeOption {
  * Options common across all faast.js providers. Used as argument to {@link faast}.
  * @remarks
  * There are also more specific options for each provider. See
- * {@link AwsOptions}, {@link GoogleOptions}, and {@link LocalOptions}.
+ * {@link AwsOptions} and {@link LocalOptions}.
  * @public
  */
 export interface CommonOptions {
@@ -173,8 +173,6 @@ export interface CommonOptions {
      *
      * - aws: 1728MB
      *
-     * - google: 1024MB
-     *
      * - local: 512MB (however, memory size limits aren't reliable in local mode.)
      */
     memorySize?: number;
@@ -196,17 +194,12 @@ export interface CommonOptions {
      *   faast, as it incurs a higher cost and is not needed to trigger
      *   invocations.
      *
-     * - google: `"auto"` is `"https"`. In https mode, a PUT request is made to
-     *   invoke the cloud function. In queue mode, a PubSub topic is created to
-     *   invoke functions.
-     *
      * - local: The local provider ignores the mode setting and always uses an
      *   internal asynchronous queue to schedule calls.
      *
      * Size limits are affected by the choice of mode. On AWS the limit is 256kb
      * for arguments and return values in `"queue"` mode, and 6MB for `"https"`
-     * mode. For Google the limit is 10MB regardless of mode. In Local mode
-     * messages are sent via node's IPC and are subject to OS IPC limits.
+     * mode.
      *
      * Note that no matter which mode is selected, faast.js always creates a
      * queue for sending back intermediate results for bookeeping and
@@ -235,9 +228,6 @@ export interface CommonOptions {
      *
      * - local: Runs `npm install` in a temporary directory it prepares for the
      *   function.
-     *
-     * - google: uses Google Cloud Function's
-     *   {@link https://cloud.google.com/functions/docs/writing/specifying-dependencies-nodejs | native support for package.json}.
      *
      * - aws: Recursively calls faast.js to run `npm install` inside a separate
      *   lambda function specifically created for this purpose. Faast.js uses
@@ -296,9 +286,6 @@ export interface CommonOptions {
      * timestamp of the resources). This deletion occurs even though retention
      * was set to 5 days when resources were created on Day 0.
      *
-     * On Google, logs are retained according to Google's default expiration
-     * policy (30 days) instead of being deleted by garbage collection.
-     *
      * Note that if `retentionInDays` is set to 0, garbage collection will
      * remove all resources, even ones that may be in use by other running faast
      * instances. Not recommended.
@@ -334,8 +321,6 @@ export interface CommonOptions {
      *
      * - aws:
      *   {@link https://docs.aws.amazon.com/lambda/latest/dg/limits.html | 15 minutes}
-     *
-     * - google: {@link https://cloud.google.com/functions/quotas | 9 minutes}
      *
      * - local: unlimited
      *

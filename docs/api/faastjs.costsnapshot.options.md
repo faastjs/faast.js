@@ -14,5 +14,5 @@ The options used to initialize the faast.js module where this cost snapshot was 
 **Signature:**
 
 ```typescript
-readonly options: CommonOptions | AwsOptions | GoogleOptions;
+readonly options: CommonOptions | AwsOptions;
 ```

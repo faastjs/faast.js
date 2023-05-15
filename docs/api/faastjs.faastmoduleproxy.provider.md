@@ -9,7 +9,7 @@ hide_title: true
 
 ## FaastModuleProxy.provider property
 
-The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" or "google".
+The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws".
 
 **Signature:**
 

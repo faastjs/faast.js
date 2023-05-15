@@ -23,8 +23,6 @@ Each provider has a maximum time limit for how long invocations can run before b
 
 - aws: [15 minutes](https://docs.aws.amazon.com/lambda/latest/dg/limits.html)
 
-- google: [9 minutes](https://cloud.google.com/functions/quotas)
-
 - local: unlimited
 
 Faast.js has a proactive timeout detection feature. It automatically attempts to detect when the time limit is about to be reached and proactively sends a timeout exception. Faast does this because not all providers reliably send timely feedback when timeouts occur, leaving developers to look through cloud logs. In general faast.js' timeout will be up to 5s earlier than the timeout specified, in order to give time to allow faast.js to send a timeout message. Proactive timeout detection only works with [CommonOptions.childProcess](./faastjs.commonoptions.childprocess.md) set to `true` (the default).

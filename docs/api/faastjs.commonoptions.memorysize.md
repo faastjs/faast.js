@@ -23,6 +23,4 @@ Each provider has different settings for memory size, and performance varies dep
 
 - aws: 1728MB
 
-- google: 1024MB
-
 - local: 512MB (however, memory size limits aren't reliable in local mode.)

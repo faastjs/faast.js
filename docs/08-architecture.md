@@ -20,4 +20,4 @@ The cost analyzer takes a [`Workload`](./api/faastjs.costanalyzer.workload.md) a
 
 ## Implementing Providers
 
-Review the implementation for the [AWS](../src/aws/aws-faast.ts) and [Google](../src/google/google-faast.ts) to understand the Provider API.
+Review the implementation for the [AWS](../src/aws/aws-faast.ts) to understand the Provider API.

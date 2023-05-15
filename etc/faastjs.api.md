@@ -7,16 +7,12 @@
 /// <reference types="node" />
 
 import childProcess from 'child_process';
-import { cloudbilling_v1 } from 'googleapis';
-import { cloudfunctions_v2 } from 'googleapis';
 import { CloudWatchLogs } from '@aws-sdk/client-cloudwatch-logs';
 import { CreateFunctionRequest } from '@aws-sdk/client-lambda';
 import { default as debug_2 } from 'debug';
-import { GoogleApis } from 'googleapis';
 import { IAM } from '@aws-sdk/client-iam';
 import { Lambda } from '@aws-sdk/client-lambda';
 import { Pricing } from '@aws-sdk/client-pricing';
-import { pubsub_v1 } from 'googleapis';
 import { S3 } from '@aws-sdk/client-s3';
 import { SNS } from '@aws-sdk/client-sns';
 import { SQS } from '@aws-sdk/client-sqs';
@@ -114,13 +110,9 @@ export interface CommonOptions {
 export namespace CostAnalyzer {
     export function analyze<T extends object, A extends string>(userWorkload: Workload<T, A>): Promise<Result<T, A>>;
     const awsConfigurations: Configuration[];
-    const googleConfigurations: Configuration[];
     export type Configuration = {
         provider: "aws";
         options: AwsOptions;
-    } | {
-        provider: "google";
-        options: GoogleOptions;
     };
     export interface Estimate<A extends string> {
         config: Configuration;
@@ -176,11 +168,11 @@ export class CostSnapshot {
     // @internal
     constructor(
     provider: string,
-    options: CommonOptions | AwsOptions | GoogleOptions, stats: FunctionStats, costMetrics?: CostMetric[]);
+    options: CommonOptions | AwsOptions, stats: FunctionStats, costMetrics?: CostMetric[]);
     readonly costMetrics: CostMetric[];
     csv(): string;
     find(name: string): CostMetric | undefined;
-    readonly options: CommonOptions | AwsOptions | GoogleOptions;
+    readonly options: CommonOptions | AwsOptions;
     readonly provider: string;
     // @internal (undocumented)
     push(metric: CostMetric): void;
@@ -218,9 +210,6 @@ export enum FaastErrorNames {
     ESERIALIZE = "FaastSerializationError",
     ETIMEOUT = "FaastTimeoutError"
 }
-
-// @public
-export function faastGoogle<M extends object>(fmodule: M, options?: GoogleOptions): Promise<GoogleFaastModule<M>>;
 
 // @public
 export function faastLocal<M extends object>(fmodule: M, options?: LocalOptions): Promise<LocalFaastModule<M>>;
@@ -288,25 +277,6 @@ export class FunctionStatsEvent {
     toString(): string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "GoogleState" needs to be exported by the entry point index.d.ts
-//
-// @public
-export type GoogleFaastModule<M extends object = object> = FaastModuleProxy<M, GoogleOptions, GoogleState>;
-
-// @public
-export interface GoogleOptions extends CommonOptions {
-    // Warning: (ae-forgotten-export) The symbol "GoogleResources" needs to be exported by the entry point index.d.ts
-    // Warning: (ae-forgotten-export) The symbol "GoogleServices" needs to be exported by the entry point index.d.ts
-    //
-    // @internal (undocumented)
-    _gcWorker?: (resources: GoogleResources, services: GoogleServices) => Promise<void>;
-    googleCloudFunctionOptions?: cloudfunctions_v2.Params$Resource$Projects$Locations$Functions$Create;
-    region?: GoogleRegion;
-}
-
-// @public
-export type GoogleRegion = "asia-east1" | "asia-east2" | "asia-northeast1" | "asia-south1" | "asia-southeast1" | "australia-southeast1" | "europe-north1" | "europe-west1" | "europe-west2" | "europe-west3" | "europe-west4" | "europe-west6" | "northamerica-northeast1" | "southamerica-east1" | "us-central1" | "us-east1" | "us-east4" | "us-west1" | "us-west2";
-
 // @public
 export interface IncludeOption {
     cwd?: string;
@@ -366,7 +336,7 @@ export class PersistentCache {
 }
 
 // @public
-export type Provider = "aws" | "google" | "local";
+export type Provider = "aws" | "local";
 
 // @public
 export const providers: Provider[];

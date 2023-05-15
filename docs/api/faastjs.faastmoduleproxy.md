@@ -20,7 +20,7 @@ export declare class FaastModuleProxy<M extends object, O extends CommonOptions,
 
 ## Remarks
 
-`FaastModuleProxy` provides a unified developer experience for faast.js modules on top of provider-specific runtime APIs. Most users will not create `FaastModuleProxy` instances themselves; instead use [faast()](./faastjs.faast.md)<!-- -->, or [faastAws()](./faastjs.faastaws.md)<!-- -->, [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->, or [faastLocal()](./faastjs.faastlocal.md)<!-- -->. `FaastModuleProxy` implements the [FaastModule](./faastjs.faastmodule.md) interface, which is the preferred public interface for faast modules. `FaastModuleProxy` can be used to access provider-specific details and state, and is useful for deeper testing.
+`FaastModuleProxy` provides a unified developer experience for faast.js modules on top of provider-specific runtime APIs. Most users will not create `FaastModuleProxy` instances themselves; instead use [faast()](./faastjs.faast.md)<!-- -->, or [faastAws()](./faastjs.faastaws.md) or [faastLocal()](./faastjs.faastlocal.md)<!-- -->. `FaastModuleProxy` implements the [FaastModule](./faastjs.faastmodule.md) interface, which is the preferred public interface for faast modules. `FaastModuleProxy` can be used to access provider-specific details and state, and is useful for deeper testing.
 
 The constructor for this class is marked as internal. Third-party code should not call the constructor directly or create subclasses that extend the `FaastModuleProxy` class.
 
@@ -31,7 +31,7 @@ The constructor for this class is marked as internal. Third-party code should no
 |  [functions](./faastjs.faastmoduleproxy.functions.md) |  | [ProxyModule](./faastjs.proxymodule.md)<!-- -->&lt;M&gt; | Each call of a cloud function creates a separate remote invocation. |
 |  [functionsDetail](./faastjs.faastmoduleproxy.functionsdetail.md) |  | [ProxyModuleDetail](./faastjs.proxymoduledetail.md)<!-- -->&lt;M&gt; | Similar to [FaastModule.functions](./faastjs.faastmodule.functions.md) except each function returns a [Detail](./faastjs.detail.md) object |
 |  [options](./faastjs.faastmoduleproxy.options.md) | <code>readonly</code> | Required&lt;[CommonOptions](./faastjs.commonoptions.md)<!-- -->&gt; | The options set for this instance, which includes default values. |
-|  [provider](./faastjs.faastmoduleproxy.provider.md) |  | [Provider](./faastjs.provider.md) | The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" or "google". |
+|  [provider](./faastjs.faastmoduleproxy.provider.md) |  | [Provider](./faastjs.provider.md) | The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws". |
 
 ## Methods
 

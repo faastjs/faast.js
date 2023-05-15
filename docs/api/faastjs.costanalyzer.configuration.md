@@ -9,7 +9,7 @@ hide_title: true
 
 ## CostAnalyzer.Configuration type
 
-An input to [CostAnalyzer.analyze()](./faastjs.costanalyzer.analyze.md)<!-- -->, specifying one configuration of faast.js to run against a workload. See [AwsOptions](./faastjs.awsoptions.md) and [GoogleOptions](./faastjs.googleoptions.md)<!-- -->.
+An input to [CostAnalyzer.analyze()](./faastjs.costanalyzer.analyze.md)<!-- -->, specifying one configuration of faast.js to run against a workload. See [AwsOptions](./faastjs.awsoptions.md)<!-- -->.
 
 **Signature:**
 
@@ -17,9 +17,6 @@ An input to [CostAnalyzer.analyze()](./faastjs.costanalyzer.analyze.md)<!-- -->,
 type Configuration = {
         provider: "aws";
         options: AwsOptions;
-    } | {
-        provider: "google";
-        options: GoogleOptions;
     };
 ```
-**References:** [AwsOptions](./faastjs.awsoptions.md)<!-- -->, [GoogleOptions](./faastjs.googleoptions.md)
+**References:** [AwsOptions](./faastjs.awsoptions.md)

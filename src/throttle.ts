@@ -310,7 +310,7 @@ export interface Limits {
      * calls to APIs which are expected to return the same results for the same
      * arguments, and which are likely to be called across many faast.js module
      * instantiations. This is used internally by faast.js for caching cloud
-     * prices for AWS and Google, and for saving the last garbage collection
+     * prices for AWS, and for saving the last garbage collection
      * date for AWS. Persistent cache entries expire after a period of time. See
      * {@link PersistentCache}.
      */

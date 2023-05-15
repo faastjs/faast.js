@@ -75,11 +75,9 @@ Provider-specific metrics vary. For example, AWS has the following additional me
 
 - `logIngestion`<!-- -->: this cost metric is always zero for AWS. It is present to remind the user that AWS charges for log data ingested by CloudWatch Logs that are not measured by faast.js. Log entries may arrive significantly after function execution completes, and there is no way for faast.js to know exactly how long to wait, therefore it does not attempt to measure this cost. In practice, if your cloud functions do not perform extensive logging on all invocations, log ingestion costs from faast.js are likely to be low or fall within the free tier.
 
-For Google, extra metrics include `outboundDataTransfer` similar to AWS, and `pubsub`<!-- -->, which combines costs that are split into `sns` and `sqs` on AWS.
-
 The Local provider has no extra metrics.
 
-Prices are retrieved dynamically from AWS and Google and cached locally. Cached prices expire after 24h. For each cost metric, faast.js uses the highest price tier to compute estimated pricing.
+Prices are retrieved dynamically from AWS and cached locally. Cached prices expire after 24h. For each cost metric, faast.js uses the highest price tier to compute estimated pricing.
 
 Cost estimates do not take free tiers into account.
 
@@ -90,8 +88,8 @@ The constructor for this class is marked as internal. Third-party code should no
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
 |  [costMetrics](./faastjs.costsnapshot.costmetrics.md) | <code>readonly</code> | [CostMetric](./faastjs.costmetric.md)<!-- -->\[\] | The cost metric components for this cost snapshot. See [CostMetric](./faastjs.costmetric.md)<!-- -->. |
-|  [options](./faastjs.costsnapshot.options.md) | <code>readonly</code> | [CommonOptions](./faastjs.commonoptions.md) &#124; [AwsOptions](./faastjs.awsoptions.md) &#124; [GoogleOptions](./faastjs.googleoptions.md) | The options used to initialize the faast.js module where this cost snapshot was generated. |
-|  [provider](./faastjs.costsnapshot.provider.md) | <code>readonly</code> | string | The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" or "google" |
+|  [options](./faastjs.costsnapshot.options.md) | <code>readonly</code> | [CommonOptions](./faastjs.commonoptions.md) &#124; [AwsOptions](./faastjs.awsoptions.md) | The options used to initialize the faast.js module where this cost snapshot was generated. |
+|  [provider](./faastjs.costsnapshot.provider.md) | <code>readonly</code> | string | The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" |
 |  [stats](./faastjs.costsnapshot.stats.md) | <code>readonly</code> | [FunctionStats](./faastjs.functionstats.md) | The function statistics that were used to compute prices. |
 
 ## Methods

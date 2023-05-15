@@ -122,9 +122,8 @@ export async function testCosts(t: ExecutionContext, provider: Provider) {
     }
 }
 
-const { awsConfigurations, googleConfigurations } = CostAnalyzer;
+const { awsConfigurations } = CostAnalyzer;
 test(title("aws", "cost analyzer"), testCostAnalyzer, filter(awsConfigurations));
-test(title("google", "cost analyzer"), testCostAnalyzer, filter(googleConfigurations));
 
 for (const provider of providers) {
     test(title(provider, `cost estimate for basic calls`), testCosts, provider);

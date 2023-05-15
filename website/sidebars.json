@@ -5,7 +5,6 @@
             "workflow",
             "cost-estimates",
             "aws",
-            "google-cloud",
             "local",
             "scaling-throttling",
             "architecture",

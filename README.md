@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0) [![CircleCI](https://circleci.com/gh/faastjs/faast.js.svg?style=shield&circle-token=c97f196a78c7173d6ca4e5fc9f09c2cba4ab0647)](https://circleci.com/gh/faastjs/faast.js) [![codecov](https://codecov.io/gh/faastjs/faast.js/branch/master/graph/badge.svg?token=Ml90RLLbEh)](https://codecov.io/gh/faastjs/faast.js) [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release) [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffaastjs%2Ffaast.js.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffaastjs%2Ffaast.js?ref=badge_shield)
 
-Faast.js makes regular functions callable as serverless functions on AWS Lambda and Google Cloud. It handles the details of uploading your code, creating cloud infrastructure, and cleaning up. Scale up your functions to a thousand cores in seconds :rocket:
+Faast.js makes regular functions callable as serverless functions on AWS Lambda. It handles the details of uploading your code, creating cloud infrastructure, and cleaning up. Scale up your functions to a thousand cores in seconds :rocket:
 
 Faast.js is a pure library with no service dependencies, operational overhead, or unnecessary complexity.
 
@@ -71,7 +71,7 @@ $0.00420858
 -   **Cost-effective.** Understand and optimize your workload costs in real time. Pay only for compute time actually used.
 -   **Ephemeral.** No clusters or services to manage. Faast.js creates the infrastructure it uses on the fly and cleans up when it's done.
 -   **Productive.** First class support for TypeScript and JavaScript. Type safety, documentation, and extensive testing are part of our DNA.
--   **Multi-cloud:** Built-in support for AWS Lambda and Google Cloud Functions, as well as local processing mode when you don't have network access. Switch with one line of code.
+-   **Local.** Built-in support for AWS Lambda and local processing mode when you don't have network access. Switch with one line of code.
 
 ## Ready to learn more?
 

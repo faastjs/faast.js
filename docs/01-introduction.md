@@ -20,8 +20,6 @@ Using the local provider allows you to test faast.js on your local machine. Ther
 
 AWS is recommended for optimal faast.js performance. See [AWS setup instructions](./04-aws.md#setup).
 
-Google Cloud is also supported. See [Google Cloud setup instructions](./05-google-cloud.md#setup).
-
 ## Usage
 
 Cloud functions can be written as ordinary TypeScript or JavaScript modules:
@@ -109,7 +107,6 @@ Try out different providers:
 
 ```typescript
 await faast("aws", funcs);
-await faast("google", funcs);
 await faast("local", funcs);
 ```
 
@@ -147,15 +144,15 @@ await faast("aws", funcs, {
 });
 ```
 
-Read more about [package dependencies on AWS](./04-aws.md#package-dependencies) and [package dependencies on Google Cloud](./05-google-cloud.md#package-dependencies).
+Read more about [package dependencies on AWS](./04-aws.md#package-dependencies).
 
-Check out even more options in [CommonOptions](./api/faastjs.commonoptions.md) and cloud-specific options in [AwsOptions](./api/faastjs.awsoptions.md), [GoogleOptions](./api/faastjs.googleoptions.md), and [LocalOptions](./api/faastjs.localoptions.md).
+Check out even more options in [CommonOptions](./api/faastjs.commonoptions.md) and cloud-specific options in [AwsOptions](./api/faastjs.awsoptions.md) and [LocalOptions](./api/faastjs.localoptions.md).
 
 ## Terminology
 
-**Provider**: A Functions as a Service (FaaS) provider, such as AWS Lambda or Google Cloud Functions. Faast.js also has a "local" provider which uses child processes to simulate a FaaS service without cloud usage.
+**Provider**: A Functions as a Service (FaaS) provider, such as AWS Lambda. Faast.js also has a "local" provider which uses child processes to simulate a FaaS service without cloud usage.
 
-**faast.js module**, also known as **faast module**: A wrapper around an ordinary JavaScript/TypeScript module that transforms exported ordinary functions into cloud functions. A faast.js module corresponds to a single AWS Lambda or Google Cloud Function that multiplexes requests to all of the functions exported by the module.
+**faast.js module**, also known as **faast module**: A wrapper around an ordinary JavaScript/TypeScript module that transforms exported ordinary functions into cloud functions. A faast.js module corresponds to a single AWS Lambda that multiplexes requests to all of the functions exported by the module.
 
 **Remote function**: A function within a faast.js module instantiated on a provider.
 
@@ -232,10 +229,6 @@ Usage:
 $ npx faastjs cleanup aws
 ```
 
-```shell
-$ npx faastjs cleanup google
-```
-
 Example output:
 
 ```text
@@ -253,8 +246,6 @@ IAM roles
 Lambda layers
 Persistent cache: /Users/achou/.faastjs/aws/pricing
   cache entries: 12
-Persistent cache: /Users/achou/.faastjs/google/pricing
-  cache entries: 5
 Persistent cache: /Users/achou/.faastjs/aws/gc
   cache entries: 1
 Cloudwatch log groups

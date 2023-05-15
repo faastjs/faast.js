@@ -10,14 +10,12 @@ import { Paginator } from "@aws-sdk/types";
 import { program } from "commander";
 import { readdir, remove } from "fs-extra";
 import { GaxiosPromise, GaxiosResponse } from "gaxios";
-import { google } from "googleapis";
 import ora from "ora";
 import { tmpdir } from "os";
 import path from "path";
 import * as readline from "readline";
 import * as awsFaast from "./aws/aws-faast";
 import { PersistentCache, caches } from "./cache";
-import * as googleFaast from "./google/google-faast";
 import { keysOf, uuidv4Pattern } from "./shared";
 import { throttle } from "./throttle";
 
@@ -25,7 +23,7 @@ const warn = console.warn;
 const log = console.log;
 
 interface CleanupOptions {
-    region?: string; // AWS and Google only.
+    region?: string; // AWS only.
     execute: boolean;
 }
 
@@ -268,100 +266,6 @@ async function iterate<T extends HasNextPageToken>(
     } while (token);
 }
 
-async function cleanupGoogle({ execute }: CleanupOptions) {
-    let nResources = 0;
-    const output = (msg: string) => !execute && log(msg);
-
-    async function listGoogleResource<T, U>(
-        pattern: RegExp,
-        getList: (pageToken?: string) => GaxiosPromise<T & HasNextPageToken>,
-        extractList: (arg: T) => U[] | undefined,
-        extractElement: (arg: U) => string | undefined
-    ) {
-        const allResources: string[] = [];
-        await iterate(
-            pageToken => getList(pageToken),
-            result => {
-                const resources = extractList(result) || [];
-                allResources.push(...resources.map(elem => extractElement(elem) || ""));
-            }
-        );
-
-        const matchingResources = allResources.filter(t => t.match(pattern));
-        matchingResources.forEach(resource => output(`  ${resource}`));
-        return matchingResources;
-    }
-
-    async function deleteGoogleResource<T, U>(
-        name: string,
-        pattern: RegExp,
-        getList: (pageToken?: string) => GaxiosPromise<T & HasNextPageToken>,
-        extractList: (arg: T) => U[] | undefined,
-        extractElement: (arg: U) => string | undefined,
-        doRemove: (arg: string) => Promise<any>
-    ) {
-        const allResources = await listGoogleResource(
-            pattern,
-            getList,
-            extractList,
-            extractElement
-        );
-        nResources += allResources.length;
-        if (execute) {
-            await deleteResources(name, allResources, doRemove, {
-                concurrency: 20,
-                rate: 20,
-                burst: 20
-            });
-        }
-    }
-    const { cloudFunctions, pubsub } = await googleFaast.initializeGoogleServices();
-    const project = await google.auth.getProjectId();
-    log(`Default project: ${project}`);
-
-    output(`Cloud functions`);
-    await deleteGoogleResource(
-        "Cloud Function(s)",
-        new RegExp(`faast-${uuidv4Pattern}`),
-        (pageToken?: string) =>
-            cloudFunctions.projects.locations.functions.list({
-                pageToken,
-                parent: `projects/${project}/locations/-`
-            }),
-        page => page.functions,
-        func => func.name ?? undefined,
-        name => cloudFunctions.projects.locations.functions.delete({ name })
-    );
-
-    output(`Pub/Sub subscriptions`);
-    await deleteGoogleResource(
-        "Pub/Sub Subscription(s)",
-        new RegExp(`faast-${uuidv4Pattern}`),
-        pageToken =>
-            pubsub.projects.subscriptions.list({
-                pageToken,
-                project: `projects/${project}`
-            }),
-        page => page.subscriptions,
-        subscription => subscription.name ?? undefined,
-        subscriptionName =>
-            pubsub.projects.subscriptions.delete({ subscription: subscriptionName })
-    );
-
-    output(`Pub/Sub topics`);
-    await deleteGoogleResource(
-        "Pub/Sub topic(s)",
-        new RegExp(`topics/faast-${uuidv4Pattern}`),
-        pageToken =>
-            pubsub.projects.topics.list({ pageToken, project: `projects/${project}` }),
-        page => page.topics,
-        topic => topic.name ?? undefined,
-        topicName => pubsub.projects.topics.delete({ topic: topicName })
-    );
-
-    return nResources;
-}
-
 async function cleanupLocal({ execute }: CleanupOptions) {
     const output = (msg: string) => !execute && log(msg);
     const tmpDir = tmpdir();
@@ -407,14 +311,10 @@ async function runCleanup(cloud: string, options: CleanupOptions) {
     let nResources = 0;
     if (cloud === "aws") {
         nResources = await cleanupAWS(options);
-    } else if (cloud === "google") {
-        nResources = await cleanupGoogle(options);
     } else if (cloud === "local") {
         nResources = await cleanupLocal(options);
     } else {
-        warn(
-            `Unknown cloud name "${cloud}". Must specify "aws" or "google", or "local".`
-        );
+        warn(`Unknown cloud name "${cloud}". Must specify "aws" or "local".`);
         process.exit(-1);
     }
     if (options.execute) {
@@ -435,7 +335,7 @@ async function main() {
         .option("-v, --verbose", "Verbose mode")
         .option(
             "-r, --region <region>",
-            "Cloud region to operate on. Defaults to us-west-2 for AWS, and us-central1 for Google."
+            "Cloud region to operate on. Defaults to us-west-2 for AWS."
         )
         .option(
             "-x, --execute",
@@ -444,7 +344,7 @@ async function main() {
         .option("-f, --force", "When used with -x, skips the prompt")
         .command("cleanup <cloud>")
         .description(
-            `Cleanup faast.js resources that may have leaked. The <cloud> argument must be "aws", "google", or "local".
+            `Cleanup faast.js resources that may have leaked. The <cloud> argument must be "aws" or "local".
         By default the output is a dry run and will only print the actions that would be performed if '-x' is specified.`
         )
         .action((arg: string) => {
@@ -463,9 +363,6 @@ async function main() {
         switch (cloud) {
             case "aws":
                 region = awsFaast.defaults.region;
-                break;
-            case "google":
-                region = googleFaast.defaults.region;
                 break;
         }
     }

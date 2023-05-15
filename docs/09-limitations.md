@@ -43,10 +43,6 @@ Arguments and return values are sent through each provider's API or through a cl
 
 Limits for AWS Lambda are published [here](https://docs.aws.amazon.com/lambda/latest/dg/limits.html). These limits manifest differently for [https vs queue mode](./04-aws.md#queue-vs-https-mode).
 
-### Google Limits
-
-Limits for Google Cloud Functions are published [here](https://cloud.google.com/functions/quotas). As of March 2019 the limits are for arguments and return values is 10MB.
-
 ### Local limits
 
 In local mode, faast.js uses node's [`process.send()`](https://nodejs.org/api/process.html#process_process_send_message_sendhandle_options_callback) to send messages to worker processes. The IPC limits are OS-specific.

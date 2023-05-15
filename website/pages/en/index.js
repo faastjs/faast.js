@@ -252,7 +252,7 @@ class Index extends React.Component {
                             image: `${baseUrl}img/cloud-plug.svg`,
                             imageAlign: "top",
                             title: "Multi-cloud",
-                            content: "AWS and Google Cloud support built-in."
+                            content: "AWS support built-in."
                         },
                         {
                             image: `${baseUrl}img/logs.svg`,

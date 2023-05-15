@@ -5,7 +5,6 @@ import path from "path";
 import { join } from "path";
 import { CommonOptions, log, Provider, providers } from "../index";
 import { awsPacker } from "../src/aws/aws-faast";
-import { googlePacker } from "../src/google/google-faast";
 import { localPacker } from "../src/local/local-faast";
 import { PackerResult, unzipInDir } from "../src/packer";
 import { WrapperOptions } from "../src/wrapper";
@@ -128,16 +127,12 @@ const configs: PackageConfiguration[] = [
 
 const packers: { [provider in Provider]: Packer } = {
     aws: awsPacker,
-    google: googlePacker,
     local: localPacker
 };
 
 for (const name of providers) {
     for (const config of configs) {
         let size = 130 * kb;
-        if (name === "google" && !config.packageJson) {
-            size = 1400 * kb;
-        }
         test(testPacker, name, packers[name], config, size);
     }
 }

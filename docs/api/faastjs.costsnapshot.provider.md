@@ -9,7 +9,7 @@ hide_title: true
 
 ## CostSnapshot.provider property
 
-The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" or "google"
+The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws"
 
 **Signature:**
 

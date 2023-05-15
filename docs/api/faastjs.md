@@ -8,7 +8,7 @@ hide_title: true
 
 ## faastjs package
 
-Faast.js transforms ordinary JavaScript modules into serverless cloud functions that can run on AWS Lambda and Google Cloud Functions.
+Faast.js transforms ordinary JavaScript modules into serverless cloud functions that can run on AWS Lambda.
 
 The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, which returns an object that implements the [FaastModule](./faastjs.faastmodule.md) interface. The most common options are [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Using faast.js requires writing two modules, one containing the functions to upload to the cloud, and the other that invokes faast.js and calls the resulting cloud functions.
 
@@ -37,7 +37,6 @@ The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, 
 |  --- | --- |
 |  [faast(provider, fmodule, options)](./faastjs.faast.md) | The main entry point for faast with any provider and only common options. |
 |  [faastAws(fmodule, options)](./faastjs.faastaws.md) | The main entry point for faast with AWS provider. |
-|  [faastGoogle(fmodule, options)](./faastjs.faastgoogle.md) | The main entry point for faast with Google provider. |
 |  [faastLocal(fmodule, options)](./faastjs.faastlocal.md) | The main entry point for faast with Local provider. |
 |  [throttle(limits, fn)](./faastjs.throttle.md) | A decorator for rate limiting, concurrency limiting, retry, memoization, and on-disk caching. See [Limits](./faastjs.limits.md)<!-- -->. |
 
@@ -51,7 +50,6 @@ The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, 
 |  [CommonOptions](./faastjs.commonoptions.md) | Options common across all faast.js providers. Used as argument to [faast()](./faastjs.faast.md)<!-- -->. |
 |  [Detail](./faastjs.detail.md) | A function return value with additional detailed information. |
 |  [FaastModule](./faastjs.faastmodule.md) | The main interface for invoking, cleaning up, and managing faast.js cloud functions. Returned by [faast()](./faastjs.faast.md)<!-- -->. |
-|  [GoogleOptions](./faastjs.googleoptions.md) | Google-specific options for [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->. |
 |  [IncludeOption](./faastjs.includeoption.md) | Options for the [CommonOptions.include](./faastjs.commonoptions.include.md) option. |
 |  [Limits](./faastjs.limits.md) | Specify [throttle()](./faastjs.throttle.md) limits. These limits shape the way throttle invokes the underlying function. |
 |  [LocalOptions](./faastjs.localoptions.md) | Local provider options for [faastLocal()](./faastjs.faastlocal.md)<!-- -->. |
@@ -77,8 +75,6 @@ The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, 
 |  [AsyncDetail](./faastjs.asyncdetail.md) | <code>AsyncDetail&lt;T&gt;</code> is similar to [Async](./faastjs.async.md) except it maps retun values R to <code>Detail&lt;R&gt;</code>, which is the return value with additional information about each cloud function invocation. |
 |  [AwsFaastModule](./faastjs.awsfaastmodule.md) | The return type of [faastAws()](./faastjs.faastaws.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
 |  [AwsRegion](./faastjs.awsregion.md) | Valid AWS [regions](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html)<!-- -->. Not all of these regions have Lambda support. |
-|  [GoogleFaastModule](./faastjs.googlefaastmodule.md) | The return type of [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
-|  [GoogleRegion](./faastjs.googleregion.md) | Valid Google Cloud [regions](https://cloud.google.com/compute/docs/regions-zones/)<!-- -->. Only some of these [regions have Cloud Functions](https://cloud.google.com/functions/docs/locations)<!-- -->. |
 |  [LocalFaastModule](./faastjs.localfaastmodule.md) | The return type of [faastLocal()](./faastjs.faastlocal.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
 |  [Provider](./faastjs.provider.md) | The type of all supported cloud providers. |
 |  [ProxyModule](./faastjs.proxymodule.md) | <code>ProxyModule&lt;M&gt;</code> is the type of [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. |

@@ -1,6 +1,6 @@
 /**
  * Faast.js transforms ordinary JavaScript modules into serverless cloud
- * functions that can run on AWS Lambda and Google Cloud Functions.
+ * functions that can run on AWS Lambda.
  *
  * The main entry point to faast.js is the {@link faast} function, which returns
  * an object that implements the {@link FaastModule} interface. The most common
@@ -21,17 +21,14 @@ export {
     FaastModule,
     FaastModuleProxy,
     FunctionStatsEvent,
-    GoogleFaastModule,
     LocalFaastModule,
     ProxyModule,
     ProxyModuleDetail,
     faast,
     faastAws,
-    faastGoogle,
     faastLocal,
     providers
 } from "./src/faast";
-export { GoogleOptions, GoogleRegion } from "./src/google/google-faast";
 export { LocalOptions } from "./src/local/local-faast";
 export { log } from "./src/log";
 export {

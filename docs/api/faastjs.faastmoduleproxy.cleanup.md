@@ -52,6 +52,4 @@ Note that `cleanup` leaves behind some provider-specific resources:
 
 - AWS: Cloudwatch logs are preserved until the garbage collector in a future cloud function instance deletes them. The default log expiration time is 24h (or the value of [CommonOptions.retentionInDays](./faastjs.commonoptions.retentionindays.md)<!-- -->). In addition, the AWS Lambda IAM role is not deleted by cleanup. This role is shared across cloud function instances. Lambda layers are also not cleaned up immediately on AWS when [CommonOptions.packageJson](./faastjs.commonoptions.packagejson.md) is used and [CommonOptions.useDependencyCaching](./faastjs.commonoptions.usedependencycaching.md) is true. Cached layers are cleaned up by garbage collection. Also see [CleanupOptions.deleteCaches](./faastjs.cleanupoptions.deletecaches.md)<!-- -->.
 
-- Google: Google Stackdriver automatically deletes log entries after 30 days.
-
 - Local: Logs are preserved in a temporary directory on local disk. Garbage collection in a future cloud function instance will delete logs older than 24h.

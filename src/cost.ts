@@ -2,7 +2,6 @@ import Listr from "listr";
 import { inspect } from "util";
 import { faast, FaastModule } from "../index";
 import { AwsOptions } from "./aws/aws-faast";
-import { GoogleOptions } from "./google/google-faast";
 import { FunctionStats, CommonOptions } from "./provider";
 import { f1, keysOf, Statistics, sum } from "./shared";
 import { throttle } from "./throttle";
@@ -184,12 +183,9 @@ export class CostMetric {
  *   logging on all invocations, log ingestion costs from faast.js are likely to
  *   be low or fall within the free tier.
  *
- * For Google, extra metrics include `outboundDataTransfer` similar to AWS, and
- * `pubsub`, which combines costs that are split into `sns` and `sqs` on AWS.
- *
  * The Local provider has no extra metrics.
  *
- * Prices are retrieved dynamically from AWS and Google and cached locally.
+ * Prices are retrieved dynamically from AWS and cached locally.
  * Cached prices expire after 24h. For each cost metric, faast.js uses the
  * highest price tier to compute estimated pricing.
  *
@@ -206,13 +202,13 @@ export class CostSnapshot {
     readonly costMetrics: CostMetric[] = [];
     /** @internal */
     constructor(
-        /** The {@link Provider}, e.g. "aws" or "google" */
+        /** The {@link Provider}, e.g. "aws" */
         readonly provider: string,
         /**
          * The options used to initialize the faast.js module where this cost
          * snapshot was generated.
          */
-        readonly options: CommonOptions | AwsOptions | GoogleOptions,
+        readonly options: CommonOptions | AwsOptions,
         stats: FunctionStats,
         costMetrics: CostMetric[] = []
     ) {
@@ -306,18 +302,13 @@ export namespace CostAnalyzer {
     /**
      * An input to {@link CostAnalyzer.analyze}, specifying one
      * configuration of faast.js to run against a workload. See
-     * {@link AwsOptions} and {@link GoogleOptions}.
+     * {@link AwsOptions}.
      * @public
      */
-    export type Configuration =
-        | {
-              provider: "aws";
-              options: AwsOptions;
-          }
-        | {
-              provider: "google";
-              options: GoogleOptions;
-          };
+    export type Configuration = {
+        provider: "aws";
+        options: AwsOptions;
+    };
 
     /**
      * Default AWS cost analyzer configurations include all memory sizes for AWS
@@ -354,45 +345,6 @@ export namespace CostAnalyzer {
         for (let memorySize = 128; memorySize <= 3008; memorySize += 64) {
             rv.push({
                 provider: "aws",
-                options: {
-                    mode: "https",
-                    memorySize,
-                    timeout: 300,
-                    gc: "off",
-                    childProcess: true
-                }
-            });
-        }
-        return rv;
-    })();
-
-    /**
-     * Default Google Cloud Functions cost analyzer configurations include all
-     * available memory sizes.
-     * @remarks
-     * Each google cost analyzer configuration follows this template:
-     *
-     * ```typescript
-     * {
-     *     provider: "google",
-     *     options: {
-     *         mode: "https",
-     *         memorySize,
-     *         timeout: 300,
-     *         gc: "off",
-     *         childProcess: true
-     *     }
-     * }
-     * ```
-     *
-     * where `memorySize` is in `[128, 256, 512, 1024, 2048]`.
-     * @public
-     */
-    export const googleConfigurations: Configuration[] = (() => {
-        const rv: Configuration[] = [];
-        for (const memorySize of [128, 256, 512, 1024, 2048]) {
-            rv.push({
-                provider: "google",
                 options: {
                     mode: "https",
                     memorySize,
@@ -585,15 +537,11 @@ export namespace CostAnalyzer {
      *  │   workload   │───▶│                 │     │        ...
      *  └──────────────┘    │                 │     │     ┌───────┐
      *                      │  cost analyzer  │─────┼────▶│3008MB │
-     *  ┌──────────────┐    │                 │     │     └───────┘
-     *  │configurations│───▶│                 │     │
-     *  └──────────────┘    │                 │     │     (Google)
-     *                      └─────────────────┘     │     ┌───────┐
-     *                                              ├────▶│ 128MB │
-     *                                              │     └───────┘
-     *                                              │     ┌───────┐
-     *                                              └────▶│ 256MB │
-     *                                                    └───────┘
+     *  ┌──────────────┐    │                 │           └───────┘
+     *  │configurations│───▶│                 │
+     *  └──────────────┘    │                 │
+     *                      └─────────────────┘
+     *
      * ```
      * `costAnalyzer` is the entry point. It automatically runs this workload
      * against multiple configurations in parallel. Then it uses faast.js' cost

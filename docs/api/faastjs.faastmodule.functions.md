@@ -19,7 +19,7 @@ functions: ProxyModule<M>;
 
 ## Remarks
 
-The module passed into [faast()](./faastjs.faast.md) or its provider-specific variants ([faastAws()](./faastjs.faastaws.md)<!-- -->, [faastGoogle()](./faastjs.faastgoogle.md)<!-- -->, and [faastLocal()](./faastjs.faastlocal.md)<!-- -->) is mapped to a [ProxyModule](./faastjs.proxymodule.md) version of the module, which performs the following mapping:
+The module passed into [faast()](./faastjs.faast.md) or its provider-specific variants ([faastAws()](./faastjs.faastaws.md) and [faastLocal()](./faastjs.faastlocal.md)<!-- -->) is mapped to a [ProxyModule](./faastjs.proxymodule.md) version of the module, which performs the following mapping:
 
 - All function exports that are generators are mapped to async generators.
 
@@ -38,8 +38,6 @@ If the cloud function throws an exception or rejects its promise with an instanc
 Arguments and return values have size limitations that vary by provider and mode:
 
 - AWS: 256KB in queue mode, 6MB arguments and 256KB return values in https mode. See [AWS Lambda Limits](https://docs.aws.amazon.com/lambda/latest/dg/limits.html)<!-- -->.
-
-- Google: 10MB in https and queue modes. See [Google Cloud Function Quotas](https://cloud.google.com/functions/quotas)<!-- -->.
 
 - Local: limited only by available memory and the limits of [childprocess.send](https://nodejs.org/api/child_process.html#child_process_subprocess_send_message_sendhandle_options_callback)<!-- -->.
 

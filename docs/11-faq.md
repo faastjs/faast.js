@@ -20,11 +20,11 @@ Separate faast.js jobs can be run at the same time and they will create separate
 
 **Does faast.js support multiple clouds?**
 
-Faast.js works with AWS and Google Cloud Platform. It can also work with other providers in the "local" provider mode, by simply running on a large cloud compute instance.
+Faast.js works with AWS. It can also work with other providers in the "local" provider mode, by simply running on a large cloud compute instance.
 
 **Does faast.js look up prices when providing cost estimates?**
 
-Yes, faast.js dynamically looks up prices from AWS and Google in order to produce accurate cost estimates. Prices are cached locally for 1 day and then refreshed.
+Yes, faast.js dynamically looks up prices from AWS in order to produce accurate cost estimates. Prices are cached locally for 1 day and then refreshed.
 
 **How do you know what pricing tier to use?**
 

@@ -198,8 +198,6 @@ const configurations: [Provider, CommonOptions, readonly LimitType[]][] = [
         { mode: "queue", childProcess: false },
         ["memory", "timeout", "generator", "returnSize"]
     ],
-    ["google", { mode: "https", childProcess: true }, ["memory", "timeout", "long"]],
-    ["google", { mode: "queue", childProcess: true }, []],
     ["local", {}, ["timeout"]]
 ];
 

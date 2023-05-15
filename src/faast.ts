@@ -6,7 +6,6 @@ import { v4 as uuidv4 } from "uuid";
 import { AwsImpl, AwsOptions, AwsState } from "./aws/aws-faast";
 import { CostMetric, CostSnapshot } from "./cost";
 import { FaastError, FaastErrorNames, synthesizeFaastError } from "./error";
-import { GoogleImpl, GoogleOptions, GoogleState } from "./google/google-faast";
 import { LocalImpl, LocalOptions, LocalState } from "./local/local-faast";
 import { inspectProvider, log } from "./log";
 import {
@@ -36,7 +35,7 @@ import { FunctionCall, isGenerator } from "./wrapper";
  * An array of all available provider.
  * @public
  */
-export const providers: Provider[] = ["aws", "google", "local"];
+export const providers: Provider[] = ["aws", "local"];
 
 /**
  * `Async<T>` maps regular values to Promises and Iterators to AsyncIterators,
@@ -214,7 +213,7 @@ export interface FaastModule<M extends object> {
      * Each call of a cloud function creates a separate remote invocation.
      * @remarks
      * The module passed into {@link faast} or its provider-specific variants
-     * ({@link faastAws}, {@link faastGoogle}, and {@link faastLocal}) is mapped
+     * ({@link faastAws} and {@link faastLocal}) is mapped
      * to a {@link ProxyModule} version of the module, which performs the
      * following mapping:
      *
@@ -249,9 +248,6 @@ export interface FaastModule<M extends object> {
      *
      * - AWS: 256KB in queue mode, 6MB arguments and 256KB return values in https mode. See
      *   {@link https://docs.aws.amazon.com/lambda/latest/dg/limits.html | AWS Lambda Limits}.
-     *
-     * - Google: 10MB in https and queue modes. See
-     *   {@link https://cloud.google.com/functions/quotas | Google Cloud Function Quotas}.
      *
      * - Local: limited only by available memory and the limits of
      *   {@link https://nodejs.org/api/child_process.html#child_process_subprocess_send_message_sendhandle_options_callback | childprocess.send}.
@@ -314,9 +310,6 @@ export interface FaastModule<M extends object> {
      *   used and {@link CommonOptions.useDependencyCaching} is true. Cached
      *   layers are cleaned up by garbage collection. Also see
      *   {@link CleanupOptions.deleteCaches}.
-     *
-     * - Google: Google Stackdriver automatically deletes log entries after 30
-     *   days.
      *
      * - Local: Logs are preserved in a temporary directory on local disk.
      *   Garbage collection in a future cloud function instance will delete logs
@@ -401,7 +394,7 @@ export interface FaastModule<M extends object> {
  * `FaastModuleProxy` provides a unified developer experience for faast.js
  * modules on top of provider-specific runtime APIs. Most users will not create
  * `FaastModuleProxy` instances themselves; instead use {@link faast}, or
- * {@link faastAws}, {@link faastGoogle}, or {@link faastLocal}.
+ * {@link faastAws} or {@link faastLocal}.
  * `FaastModuleProxy` implements the {@link FaastModule} interface, which is the
  * preferred public interface for faast modules. `FaastModuleProxy` can be used
  * to access provider-specific details and state, and is useful for deeper
@@ -411,7 +404,7 @@ export interface FaastModule<M extends object> {
 export class FaastModuleProxy<M extends object, O extends CommonOptions, S>
     implements FaastModule<M>
 {
-    /** The {@link Provider}, e.g. "aws" or "google". */
+    /** The {@link Provider}, e.g. "aws". */
     provider = this.impl.name;
     /** {@inheritdoc FaastModule.functions} */
     functions: ProxyModule<M>;
@@ -956,16 +949,6 @@ export type AwsFaastModule<M extends object = object> = FaastModuleProxy<
 >;
 
 /**
- * The return type of {@link faastGoogle}. See {@link FaastModuleProxy}.
- * @public
- */
-export type GoogleFaastModule<M extends object = object> = FaastModuleProxy<
-    M,
-    GoogleOptions,
-    GoogleState
->;
-
-/**
  * The return type of {@link faastLocal}. See {@link FaastModuleProxy}.
  * @public
  */
@@ -1006,7 +989,7 @@ function resolve(fmodule: object | { FAAST_URL: string }) {
 
 /**
  * The main entry point for faast with any provider and only common options.
- * @param provider - One of `"aws"`, `"google"`, or `"local"`. See
+ * @param provider - One of `"aws"` or `"local"`. See
  * {@link Provider}.
  * @param fmodule - A module imported with `import * as X from "Y";`. Using
  * `require` also works but loses type information.
@@ -1036,8 +1019,6 @@ export async function faast<M extends object>(
     switch (provider) {
         case "aws":
             return faastAws(fmodule, options);
-        case "google":
-            return faastGoogle(fmodule, options);
         case "local":
             return faastLocal(fmodule, options);
         default:
@@ -1058,25 +1039,6 @@ export function faastAws<M extends object>(
     options?: AwsOptions
 ): Promise<AwsFaastModule<M>> {
     return createFaastModuleProxy<M, AwsOptions, AwsState>(AwsImpl, fmodule, options);
-}
-
-/**
- * The main entry point for faast with Google provider.
- * @param fmodule - A module imported with `import * as X from "Y";`. Using
- * `require` also works but loses type information.
- * @param options - Most common options are in {@link CommonOptions}.
- * Additional Google-specific options are in {@link GoogleOptions}.
- * @public
- */
-export function faastGoogle<M extends object>(
-    fmodule: M,
-    options?: GoogleOptions
-): Promise<GoogleFaastModule<M>> {
-    return createFaastModuleProxy<M, GoogleOptions, GoogleState>(
-        GoogleImpl,
-        fmodule,
-        options
-    );
 }
 
 /**

@@ -44,15 +44,11 @@ It can be deceptively difficult to set optimal parameters for AWS Lambda and sim
  │   workload   │───▶│                 │     │        ...
  └──────────────┘    │                 │     │     ┌───────┐
                      │  cost analyzer  │─────┼────▶│3008MB │
- ┌──────────────┐    │                 │     │     └───────┘
- │configurations│───▶│                 │     │
- └──────────────┘    │                 │     │     (Google)
-                     └─────────────────┘     │     ┌───────┐
-                                             ├────▶│ 128MB │
-                                             │     └───────┘
-                                             │     ┌───────┐
-                                             └────▶│ 256MB │
-                                                   └───────┘
+ ┌──────────────┐    │                 │           └───────┘
+ │configurations│───▶│                 │
+ └──────────────┘    │                 │
+                     └─────────────────┘
+
 ```
 `costAnalyzer` is the entry point. It automatically runs this workload against multiple configurations in parallel. Then it uses faast.js' cost snapshot mechanism to automatically determine the price of running the workload with each configuration.
 

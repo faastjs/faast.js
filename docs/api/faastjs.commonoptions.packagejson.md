@@ -27,8 +27,6 @@ The way the `packageJson` is handled varies by provider:
 
 - local: Runs `npm install` in a temporary directory it prepares for the function.
 
-- google: uses Google Cloud Function's [native support for package.json](https://cloud.google.com/functions/docs/writing/specifying-dependencies-nodejs)<!-- -->.
-
 - aws: Recursively calls faast.js to run `npm install` inside a separate lambda function specifically created for this purpose. Faast.js uses lambda to install dependencies to ensure that native dependencies are compiled in an environment that can produce binaries linked against lambda's [execution environment](https://aws.amazon.com/blogs/compute/running-executables-in-aws-lambda/)<!-- -->. Packages are saved in a Lambda Layer.
 
 For AWS, if [CommonOptions.useDependencyCaching](./faastjs.commonoptions.usedependencycaching.md) is `true` (which is the default), then the Lambda Layer created will be reused in future function creation requests if the contents of `packageJson` are the same.

@@ -19,7 +19,7 @@ export interface CommonOptions
 
 ## Remarks
 
-There are also more specific options for each provider. See [AwsOptions](./faastjs.awsoptions.md)<!-- -->, [GoogleOptions](./faastjs.googleoptions.md)<!-- -->, and [LocalOptions](./faastjs.localoptions.md)<!-- -->.
+There are also more specific options for each provider. See [AwsOptions](./faastjs.awsoptions.md) and [LocalOptions](./faastjs.localoptions.md)<!-- -->.
 
 ## Properties
 
