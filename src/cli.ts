@@ -9,7 +9,6 @@ import { paginateListQueues } from "@aws-sdk/client-sqs";
 import { Paginator } from "@aws-sdk/types";
 import { program } from "commander";
 import { readdir, remove } from "fs-extra";
-import { GaxiosPromise, GaxiosResponse } from "gaxios";
 import ora from "ora";
 import { tmpdir } from "os";
 import path from "path";
@@ -248,22 +247,6 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
     );
 
     return nResources;
-}
-
-interface HasNextPageToken {
-    nextPageToken?: string | null;
-}
-
-async function iterate<T extends HasNextPageToken>(
-    getPage: (token?: string) => GaxiosPromise<T>,
-    each: (val: T) => void
-) {
-    let token;
-    do {
-        const result: GaxiosResponse<T> = await getPage(token);
-        each(result.data);
-        token = result.data.nextPageToken;
-    } while (token);
 }
 
 async function cleanupLocal({ execute }: CleanupOptions) {
