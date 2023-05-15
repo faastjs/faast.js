@@ -433,6 +433,10 @@ export async function initialize(
     if (!GoogleCloudFunctionsMemorySizes.find(size => size === memorySize)) {
         log.warn(`Invalid memorySize ${memorySize} for Google Cloud Functions`);
     }
+    const newEnv: Map<string, string> = new Map();
+    for (const key of Object.keys(env)) {
+        newEnv.set(key, env[key]);
+    }
     const requestBody: CloudFunctions.Schema$Function = {
         name: trampoline,
         buildConfig: {
@@ -440,7 +444,10 @@ export async function initialize(
             source: {
                 storageSource
             },
-            environmentVariables: env,
+            // google's API type definitions have the wrong type for
+            // environmentVariables. It's not supposed to be an object, it's
+            // supposed to be a Map<string,string>.
+            environmentVariables: newEnv as any,
             runtime: "nodejs18"
         },
         serviceConfig: {
@@ -459,13 +466,14 @@ export async function initialize(
     }
     log.info(`Create function at ${location}`);
     log.info(`Request body: %O`, requestBody);
-    await retryOp(3, async () => {
+    await retryOp(0, async () => {
         try {
             log.info(`create function ${requestBody.name} [${options.description}]`);
             await waitFor(cloudFunctions, () =>
                 cloudFunctions.projects.locations.functions.create({
                     parent: location,
-                    requestBody
+                    requestBody,
+                    functionId: functionName
                 })
             );
             await cloudFunctions.projects.locations.functions.setIamPolicy({
@@ -780,8 +788,7 @@ async function uploadZip(url: string, zipStream: NodeJS.ReadableStream) {
         url,
         body: zipStream,
         headers: {
-            "content-type": "application/zip",
-            "x-goog-content-length-range": "0,104857600"
+            "content-type": "application/zip"
         }
     };
     return gaxios.request(config);
