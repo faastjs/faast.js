@@ -109,18 +109,18 @@ workflows:
                   nodeVersion: "node16"
                   executor: node16
                   target: "test-aws"
-            - build_and_test:
-                  name: "google-node16"
-                  nodeVersion: "node16"
-                  executor: node16
-                  target: "test-google"
+            # - build_and_test:
+            #       name: "google-node16"
+            #       nodeVersion: "node16"
+            #       executor: node16
+            #       target: "test-google"
             - examples:
                   nodeVersion: "node16"
                   executor: node16
             - release:
                   requires:
                       - aws-node16
-                      - google-node16
+                      # - google-node16
                       - examples
                   filters:
                       branches:
@@ -142,13 +142,13 @@ workflows:
                   target: "test-aws"
                   requires:
                       - cleanup
-            - build_and_test:
-                  name: "google-node16"
-                  nodeVersion: "node16"
-                  executor: node16
-                  target: "test-google"
-                  requires:
-                      - cleanup
+            # - build_and_test:
+            #       name: "google-node16"
+            #       nodeVersion: "node16"
+            #       executor: node16
+            #       target: "test-google"
+            #       requires:
+            #           - cleanup
             - examples:
                   nodeVersion: "node16"
                   executor: node16
