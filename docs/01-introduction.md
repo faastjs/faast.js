@@ -207,7 +207,7 @@ If the cloud function rejects with an instance of `Error`, then the proxy reject
 
 ## Logs
 
-Logs are not downloaded by default; they are preserved in the cloud provider's logging service (e.g. Cloudwatch Logs for AWS Stackdriver Logs for GCP, and a local temporary directory for local mode). Access logs via the `logUrl` method:
+Logs are not downloaded by default; they are preserved in the cloud provider's logging service (e.g. Cloudwatch Logs for AWS and a local temporary directory for local mode). Access logs via the `logUrl` method:
 
 ```typescript
 console.log(`Log URL: ${faastModule.logUrl()}`);
@@ -215,7 +215,7 @@ console.log(`Log URL: ${faastModule.logUrl()}`);
 
 The main reason for this design is (1) downloading logs causes outbound data transfer, which can be expensive (2) cloud providers have specialized filtering and querying that works well for the cloud-specific metadata they add to log entries, and (3) log services are specifically designed to handle the output of thousands of concurrent log streams.
 
-Faast.js ensures logs will expire; on AWS the log group expiration is set to 1 day. On GCP the default log expiration is 30 days. On local mode, logs are cleaned up the later of 1 day or the next time a faast.js process executes.
+Faast.js ensures logs will expire; on AWS the log group expiration is set to 1 day. On local mode, logs are cleaned up the later of 1 day or the next time a faast.js process executes.
 
 When errors are thrown by faast.js functions, log URLs may be appended to the error message. Whenever possible, these URLs incorporate cloud-specific filtering parameters to focus the log output to just the failed execution.
 
