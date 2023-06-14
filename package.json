@@ -89,7 +89,7 @@
         "@microsoft/api-documenter": "7.22.7",
         "@microsoft/api-extractor": "7.35.1",
         "@types/archiver": "5.3.1",
-        "@types/aws-lambda": "8.10.117",
+        "@types/aws-lambda": "8.10.118",
         "@types/express": "4.17.17",
         "@types/fs-extra": "11.0.1",
         "@types/listr": "0.14.4",
