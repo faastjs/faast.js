@@ -51,6 +51,7 @@
         "node": ">=8.0"
     },
     "dependencies": {
+        "@aws-sdk/abort-controller": "^3.309.0",
         "@aws-sdk/client-cloudwatch": "^3.309.0",
         "@aws-sdk/client-cloudwatch-logs": "^3.309.0",
         "@aws-sdk/client-iam": "^3.309.0",
@@ -65,7 +66,6 @@
         "@types/debug": "^4.1.7",
         "@types/verror": "^1.10.6",
         "@types/webpack": "^5.28.1",
-        "abort-controller": "^3.0.0",
         "archiver": "^5.3.1",
         "commander": "^11.0.0",
         "debug": "^4.3.1",
