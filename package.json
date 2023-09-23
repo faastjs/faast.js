@@ -95,7 +95,7 @@
         "@types/listr": "0.14.5",
         "@types/lolex": "5.1.4",
         "@types/memory-fs": "0.3.3",
-        "@types/node": "18.17.18",
+        "@types/node": "18.17.19",
         "@types/papaparse": "5.3.8",
         "@types/tar-stream": "3.1.0",
         "@types/uuid": "9.0.4",
