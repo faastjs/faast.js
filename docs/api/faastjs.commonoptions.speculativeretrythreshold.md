@@ -9,7 +9,7 @@ hide_title: true
 
 ## CommonOptions.speculativeRetryThreshold property
 
-> This API is provided as a preview for developers and may change based on feedback that we receive. Do not use this API in a production environment.
+> This API is provided as a beta preview for developers and may change based on feedback that we receive. Do not use this API in a production environment.
 > 
 
 Reduce tail latency by retrying invocations that take substantially longer than other invocations of the same function. Default: 3.
