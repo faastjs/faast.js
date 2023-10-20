@@ -97,7 +97,7 @@
         "@types/memory-fs": "0.3.6",
         "@types/node": "18.17.19",
         "@types/papaparse": "5.3.9",
-        "@types/tar-stream": "3.1.1",
+        "@types/tar-stream": "3.1.2",
         "@types/uuid": "9.0.5",
         "@types/webpack-node-externals": "3.0.2",
         "@types/yauzl": "2.10.1",
