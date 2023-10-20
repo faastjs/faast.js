@@ -99,7 +99,7 @@
         "@types/papaparse": "5.3.10",
         "@types/tar-stream": "3.1.2",
         "@types/uuid": "9.0.6",
-        "@types/webpack-node-externals": "3.0.2",
+        "@types/webpack-node-externals": "3.0.3",
         "@types/yauzl": "2.10.1",
         "ava": "5.3.1",
         "c8": "^8.0.0",
