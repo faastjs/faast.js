@@ -92,7 +92,7 @@
         "@types/aws-lambda": "8.10.128",
         "@types/express": "4.17.21",
         "@types/fs-extra": "11.0.4",
-        "@types/listr": "0.14.8",
+        "@types/listr": "0.14.9",
         "@types/lolex": "5.1.6",
         "@types/memory-fs": "0.3.7",
         "@types/node": "18.17.19",
