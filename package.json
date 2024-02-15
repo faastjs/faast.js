@@ -80,7 +80,7 @@
         "webpack": "^5.70.0",
         "webpack-merge": "^5.8.0",
         "webpack-node-externals": "^3.0.0",
-        "yauzl": "^2.10.0"
+        "yauzl": "^3.0.0"
     },
     "peerDependencies": {
         "@types/node": ">=8.0 || 14.14.41"
