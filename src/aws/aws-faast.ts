@@ -377,6 +377,7 @@ export async function ensureRoleRaw(
         if (!response.Role) {
             throw new Error();
         }
+        return response.Role!;
     } catch (err) {
         if (!createRole) {
             throw new FaastError(
