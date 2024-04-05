@@ -19,11 +19,55 @@ export declare function throttle<A extends any[], R>(limits: Limits, fn: (...arg
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  limits | [Limits](./faastjs.limits.md) | see [Limits](./faastjs.limits.md)<!-- -->. |
-|  fn | (...args: A) =&gt; Promise&lt;R&gt; | The function to throttle. It can take any arguments, but must return a Promise (which includes <code>async</code> functions). |
+<table><thead><tr><th>
 
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+limits
+
+
+</td><td>
+
+[Limits](./faastjs.limits.md)
+
+
+</td><td>
+
+see [Limits](./faastjs.limits.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+fn
+
+
+</td><td>
+
+(...args: A) =&gt; Promise&lt;R&gt;
+
+
+</td><td>
+
+The function to throttle. It can take any arguments, but must return a Promise (which includes `async` functions).
+
+
+</td></tr>
+</tbody></table>
 **Returns:**
 
 (...args: A) =&gt; Promise&lt;R&gt;

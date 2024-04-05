@@ -85,18 +85,185 @@ The constructor for this class is marked as internal. Third-party code should no
 
 ## Properties
 
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [costMetrics](./faastjs.costsnapshot.costmetrics.md) | <code>readonly</code> | [CostMetric](./faastjs.costmetric.md)<!-- -->\[\] | The cost metric components for this cost snapshot. See [CostMetric](./faastjs.costmetric.md)<!-- -->. |
-|  [options](./faastjs.costsnapshot.options.md) | <code>readonly</code> | [CommonOptions](./faastjs.commonoptions.md) &#124; [AwsOptions](./faastjs.awsoptions.md) | The options used to initialize the faast.js module where this cost snapshot was generated. |
-|  [provider](./faastjs.costsnapshot.provider.md) | <code>readonly</code> | string | The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws" |
-|  [stats](./faastjs.costsnapshot.stats.md) | <code>readonly</code> | [FunctionStats](./faastjs.functionstats.md) | The function statistics that were used to compute prices. |
+<table><thead><tr><th>
+
+Property
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[costMetrics](./faastjs.costsnapshot.costmetrics.md)
+
+
+</td><td>
+
+`readonly`
+
+
+</td><td>
+
+[CostMetric](./faastjs.costmetric.md)<!-- -->\[\]
+
+
+</td><td>
+
+The cost metric components for this cost snapshot. See [CostMetric](./faastjs.costmetric.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[options](./faastjs.costsnapshot.options.md)
+
+
+</td><td>
+
+`readonly`
+
+
+</td><td>
+
+[CommonOptions](./faastjs.commonoptions.md) \| [AwsOptions](./faastjs.awsoptions.md)
+
+
+</td><td>
+
+The options used to initialize the faast.js module where this cost snapshot was generated.
+
+
+</td></tr>
+<tr><td>
+
+[provider](./faastjs.costsnapshot.provider.md)
+
+
+</td><td>
+
+`readonly`
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+The [Provider](./faastjs.provider.md)<!-- -->, e.g. "aws"
+
+
+</td></tr>
+<tr><td>
+
+[stats](./faastjs.costsnapshot.stats.md)
+
+
+</td><td>
+
+`readonly`
+
+
+</td><td>
+
+[FunctionStats](./faastjs.functionstats.md)
+
+
+</td><td>
+
+The function statistics that were used to compute prices.
+
+
+</td></tr>
+</tbody></table>
 
 ## Methods
 
-|  Method | Modifiers | Description |
-|  --- | --- | --- |
-|  [csv()](./faastjs.costsnapshot.csv.md) |  | Comma separated value output for a cost snapshot. |
-|  [find(name)](./faastjs.costsnapshot.find.md) |  | Find a specific cost metric by name. |
-|  [toString()](./faastjs.costsnapshot.tostring.md) |  | A summary of all cost metrics and prices in this cost snapshot. |
-|  [total()](./faastjs.costsnapshot.total.md) |  | Sum of cost metrics. |
+<table><thead><tr><th>
+
+Method
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[csv()](./faastjs.costsnapshot.csv.md)
+
+
+</td><td>
+
+
+</td><td>
+
+Comma separated value output for a cost snapshot.
+
+
+</td></tr>
+<tr><td>
+
+[find(name)](./faastjs.costsnapshot.find.md)
+
+
+</td><td>
+
+
+</td><td>
+
+Find a specific cost metric by name.
+
+
+</td></tr>
+<tr><td>
+
+[toString()](./faastjs.costsnapshot.tostring.md)
+
+
+</td><td>
+
+
+</td><td>
+
+A summary of all cost metrics and prices in this cost snapshot.
+
+
+</td></tr>
+<tr><td>
+
+[total()](./faastjs.costsnapshot.total.md)
+
+
+</td><td>
+
+
+</td><td>
+
+Sum of cost metrics.
+
+
+</td></tr>
+</tbody></table>

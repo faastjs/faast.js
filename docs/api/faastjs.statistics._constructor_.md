@@ -20,6 +20,36 @@ constructor(
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  printFixedPrecision | number | _(Optional)_ The number of decimal places to print in [Statistics.toString()](./faastjs.statistics.tostring.md)<!-- -->. |
+<table><thead><tr><th>
+
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+printFixedPrecision
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+_(Optional)_ The number of decimal places to print in [Statistics.toString()](./faastjs.statistics.tostring.md)<!-- -->.
+
+
+</td></tr>
+</tbody></table>

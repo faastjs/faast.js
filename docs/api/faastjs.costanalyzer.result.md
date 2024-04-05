@@ -25,13 +25,101 @@ The constructor for this class is marked as internal. Third-party code should no
 
 ## Properties
 
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [estimates](./faastjs.costanalyzer.result.estimates.md) | <code>readonly</code> | [Estimate](./faastjs.costanalyzer.estimate.md)<!-- -->&lt;A&gt;\[\] | Cost estimates for each configuration of the workload. See [CostAnalyzer.Estimate](./faastjs.costanalyzer.estimate.md)<!-- -->. |
-|  [workload](./faastjs.costanalyzer.result.workload.md) | <code>readonly</code> | Required&lt;[Workload](./faastjs.costanalyzer.workload.md)<!-- -->&lt;T, A&gt;&gt; | The workload analyzed. |
+<table><thead><tr><th>
+
+Property
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[estimates](./faastjs.costanalyzer.result.estimates.md)
+
+
+</td><td>
+
+`readonly`
+
+
+</td><td>
+
+[Estimate](./faastjs.costanalyzer.estimate.md)<!-- -->&lt;A&gt;\[\]
+
+
+</td><td>
+
+Cost estimates for each configuration of the workload. See [CostAnalyzer.Estimate](./faastjs.costanalyzer.estimate.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[workload](./faastjs.costanalyzer.result.workload.md)
+
+
+</td><td>
+
+`readonly`
+
+
+</td><td>
+
+Required&lt;[Workload](./faastjs.costanalyzer.workload.md)<!-- -->&lt;T, A&gt;&gt;
+
+
+</td><td>
+
+The workload analyzed.
+
+
+</td></tr>
+</tbody></table>
 
 ## Methods
 
-|  Method | Modifiers | Description |
-|  --- | --- | --- |
-|  [csv()](./faastjs.costanalyzer.result.csv.md) |  | Comma-separated output of cost analyzer. One line per cost analyzer configuration. |
+<table><thead><tr><th>
+
+Method
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[csv()](./faastjs.costanalyzer.result.csv.md)
+
+
+</td><td>
+
+
+</td><td>
+
+Comma-separated output of cost analyzer. One line per cost analyzer configuration.
+
+
+</td></tr>
+</tbody></table>

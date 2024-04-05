@@ -19,8 +19,82 @@ interface Estimate<A extends string>
 
 ## Properties
 
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [config](./faastjs.costanalyzer.estimate.config.md) |  | [Configuration](./faastjs.costanalyzer.configuration.md) | The worload configuration that was analyzed. See [CostAnalyzer.Configuration](./faastjs.costanalyzer.configuration.md)<!-- -->. |
-|  [costSnapshot](./faastjs.costanalyzer.estimate.costsnapshot.md) |  | [CostSnapshot](./faastjs.costsnapshot.md) | The cost snapshot for the cost analysis of the specific (workload, configuration) combination. See [CostSnapshot](./faastjs.costsnapshot.md)<!-- -->. |
-|  [extraMetrics](./faastjs.costanalyzer.estimate.extrametrics.md) |  | [WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)<!-- -->&lt;A&gt; | Additional workload metrics returned from the work function. See [CostAnalyzer.WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)<!-- -->. |
+<table><thead><tr><th>
+
+Property
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[config](./faastjs.costanalyzer.estimate.config.md)
+
+
+</td><td>
+
+
+</td><td>
+
+[Configuration](./faastjs.costanalyzer.configuration.md)
+
+
+</td><td>
+
+The worload configuration that was analyzed. See [CostAnalyzer.Configuration](./faastjs.costanalyzer.configuration.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[costSnapshot](./faastjs.costanalyzer.estimate.costsnapshot.md)
+
+
+</td><td>
+
+
+</td><td>
+
+[CostSnapshot](./faastjs.costsnapshot.md)
+
+
+</td><td>
+
+The cost snapshot for the cost analysis of the specific (workload, configuration) combination. See [CostSnapshot](./faastjs.costsnapshot.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[extraMetrics](./faastjs.costanalyzer.estimate.extrametrics.md)
+
+
+</td><td>
+
+
+</td><td>
+
+[WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)<!-- -->&lt;A&gt;
+
+
+</td><td>
+
+Additional workload metrics returned from the work function. See [CostAnalyzer.WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)<!-- -->.
+
+
+</td></tr>
+</tbody></table>

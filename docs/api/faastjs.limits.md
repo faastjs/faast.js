@@ -19,11 +19,141 @@ export interface Limits
 
 ## Properties
 
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [burst?](./faastjs.limits.burst.md) |  | number | _(Optional)_ The maximum number of calls to the underlying function to "burst" -- e.g. the number that can be issued immediately as long as the rate limit is not exceeded. For example, if rate is 5 and burst is 5, and 10 calls are made to the throttled function, 5 calls are made immediately and then after 1 second, another 5 calls are made immediately. Setting burst to 1 means calls are issued uniformly every <code>1/rate</code> seconds. If <code>rate</code> is not specified, then <code>burst</code> does not apply. Default: 1. |
-|  [cache?](./faastjs.limits.cache.md) |  | [PersistentCache](./faastjs.persistentcache.md) | _(Optional)_ Similar to <code>memoize</code> except the map from function arguments to results is stored in a persistent cache on disk. This is useful to prevent redundant calls to APIs which are expected to return the same results for the same arguments, and which are likely to be called across many faast.js module instantiations. This is used internally by faast.js for caching cloud prices for AWS, and for saving the last garbage collection date for AWS. Persistent cache entries expire after a period of time. See [PersistentCache](./faastjs.persistentcache.md)<!-- -->. |
-|  [concurrency](./faastjs.limits.concurrency.md) |  | number | The maximum number of concurrent executions of the underlying function to allow. Must be supplied, there is no default. Specifying <code>0</code> or <code>Infinity</code> is allowed and means there is no concurrency limit. |
-|  [memoize?](./faastjs.limits.memoize.md) |  | boolean | <p>_(Optional)_ If <code>memoize</code> is <code>true</code>, then every call to the throttled function will be saved as an entry in a map from arguments to return value. If same arguments are seen again in a future call, the return value is retrieved from the Map rather than calling the function again. This can be useful for avoiding redundant calls that are expected to return the same results given the same arguments.</p><p>The arguments will be captured with <code>JSON.stringify</code>, therefore types that do not stringify uniquely won't be distinguished from each other. Care must be taken when specifying <code>memoize</code> to ensure avoid incorrect results.</p> |
-|  [rate?](./faastjs.limits.rate.md) |  | number | _(Optional)_ The maximum number of calls per second to allow to the underlying function. Default: no rate limit. |
-|  [retry?](./faastjs.limits.retry.md) |  | number &#124; ((err: any, retries: number) =&gt; boolean) | _(Optional)_ Retry if the throttled function returns a rejected promise. <code>retry</code> can be a number or a function. If it is a number <code>N</code>, then up to <code>N</code> additional attempts are made in addition to the initial call. If retry is a function, it should return <code>true</code> if another retry attempt should be made, otherwise <code>false</code>. The first argument will be the value of the rejected promise from the previous call attempt, and the second argument will be the number of previous retry attempts (e.g. the first call will have value 0). Default: 0 (no retry attempts). |
+<table><thead><tr><th>
+
+Property
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[burst?](./faastjs.limits.burst.md)
+
+
+</td><td>
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+_(Optional)_ The maximum number of calls to the underlying function to "burst" -- e.g. the number that can be issued immediately as long as the rate limit is not exceeded. For example, if rate is 5 and burst is 5, and 10 calls are made to the throttled function, 5 calls are made immediately and then after 1 second, another 5 calls are made immediately. Setting burst to 1 means calls are issued uniformly every `1/rate` seconds. If `rate` is not specified, then `burst` does not apply. Default: 1.
+
+
+</td></tr>
+<tr><td>
+
+[cache?](./faastjs.limits.cache.md)
+
+
+</td><td>
+
+
+</td><td>
+
+[PersistentCache](./faastjs.persistentcache.md)
+
+
+</td><td>
+
+_(Optional)_ Similar to `memoize` except the map from function arguments to results is stored in a persistent cache on disk. This is useful to prevent redundant calls to APIs which are expected to return the same results for the same arguments, and which are likely to be called across many faast.js module instantiations. This is used internally by faast.js for caching cloud prices for AWS, and for saving the last garbage collection date for AWS. Persistent cache entries expire after a period of time. See [PersistentCache](./faastjs.persistentcache.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[concurrency](./faastjs.limits.concurrency.md)
+
+
+</td><td>
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+The maximum number of concurrent executions of the underlying function to allow. Must be supplied, there is no default. Specifying `0` or `Infinity` is allowed and means there is no concurrency limit.
+
+
+</td></tr>
+<tr><td>
+
+[memoize?](./faastjs.limits.memoize.md)
+
+
+</td><td>
+
+
+</td><td>
+
+boolean
+
+
+</td><td>
+
+_(Optional)_ If `memoize` is `true`<!-- -->, then every call to the throttled function will be saved as an entry in a map from arguments to return value. If same arguments are seen again in a future call, the return value is retrieved from the Map rather than calling the function again. This can be useful for avoiding redundant calls that are expected to return the same results given the same arguments.
+
+The arguments will be captured with `JSON.stringify`<!-- -->, therefore types that do not stringify uniquely won't be distinguished from each other. Care must be taken when specifying `memoize` to ensure avoid incorrect results.
+
+
+</td></tr>
+<tr><td>
+
+[rate?](./faastjs.limits.rate.md)
+
+
+</td><td>
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+_(Optional)_ The maximum number of calls per second to allow to the underlying function. Default: no rate limit.
+
+
+</td></tr>
+<tr><td>
+
+[retry?](./faastjs.limits.retry.md)
+
+
+</td><td>
+
+
+</td><td>
+
+number \| ((err: any, retries: number) =&gt; boolean)
+
+
+</td><td>
+
+_(Optional)_ Retry if the throttled function returns a rejected promise. `retry` can be a number or a function. If it is a number `N`<!-- -->, then up to `N` additional attempts are made in addition to the initial call. If retry is a function, it should return `true` if another retry attempt should be made, otherwise `false`<!-- -->. The first argument will be the value of the rejected promise from the previous call attempt, and the second argument will be the number of previous retry attempts (e.g. the first call will have value 0). Default: 0 (no retry attempts).
+
+
+</td></tr>
+</tbody></table>

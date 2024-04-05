@@ -19,11 +19,55 @@ export declare function faastAws<M extends object>(fmodule: M, options?: AwsOpti
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  fmodule | M | A module imported with <code>import * as X from &quot;Y&quot;;</code>. Using <code>require</code> also works but loses type information. |
-|  options | [AwsOptions](./faastjs.awsoptions.md) | _(Optional)_ Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional AWS-specific options are in [AwsOptions](./faastjs.awsoptions.md)<!-- -->. |
+<table><thead><tr><th>
 
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+fmodule
+
+
+</td><td>
+
+M
+
+
+</td><td>
+
+A module imported with `import * as X from "Y";`<!-- -->. Using `require` also works but loses type information.
+
+
+</td></tr>
+<tr><td>
+
+options
+
+
+</td><td>
+
+[AwsOptions](./faastjs.awsoptions.md)
+
+
+</td><td>
+
+_(Optional)_ Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional AWS-specific options are in [AwsOptions](./faastjs.awsoptions.md)<!-- -->.
+
+
+</td></tr>
+</tbody></table>
 **Returns:**
 
 Promise&lt;[AwsFaastModule](./faastjs.awsfaastmodule.md)<!-- -->&lt;M&gt;&gt;

@@ -19,32 +19,154 @@ export declare namespace CostAnalyzer
 
 ## Classes
 
-|  Class | Description |
-|  --- | --- |
-|  [Result](./faastjs.costanalyzer.result.md) | Cost analyzer results for each workload and configuration. |
+<table><thead><tr><th>
+
+Class
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[Result](./faastjs.costanalyzer.result.md)
+
+
+</td><td>
+
+Cost analyzer results for each workload and configuration.
+
+
+</td></tr>
+</tbody></table>
 
 ## Functions
 
-|  Function | Description |
-|  --- | --- |
-|  [analyze(userWorkload)](./faastjs.costanalyzer.analyze.md) | Estimate the cost of a workload using multiple configurations and providers. |
+<table><thead><tr><th>
+
+Function
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[analyze(userWorkload)](./faastjs.costanalyzer.analyze.md)
+
+
+</td><td>
+
+Estimate the cost of a workload using multiple configurations and providers.
+
+
+</td></tr>
+</tbody></table>
 
 ## Interfaces
 
-|  Interface | Description |
-|  --- | --- |
-|  [Estimate](./faastjs.costanalyzer.estimate.md) | A cost estimate result for a specific cost analyzer configuration. |
-|  [Workload](./faastjs.costanalyzer.workload.md) | <p>A user-defined cost analyzer workload for [CostAnalyzer.analyze()](./faastjs.costanalyzer.analyze.md)<!-- -->.</p><p>Example:</p> |
+<table><thead><tr><th>
+
+Interface
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[Estimate](./faastjs.costanalyzer.estimate.md)
+
+
+</td><td>
+
+A cost estimate result for a specific cost analyzer configuration.
+
+
+</td></tr>
+<tr><td>
+
+[Workload](./faastjs.costanalyzer.workload.md)
+
+
+</td><td>
+
+A user-defined cost analyzer workload for [CostAnalyzer.analyze()](./faastjs.costanalyzer.analyze.md)<!-- -->.
+
+Example:
+
+
+</td></tr>
+</tbody></table>
 
 ## Variables
 
-|  Variable | Description |
-|  --- | --- |
-|  [awsConfigurations](./faastjs.costanalyzer.awsconfigurations.md) | Default AWS cost analyzer configurations include all memory sizes for AWS Lambda. |
+<table><thead><tr><th>
+
+Variable
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[awsConfigurations](./faastjs.costanalyzer.awsconfigurations.md)
+
+
+</td><td>
+
+Default AWS cost analyzer configurations include all memory sizes for AWS Lambda.
+
+
+</td></tr>
+</tbody></table>
 
 ## Type Aliases
 
-|  Type Alias | Description |
-|  --- | --- |
-|  [Configuration](./faastjs.costanalyzer.configuration.md) | An input to [CostAnalyzer.analyze()](./faastjs.costanalyzer.analyze.md)<!-- -->, specifying one configuration of faast.js to run against a workload. See [AwsOptions](./faastjs.awsoptions.md)<!-- -->. |
-|  [WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md) | User-defined custom metrics for a workload. These are automatically summarized in the output; see [CostAnalyzer.Workload](./faastjs.costanalyzer.workload.md)<!-- -->. |
+<table><thead><tr><th>
+
+Type Alias
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[Configuration](./faastjs.costanalyzer.configuration.md)
+
+
+</td><td>
+
+An input to [CostAnalyzer.analyze()](./faastjs.costanalyzer.analyze.md)<!-- -->, specifying one configuration of faast.js to run against a workload. See [AwsOptions](./faastjs.awsoptions.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)
+
+
+</td><td>
+
+User-defined custom metrics for a workload. These are automatically summarized in the output; see [CostAnalyzer.Workload](./faastjs.costanalyzer.workload.md)<!-- -->.
+
+
+</td></tr>
+</tbody></table>

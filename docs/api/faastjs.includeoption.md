@@ -19,7 +19,63 @@ export interface IncludeOption
 
 ## Properties
 
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [cwd?](./faastjs.includeoption.cwd.md) |  | string | _(Optional)_ The working directory if <code>path</code> is relative. Defaults to <code>process.cwd()</code>. For example, if <code>cwd</code> is <code>&quot;foo&quot;</code> and <code>path</code> is <code>&quot;bar&quot;</code>, then the contents of the directory <code>foo/bar/</code> will be added to the remote function under the path <code>bar/</code>. |
-|  [path](./faastjs.includeoption.path.md) |  | string | The path to the directory or glob to add to the cloud function. |
+<table><thead><tr><th>
+
+Property
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[cwd?](./faastjs.includeoption.cwd.md)
+
+
+</td><td>
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+_(Optional)_ The working directory if `path` is relative. Defaults to `process.cwd()`<!-- -->. For example, if `cwd` is `"foo"` and `path` is `"bar"`<!-- -->, then the contents of the directory `foo/bar/` will be added to the remote function under the path `bar/`<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[path](./faastjs.includeoption.path.md)
+
+
+</td><td>
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+The path to the directory or glob to add to the cloud function.
+
+
+</td></tr>
+</tbody></table>

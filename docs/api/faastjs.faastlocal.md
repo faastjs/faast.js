@@ -19,11 +19,55 @@ export declare function faastLocal<M extends object>(fmodule: M, options?: Local
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  fmodule | M | A module imported with <code>import * as X from &quot;Y&quot;;</code>. Using <code>require</code> also works but loses type information. |
-|  options | [LocalOptions](./faastjs.localoptions.md) | _(Optional)_ Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional Local-specific options are in [LocalOptions](./faastjs.localoptions.md)<!-- -->. |
+<table><thead><tr><th>
 
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+fmodule
+
+
+</td><td>
+
+M
+
+
+</td><td>
+
+A module imported with `import * as X from "Y";`<!-- -->. Using `require` also works but loses type information.
+
+
+</td></tr>
+<tr><td>
+
+options
+
+
+</td><td>
+
+[LocalOptions](./faastjs.localoptions.md)
+
+
+</td><td>
+
+_(Optional)_ Most common options are in [CommonOptions](./faastjs.commonoptions.md)<!-- -->. Additional Local-specific options are in [LocalOptions](./faastjs.localoptions.md)<!-- -->.
+
+
+</td></tr>
+</tbody></table>
 **Returns:**
 
 Promise&lt;[LocalFaastModule](./faastjs.localfaastmodule.md)<!-- -->&lt;M&gt;&gt;

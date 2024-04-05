@@ -19,25 +19,242 @@ export declare class Statistics
 
 ## Constructors
 
-|  Constructor | Modifiers | Description |
-|  --- | --- | --- |
-|  [(constructor)(printFixedPrecision)](./faastjs.statistics._constructor_.md) |  | Incrementally track mean, stdev, min, max, of a sequence of values. |
+<table><thead><tr><th>
+
+Constructor
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[(constructor)(printFixedPrecision)](./faastjs.statistics._constructor_.md)
+
+
+</td><td>
+
+
+</td><td>
+
+Incrementally track mean, stdev, min, max, of a sequence of values.
+
+
+</td></tr>
+</tbody></table>
 
 ## Properties
 
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [max](./faastjs.statistics.max.md) |  | number | The maximum value observed. Initialized to <code>Number.NEGATIVE_INFINITY</code>. |
-|  [mean](./faastjs.statistics.mean.md) |  | number | The mean (average) of the values observed. |
-|  [min](./faastjs.statistics.min.md) |  | number | The minimum value observed. Initialized to <code>Number.POSITIVE_INFINITY</code>. |
-|  [printFixedPrecision](./faastjs.statistics.printfixedprecision.md) | <code>protected</code> | number | The number of decimal places to print in [Statistics.toString()](./faastjs.statistics.tostring.md) |
-|  [samples](./faastjs.statistics.samples.md) |  | number | Number of values observed. |
-|  [stdev](./faastjs.statistics.stdev.md) |  | number | The standard deviation of the values observed. |
-|  [variance](./faastjs.statistics.variance.md) |  | number | The variance of the values observed. |
+<table><thead><tr><th>
+
+Property
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[max](./faastjs.statistics.max.md)
+
+
+</td><td>
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+The maximum value observed. Initialized to `Number.NEGATIVE_INFINITY`<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[mean](./faastjs.statistics.mean.md)
+
+
+</td><td>
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+The mean (average) of the values observed.
+
+
+</td></tr>
+<tr><td>
+
+[min](./faastjs.statistics.min.md)
+
+
+</td><td>
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+The minimum value observed. Initialized to `Number.POSITIVE_INFINITY`<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[printFixedPrecision](./faastjs.statistics.printfixedprecision.md)
+
+
+</td><td>
+
+`protected`
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+The number of decimal places to print in [Statistics.toString()](./faastjs.statistics.tostring.md)
+
+
+</td></tr>
+<tr><td>
+
+[samples](./faastjs.statistics.samples.md)
+
+
+</td><td>
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+Number of values observed.
+
+
+</td></tr>
+<tr><td>
+
+[stdev](./faastjs.statistics.stdev.md)
+
+
+</td><td>
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+The standard deviation of the values observed.
+
+
+</td></tr>
+<tr><td>
+
+[variance](./faastjs.statistics.variance.md)
+
+
+</td><td>
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+The variance of the values observed.
+
+
+</td></tr>
+</tbody></table>
 
 ## Methods
 
-|  Method | Modifiers | Description |
-|  --- | --- | --- |
-|  [toString()](./faastjs.statistics.tostring.md) |  | Print the mean of the observations seen, with the precision specified in the constructor. |
-|  [update(value)](./faastjs.statistics.update.md) |  | Update statistics with a new value in the sequence. |
+<table><thead><tr><th>
+
+Method
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[toString()](./faastjs.statistics.tostring.md)
+
+
+</td><td>
+
+
+</td><td>
+
+Print the mean of the observations seen, with the precision specified in the constructor.
+
+
+</td></tr>
+<tr><td>
+
+[update(value)](./faastjs.statistics.update.md)
+
+
+</td><td>
+
+
+</td><td>
+
+Update statistics with a new value in the sequence.
+
+
+</td></tr>
+</tbody></table>

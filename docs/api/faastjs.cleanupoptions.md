@@ -19,8 +19,82 @@ export interface CleanupOptions
 
 ## Properties
 
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [deleteCaches?](./faastjs.cleanupoptions.deletecaches.md) |  | boolean | _(Optional)_ If true, delete cached resources. Default: false. |
-|  [deleteResources?](./faastjs.cleanupoptions.deleteresources.md) |  | boolean | _(Optional)_ If true, delete provider cloud resources. Default: true. |
-|  [gcTimeout?](./faastjs.cleanupoptions.gctimeout.md) |  | number | _(Optional)_ Number of seconds to wait for garbage collection. Default: 10. |
+<table><thead><tr><th>
+
+Property
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[deleteCaches?](./faastjs.cleanupoptions.deletecaches.md)
+
+
+</td><td>
+
+
+</td><td>
+
+boolean
+
+
+</td><td>
+
+_(Optional)_ If true, delete cached resources. Default: false.
+
+
+</td></tr>
+<tr><td>
+
+[deleteResources?](./faastjs.cleanupoptions.deleteresources.md)
+
+
+</td><td>
+
+
+</td><td>
+
+boolean
+
+
+</td><td>
+
+_(Optional)_ If true, delete provider cloud resources. Default: true.
+
+
+</td></tr>
+<tr><td>
+
+[gcTimeout?](./faastjs.cleanupoptions.gctimeout.md)
+
+
+</td><td>
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+_(Optional)_ Number of seconds to wait for garbage collection. Default: 10.
+
+
+</td></tr>
+</tbody></table>

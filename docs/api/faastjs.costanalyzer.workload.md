@@ -21,14 +21,196 @@ interface Workload<T extends object, A extends string>
 
 ## Properties
 
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [concurrency?](./faastjs.costanalyzer.workload.concurrency.md) |  | number | _(Optional)_ The amount of concurrency to allow. Concurrency can arise from multiple repetitions of the same configuration, or concurrenct executions of different configurations. This concurrency limit throttles the total number of concurrent workload executions across both of these sources of concurrency. Default: 64. |
-|  [configurations?](./faastjs.costanalyzer.workload.configurations.md) |  | [Configuration](./faastjs.costanalyzer.configuration.md)<!-- -->\[\] | _(Optional)_ An array of configurations to run the work function against (see [CostAnalyzer.Configuration](./faastjs.costanalyzer.configuration.md)<!-- -->). For example, each entry in the array may specify a provider, memory size, and other options. Default: [CostAnalyzer.awsConfigurations](./faastjs.costanalyzer.awsconfigurations.md)<!-- -->. |
-|  [format?](./faastjs.costanalyzer.workload.format.md) |  | (attr: A, value: number) =&gt; string | _(Optional)_ Format an attribute value for console output. This is displayed by the cost analyzer when all of the repetitions for a configuration have completed. The default returns <code>${attribute}:${value.toFixed(1)}</code>. |
-|  [formatCSV?](./faastjs.costanalyzer.workload.formatcsv.md) |  | (attr: A, value: number) =&gt; string | _(Optional)_ Format an attribute value for CSV. The default returns <code>value.toFixed(1)</code>. |
-|  [funcs](./faastjs.costanalyzer.workload.funcs.md) |  | T | The imported module that contains the cloud functions to test. |
-|  [repetitions?](./faastjs.costanalyzer.workload.repetitions.md) |  | number | _(Optional)_ The number of repetitions to run the workload for each cost analyzer configuration. Higher repetitions help reduce the jitter in the results. Repetitions execute in the same FaastModule instance. Default: 10. |
-|  [silent?](./faastjs.costanalyzer.workload.silent.md) |  | boolean | _(Optional)_ If true, do not output live results to the console. Can be useful for running the cost analyzer as part of automated tests. Default: false. |
-|  [summarize?](./faastjs.costanalyzer.workload.summarize.md) |  | (summaries: [WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)<!-- -->&lt;A&gt;\[\]) =&gt; [WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)<!-- -->&lt;A&gt; | _(Optional)_ Combine [CostAnalyzer.WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md) instances returned from multiple workload executions (caused by value of [CostAnalyzer.Workload.repetitions](./faastjs.costanalyzer.workload.repetitions.md)<!-- -->). The default is a function that takes the average of each attribute. |
-|  [work](./faastjs.costanalyzer.workload.work.md) |  | (faastModule: [FaastModule](./faastjs.faastmodule.md)<!-- -->&lt;T&gt;) =&gt; Promise&lt;[WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)<!-- -->&lt;A&gt; &#124; void&gt; | A function that executes cloud functions on <code>faastModule.functions.*</code>. The work function should return <code>void</code> if there are no custom workload attributes. Otherwise, it should return a [CostAnalyzer.WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md) object which maps user-defined attribute names to numerical values for the workload. For example, this might measure bandwidth or some other metric not tracked by faast.js, but are relevant for evaluating the cost-performance tradeoff of the configurations analyzed by the cost analyzer. |
+<table><thead><tr><th>
+
+Property
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[concurrency?](./faastjs.costanalyzer.workload.concurrency.md)
+
+
+</td><td>
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+_(Optional)_ The amount of concurrency to allow. Concurrency can arise from multiple repetitions of the same configuration, or concurrenct executions of different configurations. This concurrency limit throttles the total number of concurrent workload executions across both of these sources of concurrency. Default: 64.
+
+
+</td></tr>
+<tr><td>
+
+[configurations?](./faastjs.costanalyzer.workload.configurations.md)
+
+
+</td><td>
+
+
+</td><td>
+
+[Configuration](./faastjs.costanalyzer.configuration.md)<!-- -->\[\]
+
+
+</td><td>
+
+_(Optional)_ An array of configurations to run the work function against (see [CostAnalyzer.Configuration](./faastjs.costanalyzer.configuration.md)<!-- -->). For example, each entry in the array may specify a provider, memory size, and other options. Default: [CostAnalyzer.awsConfigurations](./faastjs.costanalyzer.awsconfigurations.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[format?](./faastjs.costanalyzer.workload.format.md)
+
+
+</td><td>
+
+
+</td><td>
+
+(attr: A, value: number) =&gt; string
+
+
+</td><td>
+
+_(Optional)_ Format an attribute value for console output. This is displayed by the cost analyzer when all of the repetitions for a configuration have completed. The default returns `${attribute}:${value.toFixed(1)}`<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[formatCSV?](./faastjs.costanalyzer.workload.formatcsv.md)
+
+
+</td><td>
+
+
+</td><td>
+
+(attr: A, value: number) =&gt; string
+
+
+</td><td>
+
+_(Optional)_ Format an attribute value for CSV. The default returns `value.toFixed(1)`<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[funcs](./faastjs.costanalyzer.workload.funcs.md)
+
+
+</td><td>
+
+
+</td><td>
+
+T
+
+
+</td><td>
+
+The imported module that contains the cloud functions to test.
+
+
+</td></tr>
+<tr><td>
+
+[repetitions?](./faastjs.costanalyzer.workload.repetitions.md)
+
+
+</td><td>
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+_(Optional)_ The number of repetitions to run the workload for each cost analyzer configuration. Higher repetitions help reduce the jitter in the results. Repetitions execute in the same FaastModule instance. Default: 10.
+
+
+</td></tr>
+<tr><td>
+
+[silent?](./faastjs.costanalyzer.workload.silent.md)
+
+
+</td><td>
+
+
+</td><td>
+
+boolean
+
+
+</td><td>
+
+_(Optional)_ If true, do not output live results to the console. Can be useful for running the cost analyzer as part of automated tests. Default: false.
+
+
+</td></tr>
+<tr><td>
+
+[summarize?](./faastjs.costanalyzer.workload.summarize.md)
+
+
+</td><td>
+
+
+</td><td>
+
+(summaries: [WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)<!-- -->&lt;A&gt;\[\]) =&gt; [WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)<!-- -->&lt;A&gt;
+
+
+</td><td>
+
+_(Optional)_ Combine [CostAnalyzer.WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md) instances returned from multiple workload executions (caused by value of [CostAnalyzer.Workload.repetitions](./faastjs.costanalyzer.workload.repetitions.md)<!-- -->). The default is a function that takes the average of each attribute.
+
+
+</td></tr>
+<tr><td>
+
+[work](./faastjs.costanalyzer.workload.work.md)
+
+
+</td><td>
+
+
+</td><td>
+
+(faastModule: [FaastModule](./faastjs.faastmodule.md)<!-- -->&lt;T&gt;) =&gt; Promise&lt;[WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md)<!-- -->&lt;A&gt; \| void&gt;
+
+
+</td><td>
+
+A function that executes cloud functions on `faastModule.functions.*`<!-- -->. The work function should return `void` if there are no custom workload attributes. Otherwise, it should return a [CostAnalyzer.WorkloadAttribute](./faastjs.costanalyzer.workloadattribute.md) object which maps user-defined attribute names to numerical values for the workload. For example, this might measure bandwidth or some other metric not tracked by faast.js, but are relevant for evaluating the cost-performance tradeoff of the configurations analyzed by the cost analyzer.
+
+
+</td></tr>
+</tbody></table>

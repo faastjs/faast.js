@@ -11,6 +11,28 @@ hide_title: true
 
 ## Packages
 
-|  Package | Description |
-|  --- | --- |
-|  [faastjs](./faastjs.md) | <p>Faast.js transforms ordinary JavaScript modules into serverless cloud functions that can run on AWS Lambda.</p><p>The main entry point to faast.js is the  function, which returns an object that implements the  interface. The most common options are . Using faast.js requires writing two modules, one containing the functions to upload to the cloud, and the other that invokes faast.js and calls the resulting cloud functions.</p> |
+<table><thead><tr><th>
+
+Package
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[faastjs](./faastjs.md)
+
+
+</td><td>
+
+Faast.js transforms ordinary JavaScript modules into serverless cloud functions that can run on AWS Lambda.
+
+The main entry point to faast.js is the  function, which returns an object that implements the  interface. The most common options are . Using faast.js requires writing two modules, one containing the functions to upload to the cloud, and the other that invokes faast.js and calls the resulting cloud functions.
+
+
+</td></tr>
+</tbody></table>

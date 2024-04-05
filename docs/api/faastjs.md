@@ -14,68 +14,468 @@ The main entry point to faast.js is the [faast()](./faastjs.faast.md) function, 
 
 ## Classes
 
-|  Class | Description |
-|  --- | --- |
-|  [CostMetric](./faastjs.costmetric.md) | A line item in the cost estimate, including the resource usage metric measured and its pricing. |
-|  [CostSnapshot](./faastjs.costsnapshot.md) | A summary of the costs incurred by a faast.js module at a point in time. Output of [FaastModule.costSnapshot()](./faastjs.faastmodule.costsnapshot.md)<!-- -->. |
-|  [FaastError](./faastjs.faasterror.md) | FaastError is a subclass of VError (https://github.com/joyent/node-verror). that is thrown by faast.js APIs and cloud function invocations. |
-|  [FaastModuleProxy](./faastjs.faastmoduleproxy.md) | Implementation of [FaastModule](./faastjs.faastmodule.md)<!-- -->. |
-|  [FunctionStats](./faastjs.functionstats.md) | Summary statistics for function invocations. |
-|  [FunctionStatsEvent](./faastjs.functionstatsevent.md) | Summarize statistics about cloud function invocations. |
-|  [PersistentCache](./faastjs.persistentcache.md) | A simple persistent key-value store. Used to implement [Limits.cache](./faastjs.limits.cache.md) for [throttle()](./faastjs.throttle.md)<!-- -->. |
-|  [Statistics](./faastjs.statistics.md) | Incrementally updated statistics on a set of values. |
+<table><thead><tr><th>
+
+Class
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[CostMetric](./faastjs.costmetric.md)
+
+
+</td><td>
+
+A line item in the cost estimate, including the resource usage metric measured and its pricing.
+
+
+</td></tr>
+<tr><td>
+
+[CostSnapshot](./faastjs.costsnapshot.md)
+
+
+</td><td>
+
+A summary of the costs incurred by a faast.js module at a point in time. Output of [FaastModule.costSnapshot()](./faastjs.faastmodule.costsnapshot.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[FaastError](./faastjs.faasterror.md)
+
+
+</td><td>
+
+FaastError is a subclass of VError (https://github.com/joyent/node-verror). that is thrown by faast.js APIs and cloud function invocations.
+
+
+</td></tr>
+<tr><td>
+
+[FaastModuleProxy](./faastjs.faastmoduleproxy.md)
+
+
+</td><td>
+
+Implementation of [FaastModule](./faastjs.faastmodule.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[FunctionStats](./faastjs.functionstats.md)
+
+
+</td><td>
+
+Summary statistics for function invocations.
+
+
+</td></tr>
+<tr><td>
+
+[FunctionStatsEvent](./faastjs.functionstatsevent.md)
+
+
+</td><td>
+
+Summarize statistics about cloud function invocations.
+
+
+</td></tr>
+<tr><td>
+
+[PersistentCache](./faastjs.persistentcache.md)
+
+
+</td><td>
+
+A simple persistent key-value store. Used to implement [Limits.cache](./faastjs.limits.cache.md) for [throttle()](./faastjs.throttle.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[Statistics](./faastjs.statistics.md)
+
+
+</td><td>
+
+Incrementally updated statistics on a set of values.
+
+
+</td></tr>
+</tbody></table>
 
 ## Enumerations
 
-|  Enumeration | Description |
-|  --- | --- |
-|  [FaastErrorNames](./faastjs.faasterrornames.md) | Possible FaastError names. See [FaastError](./faastjs.faasterror.md)<!-- -->. To test for errors matching these names, use the static method [FaastError](./faastjs.faasterror.md)<!-- -->.hasCauseWithName(). |
+<table><thead><tr><th>
+
+Enumeration
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[FaastErrorNames](./faastjs.faasterrornames.md)
+
+
+</td><td>
+
+Possible FaastError names. See [FaastError](./faastjs.faasterror.md)<!-- -->. To test for errors matching these names, use the static method [FaastError](./faastjs.faasterror.md)<!-- -->.hasCauseWithName().
+
+
+</td></tr>
+</tbody></table>
 
 ## Functions
 
-|  Function | Description |
-|  --- | --- |
-|  [faast(provider, fmodule, options)](./faastjs.faast.md) | The main entry point for faast with any provider and only common options. |
-|  [faastAws(fmodule, options)](./faastjs.faastaws.md) | The main entry point for faast with AWS provider. |
-|  [faastLocal(fmodule, options)](./faastjs.faastlocal.md) | The main entry point for faast with Local provider. |
-|  [throttle(limits, fn)](./faastjs.throttle.md) | A decorator for rate limiting, concurrency limiting, retry, memoization, and on-disk caching. See [Limits](./faastjs.limits.md)<!-- -->. |
+<table><thead><tr><th>
+
+Function
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[faast(provider, fmodule, options)](./faastjs.faast.md)
+
+
+</td><td>
+
+The main entry point for faast with any provider and only common options.
+
+
+</td></tr>
+<tr><td>
+
+[faastAws(fmodule, options)](./faastjs.faastaws.md)
+
+
+</td><td>
+
+The main entry point for faast with AWS provider.
+
+
+</td></tr>
+<tr><td>
+
+[faastLocal(fmodule, options)](./faastjs.faastlocal.md)
+
+
+</td><td>
+
+The main entry point for faast with Local provider.
+
+
+</td></tr>
+<tr><td>
+
+[throttle(limits, fn)](./faastjs.throttle.md)
+
+
+</td><td>
+
+A decorator for rate limiting, concurrency limiting, retry, memoization, and on-disk caching. See [Limits](./faastjs.limits.md)<!-- -->.
+
+
+</td></tr>
+</tbody></table>
 
 ## Interfaces
 
-|  Interface | Description |
-|  --- | --- |
-|  [AwsClientFactory](./faastjs.awsclientfactory.md) | Factory for AWS service clients, which allows for custom construction and configuration. [AWS Configuration](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/index.html#configuration)<!-- -->. |
-|  [AwsOptions](./faastjs.awsoptions.md) | AWS-specific options for [faastAws()](./faastjs.faastaws.md)<!-- -->. |
-|  [CleanupOptions](./faastjs.cleanupoptions.md) | Options that apply to the [FaastModule.cleanup()](./faastjs.faastmodule.cleanup.md) method. |
-|  [CommonOptions](./faastjs.commonoptions.md) | Options common across all faast.js providers. Used as argument to [faast()](./faastjs.faast.md)<!-- -->. |
-|  [Detail](./faastjs.detail.md) | A function return value with additional detailed information. |
-|  [FaastModule](./faastjs.faastmodule.md) | The main interface for invoking, cleaning up, and managing faast.js cloud functions. Returned by [faast()](./faastjs.faast.md)<!-- -->. |
-|  [IncludeOption](./faastjs.includeoption.md) | Options for the [CommonOptions.include](./faastjs.commonoptions.include.md) option. |
-|  [Limits](./faastjs.limits.md) | Specify [throttle()](./faastjs.throttle.md) limits. These limits shape the way throttle invokes the underlying function. |
-|  [LocalOptions](./faastjs.localoptions.md) | Local provider options for [faastLocal()](./faastjs.faastlocal.md)<!-- -->. |
+<table><thead><tr><th>
+
+Interface
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[AwsClientFactory](./faastjs.awsclientfactory.md)
+
+
+</td><td>
+
+Factory for AWS service clients, which allows for custom construction and configuration. [AWS Configuration](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/index.html#configuration)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[AwsOptions](./faastjs.awsoptions.md)
+
+
+</td><td>
+
+AWS-specific options for [faastAws()](./faastjs.faastaws.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[CleanupOptions](./faastjs.cleanupoptions.md)
+
+
+</td><td>
+
+Options that apply to the [FaastModule.cleanup()](./faastjs.faastmodule.cleanup.md) method.
+
+
+</td></tr>
+<tr><td>
+
+[CommonOptions](./faastjs.commonoptions.md)
+
+
+</td><td>
+
+Options common across all faast.js providers. Used as argument to [faast()](./faastjs.faast.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[Detail](./faastjs.detail.md)
+
+
+</td><td>
+
+A function return value with additional detailed information.
+
+
+</td></tr>
+<tr><td>
+
+[FaastModule](./faastjs.faastmodule.md)
+
+
+</td><td>
+
+The main interface for invoking, cleaning up, and managing faast.js cloud functions. Returned by [faast()](./faastjs.faast.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[IncludeOption](./faastjs.includeoption.md)
+
+
+</td><td>
+
+Options for the [CommonOptions.include](./faastjs.commonoptions.include.md) option.
+
+
+</td></tr>
+<tr><td>
+
+[Limits](./faastjs.limits.md)
+
+
+</td><td>
+
+Specify [throttle()](./faastjs.throttle.md) limits. These limits shape the way throttle invokes the underlying function.
+
+
+</td></tr>
+<tr><td>
+
+[LocalOptions](./faastjs.localoptions.md)
+
+
+</td><td>
+
+Local provider options for [faastLocal()](./faastjs.faastlocal.md)<!-- -->.
+
+
+</td></tr>
+</tbody></table>
 
 ## Namespaces
 
-|  Namespace | Description |
-|  --- | --- |
-|  [CostAnalyzer](./faastjs.costanalyzer.md) | Analyze the cost of a workload across many provider configurations. |
+<table><thead><tr><th>
+
+Namespace
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[CostAnalyzer](./faastjs.costanalyzer.md)
+
+
+</td><td>
+
+Analyze the cost of a workload across many provider configurations.
+
+
+</td></tr>
+</tbody></table>
 
 ## Variables
 
-|  Variable | Description |
-|  --- | --- |
-|  [log](./faastjs.log.md) | Faast.js loggers. |
-|  [providers](./faastjs.providers.md) | An array of all available provider. |
+<table><thead><tr><th>
+
+Variable
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[log](./faastjs.log.md)
+
+
+</td><td>
+
+Faast.js loggers.
+
+
+</td></tr>
+<tr><td>
+
+[providers](./faastjs.providers.md)
+
+
+</td><td>
+
+An array of all available provider.
+
+
+</td></tr>
+</tbody></table>
 
 ## Type Aliases
 
-|  Type Alias | Description |
-|  --- | --- |
-|  [Async](./faastjs.async.md) | <code>Async&lt;T&gt;</code> maps regular values to Promises and Iterators to AsyncIterators, If <code>T</code> is already a Promise or an AsyncIterator, it remains the same. This type is used to infer the return value of cloud functions from the types of the functions in the user's input module. |
-|  [AsyncDetail](./faastjs.asyncdetail.md) | <code>AsyncDetail&lt;T&gt;</code> is similar to [Async](./faastjs.async.md) except it maps retun values R to <code>Detail&lt;R&gt;</code>, which is the return value with additional information about each cloud function invocation. |
-|  [AwsFaastModule](./faastjs.awsfaastmodule.md) | The return type of [faastAws()](./faastjs.faastaws.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
-|  [AwsRegion](./faastjs.awsregion.md) | Valid AWS [regions](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html)<!-- -->. Not all of these regions have Lambda support. |
-|  [LocalFaastModule](./faastjs.localfaastmodule.md) | The return type of [faastLocal()](./faastjs.faastlocal.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->. |
-|  [Provider](./faastjs.provider.md) | The type of all supported cloud providers. |
-|  [ProxyModule](./faastjs.proxymodule.md) | <code>ProxyModule&lt;M&gt;</code> is the type of [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->. |
-|  [ProxyModuleDetail](./faastjs.proxymoduledetail.md) | Similar to [ProxyModule](./faastjs.proxymodule.md) except each function returns a [Detail](./faastjs.detail.md) object. |
+<table><thead><tr><th>
+
+Type Alias
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[Async](./faastjs.async.md)
+
+
+</td><td>
+
+`Async<T>` maps regular values to Promises and Iterators to AsyncIterators, If `T` is already a Promise or an AsyncIterator, it remains the same. This type is used to infer the return value of cloud functions from the types of the functions in the user's input module.
+
+
+</td></tr>
+<tr><td>
+
+[AsyncDetail](./faastjs.asyncdetail.md)
+
+
+</td><td>
+
+`AsyncDetail<T>` is similar to [Async](./faastjs.async.md) except it maps retun values R to `Detail<R>`<!-- -->, which is the return value with additional information about each cloud function invocation.
+
+
+</td></tr>
+<tr><td>
+
+[AwsFaastModule](./faastjs.awsfaastmodule.md)
+
+
+</td><td>
+
+The return type of [faastAws()](./faastjs.faastaws.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[AwsRegion](./faastjs.awsregion.md)
+
+
+</td><td>
+
+Valid AWS [regions](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html)<!-- -->. Not all of these regions have Lambda support.
+
+
+</td></tr>
+<tr><td>
+
+[LocalFaastModule](./faastjs.localfaastmodule.md)
+
+
+</td><td>
+
+The return type of [faastLocal()](./faastjs.faastlocal.md)<!-- -->. See [FaastModuleProxy](./faastjs.faastmoduleproxy.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[Provider](./faastjs.provider.md)
+
+
+</td><td>
+
+The type of all supported cloud providers.
+
+
+</td></tr>
+<tr><td>
+
+[ProxyModule](./faastjs.proxymodule.md)
+
+
+</td><td>
+
+`ProxyModule<M>` is the type of [FaastModule.functions](./faastjs.faastmodule.functions.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[ProxyModuleDetail](./faastjs.proxymoduledetail.md)
+
+
+</td><td>
+
+Similar to [ProxyModule](./faastjs.proxymodule.md) except each function returns a [Detail](./faastjs.detail.md) object.
+
+
+</td></tr>
+</tbody></table>

@@ -19,10 +19,39 @@ function analyze<T extends object, A extends string>(userWorkload: Workload<T, A
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  userWorkload | [Workload](./faastjs.costanalyzer.workload.md)<!-- -->&lt;T, A&gt; | a [CostAnalyzer.Workload](./faastjs.costanalyzer.workload.md) object specifying the workload to run and additional parameters. |
+<table><thead><tr><th>
 
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+userWorkload
+
+
+</td><td>
+
+[Workload](./faastjs.costanalyzer.workload.md)<!-- -->&lt;T, A&gt;
+
+
+</td><td>
+
+a [CostAnalyzer.Workload](./faastjs.costanalyzer.workload.md) object specifying the workload to run and additional parameters.
+
+
+</td></tr>
+</tbody></table>
 **Returns:**
 
 Promise&lt;[Result](./faastjs.costanalyzer.result.md)<!-- -->&lt;T, A&gt;&gt;

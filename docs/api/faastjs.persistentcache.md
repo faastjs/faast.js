@@ -25,23 +25,198 @@ By default faast.js will use the directory `~/.faastjs` as a local cache to stor
 
 ## Constructors
 
-|  Constructor | Modifiers | Description |
-|  --- | --- | --- |
-|  [(constructor)(dirRelativeToHomeDir, expiration)](./faastjs.persistentcache._constructor_.md) |  | Construct a new persistent cache, typically used with [Limits](./faastjs.limits.md) as part of the arguments to [throttle()](./faastjs.throttle.md)<!-- -->. |
+<table><thead><tr><th>
+
+Constructor
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[(constructor)(dirRelativeToHomeDir, expiration)](./faastjs.persistentcache._constructor_.md)
+
+
+</td><td>
+
+
+</td><td>
+
+Construct a new persistent cache, typically used with [Limits](./faastjs.limits.md) as part of the arguments to [throttle()](./faastjs.throttle.md)<!-- -->.
+
+
+</td></tr>
+</tbody></table>
 
 ## Properties
 
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [dir](./faastjs.persistentcache.dir.md) | <code>readonly</code> | string | The directory on disk where cached values are stored. |
-|  [dirRelativeToHomeDir](./faastjs.persistentcache.dirrelativetohomedir.md) | <code>readonly</code> | string | The directory under the user's home directory that will be used to store cached values. The directory will be created if it doesn't exist. |
-|  [expiration](./faastjs.persistentcache.expiration.md) | <code>readonly</code> | number | The age (in ms) after which a cached entry is invalid. Default: <code>24*3600*1000</code> (1 day). |
+<table><thead><tr><th>
+
+Property
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[dir](./faastjs.persistentcache.dir.md)
+
+
+</td><td>
+
+`readonly`
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+The directory on disk where cached values are stored.
+
+
+</td></tr>
+<tr><td>
+
+[dirRelativeToHomeDir](./faastjs.persistentcache.dirrelativetohomedir.md)
+
+
+</td><td>
+
+`readonly`
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+The directory under the user's home directory that will be used to store cached values. The directory will be created if it doesn't exist.
+
+
+</td></tr>
+<tr><td>
+
+[expiration](./faastjs.persistentcache.expiration.md)
+
+
+</td><td>
+
+`readonly`
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+The age (in ms) after which a cached entry is invalid. Default: `24*3600*1000` (1 day).
+
+
+</td></tr>
+</tbody></table>
 
 ## Methods
 
-|  Method | Modifiers | Description |
-|  --- | --- | --- |
-|  [clear({ leaveEmptyDir })](./faastjs.persistentcache.clear.md) |  | Deletes all cached entries from disk. |
-|  [entries()](./faastjs.persistentcache.entries.md) |  | Retrieve all keys stored in the cache, including expired entries. |
-|  [get(key)](./faastjs.persistentcache.get.md) |  | Retrieves the value previously set for the given key, or undefined if the key is not found. |
-|  [set(key, value)](./faastjs.persistentcache.set.md) |  | Set the cache key to the given value. |
+<table><thead><tr><th>
+
+Method
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[clear({ leaveEmptyDir })](./faastjs.persistentcache.clear.md)
+
+
+</td><td>
+
+
+</td><td>
+
+Deletes all cached entries from disk.
+
+
+</td></tr>
+<tr><td>
+
+[entries()](./faastjs.persistentcache.entries.md)
+
+
+</td><td>
+
+
+</td><td>
+
+Retrieve all keys stored in the cache, including expired entries.
+
+
+</td></tr>
+<tr><td>
+
+[get(key)](./faastjs.persistentcache.get.md)
+
+
+</td><td>
+
+
+</td><td>
+
+Retrieves the value previously set for the given key, or undefined if the key is not found.
+
+
+</td></tr>
+<tr><td>
+
+[set(key, value)](./faastjs.persistentcache.set.md)
+
+
+</td><td>
+
+
+</td><td>
+
+Set the cache key to the given value.
+
+
+</td></tr>
+</tbody></table>

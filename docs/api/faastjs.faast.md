@@ -19,12 +19,71 @@ export declare function faast<M extends object>(provider: Provider, fmodule: M, 
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  provider | [Provider](./faastjs.provider.md) | One of <code>&quot;aws&quot;</code> or <code>&quot;local&quot;</code>. See [Provider](./faastjs.provider.md)<!-- -->. |
-|  fmodule | M | A module imported with <code>import * as X from &quot;Y&quot;;</code>. Using <code>require</code> also works but loses type information. |
-|  options | [CommonOptions](./faastjs.commonoptions.md) | _(Optional)_ See [CommonOptions](./faastjs.commonoptions.md)<!-- -->. |
+<table><thead><tr><th>
 
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+provider
+
+
+</td><td>
+
+[Provider](./faastjs.provider.md)
+
+
+</td><td>
+
+One of `"aws"` or `"local"`<!-- -->. See [Provider](./faastjs.provider.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+fmodule
+
+
+</td><td>
+
+M
+
+
+</td><td>
+
+A module imported with `import * as X from "Y";`<!-- -->. Using `require` also works but loses type information.
+
+
+</td></tr>
+<tr><td>
+
+options
+
+
+</td><td>
+
+[CommonOptions](./faastjs.commonoptions.md)
+
+
+</td><td>
+
+_(Optional)_ See [CommonOptions](./faastjs.commonoptions.md)<!-- -->.
+
+
+</td></tr>
+</tbody></table>
 **Returns:**
 
 Promise&lt;[FaastModule](./faastjs.faastmodule.md)<!-- -->&lt;M&gt;&gt;

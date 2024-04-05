@@ -19,9 +19,101 @@ export interface Detail<R>
 
 ## Properties
 
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [executionId?](./faastjs.detail.executionid.md) |  | string | _(Optional)_ If available, the provider-specific execution identifier for this invocation. |
-|  [instanceId?](./faastjs.detail.instanceid.md) |  | string | _(Optional)_ If available, the provider-specific instance identifier for this invocation. |
-|  [logUrl?](./faastjs.detail.logurl.md) |  | string | _(Optional)_ The URL of the logs for the specific execution of this function call. |
-|  [value](./faastjs.detail.value.md) |  | R | A Promise for the function's return value. |
+<table><thead><tr><th>
+
+Property
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[executionId?](./faastjs.detail.executionid.md)
+
+
+</td><td>
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+_(Optional)_ If available, the provider-specific execution identifier for this invocation.
+
+
+</td></tr>
+<tr><td>
+
+[instanceId?](./faastjs.detail.instanceid.md)
+
+
+</td><td>
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+_(Optional)_ If available, the provider-specific instance identifier for this invocation.
+
+
+</td></tr>
+<tr><td>
+
+[logUrl?](./faastjs.detail.logurl.md)
+
+
+</td><td>
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+_(Optional)_ The URL of the logs for the specific execution of this function call.
+
+
+</td></tr>
+<tr><td>
+
+[value](./faastjs.detail.value.md)
+
+
+</td><td>
+
+
+</td><td>
+
+R
+
+
+</td><td>
+
+A Promise for the function's return value.
+
+
+</td></tr>
+</tbody></table>

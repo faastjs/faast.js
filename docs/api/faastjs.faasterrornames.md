@@ -19,13 +19,148 @@ export declare enum FaastErrorNames
 
 ## Enumeration Members
 
-|  Member | Value | Description |
-|  --- | --- | --- |
-|  ECANCEL | <code>&quot;FaastCancelError&quot;</code> | The function invocation was cancelled by user request. |
-|  ECONCURRENCY | <code>&quot;FaastConcurrencyError&quot;</code> | The remote cloud function failed to execute because of limited concurrency. |
-|  ECREATE | <code>&quot;FaastCreateFunctionError&quot;</code> | Could not create the remote cloud function or supporting infrastructure. |
-|  EEXCEPTION | <code>&quot;UserException&quot;</code> | The exception was thrown by user's remote code, not by faast.js or the cloud provider. |
-|  EGENERIC | <code>&quot;VError&quot;</code> | Generic error. See [FaastError](./faastjs.faasterror.md)<!-- -->. |
-|  EMEMORY | <code>&quot;FaastOutOfMemoryError&quot;</code> | The remote cloud function exceeded memory limits. |
-|  ESERIALIZE | <code>&quot;FaastSerializationError&quot;</code> | The arguments passed to the cloud function could not be serialized without losing information. |
-|  ETIMEOUT | <code>&quot;FaastTimeoutError&quot;</code> | The remote cloud function timed out. |
+<table><thead><tr><th>
+
+Member
+
+
+</th><th>
+
+Value
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+ECANCEL
+
+
+</td><td>
+
+`"FaastCancelError"`
+
+
+</td><td>
+
+The function invocation was cancelled by user request.
+
+
+</td></tr>
+<tr><td>
+
+ECONCURRENCY
+
+
+</td><td>
+
+`"FaastConcurrencyError"`
+
+
+</td><td>
+
+The remote cloud function failed to execute because of limited concurrency.
+
+
+</td></tr>
+<tr><td>
+
+ECREATE
+
+
+</td><td>
+
+`"FaastCreateFunctionError"`
+
+
+</td><td>
+
+Could not create the remote cloud function or supporting infrastructure.
+
+
+</td></tr>
+<tr><td>
+
+EEXCEPTION
+
+
+</td><td>
+
+`"UserException"`
+
+
+</td><td>
+
+The exception was thrown by user's remote code, not by faast.js or the cloud provider.
+
+
+</td></tr>
+<tr><td>
+
+EGENERIC
+
+
+</td><td>
+
+`"VError"`
+
+
+</td><td>
+
+Generic error. See [FaastError](./faastjs.faasterror.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+EMEMORY
+
+
+</td><td>
+
+`"FaastOutOfMemoryError"`
+
+
+</td><td>
+
+The remote cloud function exceeded memory limits.
+
+
+</td></tr>
+<tr><td>
+
+ESERIALIZE
+
+
+</td><td>
+
+`"FaastSerializationError"`
+
+
+</td><td>
+
+The arguments passed to the cloud function could not be serialized without losing information.
+
+
+</td></tr>
+<tr><td>
+
+ETIMEOUT
+
+
+</td><td>
+
+`"FaastTimeoutError"`
+
+
+</td><td>
+
+The remote cloud function timed out.
+
+
+</td></tr>
+</tbody></table>

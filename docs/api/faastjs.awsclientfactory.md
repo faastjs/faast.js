@@ -25,14 +25,198 @@ This is an advanced option. This provides a way for a faast.js client to instant
 
 ## Properties
 
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [createCloudWatchLogs?](./faastjs.awsclientfactory.createcloudwatchlogs.md) |  | () =&gt; CloudWatchLogs | _(Optional)_ |
-|  [createIAM?](./faastjs.awsclientfactory.createiam.md) |  | () =&gt; IAM | _(Optional)_ |
-|  [createLambda?](./faastjs.awsclientfactory.createlambda.md) |  | () =&gt; Lambda | _(Optional)_ |
-|  [createLambdaForInvocations?](./faastjs.awsclientfactory.createlambdaforinvocations.md) |  | () =&gt; Lambda | <p>_(Optional)_ A special AWS Lambda factory for creating lambda functions that are used for faast.js invocations. These special clients have the following options set by default in faast.js:</p><p>// Retries are handled by faast.js, not the sdk. maxAttempts: 0,</p> |
-|  [createPricing?](./faastjs.awsclientfactory.createpricing.md) |  | () =&gt; Pricing | _(Optional)_ |
-|  [createS3?](./faastjs.awsclientfactory.creates3.md) |  | () =&gt; S3 | _(Optional)_ |
-|  [createSNS?](./faastjs.awsclientfactory.createsns.md) |  | () =&gt; SNS | _(Optional)_ |
-|  [createSQS?](./faastjs.awsclientfactory.createsqs.md) |  | () =&gt; SQS | _(Optional)_ |
-|  [createSts?](./faastjs.awsclientfactory.creatests.md) |  | () =&gt; STS | _(Optional)_ |
+<table><thead><tr><th>
+
+Property
+
+
+</th><th>
+
+Modifiers
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[createCloudWatchLogs?](./faastjs.awsclientfactory.createcloudwatchlogs.md)
+
+
+</td><td>
+
+
+</td><td>
+
+() =&gt; CloudWatchLogs
+
+
+</td><td>
+
+_(Optional)_
+
+
+</td></tr>
+<tr><td>
+
+[createIAM?](./faastjs.awsclientfactory.createiam.md)
+
+
+</td><td>
+
+
+</td><td>
+
+() =&gt; IAM
+
+
+</td><td>
+
+_(Optional)_
+
+
+</td></tr>
+<tr><td>
+
+[createLambda?](./faastjs.awsclientfactory.createlambda.md)
+
+
+</td><td>
+
+
+</td><td>
+
+() =&gt; Lambda
+
+
+</td><td>
+
+_(Optional)_
+
+
+</td></tr>
+<tr><td>
+
+[createLambdaForInvocations?](./faastjs.awsclientfactory.createlambdaforinvocations.md)
+
+
+</td><td>
+
+
+</td><td>
+
+() =&gt; Lambda
+
+
+</td><td>
+
+_(Optional)_ A special AWS Lambda factory for creating lambda functions that are used for faast.js invocations. These special clients have the following options set by default in faast.js:
+
+// Retries are handled by faast.js, not the sdk. maxAttempts: 0,
+
+
+</td></tr>
+<tr><td>
+
+[createPricing?](./faastjs.awsclientfactory.createpricing.md)
+
+
+</td><td>
+
+
+</td><td>
+
+() =&gt; Pricing
+
+
+</td><td>
+
+_(Optional)_
+
+
+</td></tr>
+<tr><td>
+
+[createS3?](./faastjs.awsclientfactory.creates3.md)
+
+
+</td><td>
+
+
+</td><td>
+
+() =&gt; S3
+
+
+</td><td>
+
+_(Optional)_
+
+
+</td></tr>
+<tr><td>
+
+[createSNS?](./faastjs.awsclientfactory.createsns.md)
+
+
+</td><td>
+
+
+</td><td>
+
+() =&gt; SNS
+
+
+</td><td>
+
+_(Optional)_
+
+
+</td></tr>
+<tr><td>
+
+[createSQS?](./faastjs.awsclientfactory.createsqs.md)
+
+
+</td><td>
+
+
+</td><td>
+
+() =&gt; SQS
+
+
+</td><td>
+
+_(Optional)_
+
+
+</td></tr>
+<tr><td>
+
+[createSts?](./faastjs.awsclientfactory.creatests.md)
+
+
+</td><td>
+
+
+</td><td>
+
+() =&gt; STS
+
+
+</td><td>
+
+_(Optional)_
+
+
+</td></tr>
+</tbody></table>

@@ -19,11 +19,51 @@ off(name: "stats", listener: (statsEvent: FunctionStatsEvent) => void): void;
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  name | "stats" |  |
-|  listener | (statsEvent: [FunctionStatsEvent](./faastjs.functionstatsevent.md)<!-- -->) =&gt; void |  |
+<table><thead><tr><th>
 
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+name
+
+
+</td><td>
+
+"stats"
+
+
+</td><td>
+
+
+</td></tr>
+<tr><td>
+
+listener
+
+
+</td><td>
+
+(statsEvent: [FunctionStatsEvent](./faastjs.functionstatsevent.md)<!-- -->) =&gt; void
+
+
+</td><td>
+
+
+</td></tr>
+</tbody></table>
 **Returns:**
 
 void
