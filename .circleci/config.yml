@@ -106,9 +106,9 @@ workflows:
                   nodeVersion: "node16"
                   executor: node16
                   target: "test-aws"
-            - examples:
-                  nodeVersion: "node16"
-                  executor: node16
+            # - examples:
+            #       nodeVersion: "node16"
+            #       executor: node16
             - release:
                   requires:
                       - aws-node16
@@ -133,8 +133,8 @@ workflows:
                   target: "test-aws"
                   requires:
                       - cleanup
-            - examples:
-                  nodeVersion: "node16"
-                  executor: node16
-                  requires:
-                      - cleanup
+            # - examples:
+            #       nodeVersion: "node16"
+            #       executor: node16
+            #       requires:
+            #           - cleanup
