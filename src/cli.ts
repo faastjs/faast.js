@@ -6,6 +6,7 @@ import { paginateListRoles } from "@aws-sdk/client-iam";
 import { paginateListFunctions, paginateListLayers } from "@aws-sdk/client-lambda";
 import { paginateListSubscriptions, paginateListTopics } from "@aws-sdk/client-sns";
 import { paginateListQueues } from "@aws-sdk/client-sqs";
+import { paginateListDirectoryBuckets } from "@aws-sdk/client-s3";
 import { Paginator } from "@aws-sdk/types";
 import { program } from "commander";
 import { readdir, remove } from "fs-extra";
@@ -148,17 +149,11 @@ async function cleanupAWS({ region, execute }: CleanupOptions) {
         QueueUrl => sqs.deleteQueue({ QueueUrl })
     );
 
-    async function* listBuckets() {
-        const result = s3.listBuckets({});
-        yield result;
-        return result;
-    }
-
     output(`S3 buckets`);
     await deleteAWSResource(
         "S3 bucket(s)",
         new RegExp(`^faast-${uuidv4Pattern}`),
-        () => listBuckets(),
+        () => paginateListDirectoryBuckets({ client: s3 }, {}),
         page => page.Buckets,
         Bucket => Bucket.Name,
         async Bucket => {

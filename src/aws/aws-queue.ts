@@ -120,7 +120,7 @@ export async function receiveMessages(
                 WaitTimeSeconds: 20,
                 MaxNumberOfMessages,
                 MessageAttributeNames: ["All"],
-                AttributeNames: ["SentTimestamp"]
+                MessageSystemAttributeNames: ["SentTimestamp"]
             },
             { abortSignal: abortController.signal }
         );

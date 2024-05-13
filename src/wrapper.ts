@@ -117,7 +117,7 @@ export class Wrapper {
     protected log: (msg: string) => void;
     protected queue: AsyncIterableQueue<Message>;
     readonly options: Required<WrapperOptions>;
-    protected monitoringTimer?: NodeJS.Timer;
+    protected monitoringTimer?: NodeJS.Timeout;
 
     constructor(fModule: ModuleType, options: WrapperOptions = {}) {
         this.options = { ...WrapperOptionDefaults, ...options };

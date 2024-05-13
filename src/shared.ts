@@ -89,7 +89,7 @@ export class ExponentiallyDecayingAverageValue {
 }
 
 export function sleep(ms: number, cancel = new Promise<void>(() => {})) {
-    let id: NodeJS.Timer;
+    let id: NodeJS.Timeout;
     cancel.then(_ => clearTimeout(id)).catch(_ => clearTimeout(id));
     return Promise.race([new Promise(resolve => (id = setTimeout(resolve, ms))), cancel]);
 }

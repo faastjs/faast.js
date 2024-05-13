@@ -44,13 +44,14 @@ export const providers: Provider[] = ["aws", "local"];
  * the functions in the user's input module.
  * @public
  */
-export type Async<T> = T extends AsyncGenerator<infer R>
-    ? AsyncGenerator<R>
-    : T extends Generator<infer R>
-    ? AsyncGenerator<R>
-    : T extends Promise<infer R>
-    ? Promise<R>
-    : Promise<T>;
+export type Async<T> =
+    T extends AsyncGenerator<infer R>
+        ? AsyncGenerator<R>
+        : T extends Generator<infer R>
+          ? AsyncGenerator<R>
+          : T extends Promise<infer R>
+            ? Promise<R>
+            : Promise<T>;
 
 /**
  * `AsyncDetail<T>` is similar to {@link Async} except it maps retun values R to
@@ -58,13 +59,14 @@ export type Async<T> = T extends AsyncGenerator<infer R>
  * cloud function invocation.
  * @public
  */
-export type AsyncDetail<T> = T extends AsyncGenerator<infer R>
-    ? AsyncGenerator<Detail<R>>
-    : T extends Generator<infer R>
-    ? AsyncGenerator<Detail<R>>
-    : T extends Promise<infer R>
-    ? Promise<Detail<R>>
-    : Promise<Detail<T>>;
+export type AsyncDetail<T> =
+    T extends AsyncGenerator<infer R>
+        ? AsyncGenerator<Detail<R>>
+        : T extends Generator<infer R>
+          ? AsyncGenerator<Detail<R>>
+          : T extends Promise<infer R>
+            ? Promise<Detail<R>>
+            : Promise<Detail<T>>;
 
 /**
  * `ProxyModule<M>` is the type of {@link FaastModule.functions}.
@@ -419,7 +421,7 @@ export class FaastModuleProxy<M extends object, O extends CommonOptions, S>
     private _funnel: Funnel<any>;
     private _rateLimiter?: RateLimiter<any>;
     private _skew = new ExponentiallyDecayingAverageValue(0.3);
-    private _statsTimer?: NodeJS.Timer;
+    private _statsTimer?: NodeJS.Timeout;
     private _cleanupHooks: Set<Deferred> = new Set();
     private _initialInvocationTime = new FactoryMap(() => Date.now());
     private _callResultsPending: Map<CallId, PendingRequest> = new Map();
