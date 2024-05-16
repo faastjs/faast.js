@@ -10,7 +10,6 @@ import { paginateListDirectoryBuckets } from "@aws-sdk/client-s3";
 import { Paginator } from "@aws-sdk/types";
 import { program } from "commander";
 import { readdir, remove } from "fs-extra";
-import ora from "ora";
 import { tmpdir } from "os";
 import path from "path";
 import * as readline from "readline";
@@ -33,6 +32,7 @@ async function deleteResources(
     doRemove: (arg: string) => Promise<any>,
     { concurrency = 10, rate = 5, burst = 5 } = {}
 ) {
+    const ora = (await import("ora")).default;
     if (matchingResources.length > 0) {
         const timeEstimate = (nResources: number) =>
             nResources <= 5 ? "" : `(est: ${(nResources / 5).toFixed(0)}s)`;
