@@ -1,4 +1,4 @@
-import Listr from "listr";
+import { Listr, ListrTaskWrapper, ListrRendererFactory } from "listr2";
 import { inspect } from "util";
 import { faast, FaastModule } from "../index";
 import { AwsOptions } from "./aws/aws-faast";
@@ -642,7 +642,7 @@ export namespace CostAnalyzer {
 
                 return {
                     title: `${provider} ${memorySize}MB ${mode}`,
-                    task: async (_: any, task: Listr.ListrTaskWrapper) => {
+                    task: async (_: any, task: ListrTaskWrapper<any, ListrRendererFactory, ListrRendererFactory>) => {
                         const { costSnapshot, extraMetrics } = await promise;
                         const total = (
                             costSnapshot.total() / workload.repetitions
@@ -660,7 +660,7 @@ export namespace CostAnalyzer {
                     }
                 };
             }),
-            { concurrent: 8, nonTTYRenderer: renderer, renderer }
+            { concurrent: 8, fallbackRenderer: renderer, renderer }
         );
 
         await list.run();
