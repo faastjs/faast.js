@@ -78,7 +78,7 @@
         "uuid": "^10.0.0",
         "verror": "^1.10.1",
         "webpack": "^5.70.0",
-        "webpack-merge": "^5.8.0",
+        "webpack-merge": "^6.0.0",
         "webpack-node-externals": "^3.0.0",
         "yauzl": "^3.0.0"
     },
