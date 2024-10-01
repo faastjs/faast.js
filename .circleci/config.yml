@@ -5,7 +5,7 @@
 version: 2.1
 
 orbs:
-    codecov: codecov/codecov@4.1.0
+    codecov: codecov/codecov@4.2.0
 
 executors:
     node16:
