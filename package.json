@@ -87,7 +87,7 @@
     },
     "devDependencies": {
         "@microsoft/api-documenter": "7.25.21",
-        "@microsoft/api-extractor": "7.47.7",
+        "@microsoft/api-extractor": "7.47.11",
         "@types/archiver": "6.0.3",
         "@types/aws-lambda": "8.10.145",
         "@types/express": "5.0.0",
