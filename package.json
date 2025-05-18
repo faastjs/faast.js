@@ -67,7 +67,7 @@
         "@types/verror": "^1.10.6",
         "@types/webpack": "^5.28.1",
         "archiver": "^7.0.0",
-        "commander": "^13.0.0",
+        "commander": "^14.0.0",
         "debug": "^4.3.1",
         "fs-extra": "^11.0.0",
         "listr2": "^8.2.1",
