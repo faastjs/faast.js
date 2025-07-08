@@ -70,7 +70,7 @@
         "commander": "^14.0.0",
         "debug": "^4.3.1",
         "fs-extra": "^11.0.0",
-        "listr2": "^8.2.1",
+        "listr2": "^9.0.0",
         "memory-fs": "^0.5.0",
         "ora": "^8.0.0",
         "process-doctor": "^1.0.0",
