@@ -108,7 +108,7 @@
         "lolex": "6.0.0",
         "papaparse": "5.5.3",
         "prettier": "3.6.2",
-        "semantic-release": "25.0.0",
+        "semantic-release": "25.0.1",
         "tslint": "6.1.3",
         "tslint-config-prettier": "1.18.0",
         "typescript": "5.9.3",
