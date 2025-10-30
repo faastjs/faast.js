@@ -10,7 +10,7 @@ orbs:
 executors:
     node16:
         docker:
-            - image: cimg/node:23.11.1
+            - image: cimg/node:24.11.0
         working_directory: ~/repo
 
 jobs:
