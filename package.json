@@ -96,7 +96,7 @@
         "@types/lolex": "5.1.6",
         "@types/memory-fs": "0.3.7",
         "@types/node": "24.10.1",
-        "@types/papaparse": "5.5.0",
+        "@types/papaparse": "5.5.1",
         "@types/tar-stream": "3.1.4",
         "@types/uuid": "11.0.0",
         "@types/webpack-node-externals": "3.0.4",
