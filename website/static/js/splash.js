@@ -7,7 +7,7 @@ function animate(hero) {
     for (let child of children) {
         contentWidth = Math.max(child.offsetWidth, contentWidth);
     }
-    const boxSize = 20;
+    const boxSize = 35;
     const minBoxPadding = 10;
     const colWidth = (offsetWidth - contentWidth) / 2;
     const cols = Math.min(10, Math.floor(colWidth / (boxSize + minBoxPadding) - 1));
@@ -45,9 +45,9 @@ function animate(hero) {
                 const box = boxes[col * rows + row];
                 const style = box.style;
                 style.transitionDelay = (rowDelay / 1000) * (rows - row) + "s";
-                style.backgroundColor = randomColor();
+                style.backgroundColor = "rgba(255,255,255,.15)";
                 setTimeout(() => {
-                    style.border = "2px solid var(--brand-color)";
+                    style.border = `2px solid ${randomColor()}`;
                 }, Math.random() * maxBorderTimeout + rowDelay * rows);
             }
         }
@@ -60,21 +60,20 @@ function animate(hero) {
         boxes.forEach(box => {
             const style = box.style;
             const delay = (Math.random() * collapseSpeed) / 1000;
-            style.backgroundColor = "var(--dark-bg-color)";
-            style.border = "1px solid var(--splash-bg-color)";
+            style.backgroundColor = "rgba(255,255,255,.15)";
             style.transitionDelay = delay + "s";
         });
     }
 
     function randomColor() {
         const n = Math.random();
-        if (n < 0.05) {
-            return "#F0C808";
+        if (n < 0.1) {
+            return "var(--brand-color)";
         }
-        if (n < 0.2) {
-            return "#2196F3";
+        if (n < 0.3) {
+            return "#ECECEC";
         }
-        return "#003FBB";
+        return "rgba(255,255,255,.15)";
     }
 
     const leftBoxes = makeBoxes("left");
