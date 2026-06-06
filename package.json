@@ -100,7 +100,7 @@
         "@types/tar-stream": "3.1.4",
         "@types/uuid": "11.0.0",
         "@types/webpack-node-externals": "3.0.4",
-        "@types/yauzl": "2.10.3",
+        "@types/yauzl": "3.3.0",
         "ava": "8.0.1",
         "c8": "^11.0.0",
         "commitizen": "4.3.1",
