@@ -103,7 +103,7 @@
         "@types/yauzl": "3.3.0",
         "ava": "8.0.1",
         "c8": "^11.0.0",
-        "commitizen": "4.3.1",
+        "commitizen": "4.3.2",
         "cz-conventional-changelog": "3.3.0",
         "lolex": "6.0.0",
         "papaparse": "5.5.3",
