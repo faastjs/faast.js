@@ -106,7 +106,7 @@
         "commitizen": "4.3.2",
         "cz-conventional-changelog": "3.3.0",
         "lolex": "6.0.0",
-        "papaparse": "5.5.3",
+        "papaparse": "5.5.4",
         "prettier": "3.8.4",
         "semantic-release": "25.0.5",
         "tslint": "6.1.3",
