@@ -101,7 +101,7 @@
         "@types/uuid": "11.0.0",
         "@types/webpack-node-externals": "3.0.4",
         "@types/yauzl": "3.4.0",
-        "ava": "8.1.0",
+        "ava": "8.1.1",
         "c8": "^12.0.0",
         "commitizen": "4.3.2",
         "cz-conventional-changelog": "3.3.0",
