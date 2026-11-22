@@ -4,7 +4,7 @@
     --dark-bg-color: #011627;
     --light-font-color: white;
     --brand-color: #2196f3;
-    --splash-font-color: #eee;
+    --splash-font-color: #011627;
     --splash-bg-color: rgb(0, 20, 40);
 }
 
@@ -52,12 +52,22 @@ code.hljs {
     padding-top: 0;
 }
 
+.mainContainer .feature {
+    padding: 40px 0px;
+}
+
+.mainContainer .feature:nth-child(odd) {
+    background: #f3f5f7;
+    border-top: solid 1px #e6eaee;
+    border-bottom: solid 1px #e6eaee;
+}
+
 .blockImage > img {
     width: 70%;
 }
 
 .homeContainer {
-    background-color: var(--splash-bg-color);
+    background-color: var(--dark-bg-color);
     padding-top: 5%;
     padding-bottom: 5%;
 }
@@ -67,18 +77,17 @@ code.hljs {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--brand-color);
-    padding: 60px 10px;
-    border-radius: 20px;
-    max-width: 80%;
+    padding: 60px 20px;
+    max-width: 100%;
     position: relative;
 }
 
 .heroWrapper .button {
-    margin: 10px 10px;
-    color: var(--splash-font-color);
-    background-color: var(--splash-bg-color);
-    width: 10em;
+    margin: 12px 15px;
+    color: #fff;
+    font-size: .8em;
+    background-color: var(--brand-color);
+    width: 8em;
 }
 
 .heroWrapper .button:hover {
@@ -86,9 +95,9 @@ code.hljs {
 }
 
 .box {
-    width: 20px;
-    height: 20px;
-    border-radius: 8px;
+    width: 35px;
+    height: 35px;
+    border-radius: 4px;
     position: absolute;
     transition: 0.5s all;
 }
@@ -108,7 +117,10 @@ header img.logo {
 }
 
 .projectTitle {
-    color: var(--splash-font-color);
+    color: rgba(255,255,255,.85);
+    font-weight: bold;
+    margin-bottom: 45px;
+    max-width: 700px;
 }
 
 #features h1 {
@@ -216,9 +228,6 @@ img.prefix {
     .homeContainer {
         padding-top: 25%;
         padding-bottom: 25%;
-    }
-    .feature {
-        padding-top: 40px;
     }
 }
 
